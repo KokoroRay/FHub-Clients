@@ -1,0 +1,135 @@
+# ==========================================
+# FHub Clients Gitignore Configuration
+# Frontend (ReactTS) & Mobile (React Native TS - Expo/Bare)
+# ==========================================
+
+# ------------------------------------------
+# OS and System Files
+# ------------------------------------------
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ------------------------------------------
+# IDEs and Code Editors
+# ------------------------------------------
+.idea/
+.vscode/
+!.vscode/extensions.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/settings.json
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.workspace
+
+# ------------------------------------------
+# Logs and Diagnostics
+# ------------------------------------------
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ------------------------------------------
+# Node / JavaScript / TypeScript General
+# ------------------------------------------
+node_modules/
+jspm_packages/
+web_modules/
+.npm/
+.eslintcache
+*.tsbuildinfo
+
+# ------------------------------------------
+# Build and Output directories
+# ------------------------------------------
+dist/
+dist-ssr/
+build/
+out/
+web-build/
+target/
+
+# ------------------------------------------
+# React Native / Expo Specifics
+# ------------------------------------------
+# Expo-specific files
+.expo/
+.expo-shared/
+.metro-health-check*
+
+# Android-specific build and outputs
+**/android/build/
+**/android/app/build/
+**/android/.gradle/
+*.apk
+*.aar
+*.ap_
+*.aab
+*.dex
+*.class
+
+# iOS-specific build and outputs
+**/ios/build/
+**/ios/DerivedData/
+*.xcworkspace
+*.xcodeproj
+*.app
+*.ipa
+*.dSYM
+
+# React Native local properties / pods
+**/android/local.properties
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Podfile.lock
+
+# If using Expo Prebuild (ignoring generated native folders completely)
+# Uncomment the following two lines if native folders are generated purely via 'npx expo prebuild'
+# /apps/mobile/ios/
+# /apps/mobile/android/
+
+# ------------------------------------------
+# Credentials, Certificates, Keys & Secrets (CRITICAL)
+# ------------------------------------------
+# Mobile signing files
+*.jks
+*.keystore
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.pem
+*.der
+*.crt
+*.cert
+
+# Local environment variables
+.env
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+!.env.example
+!.env.template
+
+# ------------------------------------------
+# Fastlane (Mobile CD)
+# ------------------------------------------
+**/fastlane/report.xml
+**/fastlane/Preview.html
+**/fastlane/screenshots/**/*.png
+**/fastlane/test_output/
