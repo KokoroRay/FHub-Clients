@@ -2,8 +2,10 @@ import React from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { MainLayout } from '../layouts/MainLayout';
 import { AdminLayout } from '../layouts/AdminLayout';
+import { AdminSubdomainLayout } from '../layouts/AdminSubdomainLayout';
 import { AuthLayout } from '../layouts/AuthLayout';
 import { ProtectedRoute } from './ProtectedRoute';
+import { isAdminSubdomain } from '../utils/subdomain';
 
 // Feed & Academic Pages
 import { FeedPage } from '../features/feed/FeedPage';
@@ -33,7 +35,26 @@ import { ModeratorToolsPage } from '../features/moderator/ModeratorToolsPage';
 import { OfficialBroadcastsPage } from '../features/moderator/OfficialBroadcastsPage';
 import { AlumniKarmaPage } from '../features/moderator/AlumniKarmaPage';
 
-// Admin & Staff Governance
+// Admin Subdomain Core Pages (Figma Mapped)
+import {
+  AdminDashboardPage,
+  UserManagementPage,
+  UserDetailPage,
+  SupportTicketsAdminPage,
+  CampusesPage,
+  CampusDetailPage,
+  MajorsPage,
+  MajorDetailPage,
+  CourseNodesAdminPage,
+  CourseNodeDetailPage,
+  ReputationRulesPage,
+  AchievementBadgesPage,
+  AuditLogsPage,
+  AuditLogDetailPage,
+  SystemHealthAdminPage,
+} from '../features/admin/pages';
+
+// Admin & Staff Governance (Legacy / Domain Portal)
 import { CampusManagementPage } from '../features/admin/CampusManagementPage';
 import { MajorManagementPage } from '../features/admin/MajorManagementPage';
 import { CourseNodeManagementPage } from '../features/admin/CourseNodeManagementPage';
@@ -52,7 +73,57 @@ import { LoginPage } from '../features/auth/LoginPage';
 import { RegisterPage } from '../features/auth/RegisterPage';
 import { ForgotPasswordPage } from '../features/auth/ForgotPasswordPage';
 
-export const router = createBrowserRouter([
+/**
+ * Subdomain Routes Definition (admin.fhub.edu.vn / admin.localhost)
+ * Clean URLs mapped directly to root:
+ * - / -> AdminDashboardPage (Figma 55:2)
+ * - /users -> UserManagementPage (Figma 55:4074)
+ * - /users/:id -> UserDetailPage (Figma 55:3199)
+ * - /tickets -> SupportTicketsAdminPage (Figma 56:4833)
+ * - /campuses -> CampusesPage (Figma 57:6972)
+ * - /campuses/:code -> CampusDetailPage (Figma 58:8220)
+ * - /majors -> MajorsPage (Figma 59:9018)
+ * - /majors/:code -> MajorDetailPage (Figma 59:9908)
+ * - /course-nodes -> CourseNodesAdminPage (Figma 61:10719)
+ * - /course-nodes/:code -> CourseNodeDetailPage (Figma 62:11573)
+ * - /reputation -> ReputationRulesPage (Figma 56:5629)
+ * - /badges -> AchievementBadgesPage (Figma 57:6275)
+ * - /audit-logs -> AuditLogsPage (Figma 64:12427)
+ * - /audit-logs/:id -> AuditLogDetailPage (Figma 65:13172)
+ * - /health -> SystemHealthAdminPage
+ */
+const getSubdomainRoutes = () => [
+  {
+    path: '/',
+    element: <AdminSubdomainLayout />,
+    children: [
+      { index: true, element: <AdminDashboardPage /> },
+      { path: 'users', element: <UserManagementPage /> },
+      { path: 'users/:id', element: <UserDetailPage /> },
+      { path: 'tickets', element: <SupportTicketsAdminPage /> },
+      { path: 'campuses', element: <CampusesPage /> },
+      { path: 'campuses/:code', element: <CampusDetailPage /> },
+      { path: 'majors', element: <MajorsPage /> },
+      { path: 'majors/:code', element: <MajorDetailPage /> },
+      { path: 'course-nodes', element: <CourseNodesAdminPage /> },
+      { path: 'course-nodes/:code', element: <CourseNodeDetailPage /> },
+      { path: 'reputation', element: <ReputationRulesPage /> },
+      { path: 'badges', element: <AchievementBadgesPage /> },
+      { path: 'audit-logs', element: <AuditLogsPage /> },
+      { path: 'audit-logs/:id', element: <AuditLogDetailPage /> },
+      { path: 'health', element: <SystemHealthAdminPage /> },
+    ],
+  },
+  {
+    path: '*',
+    element: <Navigate to="/" replace />,
+  },
+];
+
+/**
+ * Main Portal Routes Definition (fhub.edu.vn / localhost)
+ */
+const getMainPortalRoutes = () => [
   // Main Academic Hub & Student Portal
   {
     path: '/',
@@ -83,7 +154,30 @@ export const router = createBrowserRouter([
     ],
   },
 
-  // Admin & Staff Governance Layout
+  // Admin Subdomain Direct Preview from Main Domain (e.g. /admin-console/*)
+  {
+    path: '/admin-console',
+    element: <AdminSubdomainLayout />,
+    children: [
+      { index: true, element: <AdminDashboardPage /> },
+      { path: 'users', element: <UserManagementPage /> },
+      { path: 'users/:id', element: <UserDetailPage /> },
+      { path: 'tickets', element: <SupportTicketsAdminPage /> },
+      { path: 'campuses', element: <CampusesPage /> },
+      { path: 'campuses/:code', element: <CampusDetailPage /> },
+      { path: 'majors', element: <MajorsPage /> },
+      { path: 'majors/:code', element: <MajorDetailPage /> },
+      { path: 'course-nodes', element: <CourseNodesAdminPage /> },
+      { path: 'course-nodes/:code', element: <CourseNodeDetailPage /> },
+      { path: 'reputation', element: <ReputationRulesPage /> },
+      { path: 'badges', element: <AchievementBadgesPage /> },
+      { path: 'audit-logs', element: <AuditLogsPage /> },
+      { path: 'audit-logs/:id', element: <AuditLogDetailPage /> },
+      { path: 'health', element: <SystemHealthAdminPage /> },
+    ],
+  },
+
+  // Admin & Staff Governance Layout (Legacy compatibility)
   {
     path: '/',
     element: <AdminLayout />,
@@ -119,4 +213,8 @@ export const router = createBrowserRouter([
     path: '*',
     element: <Navigate to="/" replace />,
   },
-]);
+];
+
+export const router = createBrowserRouter(
+  isAdminSubdomain() ? getSubdomainRoutes() : getMainPortalRoutes()
+);

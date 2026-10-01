@@ -40,7 +40,7 @@ export interface User {
   githubUrl?: string;
   linkedinUrl?: string;
   karma: number;
-  status: 'ACTIVE' | 'MUTED' | 'SUSPENDED' | 'UNVERIFIED';
+  status: 'ACTIVE' | 'MUTED' | 'SUSPENDED' | 'UNVERIFIED' | 'PENDING_VERIFICATION';
   verifiedAt?: string;
   badges: BadgeItem[];
 }

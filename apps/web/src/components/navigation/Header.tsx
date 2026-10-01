@@ -24,6 +24,7 @@ import { mockCampuses, mockNotifications } from '../../services/mockData';
 import { Dropdown } from '../common/Dropdown';
 import { Button } from '../common/Button';
 import { Badge } from '../common/Badge';
+import { setSubdomainMode } from '../../utils/subdomain';
 
 export const Header: React.FC = () => {
   const { currentUser, currentCampus, setCurrentCampus, currentRole, switchRole, logout } = useAuth();
@@ -85,6 +86,12 @@ export const Header: React.FC = () => {
       label: 'Cài đặt tài khoản',
       icon: <Settings className="w-4 h-4" />,
       onClick: () => navigate('/settings'),
+    },
+    {
+      id: 'admin-subdomain',
+      label: 'Admin Console (Subdomain)',
+      icon: <Shield className="w-4 h-4 text-[#005da7]" />,
+      onClick: () => setSubdomainMode('admin'),
     },
     ...(currentRole === 'Admin' || currentRole === 'Staff'
       ? [
@@ -196,6 +203,16 @@ export const Header: React.FC = () => {
               onClick: () => switchRole(r),
             }))}
           />
+
+          {/* Admin Subdomain Console Pill */}
+          <button
+            onClick={() => setSubdomainMode('admin')}
+            className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-extrabold rounded-lg bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 hover:bg-rose-100 transition-all cursor-pointer shadow-2xs"
+            title="Mở Admin Subdomain Console (admin.fhub.edu.vn)"
+          >
+            <Shield className="w-3 h-3 text-rose-600" />
+            <span>Admin Console</span>
+          </button>
 
           {currentUser ? (
             <>
