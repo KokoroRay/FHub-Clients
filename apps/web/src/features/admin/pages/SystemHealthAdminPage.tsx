@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Activity,
   Server,
@@ -11,146 +11,201 @@ import {
   SlidersHorizontal,
   Sliders,
   ShieldCheck,
+  Loader2,
 } from 'lucide-react';
-import { mockHealthStatuses } from '../../../services/mockData';
-import { mockAISensitivityConfig, AISensitivityConfig } from '../../../services/adminMockData';
+import { AISensitivityConfig } from '../../../services/adminMockData';
+import { useSystemHealthStatus } from '../../../services/api';
+
+const defaultAiConfig: AISensitivityConfig = {
+  toxicityThreshold: 0.75,
+  hateSpeechThreshold: 0.65,
+  spamThreshold: 0.80,
+  sexualContentThreshold: 0.70,
+  academicDishonestyThreshold: 0.70,
+  autoQuarantineAction: 'FLAG_FOR_REVIEW',
+  realtimeScanEnabled: true,
+  aiSummarizerModel: 'Vertex AI Gemini 1.5 Pro',
+};
 
 export const SystemHealthAdminPage: React.FC = () => {
-  const [healthList, setHealthList] = useState(mockHealthStatuses);
-  const [aiConfig, setAiConfig] = useState<AISensitivityConfig>(mockAISensitivityConfig);
+  const { data: healthData, isLoading, refetch } = useSystemHealthStatus();
+  const [aiConfig, setAiConfig] = useState<AISensitivityConfig>(defaultAiConfig);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
 
-  const handleRefreshHealth = () => {
+  const healthList = (healthData || []).map((h: any) => ({
+    serviceName: h.name,
+    status: h.status as 'HEALTHY' | 'DEGRADED' | 'DOWN' | 'OFFLINE',
+    latencyMs: h.latencyMs ?? 0,
+    uptimePercentage: parseFloat(String(h.uptime || '0').replace('%', '')) || 0,
+    lastChecked: 'Live Telemetry (Polling)',
+  }));
+
+  const healthyCount = healthList.filter((s) => s.status === 'HEALTHY').length;
+  const avgLatency = healthList.length > 0
+    ? Math.round(healthList.reduce((acc, s) => acc + s.latencyMs, 0) / healthList.length)
+    : 0;
+  const avgUptime = healthList.length > 0
+    ? (healthList.reduce((acc, s) => acc + s.uptimePercentage, 0) / healthList.length).toFixed(2)
+    : '0.00';
+
+  const handleRefreshHealth = async () => {
     setIsRefreshing(true);
-    setTimeout(() => {
-      setIsRefreshing(false);
-      setSaveNotice('Đã cập nhật chỉ số SLA & Health Telemetry toàn bộ 7 Microservices');
-      setTimeout(() => setSaveNotice(null), 3000);
-    }, 600);
+    await refetch();
+    setIsRefreshing(false);
+    setSaveNotice('Updated SLA telemetry across all 7 microservices.');
+    setTimeout(() => setSaveNotice(null), 3000);
   };
 
   const handleSaveAiConfig = (e: React.FormEvent) => {
     e.preventDefault();
-    setSaveNotice('Đã đồng bộ ngưỡng nhạy cảm AI Content Moderation Engine lên Vertex AI');
+    setSaveNotice('Synchronized AI content moderation sensitivity thresholds with Vertex AI.');
     setTimeout(() => setSaveNotice(null), 3500);
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">DevOps & Telemetry</span>
+          <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+            <span>DEVOPS & TELEMETRY</span>
+            <span>&gt;</span>
+            <span className="text-blue-600">SLA & AI MODERATION HEALTH</span>
           </div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-            Microservices SLA & AI Moderation Health
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+            Microservices SLA & AI Moderation
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Giám sát độ trễ, SLA 99.9% của 7 microservices và tinh chỉnh ngưỡng kiểm duyệt AI theo thời gian thực.
+          <p className="text-xs text-slate-500 mt-0.5">
+            Realtime SLA monitoring, p95 latencies across 7 core services, and AI sensitivity threshold configuration.
           </p>
         </div>
 
         <button
           onClick={handleRefreshHealth}
           disabled={isRefreshing}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#005da7] hover:bg-[#004a87] text-white text-xs font-bold transition-all cursor-pointer shadow-sm"
+          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition-colors cursor-pointer shadow-xs"
         >
-          <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
           <span>{isRefreshing ? 'Pinging...' : 'Ping Telemetry'}</span>
         </button>
       </div>
 
       {saveNotice && (
-        <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs text-emerald-800 dark:text-emerald-300 flex items-center gap-2 animate-fadeIn">
+        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center gap-2 animate-fadeIn">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
           <span>{saveNotice}</span>
         </div>
       )}
 
       {/* Cluster Overview Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
-          <span className="text-[11px] font-semibold text-slate-500">Overall Uptime SLA</span>
-          <p className="text-2xl font-black text-emerald-600 mt-1">99.98%</p>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+        <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">OVERALL UPTIME SLA</span>
+          <p className="text-2xl font-bold text-emerald-600 mt-1">{avgUptime}%</p>
         </div>
-        <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
-          <span className="text-[11px] font-semibold text-slate-500">Avg p95 Latency</span>
-          <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">22 ms</p>
+        <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">AVG P95 LATENCY</span>
+          <p className="text-2xl font-bold text-slate-900 mt-1">{avgLatency} ms</p>
         </div>
-        <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
-          <span className="text-[11px] font-semibold text-slate-500">Redis Cache Hit Rate</span>
-          <p className="text-2xl font-black text-[#005da7] mt-1">98.4%</p>
+        <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">REDIS CACHE HIT</span>
+          <p className="text-2xl font-bold text-blue-600 mt-1">98.4%</p>
         </div>
-        <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
-          <span className="text-[11px] font-semibold text-slate-500">DB Connection Pool</span>
-          <p className="text-2xl font-black text-indigo-600 mt-1">48 / 100</p>
+        <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">POSTGRES HEALTH</span>
+          <p className="text-2xl font-bold text-slate-900 mt-1">ONLINE</p>
         </div>
       </div>
 
       {/* 7 Microservices SLA Status Table */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-xs space-y-4">
+      <div className="bg-white rounded-xl border border-slate-200/90 p-5 shadow-2xs space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Server className="w-5 h-5 text-[#005da7]" />
-            <h2 className="font-bold text-sm text-slate-900 dark:text-white">Microservice Cluster Health</h2>
+            <Server className="w-4 h-4 text-blue-600" />
+            <h2 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Microservice Cluster Health</h2>
           </div>
-          <span className="text-[11px] font-mono text-emerald-600 font-bold">ALL 7 CLUSTERS HEALTHY</span>
+          <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
+            healthyCount === (healthList.length || 7) && healthyCount > 0
+              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+              : 'bg-amber-50 text-amber-700 border-amber-200'
+          }`}>
+            {healthyCount} / {healthList.length || 7} SERVICES HEALTHY
+          </span>
         </div>
 
-        <div className="divide-y divide-slate-100 dark:divide-slate-800">
-          {healthList.map((srv) => (
-            <div key={srv.serviceName} className="py-3.5 flex items-center justify-between gap-4 text-xs">
-              <div className="flex items-center gap-3">
-                <span className="w-3 h-3 rounded-full bg-emerald-500 ring-4 ring-emerald-50 dark:ring-emerald-950/40" />
-                <div>
-                  <span className="font-bold text-slate-900 dark:text-white">{srv.serviceName}</span>
-                  <div className="text-[10px] text-slate-400">Checked: {srv.lastChecked}</div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-6">
-                <div className="text-right">
-                  <span className="text-[11px] text-slate-400 block">Uptime:</span>
-                  <span className="font-mono font-bold text-emerald-600">{srv.uptimePercentage}%</span>
-                </div>
-                <div className="text-right">
-                  <span className="text-[11px] text-slate-400 block">Latency:</span>
-                  <span className="font-mono font-bold text-slate-900 dark:text-white">{srv.latencyMs} ms</span>
-                </div>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border border-emerald-200">
-                  {srv.status}
-                </span>
-              </div>
+        <div className="divide-y divide-slate-100 text-xs">
+          {isLoading && healthList.length === 0 ? (
+            <div className="py-8 text-center text-slate-400">
+              <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-blue-600" />
+              <span>Probing cluster SLA endpoints across all microservices...</span>
             </div>
-          ))}
+          ) : (
+            healthList.map((srv) => {
+              const isHealthy = srv.status === 'HEALTHY';
+              const isDegraded = srv.status === 'DEGRADED';
+              return (
+                <div key={srv.serviceName} className="py-3 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2.5">
+                    <span className={`w-2 h-2 rounded-full ${
+                      isHealthy ? 'bg-emerald-500' : isDegraded ? 'bg-amber-500' : 'bg-rose-500'
+                    }`} />
+                    <div>
+                      <span className="font-semibold text-slate-800">{srv.serviceName}</span>
+                      <div className="text-[10px] text-slate-400">Checked: {srv.lastChecked}</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-6">
+                    <div className="text-right">
+                      <span className="text-[10px] text-slate-400 block">Uptime:</span>
+                      <span className={`font-mono font-bold ${isHealthy ? 'text-emerald-600' : 'text-amber-600'}`}>
+                        {srv.uptimePercentage}%
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] text-slate-400 block">Latency:</span>
+                      <span className="font-mono font-bold text-slate-800">{srv.latencyMs} ms</span>
+                    </div>
+                    <span className={`px-2 py-0.2 rounded-full text-[10px] font-bold border ${
+                      isHealthy
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : isDegraded
+                        ? 'bg-amber-50 text-amber-700 border-amber-200'
+                        : 'bg-rose-50 text-rose-700 border-rose-200'
+                    }`}>
+                      {srv.status}
+                    </span>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
 
       {/* AI Moderation Engine Sensitivity Threshold Controls */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-xs space-y-6">
-        <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+      <div className="bg-white rounded-xl border border-slate-200/90 p-5 shadow-2xs space-y-5">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-indigo-600" />
+            <Sparkles className="w-4 h-4 text-blue-600" />
             <div>
-              <h2 className="font-bold text-sm text-slate-900 dark:text-white">AI Content Moderation Sensitivity Thresholds</h2>
-              <p className="text-xs text-slate-400">Cấu hình mô hình Vertex AI Gemini 1.5 Pro quét nội dung tự động</p>
+              <h2 className="font-bold text-xs text-slate-900 uppercase tracking-wider">AI Content Moderation Sensitivity Thresholds</h2>
+              <p className="text-[11px] text-slate-400">Configure Vertex AI Gemini 1.5 Pro automated scan limits</p>
             </div>
           </div>
 
-          <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 border border-indigo-200">
+          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
             Realtime Scan: ON
           </span>
         </div>
 
-        <form onSubmit={handleSaveAiConfig} className="space-y-5">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Toxicity Threshold */}
-            <div className="space-y-2 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl">
+        <form onSubmit={handleSaveAiConfig} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5 p-3.5 bg-slate-50 rounded-lg">
               <div className="flex justify-between text-xs">
-                <label className="font-bold text-slate-800 dark:text-slate-200">Độc hại / Xúc phạm (Toxicity):</label>
-                <span className="font-mono font-bold text-[#005da7]">{(aiConfig.toxicityThreshold * 100).toFixed(0)}%</span>
+                <label className="font-semibold text-slate-800">Toxicity Threshold:</label>
+                <span className="font-mono font-bold text-blue-600">{(aiConfig.toxicityThreshold * 100).toFixed(0)}%</span>
               </div>
               <input
                 type="range"
@@ -159,16 +214,15 @@ export const SystemHealthAdminPage: React.FC = () => {
                 step="0.05"
                 value={aiConfig.toxicityThreshold}
                 onChange={(e) => setAiConfig({ ...aiConfig, toxicityThreshold: parseFloat(e.target.value) })}
-                className="w-full accent-[#005da7]"
+                className="w-full accent-blue-600"
               />
-              <span className="text-[10px] text-slate-400 block">Nếu vượt quá ngưỡng này sẽ tự động gắn cờ kiểm duyệt.</span>
+              <span className="text-[10px] text-slate-400 block">Flag content when toxic sentiment exceeds limit.</span>
             </div>
 
-            {/* Hate Speech */}
-            <div className="space-y-2 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl">
+            <div className="space-y-1.5 p-3.5 bg-slate-50 rounded-lg">
               <div className="flex justify-between text-xs">
-                <label className="font-bold text-slate-800 dark:text-slate-200">Thù địch / Công kích cá nhân (Hate Speech):</label>
-                <span className="font-mono font-bold text-[#005da7]">{(aiConfig.hateSpeechThreshold * 100).toFixed(0)}%</span>
+                <label className="font-semibold text-slate-800">Hate Speech Limit:</label>
+                <span className="font-mono font-bold text-blue-600">{(aiConfig.hateSpeechThreshold * 100).toFixed(0)}%</span>
               </div>
               <input
                 type="range"
@@ -177,16 +231,15 @@ export const SystemHealthAdminPage: React.FC = () => {
                 step="0.05"
                 value={aiConfig.hateSpeechThreshold}
                 onChange={(e) => setAiConfig({ ...aiConfig, hateSpeechThreshold: parseFloat(e.target.value) })}
-                className="w-full accent-[#005da7]"
+                className="w-full accent-blue-600"
               />
-              <span className="text-[10px] text-slate-400 block">Ngưỡng lọc ngôn từ gây thù hằn, phân biệt vùng miền.</span>
+              <span className="text-[10px] text-slate-400 block">Automated quarantine for targeted harassment.</span>
             </div>
 
-            {/* Spam Threshold */}
-            <div className="space-y-2 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl">
+            <div className="space-y-1.5 p-3.5 bg-slate-50 rounded-lg">
               <div className="flex justify-between text-xs">
-                <label className="font-bold text-slate-800 dark:text-slate-200">Quảng cáo rác / Spam:</label>
-                <span className="font-mono font-bold text-[#005da7]">{(aiConfig.spamThreshold * 100).toFixed(0)}%</span>
+                <label className="font-semibold text-slate-800">Spam & Commercial Bot Filter:</label>
+                <span className="font-mono font-bold text-blue-600">{(aiConfig.spamThreshold * 100).toFixed(0)}%</span>
               </div>
               <input
                 type="range"
@@ -195,16 +248,15 @@ export const SystemHealthAdminPage: React.FC = () => {
                 step="0.05"
                 value={aiConfig.spamThreshold}
                 onChange={(e) => setAiConfig({ ...aiConfig, spamThreshold: parseFloat(e.target.value) })}
-                className="w-full accent-[#005da7]"
+                className="w-full accent-blue-600"
               />
-              <span className="text-[10px] text-slate-400 block">Phát hiện link affiliate, bán tài liệu giả mạo.</span>
+              <span className="text-[10px] text-slate-400 block">Identifies unauthorized promotional links and scrapers.</span>
             </div>
 
-            {/* Academic Dishonesty */}
-            <div className="space-y-2 p-4 bg-slate-50 dark:bg-slate-800/60 rounded-xl">
+            <div className="space-y-1.5 p-3.5 bg-slate-50 rounded-lg">
               <div className="flex justify-between text-xs">
-                <label className="font-bold text-slate-800 dark:text-slate-200">Gian lận thi cử / Đề thi mật:</label>
-                <span className="font-mono font-bold text-[#005da7]">{(aiConfig.academicDishonestyThreshold * 100).toFixed(0)}%</span>
+                <label className="font-semibold text-slate-800">Academic Dishonesty Detection:</label>
+                <span className="font-mono font-bold text-blue-600">{(aiConfig.academicDishonestyThreshold * 100).toFixed(0)}%</span>
               </div>
               <input
                 type="range"
@@ -213,18 +265,18 @@ export const SystemHealthAdminPage: React.FC = () => {
                 step="0.05"
                 value={aiConfig.academicDishonestyThreshold}
                 onChange={(e) => setAiConfig({ ...aiConfig, academicDishonestyThreshold: parseFloat(e.target.value) })}
-                className="w-full accent-[#005da7]"
+                className="w-full accent-blue-600"
               />
-              <span className="text-[10px] text-slate-400 block">Quét phát hiện rao bán đề PE/FE trong giờ thi.</span>
+              <span className="text-[10px] text-slate-400 block">Immediate alert on exam leak or cheating keywords.</span>
             </div>
           </div>
 
-          <div className="flex justify-end pt-2">
+          <div className="flex justify-end pt-1">
             <button
               type="submit"
-              className="px-5 py-2.5 rounded-xl bg-[#005da7] hover:bg-[#004a87] text-white text-xs font-bold transition-all shadow-sm cursor-pointer"
+              className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
             >
-              Lưu Cấu Hình AI Sensitivity
+              Save AI Thresholds
             </button>
           </div>
         </form>
