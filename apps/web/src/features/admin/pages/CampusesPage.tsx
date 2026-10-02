@@ -17,14 +17,14 @@ import {
   SlidersHorizontal,
   Loader2,
 } from 'lucide-react';
-import { mockDetailedCampuses, DetailedCampus } from '../../../services/adminMockData';
+import { DetailedCampus } from '../../../services/adminMockData';
 import { useCampuses, useCreateCampus } from '../../../services/api';
 
 export const CampusesPage: React.FC = () => {
   const { data: campusesData, isLoading, refetch } = useCampuses();
   const createCampusMutation = useCreateCampus();
 
-  const [campuses, setCampuses] = useState<DetailedCampus[]>(mockDetailedCampuses);
+  const [campuses, setCampuses] = useState<DetailedCampus[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncNotice, setSyncNotice] = useState<string | null>(null);
@@ -44,16 +44,16 @@ export const CampusesPage: React.FC = () => {
         name: c.campusName || 'FPT University Campus',
         location: c.address || c.city || 'FPT University Campus',
         isActive: c.isActive ?? true,
-        studentCount: c.studentsCount || 4200,
-        regionalDirector: c.directorName || 'Assigned Director',
-        contactEmail: c.email || `${c.campusCode?.toLowerCase() || 'campus'}@fpt.edu.vn`,
-        contactPhone: c.phone || '024.7300.5588',
-        totalFaculty: c.totalFaculty || 85,
-        totalMajors: c.totalMajors || 8,
-        activeCourseNodes: c.activeCourseNodes || 140,
+        studentCount: c.studentsCount || 0,
+        regionalDirector: c.directorName || 'Chưa chỉ định',
+        contactEmail: c.email || 'N/A',
+        contactPhone: c.phone || 'N/A',
+        totalFaculty: c.totalFaculty || 0,
+        totalMajors: c.totalMajors || 0,
+        activeCourseNodes: c.activeCourseNodes || 0,
         serverPartition: c.serverPartition || {
           nodeId: `node-${(c.campusCode || 'node').toLowerCase()}-primary-01`,
-          region: 'ap-southeast-1 (Edge DC)',
+          region: c.city || 'Vietnam',
           status: 'OPTIMAL',
           latencyMs: 18,
           lastSyncAt: new Date().toISOString(),
@@ -103,20 +103,20 @@ export const CampusesPage: React.FC = () => {
         name: newName.trim(),
         location: newLocation.trim() || 'FPT University Campus',
         isActive: true,
-        studentCount: 1,
-        regionalDirector: newDirector.trim() || 'Unassigned',
-        contactEmail: newEmail.trim() || 'contact@fe.edu.vn',
-        contactPhone: '024.7300.5588',
-        totalFaculty: 50,
-        totalMajors: 8,
-        activeCourseNodes: 120,
+        studentCount: 0,
+        regionalDirector: newDirector.trim() || 'Chưa chỉ định',
+        contactEmail: newEmail.trim() || 'N/A',
+        contactPhone: 'N/A',
+        totalFaculty: 0,
+        totalMajors: 0,
+        activeCourseNodes: 0,
         serverPartition: {
           nodeId: `node-${newCode.toLowerCase()}-primary-01`,
-          region: 'ap-southeast-1 (Edge DC)',
+          region: newLocation.trim() || 'Edge DC',
           status: 'OPTIMAL',
-          latencyMs: 20,
+          latencyMs: 18,
           lastSyncAt: new Date().toISOString(),
-          replicationLagSec: 0.2,
+          replicationLagSec: 0.1,
           feedGlocalRouting: true,
         },
       };
@@ -174,7 +174,12 @@ export const CampusesPage: React.FC = () => {
 
       {/* Campus Grid Cards (Figma 57:6972) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {campuses.map((campus) => (
+        {campuses.length === 0 ? (
+          <div className="col-span-full p-8 text-center bg-white rounded-xl border border-slate-200 text-slate-400 text-xs">
+            0 campus partition nodes registered.
+          </div>
+        ) : (
+          campuses.map((campus) => (
           <div
             key={campus.id}
             className="bg-white rounded-xl border border-slate-200/90 p-5 shadow-2xs hover:border-blue-400 transition-all flex flex-col justify-between"
@@ -238,7 +243,7 @@ export const CampusesPage: React.FC = () => {
               </Link>
             </div>
           </div>
-        ))}
+        )))}
       </div>
 
       {/* Modal: Create Campus Partition */}

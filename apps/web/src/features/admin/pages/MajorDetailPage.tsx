@@ -13,7 +13,7 @@ import {
   Sparkles,
   Loader2,
 } from 'lucide-react';
-import { mockDetailedMajors, DetailedMajor } from '../../../services/adminMockData';
+import { DetailedMajor } from '../../../services/adminMockData';
 import { useMajorDetail, useAddCourseToSemester, useRemoveCourseFromSemester } from '../../../services/api';
 
 export const MajorDetailPage: React.FC = () => {
@@ -22,7 +22,7 @@ export const MajorDetailPage: React.FC = () => {
   const addCourseMutation = useAddCourseToSemester();
   const removeCourseMutation = useRemoveCourseFromSemester();
 
-  const [majors, setMajors] = useState<DetailedMajor[]>(mockDetailedMajors);
+  const [majors, setMajors] = useState<DetailedMajor[]>([]);
   const [selectedSemester, setSelectedSemester] = useState<number>(5);
   const [showAddCourseModal, setShowAddCourseModal] = useState(false);
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
@@ -38,15 +38,15 @@ export const MajorDetailPage: React.FC = () => {
       const d = majorDetailData;
       const mapped: DetailedMajor = {
         id: String(d.majorId),
-        code: d.majorCode,
-        name: d.majorName,
-        vietnameseName: d.vietnameseName || d.majorName,
-        description: d.description || `Chương trình đào tạo ${d.vietnameseName || d.majorName} tại FPT University.`,
+        code: d.majorCode || '',
+        name: d.majorName || '',
+        vietnameseName: d.vietnameseName || d.majorName || '',
+        description: d.description || `Chương trình đào tạo ${d.vietnameseName || d.majorName || ''} tại FPT University.`,
         department: d.department || 'Công nghệ thông tin',
         headOfDepartment: d.headOfDepartment || 'Chưa chỉ định',
-        totalCreditsRequired: d.totalCreditsRequired || 144,
-        durationSemesters: d.durationSemesters || 9,
-        totalCourses: d.totalCourses || 36,
+        totalCreditsRequired: d.totalCreditsRequired || 0,
+        durationSemesters: d.durationSemesters || 0,
+        totalCourses: d.totalCourses || 0,
         isActive: d.isActive ?? true,
         curriculumRoadmap: (d.curriculumRoadmap && d.curriculumRoadmap.length > 0)
           ? d.curriculumRoadmap.map((s: any) => ({
@@ -54,7 +54,11 @@ export const MajorDetailPage: React.FC = () => {
               semesterName: s.semesterName || `Học kỳ ${s.semester}`,
               courses: s.courses || [],
             }))
-          : (mockDetailedMajors.find(m => m.code === code)?.curriculumRoadmap || []),
+          : Array.from({ length: 9 }, (_, i) => ({
+              semester: i + 1,
+              semesterName: `Học kỳ ${i + 1}`,
+              courses: [],
+            })),
       };
       setMajors((prev) => {
         const idx = prev.findIndex((m) => m.code === d.majorCode);
@@ -68,7 +72,25 @@ export const MajorDetailPage: React.FC = () => {
     }
   }, [majorDetailData, code]);
 
-  const major = majors.find((m) => m.code === code) || majors[0];
+  const targetCode = (code || 'SE').toUpperCase();
+  const major: DetailedMajor = majors.find((m) => (m.code || '').toUpperCase() === targetCode) || {
+    id: '0',
+    code: targetCode,
+    name: `Major ${targetCode}`,
+    vietnameseName: `Chuyên ngành ${targetCode}`,
+    description: `Khung chương trình đào tạo chuẩn Đại học FPT cho chuyên ngành ${targetCode}.`,
+    department: 'Chưa chỉ định',
+    headOfDepartment: 'Chưa chỉ định',
+    totalCreditsRequired: 0,
+    durationSemesters: 0,
+    totalCourses: 0,
+    isActive: false,
+    curriculumRoadmap: Array.from({ length: 9 }, (_, i) => ({
+      semester: i + 1,
+      semesterName: `Học kỳ ${i + 1}`,
+      courses: [],
+    })),
+  };
 
   const handleAddCourseToSemester = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -214,7 +236,7 @@ export const MajorDetailPage: React.FC = () => {
           </div>
           <div>
             <span className="text-[10px] font-bold text-slate-400 uppercase">Duration</span>
-            <p className="text-xl font-bold text-slate-900 mt-0.5">9 Semesters (3 Years)</p>
+            <p className="text-xl font-bold text-slate-900 mt-0.5">{major.durationSemesters} Semesters</p>
           </div>
           <div>
             <span className="text-[10px] font-bold text-slate-400 uppercase">Industry Internship</span>

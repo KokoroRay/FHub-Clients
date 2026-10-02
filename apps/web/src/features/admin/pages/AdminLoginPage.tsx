@@ -62,27 +62,8 @@ export const AdminLoginPage: React.FC = () => {
       // Successful login
       completeAdminLogin(result);
     } catch (err: any) {
-      console.warn('API login failed or offline fallback:', err);
-      // If service is offline or credentials error, support smooth admin sign-in with clear note
-      if (email.toLowerCase().includes('admin')) {
-        const mockAdminToken = 'fhub_admin_jwt_' + Date.now();
-        localStorage.setItem('fhub_token', mockAdminToken);
-        login({
-          id: '1',
-          fullName: 'System Administrator',
-          email: email.trim(),
-          role: 'Admin',
-          campus: 'HL',
-          avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-          karma: 9999,
-          status: 'ACTIVE',
-          bio: 'Root Platform Operations Administrator',
-          badges: []
-        });
-        navigate('/');
-      } else {
-        setErrorMessage(err.message || 'Email hoặc mật khẩu không chính xác. Vui lòng thử lại.');
-      }
+      console.warn('API login failed:', err);
+      setErrorMessage(err.message || 'Email hoặc mật khẩu quản trị viên không chính xác. Vui lòng thử lại.');
     } finally {
       setIsLoading(false);
     }
@@ -124,11 +105,10 @@ export const AdminLoginPage: React.FC = () => {
       bio: 'FHub Central Operations Administrator',
       badges: []
     };
-    localStorage.setItem('fhub_user', JSON.stringify(userObj));
-    login(userObj);
+    login(userObj, result.accessToken);
 
     const redirectPath = searchParams.get('redirect') || '/';
-    navigate(redirectPath);
+    navigate(redirectPath, { replace: true });
   };
 
   const setPreset = (type: 'admin' | 'admin2fa') => {

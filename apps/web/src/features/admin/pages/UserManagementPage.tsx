@@ -20,10 +20,9 @@ import {
   Download,
   ChevronDown,
   ArrowUpDown,
-  Lock,
   RefreshCw,
 } from 'lucide-react';
-import { mockAdminUsers, AdminUser } from '../../../services/adminMockData';
+import { AdminUser } from '../../../services/adminMockData';
 import { useGovernanceAccounts, useApplyGovernanceAction, useWipeGovernanceAccount } from '../../../services/api';
 
 export const UserManagementPage: React.FC = () => {
@@ -34,7 +33,7 @@ export const UserManagementPage: React.FC = () => {
   const [selectedRole, setSelectedRole] = useState<string>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-  const [usersList, setUsersList] = useState<AdminUser[]>(mockAdminUsers);
+  const [usersList, setUsersList] = useState<AdminUser[]>([]);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const navigate = useNavigate();
@@ -49,21 +48,19 @@ export const UserManagementPage: React.FC = () => {
 
   // Populate usersList when real BE data arrives
   React.useEffect(() => {
-    if (accountsData?.items && accountsData.items.length > 0) {
-      const apiUsers: AdminUser[] = accountsData.items.map((acc, idx) => ({
+    if (accountsData?.items) {
+      const apiUsers: AdminUser[] = accountsData.items.map((acc: any) => ({
         id: String(acc.userId || acc.governanceAccountId),
-        fullName: `Sinh viên #${acc.userId} (${acc.governanceRole})`,
-        email: `student.${acc.userId}@fpt.edu.vn`,
-        role: (acc.governanceRole === 'ADMIN' ? 'Admin' : acc.governanceRole === 'COMMUNITYMODERATOR' ? 'Community Moderator' : 'Student') as any,
-        campus: (['HL', 'HCM', 'DN', 'CT', 'QN'][idx % 5]) as any,
-        major: 'Software Engineering',
-        studentId: `HE${160000 + acc.userId}`,
-        karma: 150 + idx * 45,
+        fullName: acc.governanceRole === 'ADMIN' ? 'System Administrator' : (acc.fullName || acc.name || `User #${acc.userId}`),
+        email: acc.email || (acc.governanceRole === 'ADMIN' ? 'admin@fhub.com.vn' : `user.${acc.userId}@fhub.com.vn`),
+        role: (acc.governanceRole === 'ADMIN' ? 'Admin' : acc.governanceRole === 'COMMUNITYMODERATOR' ? 'Community Moderator' : acc.governanceRole === 'STAFF' ? 'Staff' : 'Student') as any,
+        campus: (acc.campusCode || acc.campus || 'HL') as any,
+        major: acc.major || acc.majorCode || '',
+        studentId: acc.studentId || '',
+        karma: acc.karma || 0,
         status: acc.isActive ? 'ACTIVE' : 'SUSPENDED',
         verifiedAt: acc.createdAt,
-        badges: [
-          { id: 'b-contributor', name: 'Contributor', description: 'Thành viên đóng góp tích cực', icon: 'Award', tier: 'BRONZE', category: 'CONTRIBUTOR' }
-        ],
+        badges: acc.badges || [],
       }));
       setUsersList(apiUsers);
     }
@@ -126,7 +123,7 @@ export const UserManagementPage: React.FC = () => {
       campus: newCampus,
       major: newMajor,
       studentId: newStudentId.trim() || undefined,
-      karma: 100,
+      karma: 0,
       status: 'ACTIVE',
       verifiedAt: new Date().toISOString(),
       badges: [],
@@ -150,10 +147,11 @@ export const UserManagementPage: React.FC = () => {
   };
 
   const filteredUsers = usersList.filter((user) => {
+    const q = (searchQuery || '').toLowerCase();
     const matchesSearch =
-      user.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (user.studentId && user.studentId.toLowerCase().includes(searchQuery.toLowerCase()));
+      (user.fullName || '').toLowerCase().includes(q) ||
+      (user.email || '').toLowerCase().includes(q) ||
+      (Boolean(user.studentId) && (user.studentId || '').toLowerCase().includes(q));
 
     const matchesCampus = selectedCampus === 'ALL' || user.campus === selectedCampus;
     const matchesRole = selectedRole === 'ALL' || user.role === selectedRole;
@@ -182,7 +180,7 @@ export const UserManagementPage: React.FC = () => {
 
         <div className="flex items-center gap-2.5">
           <button
-            onClick={() => { setActionSuccess('User Directory export (12,450 accounts) generated in CSV format.'); setTimeout(() => setActionSuccess(null), 3500); }}
+            onClick={() => { setActionSuccess(`User Directory export (${usersList.length} accounts) generated in CSV format.`); setTimeout(() => setActionSuccess(null), 3500); }}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 shadow-2xs transition-colors cursor-pointer"
           >
             <Download className="w-3.5 h-3.5 text-slate-500" />
@@ -210,23 +208,23 @@ export const UserManagementPage: React.FC = () => {
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5">
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">TOTAL USERS</span>
-          <p className="text-2xl font-bold text-slate-900 mt-1">12,450</p>
+          <p className="text-2xl font-bold text-slate-900 mt-1">{accountsData?.totalCount ?? usersList.length}</p>
         </div>
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">ACTIVE USERS</span>
-          <p className="text-2xl font-bold text-blue-600 mt-1">11,020</p>
+          <p className="text-2xl font-bold text-blue-600 mt-1">{usersList.filter(u => u.status === 'ACTIVE').length}</p>
         </div>
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">PENDING VERIFY</span>
-          <p className="text-2xl font-bold text-amber-600 mt-1">43</p>
+          <p className="text-2xl font-bold text-amber-600 mt-1">{usersList.filter(u => u.status === 'PENDING_VERIFICATION').length}</p>
         </div>
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">SUSPENDED</span>
-          <p className="text-2xl font-bold text-rose-600 mt-1">127</p>
+          <p className="text-2xl font-bold text-rose-600 mt-1">{usersList.filter(u => u.status === 'SUSPENDED').length}</p>
         </div>
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">MUTED USERS</span>
-          <p className="text-2xl font-bold text-slate-600 mt-1">86</p>
+          <p className="text-2xl font-bold text-slate-600 mt-1">{usersList.filter(u => u.status === 'MUTED').length}</p>
         </div>
       </div>
 
@@ -348,7 +346,14 @@ export const UserManagementPage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredUsers.map((user) => {
+              {filteredUsers.length === 0 ? (
+                <tr>
+                  <td colSpan={10} className="py-8 text-center text-xs text-slate-400">
+                    0 user accounts found.
+                  </td>
+                </tr>
+              ) : (
+                filteredUsers.map((user) => {
                 const isChecked = selectedUsers.includes(user.id);
                 return (
                   <tr key={user.id} className={`hover:bg-slate-50/70 transition-colors ${isChecked ? 'bg-blue-50/40' : ''}`}>
@@ -437,7 +442,7 @@ export const UserManagementPage: React.FC = () => {
 
                     {/* Joined */}
                     <td className="py-3 px-3 text-[11px] text-slate-400">
-                      Sep 2024
+                      {user.verifiedAt ? new Date(user.verifiedAt).toLocaleDateString() : 'N/A'}
                     </td>
 
                     {/* Actions */}
@@ -467,14 +472,14 @@ export const UserManagementPage: React.FC = () => {
                     </td>
                   </tr>
                 );
-              })}
+              }))}
             </tbody>
           </table>
         </div>
 
         {/* Pagination Bar (Figma 55:4074) */}
         <div className="p-3.5 bg-slate-50/80 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
-          <span>Showing 1 to {filteredUsers.length} of 12,450 entries</span>
+          <span>Showing 1 to {filteredUsers.length} of {accountsData?.totalCount ?? usersList.length} entries</span>
           <div className="flex items-center gap-1 font-semibold">
             <button className="px-2.5 py-1 rounded border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer text-slate-600">
               &lt;

@@ -13,29 +13,41 @@ import {
   ShieldCheck,
   Loader2,
 } from 'lucide-react';
-import { mockHealthStatuses } from '../../../services/mockData';
-import { mockAISensitivityConfig, AISensitivityConfig } from '../../../services/adminMockData';
+import { AISensitivityConfig } from '../../../services/adminMockData';
 import { useSystemHealthStatus } from '../../../services/api';
+
+const defaultAiConfig: AISensitivityConfig = {
+  toxicityThreshold: 0.75,
+  hateSpeechThreshold: 0.65,
+  spamThreshold: 0.80,
+  sexualContentThreshold: 0.70,
+  academicDishonestyThreshold: 0.70,
+  autoQuarantineAction: 'FLAG_FOR_REVIEW',
+  realtimeScanEnabled: true,
+  aiSummarizerModel: 'Vertex AI Gemini 1.5 Pro',
+};
 
 export const SystemHealthAdminPage: React.FC = () => {
   const { data: healthData, isLoading, refetch } = useSystemHealthStatus();
-  const [healthList, setHealthList] = useState(mockHealthStatuses);
-  const [aiConfig, setAiConfig] = useState<AISensitivityConfig>(mockAISensitivityConfig);
+  const [aiConfig, setAiConfig] = useState<AISensitivityConfig>(defaultAiConfig);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (healthData && healthData.length > 0) {
-      const mapped = healthData.map((h: any) => ({
-        serviceName: h.name,
-        status: h.status as 'HEALTHY' | 'DEGRADED' | 'DOWN',
-        latencyMs: h.latencyMs,
-        uptimePercentage: parseFloat(h.uptime.replace('%', '')) || 99.98,
-        lastChecked: 'Vừa xong (Live Telemetry)',
-      }));
-      setHealthList(mapped);
-    }
-  }, [healthData]);
+  const healthList = (healthData || []).map((h: any) => ({
+    serviceName: h.name,
+    status: h.status as 'HEALTHY' | 'DEGRADED' | 'DOWN' | 'OFFLINE',
+    latencyMs: h.latencyMs ?? 0,
+    uptimePercentage: parseFloat(String(h.uptime || '0').replace('%', '')) || 0,
+    lastChecked: 'Live Telemetry (Polling)',
+  }));
+
+  const healthyCount = healthList.filter((s) => s.status === 'HEALTHY').length;
+  const avgLatency = healthList.length > 0
+    ? Math.round(healthList.reduce((acc, s) => acc + s.latencyMs, 0) / healthList.length)
+    : 0;
+  const avgUptime = healthList.length > 0
+    ? (healthList.reduce((acc, s) => acc + s.uptimePercentage, 0) / healthList.length).toFixed(2)
+    : '0.00';
 
   const handleRefreshHealth = async () => {
     setIsRefreshing(true);
@@ -90,19 +102,19 @@ export const SystemHealthAdminPage: React.FC = () => {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">OVERALL UPTIME SLA</span>
-          <p className="text-2xl font-bold text-emerald-600 mt-1">99.98%</p>
+          <p className="text-2xl font-bold text-emerald-600 mt-1">{avgUptime}%</p>
         </div>
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">AVG P95 LATENCY</span>
-          <p className="text-2xl font-bold text-slate-900 mt-1">22 ms</p>
+          <p className="text-2xl font-bold text-slate-900 mt-1">{avgLatency} ms</p>
         </div>
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">REDIS HIT RATE</span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">REDIS CACHE HIT</span>
           <p className="text-2xl font-bold text-blue-600 mt-1">98.4%</p>
         </div>
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">DB POOL ACTIVE</span>
-          <p className="text-2xl font-bold text-slate-900 mt-1">48 / 100</p>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">POSTGRES HEALTH</span>
+          <p className="text-2xl font-bold text-slate-900 mt-1">ONLINE</p>
         </div>
       </div>
 
@@ -113,37 +125,62 @@ export const SystemHealthAdminPage: React.FC = () => {
             <Server className="w-4 h-4 text-blue-600" />
             <h2 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Microservice Cluster Health</h2>
           </div>
-          <span className="text-[10px] font-mono text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-            ALL 7 SERVICES HEALTHY
+          <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
+            healthyCount === (healthList.length || 7) && healthyCount > 0
+              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+              : 'bg-amber-50 text-amber-700 border-amber-200'
+          }`}>
+            {healthyCount} / {healthList.length || 7} SERVICES HEALTHY
           </span>
         </div>
 
         <div className="divide-y divide-slate-100 text-xs">
-          {healthList.map((srv) => (
-            <div key={srv.serviceName} className="py-3 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                <div>
-                  <span className="font-semibold text-slate-800">{srv.serviceName}</span>
-                  <div className="text-[10px] text-slate-400">Checked: {srv.lastChecked}</div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-6">
-                <div className="text-right">
-                  <span className="text-[10px] text-slate-400 block">Uptime:</span>
-                  <span className="font-mono font-bold text-emerald-600">{srv.uptimePercentage}%</span>
-                </div>
-                <div className="text-right">
-                  <span className="text-[10px] text-slate-400 block">Latency:</span>
-                  <span className="font-mono font-bold text-slate-800">{srv.latencyMs} ms</span>
-                </div>
-                <span className="px-2 py-0.2 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  {srv.status}
-                </span>
-              </div>
+          {isLoading && healthList.length === 0 ? (
+            <div className="py-8 text-center text-slate-400">
+              <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-blue-600" />
+              <span>Probing cluster SLA endpoints across all microservices...</span>
             </div>
-          ))}
+          ) : (
+            healthList.map((srv) => {
+              const isHealthy = srv.status === 'HEALTHY';
+              const isDegraded = srv.status === 'DEGRADED';
+              return (
+                <div key={srv.serviceName} className="py-3 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2.5">
+                    <span className={`w-2 h-2 rounded-full ${
+                      isHealthy ? 'bg-emerald-500' : isDegraded ? 'bg-amber-500' : 'bg-rose-500'
+                    }`} />
+                    <div>
+                      <span className="font-semibold text-slate-800">{srv.serviceName}</span>
+                      <div className="text-[10px] text-slate-400">Checked: {srv.lastChecked}</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-6">
+                    <div className="text-right">
+                      <span className="text-[10px] text-slate-400 block">Uptime:</span>
+                      <span className={`font-mono font-bold ${isHealthy ? 'text-emerald-600' : 'text-amber-600'}`}>
+                        {srv.uptimePercentage}%
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] text-slate-400 block">Latency:</span>
+                      <span className="font-mono font-bold text-slate-800">{srv.latencyMs} ms</span>
+                    </div>
+                    <span className={`px-2 py-0.2 rounded-full text-[10px] font-bold border ${
+                      isHealthy
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : isDegraded
+                        ? 'bg-amber-50 text-amber-700 border-amber-200'
+                        : 'bg-rose-50 text-rose-700 border-rose-200'
+                    }`}>
+                      {srv.status}
+                    </span>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
 

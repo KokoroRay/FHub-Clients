@@ -18,7 +18,7 @@ import {
   ChevronRight,
   Loader2,
 } from 'lucide-react';
-import { mockDetailedCampuses, mockDetailedMajors, DetailedCampus } from '../../../services/adminMockData';
+import { DetailedCampus } from '../../../services/adminMockData';
 import { useCampuses, useMajors } from '../../../services/api';
 
 export const CampusDetailPage: React.FC = () => {
@@ -26,28 +26,28 @@ export const CampusDetailPage: React.FC = () => {
   const { data: campusesData, refetch } = useCampuses();
   const { data: majorsData } = useMajors();
 
-  const [campuses, setCampuses] = useState<DetailedCampus[]>(mockDetailedCampuses);
+  const [campuses, setCampuses] = useState<DetailedCampus[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    if (campusesData?.items && campusesData.items.length > 0) {
+    if (campusesData?.items) {
       const mapped: DetailedCampus[] = campusesData.items.map((c: any) => ({
         id: String(c.campusId),
         code: (c.campusCode || 'HL') as any,
         name: c.campusName || 'FPT University Campus',
         location: c.address || c.city || 'FPT University Campus',
         isActive: c.isActive ?? true,
-        studentCount: c.studentsCount || 4200,
-        regionalDirector: c.directorName || 'Giám đốc Phân hiệu',
-        contactEmail: c.email || `${c.campusCode?.toLowerCase() || 'campus'}@fpt.edu.vn`,
-        contactPhone: c.phone || '024.7300.5588',
-        totalFaculty: c.totalFaculty || 85,
-        totalMajors: c.totalMajors || 8,
-        activeCourseNodes: c.activeCourseNodes || 140,
+        studentCount: c.studentsCount || 0,
+        regionalDirector: c.directorName || 'Chưa chỉ định',
+        contactEmail: c.email || 'N/A',
+        contactPhone: c.phone || 'N/A',
+        totalFaculty: c.totalFaculty || 0,
+        totalMajors: c.totalMajors || 0,
+        activeCourseNodes: c.activeCourseNodes || 0,
         serverPartition: c.serverPartition || {
           nodeId: `node-${(c.campusCode || 'node').toLowerCase()}-primary-01`,
-          region: 'ap-southeast-1 (Edge DC)',
+          region: c.city || 'Vietnam',
           status: 'OPTIMAL',
           latencyMs: 18,
           lastSyncAt: new Date().toISOString(),
@@ -59,16 +59,41 @@ export const CampusDetailPage: React.FC = () => {
     }
   }, [campusesData]);
 
-  const campus = campuses.find((c) => c.code.toLowerCase() === code?.toLowerCase()) || campuses[0];
-  const [glocalRouting, setGlocalRouting] = useState(campus.serverPartition.feedGlocalRouting);
+  const targetCode = (code || 'HL').toUpperCase();
+  const found = campuses.find((c) => (c?.code || '').toUpperCase() === targetCode);
+  const campus: DetailedCampus = found || {
+    id: '0',
+    code: targetCode as any,
+    name: `FPT University ${targetCode}`,
+    location: 'N/A',
+    isActive: false,
+    studentCount: 0,
+    regionalDirector: 'Chưa chỉ định',
+    contactEmail: 'N/A',
+    contactPhone: 'N/A',
+    totalFaculty: 0,
+    totalMajors: 0,
+    activeCourseNodes: 0,
+    serverPartition: {
+      nodeId: `node-${targetCode.toLowerCase()}-01`,
+      region: 'N/A',
+      status: 'MAINTENANCE',
+      latencyMs: 0,
+      lastSyncAt: new Date().toISOString(),
+      replicationLagSec: 0,
+      feedGlocalRouting: false,
+    },
+  };
 
-  const displayMajors = majorsData?.items && majorsData.items.length > 0
+  const [glocalRouting, setGlocalRouting] = useState(campus?.serverPartition?.feedGlocalRouting ?? true);
+
+  const displayMajors = majorsData?.items
     ? majorsData.items.map((m: any) => ({
         id: String(m.majorId),
         code: m.majorCode,
         vietnameseName: m.vietnameseName || m.majorName,
       }))
-    : mockDetailedMajors;
+    : [];
 
   const handleSyncPartition = async () => {
     setIsSyncing(true);
@@ -240,17 +265,23 @@ export const CampusDetailPage: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-          {displayMajors.map((m) => (
-            <div key={m.id} className="p-3 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between">
-              <div>
-                <span className="font-mono font-bold text-xs text-blue-600">{m.code}</span>
-                <p className="text-xs font-semibold text-slate-800">{m.vietnameseName}</p>
-              </div>
-              <Link to={`/majors/${m.code}`} className="text-xs text-slate-400 hover:text-blue-600">
-                <ChevronRight className="w-4 h-4" />
-              </Link>
+          {displayMajors.length === 0 ? (
+            <div className="col-span-full p-4 text-center text-xs text-slate-400">
+              0 majors registered for this campus.
             </div>
-          ))}
+          ) : (
+            displayMajors.map((m: any) => (
+              <div key={m.id || m.majorId} className="p-3 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between">
+                <div>
+                  <span className="font-mono font-bold text-xs text-blue-600">{m.code || m.majorCode}</span>
+                  <p className="text-xs font-semibold text-slate-800">{m.vietnameseName || m.majorName}</p>
+                </div>
+                <Link to={`/majors/${m.code}`} className="text-xs text-slate-400 hover:text-blue-600">
+                  <ChevronRight className="w-4 h-4" />
+                </Link>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

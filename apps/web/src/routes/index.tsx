@@ -5,6 +5,7 @@ import { AdminLayout } from '../layouts/AdminLayout';
 import { AdminSubdomainLayout } from '../layouts/AdminSubdomainLayout';
 import { AuthLayout } from '../layouts/AuthLayout';
 import { ProtectedRoute } from './ProtectedRoute';
+import { AdminProtectedRoute } from './AdminProtectedRoute';
 import { isAdminSubdomain } from '../utils/subdomain';
 
 // Feed & Academic Pages
@@ -101,7 +102,11 @@ const getSubdomainRoutes = () => [
   },
   {
     path: '/',
-    element: <AdminSubdomainLayout />,
+    element: (
+      <AdminProtectedRoute>
+        <AdminSubdomainLayout />
+      </AdminProtectedRoute>
+    ),
     children: [
       { index: true, element: <AdminDashboardPage /> },
       { path: 'users', element: <UserManagementPage /> },
@@ -163,7 +168,11 @@ const getMainPortalRoutes = () => [
   // Admin Subdomain Direct Preview from Main Domain (e.g. /admin-console/*)
   {
     path: '/admin-console',
-    element: <AdminSubdomainLayout />,
+    element: (
+      <AdminProtectedRoute>
+        <AdminSubdomainLayout />
+      </AdminProtectedRoute>
+    ),
     children: [
       { index: true, element: <AdminDashboardPage /> },
       { path: 'users', element: <UserManagementPage /> },

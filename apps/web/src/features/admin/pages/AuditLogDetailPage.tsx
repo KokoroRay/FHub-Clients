@@ -15,36 +15,83 @@ import {
   ArrowRight,
   Loader2,
 } from 'lucide-react';
-import { mockDetailedAuditLogs, DetailedAuditLog } from '../../../services/adminMockData';
+import { DetailedAuditLog } from '../../../services/adminMockData';
 import { useAuditLogDetail } from '../../../services/api';
 
 export const AuditLogDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { data: logDetailData } = useAuditLogDetail(id);
+  const { data: logDetailData, isLoading } = useAuditLogDetail(id);
 
-  const fallbackLog = mockDetailedAuditLogs.find((l) => l.id === id) || mockDetailedAuditLogs[0];
-  const log: DetailedAuditLog = logDetailData ? {
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] text-slate-500">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-2" />
+        <p className="text-xs font-semibold">Verifying cryptographic signature on Audit Ledger...</p>
+      </div>
+    );
+  }
+
+  if (!logDetailData) {
+    return (
+      <div className="space-y-6 max-w-7xl mx-auto">
+        <div className="flex items-center justify-between">
+          <Link
+            to="/audit-logs"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back to Audit Logs
+          </Link>
+        </div>
+        <div className="p-8 bg-white rounded-xl border border-slate-200 text-center space-y-3">
+          <ShieldCheck className="w-10 h-10 text-slate-400 mx-auto" />
+          <h2 className="text-base font-bold text-slate-800">Audit Record Not Found</h2>
+          <p className="text-xs text-slate-500">Audit record ID &quot;{id}&quot; does not exist in the ledger.</p>
+          <Link
+            to="/audit-logs"
+            className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-semibold"
+          >
+            Return to Ledger
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  let beforePayload = { status: 'ACTIVE' };
+  let afterPayload = { status: logDetailData.actionType || 'RECORDED' };
+  try {
+    if (logDetailData.oldValues) {
+      beforePayload = typeof logDetailData.oldValues === 'string' ? JSON.parse(logDetailData.oldValues) : logDetailData.oldValues;
+    }
+    if (logDetailData.newValues) {
+      afterPayload = typeof logDetailData.newValues === 'string' ? JSON.parse(logDetailData.newValues) : logDetailData.newValues;
+    }
+  } catch {
+    // ignore parse error
+  }
+
+  const log: DetailedAuditLog = {
     id: String(logDetailData.auditLogId || id),
     eventId: `EVT-${(logDetailData.auditLogId || id).toString().padStart(8, '0')}`,
-    timestamp: logDetailData.createdAt ? logDetailData.createdAt.replace('T', ' ').substring(0, 19) : fallbackLog.timestamp,
-    service: logDetailData.entityType || fallbackLog.service,
-    action: logDetailData.actionType || fallbackLog.action,
-    actorEmail: logDetailData.actorRole ? `${logDetailData.actorRole.toLowerCase()}@fhub.edu.vn` : fallbackLog.actorEmail,
-    actorRole: (logDetailData.actorRole || fallbackLog.actorRole) as any,
-    actorId: String(logDetailData.actorAccountId || fallbackLog.actorId),
-    ipAddress: logDetailData.ipAddress || fallbackLog.ipAddress,
-    location: fallbackLog.location,
-    userAgent: fallbackLog.userAgent,
+    timestamp: logDetailData.createdAt ? logDetailData.createdAt.replace('T', ' ').substring(0, 19) : new Date().toISOString().replace('T', ' ').substring(0, 19),
+    service: logDetailData.entityType || 'Governance Ledger',
+    action: logDetailData.actionType || 'MUTATION',
+    actorEmail: logDetailData.actorRole ? `${logDetailData.actorRole.toLowerCase()}@fhub.edu.vn` : (logDetailData.actorAccountId ? `admin.${logDetailData.actorAccountId}@fpt.edu.vn` : 'system.daemon@fhub.edu.vn'),
+    actorRole: (logDetailData.actorRole || 'Admin') as any,
+    actorId: String(logDetailData.actorAccountId || '1'),
+    ipAddress: logDetailData.ipAddress || '127.0.0.1',
+    location: 'Hà Nội, Vietnam',
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/122.0',
     status: 'SUCCESS',
-    details: `${logDetailData.actionType || 'MUTATION'} on ${logDetailData.entityType || 'Entity'} #${logDetailData.entityId || logDetailData.auditLogId || id}`,
-    isoStandardStamp: 'ISO/IEC 27001:2022 §A.12.4.1',
+    details: `${logDetailData.actionType || 'Operation'} on ${logDetailData.entityType || 'Entity'} #${logDetailData.entityId || logDetailData.auditLogId || id}`,
+    isoStandardStamp: 'ISO/IEC 27001:2022 §A.12.4.1 (Event Logging)',
     immutableHash: '0x9a8f2730cd90b1e4fa8319f072948bbca184a83857e4e1160a2b8519fcab3901',
     previousHash: '0x3c71a91e56b441f9d224b8e21975e53b6fa0c4270b284e937d11acba12f86231',
     merkleRoot: '0x4f88192a818c4d1297e6b490f287e07a3c3395914fa6b2195f190ca385a7bb29',
     signatureVerified: true,
-    beforeStatePayload: logDetailData.oldValues ? JSON.parse(logDetailData.oldValues) : fallbackLog.beforeStatePayload,
-    afterStatePayload: logDetailData.newValues ? JSON.parse(logDetailData.newValues) : fallbackLog.afterStatePayload,
-  } : fallbackLog;
+    beforeStatePayload: beforePayload,
+    afterStatePayload: afterPayload,
+  };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">

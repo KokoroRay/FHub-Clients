@@ -15,31 +15,31 @@ import {
   Sparkles,
   Loader2,
 } from 'lucide-react';
-import { mockDetailedAuditLogs, DetailedAuditLog } from '../../../services/adminMockData';
+import { DetailedAuditLog } from '../../../services/adminMockData';
 import { useAuditLogs } from '../../../services/api';
 import { auditLogsApi } from '../../../services/api/adminApi';
 
 export const AuditLogsPage: React.FC = () => {
   const { data: logsData, isLoading, refetch } = useAuditLogs();
-  const [logs, setLogs] = useState<DetailedAuditLog[]>(mockDetailedAuditLogs);
+  const [logs, setLogs] = useState<DetailedAuditLog[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedService, setSelectedService] = useState('ALL');
   const [exportNotice, setExportNotice] = useState<string | null>(null);
 
   useEffect(() => {
-    if (logsData?.items && logsData.items.length > 0) {
+    if (logsData?.items) {
       const mapped: DetailedAuditLog[] = logsData.items.map((l: any) => ({
         id: String(l.auditLogId),
         eventId: `EVT-${l.auditLogId.toString().padStart(8, '0')}`,
-        timestamp: l.createdAt ? l.createdAt.replace('T', ' ').substring(0, 19) : '2026-03-24 10:00:00',
+        timestamp: l.createdAt ? l.createdAt.replace('T', ' ').substring(0, 19) : new Date().toISOString().replace('T', ' ').substring(0, 19),
         service: l.entityType || 'Governance',
-        action: l.actionType,
-        actorId: String(l.actorAccountId || 'usr-admin-1'),
+        action: l.actionType || 'MUTATION',
+        actorId: String(l.actorAccountId || '1'),
         actorEmail: l.actorRole ? `${l.actorRole.toLowerCase()}@fhub.edu.vn` : (l.actorAccountId ? `admin.${l.actorAccountId}@fpt.edu.vn` : 'system.daemon@fhub.edu.vn'),
         actorRole: (['Admin', 'Staff', 'System Daemon', 'Moderator'].includes(l.actorRole) ? l.actorRole : 'Admin') as any,
-        ipAddress: l.ipAddress || '10.244.0.15',
+        ipAddress: l.ipAddress || '127.0.0.1',
         status: 'SUCCESS',
-        details: `${l.actionType} on ${l.entityType} #${l.entityId || l.auditLogId}`,
+        details: `${l.actionType || 'Operation'} on ${l.entityType || 'Record'} #${l.entityId || l.auditLogId}`,
         immutableHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
         previousHash: 'a71b26f55f284a7e9e8f498c56e301293a7e584282c1619623e5a5a1f28b4931',
         merkleRoot: '9d3a778e9b62c11451f28bc41b80e86a4f21b7454231b2345091ef748b9401a2',
@@ -48,19 +48,20 @@ export const AuditLogsPage: React.FC = () => {
         location: 'Hà Nội, Vietnam',
         signatureVerified: true,
         beforeStatePayload: { status: 'ACTIVE' },
-        afterStatePayload: { status: l.actionType },
+        afterStatePayload: { status: l.actionType || 'UPDATED' },
       }));
       setLogs(mapped);
     }
   }, [logsData]);
 
   const filteredLogs = logs.filter((log) => {
+    const q = searchQuery.toLowerCase();
     const matchesSearch =
-      log.eventId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.actorEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.details.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesService = selectedService === 'ALL' || log.service.includes(selectedService);
+      (log.eventId || '').toLowerCase().includes(q) ||
+      (log.actorEmail || '').toLowerCase().includes(q) ||
+      (log.action || '').toLowerCase().includes(q) ||
+      (log.details || '').toLowerCase().includes(q);
+    const matchesService = selectedService === 'ALL' || (log.service || '').includes(selectedService);
 
     return matchesSearch && matchesService;
   });
@@ -163,7 +164,21 @@ export const AuditLogsPage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredLogs.map((log) => (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-slate-400">
+                    <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-blue-600" />
+                    <span>Loading audit records from Governance Ledger...</span>
+                  </td>
+                </tr>
+              ) : filteredLogs.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-slate-400">
+                    <span>No audit log records found matching your filters.</span>
+                  </td>
+                </tr>
+              ) : (
+                filteredLogs.map((log) => (
                 <tr key={log.id} className="hover:bg-slate-50/70 transition-colors">
                   <td className="py-3 px-4">
                     <Link
@@ -205,7 +220,7 @@ export const AuditLogsPage: React.FC = () => {
                     </Link>
                   </td>
                 </tr>
-              ))}
+              )))}
             </tbody>
           </table>
         </div>

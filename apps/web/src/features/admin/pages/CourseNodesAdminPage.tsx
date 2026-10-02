@@ -16,7 +16,7 @@ import {
   MessageSquare,
   Loader2,
 } from 'lucide-react';
-import { mockDetailedCourseNodes, DetailedCourseNode } from '../../../services/adminMockData';
+import { DetailedCourseNode } from '../../../services/adminMockData';
 import { useCourseNodes, useCreateCourseNode, useDeleteCourseNode } from '../../../services/api';
 
 export const CourseNodesAdminPage: React.FC = () => {
@@ -24,7 +24,7 @@ export const CourseNodesAdminPage: React.FC = () => {
   const createCourseMutation = useCreateCourseNode();
   const deleteCourseMutation = useDeleteCourseNode();
 
-  const [courses, setCourses] = useState<DetailedCourseNode[]>(mockDetailedCourseNodes);
+  const [courses, setCourses] = useState<DetailedCourseNode[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMajor, setSelectedMajor] = useState('ALL');
   const [selectedSemester, setSelectedSemester] = useState('ALL');
@@ -41,30 +41,27 @@ export const CourseNodesAdminPage: React.FC = () => {
   const [newPrereqs, setNewPrereqs] = useState('');
 
   useEffect(() => {
-    if (courseNodesData?.items && courseNodesData.items.length > 0) {
+    if (courseNodesData?.items) {
       const mapped: DetailedCourseNode[] = courseNodesData.items.map((c: any) => ({
         id: String(c.courseNodeId),
-        code: c.courseCode,
-        title: c.courseName,
-        vietnameseTitle: c.vietnameseTitle || c.courseName,
-        description: c.description || `Môn học ${c.courseName} tại FPT University.`,
-        majorCode: c.majorCode || 'SE',
-        department: c.department || 'Kỹ thuật phần mềm',
-        syllabusVersion: c.syllabusVersion || 'v2026.1',
-        semester: c.semester || 1,
-        credits: c.creditCount || 3,
+        code: c.courseCode || '',
+        title: c.courseName || '',
+        vietnameseTitle: c.vietnameseTitle || c.courseName || '',
+        description: c.description || '',
+        majorCode: c.majorCode || '',
+        department: c.department || '',
+        syllabusVersion: c.syllabusVersion || '',
+        semester: c.semester || 0,
+        credits: c.creditCount || 0,
         followerCount: c.followerCount || 0,
         discussionCount: c.discussionCount || 0,
         materialCount: c.materialCount || 0,
         workflowCount: c.workflowCount || 0,
         reviewCount: c.reviewCount || 0,
-        averageRating: c.averageRating || 5.0,
+        averageRating: c.averageRating || 0,
         prerequisites: c.prerequisites || [],
-        learningObjectives: c.learningObjectives || ['Nắm vững kiến thức cốt lõi môn học'],
-        campusOfferings: c.campusOfferings || [
-          { campusCode: 'HL', activeClasses: 5, enrolledStudents: 150, lecturers: ['Bộ môn'] },
-          { campusCode: 'HCM', activeClasses: 5, enrolledStudents: 150, lecturers: ['Bộ môn'] },
-        ],
+        learningObjectives: c.learningObjectives || [],
+        campusOfferings: c.campusOfferings || [],
         topics: c.topics || [],
       }));
       setCourses(mapped);
@@ -72,12 +69,13 @@ export const CourseNodesAdminPage: React.FC = () => {
   }, [courseNodesData]);
 
   const filteredCourses = courses.filter((c) => {
-    const matchesSearch =
-      c.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.vietnameseTitle.toLowerCase().includes(searchQuery.toLowerCase());
+    const q = (searchQuery || '').toLowerCase();
+    const codeMatch = (c?.code || '').toLowerCase().includes(q);
+    const titleMatch = (c?.title || '').toLowerCase().includes(q);
+    const vnTitleMatch = (c?.vietnameseTitle || '').toLowerCase().includes(q);
+    const matchesSearch = codeMatch || titleMatch || vnTitleMatch;
     const matchesMajor = selectedMajor === 'ALL' || c.majorCode === selectedMajor;
-    const matchesSem = selectedSemester === 'ALL' || c.semester.toString() === selectedSemester;
+    const matchesSem = selectedSemester === 'ALL' || String(c.semester) === selectedSemester;
 
     return matchesSearch && matchesMajor && matchesSem;
   });
@@ -114,20 +112,17 @@ export const CourseNodesAdminPage: React.FC = () => {
         majorCode: newMajor,
         department: 'Kỹ thuật phần mềm',
         syllabusVersion: 'v2026.1',
-        semester: Number(newSemester) || 1,
-        credits: Number(newCredits) || 3,
+        semester: Number(newSemester) || 0,
+        credits: Number(newCredits) || 0,
         followerCount: 0,
         discussionCount: 0,
         materialCount: 0,
         workflowCount: 0,
         reviewCount: 0,
-        averageRating: 5.0,
+        averageRating: 0,
         prerequisites: prereqList,
-        learningObjectives: ['Nắm vững kiến thức cốt lõi môn học'],
-        campusOfferings: [
-          { campusCode: 'HL', activeClasses: 5, enrolledStudents: 150, lecturers: ['Giảng viên bộ môn'] },
-          { campusCode: 'HCM', activeClasses: 5, enrolledStudents: 150, lecturers: ['Giảng viên bộ môn'] },
-        ],
+        learningObjectives: [],
+        campusOfferings: [],
         topics: [],
       };
 
@@ -162,7 +157,7 @@ export const CourseNodesAdminPage: React.FC = () => {
           <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
             <span>ACADEMIC TAXONOMY</span>
             <span>&gt;</span>
-            <span className="text-blue-600">COURSE NODES REGISTRY (186 NODES)</span>
+            <span className="text-blue-600">COURSE NODES REGISTRY ({courses.length} NODES)</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
             Course Nodes Registry
@@ -264,9 +259,9 @@ export const CourseNodesAdminPage: React.FC = () => {
 
                   <td className="py-3 px-3">
                     <span className="px-1.5 py-0.5 rounded font-bold font-mono text-[10px] bg-slate-100 text-slate-700">
-                      {c.majorCode}
+                      {c.majorCode || 'N/A'}
                     </span>
-                    <span className="text-slate-500 text-[11px] ml-1.5">Sem {c.semester}</span>
+                    <span className="text-slate-500 text-[11px] ml-1.5">{c.semester ? `Sem ${c.semester}` : 'N/A'}</span>
                   </td>
 
                   <td className="py-3 px-3 font-bold text-slate-800">
@@ -275,15 +270,19 @@ export const CourseNodesAdminPage: React.FC = () => {
 
                   <td className="py-3 px-3">
                     <div className="flex items-center gap-1">
-                      {c.campusOfferings.map((co) => (
-                        <span
-                          key={co.campusCode}
-                          className="w-5 h-5 rounded bg-slate-100 text-slate-600 font-mono font-bold text-[9px] flex items-center justify-center"
-                          title={`${co.campusCode}: ${co.enrolledStudents} students`}
-                        >
-                          {co.campusCode}
-                        </span>
-                      ))}
+                      {c.campusOfferings && c.campusOfferings.length > 0 ? (
+                        c.campusOfferings.map((co) => (
+                          <span
+                            key={co.campusCode}
+                            className="w-5 h-5 rounded bg-slate-100 text-slate-600 font-mono font-bold text-[9px] flex items-center justify-center"
+                            title={`${co.campusCode}: ${co.enrolledStudents || 0} students`}
+                          >
+                            {co.campusCode}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-[11px] text-slate-400">0</span>
+                      )}
                     </div>
                   </td>
 

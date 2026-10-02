@@ -13,7 +13,7 @@ import {
   Sparkles,
   Loader2,
 } from 'lucide-react';
-import { mockReputationRules, ReputationRule } from '../../../services/adminMockData';
+import { ReputationRule } from '../../../services/adminMockData';
 import { useReputationRules, useCreateReputationRule, useUpdateReputationRule } from '../../../services/api';
 
 export const ReputationRulesPage: React.FC = () => {
@@ -21,7 +21,7 @@ export const ReputationRulesPage: React.FC = () => {
   const createRuleMutation = useCreateReputationRule();
   const updateRuleMutation = useUpdateReputationRule();
 
-  const [rules, setRules] = useState<ReputationRule[]>(mockReputationRules);
+  const [rules, setRules] = useState<ReputationRule[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [editingRule, setEditingRule] = useState<ReputationRule | null>(null);
@@ -37,15 +37,16 @@ export const ReputationRulesPage: React.FC = () => {
   const [newDesc, setNewDesc] = useState('');
 
   useEffect(() => {
-    if (Array.isArray(rulesData) && rulesData.length > 0) {
+    if (Array.isArray(rulesData)) {
       setRules(rulesData);
     }
   }, [rulesData]);
 
   const filteredRules = rules.filter((r) => {
-    const matchesSearch =
-      r.actionName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.actionCode.toLowerCase().includes(searchQuery.toLowerCase());
+    const actionName = (r?.actionName || (r as any)?.rule_name || '').toLowerCase();
+    const actionCode = (r?.actionCode || (r as any)?.rule_code || '').toLowerCase();
+    const q = (searchQuery || '').toLowerCase();
+    const matchesSearch = actionName.includes(q) || actionCode.includes(q);
     const matchesCat = selectedCategory === 'ALL' || r.category === selectedCategory;
     return matchesSearch && matchesCat;
   });
@@ -205,7 +206,14 @@ export const ReputationRulesPage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredRules.map((rule) => (
+              {filteredRules.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-8 text-center text-xs text-slate-400">
+                    0 reputation rules found matching your filters.
+                  </td>
+                </tr>
+              ) : (
+                filteredRules.map((rule) => (
                 <tr key={rule.id} className="hover:bg-slate-50/70 transition-colors">
                   <td className="py-3 px-4">
                     <div className="font-bold text-slate-900">{rule.actionName}</div>
@@ -257,7 +265,7 @@ export const ReputationRulesPage: React.FC = () => {
                     </button>
                   </td>
                 </tr>
-              ))}
+              )))}
             </tbody>
           </table>
         </div>

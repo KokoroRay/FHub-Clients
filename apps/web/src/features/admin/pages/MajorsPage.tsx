@@ -15,7 +15,7 @@ import {
   Download,
   Loader2,
 } from 'lucide-react';
-import { mockDetailedMajors, DetailedMajor } from '../../../services/adminMockData';
+import { DetailedMajor } from '../../../services/adminMockData';
 import { useMajors, useCreateMajor, useDeleteMajor } from '../../../services/api';
 
 export const MajorsPage: React.FC = () => {
@@ -23,7 +23,7 @@ export const MajorsPage: React.FC = () => {
   const createMajorMutation = useCreateMajor();
   const deleteMajorMutation = useDeleteMajor();
 
-  const [majors, setMajors] = useState<DetailedMajor[]>(mockDetailedMajors);
+  const [majors, setMajors] = useState<DetailedMajor[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDept, setSelectedDept] = useState('ALL');
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -38,18 +38,18 @@ export const MajorsPage: React.FC = () => {
   const [newCredits, setNewCredits] = useState(144);
 
   useEffect(() => {
-    if (majorsData?.items && majorsData.items.length > 0) {
+    if (majorsData?.items) {
       const mapped: DetailedMajor[] = majorsData.items.map((m: any) => ({
         id: String(m.majorId),
-        code: m.majorCode,
-        name: m.majorName,
-        vietnameseName: m.vietnameseName || m.majorName,
-        description: m.description || `Chương trình đào tạo ${m.vietnameseName || m.majorName} tại FPT University.`,
+        code: m.majorCode || '',
+        name: m.majorName || '',
+        vietnameseName: m.vietnameseName || m.majorName || '',
+        description: m.description || `Chương trình đào tạo ${m.vietnameseName || m.majorName || ''} tại FPT University.`,
         department: m.department || 'Công nghệ thông tin',
         headOfDepartment: m.headOfDepartment || 'Chưa chỉ định',
-        totalCreditsRequired: m.totalCreditsRequired || 144,
-        durationSemesters: m.durationSemesters || 9,
-        totalCourses: m.totalCourses || 36,
+        totalCreditsRequired: m.totalCreditsRequired || 0,
+        durationSemesters: m.durationSemesters || 0,
+        totalCourses: m.totalCourses || 0,
         isActive: m.isActive ?? true,
         curriculumRoadmap: m.curriculumRoadmap || [],
       }));
@@ -58,10 +58,11 @@ export const MajorsPage: React.FC = () => {
   }, [majorsData]);
 
   const filteredMajors = majors.filter((m) => {
-    const matchesSearch =
-      m.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      m.vietnameseName.toLowerCase().includes(searchQuery.toLowerCase());
+    const q = (searchQuery || '').toLowerCase();
+    const codeMatch = (m?.code || '').toLowerCase().includes(q);
+    const nameMatch = (m?.name || '').toLowerCase().includes(q);
+    const vnNameMatch = (m?.vietnameseName || '').toLowerCase().includes(q);
+    const matchesSearch = codeMatch || nameMatch || vnNameMatch;
     const matchesDept = selectedDept === 'ALL' || m.department === selectedDept;
     return matchesSearch && matchesDept;
   });
@@ -77,7 +78,7 @@ export const MajorsPage: React.FC = () => {
         vietnameseName: newVnName.trim() || newName.trim(),
         department: newDept,
         headOfDepartment: newHead.trim() || 'Chưa chỉ định',
-        totalCreditsRequired: Number(newCredits) || 144,
+        totalCreditsRequired: Number(newCredits) || 0,
         description: `Chương trình đào tạo ${newVnName || newName} tại FPT University.`,
         isActive: true,
       });
@@ -95,9 +96,9 @@ export const MajorsPage: React.FC = () => {
         description: `Chương trình đào tạo ${newVnName || newName} tại FPT University.`,
         department: newDept,
         headOfDepartment: newHead.trim() || 'Chưa chỉ định',
-        totalCreditsRequired: Number(newCredits) || 144,
-        durationSemesters: 9,
-        totalCourses: 36,
+        totalCreditsRequired: Number(newCredits) || 0,
+        durationSemesters: 0,
+        totalCourses: 0,
         isActive: true,
         curriculumRoadmap: [],
       };
@@ -138,7 +139,7 @@ export const MajorsPage: React.FC = () => {
             Degree Tracks & Curriculums
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Manage all 32 undergraduate and graduate academic programs, department chairs, and credit requirements.
+            Manage all {majors.length} undergraduate and graduate academic programs, department chairs, and credit requirements.
           </p>
         </div>
 
@@ -187,69 +188,77 @@ export const MajorsPage: React.FC = () => {
 
       {/* Majors Grid (Figma 59:9018) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredMajors.map((major) => (
-          <div
-            key={major.id}
-            className="bg-white rounded-xl border border-slate-200/90 p-5 shadow-2xs hover:border-blue-400 transition-all flex flex-col justify-between"
-          >
-            <div className="space-y-4">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 font-bold text-base flex items-center justify-center">
-                    {major.code}
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-sm text-slate-900 leading-tight">
-                      {major.vietnameseName}
-                    </h3>
-                    <span className="text-[11px] text-slate-400">{major.name}</span>
-                  </div>
-                </div>
-
-                <span className="text-[10px] font-bold px-2 py-0.2 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  ACTIVE
-                </span>
-              </div>
-
-              <div className="p-3 bg-slate-50 rounded-lg space-y-1.5 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Department:</span>
-                  <span className="font-semibold text-slate-800">{major.department}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Department Chair:</span>
-                  <span className="font-semibold text-slate-800">{major.headOfDepartment}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Credits & Duration:</span>
-                  <span className="font-bold text-blue-600">{major.totalCreditsRequired} Credits (9 Semesters)</span>
-                </div>
-              </div>
-
-              <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed">
-                {major.description}
-              </p>
-            </div>
-
-            <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between">
-              <button
-                onClick={() => handleDeleteMajor(major.id, major.vietnameseName)}
-                className="text-slate-400 hover:text-rose-600 p-1 rounded transition-colors cursor-pointer"
-                title="Delete major"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-
-              <Link
-                to={`/majors/${major.code}`}
-                className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700"
-              >
-                <span>9-Semester Roadmap</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
+        {filteredMajors.length === 0 ? (
+          <div className="col-span-full p-8 text-center bg-white rounded-xl border border-slate-200 text-slate-400 text-xs">
+            0 degree tracks found matching your filter criteria.
           </div>
-        ))}
+        ) : (
+          filteredMajors.map((major) => (
+            <div
+              key={major.id}
+              className="bg-white rounded-xl border border-slate-200/90 p-5 shadow-2xs hover:border-blue-400 transition-all flex flex-col justify-between"
+            >
+              <div className="space-y-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 font-bold text-base flex items-center justify-center">
+                      {major.code}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-sm text-slate-900 leading-tight">
+                        {major.vietnameseName}
+                      </h3>
+                      <span className="text-[11px] text-slate-400">{major.name}</span>
+                    </div>
+                  </div>
+
+                  <span className="text-[10px] font-bold px-2 py-0.2 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    ACTIVE
+                  </span>
+                </div>
+
+                <div className="p-3 bg-slate-50 rounded-lg space-y-1.5 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Department:</span>
+                    <span className="font-semibold text-slate-800">{major.department}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Department Chair:</span>
+                    <span className="font-semibold text-slate-800">{major.headOfDepartment}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Credits & Duration:</span>
+                    <span className="font-bold text-blue-600">
+                      {major.totalCreditsRequired} Credits ({major.durationSemesters} Semesters)
+                    </span>
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed">
+                  {major.description}
+                </p>
+              </div>
+
+              <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between">
+                <button
+                  onClick={() => handleDeleteMajor(major.id, major.vietnameseName)}
+                  className="text-slate-400 hover:text-rose-600 p-1 rounded transition-colors cursor-pointer"
+                  title="Delete major"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+
+                <Link
+                  to={`/majors/${major.code}`}
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700"
+                >
+                  <span>{major.durationSemesters > 0 ? `${major.durationSemesters}-Semester Roadmap` : 'Curriculum Roadmap'}</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Modal: Create Major */}

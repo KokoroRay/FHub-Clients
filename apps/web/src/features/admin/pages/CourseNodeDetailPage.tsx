@@ -20,58 +20,55 @@ import {
   Plus,
   Loader2,
 } from 'lucide-react';
-import { mockDetailedCourseNodes, DetailedCourseNode } from '../../../services/adminMockData';
+import { DetailedCourseNode } from '../../../services/adminMockData';
 import { useCourseNodes } from '../../../services/api';
 
 export const CourseNodeDetailPage: React.FC = () => {
   const { code } = useParams<{ code: string }>();
-  const { data: courseNodesData } = useCourseNodes();
-  const [courses, setCourses] = useState<DetailedCourseNode[]>(mockDetailedCourseNodes);
+  const { data: courseNodesData, isLoading } = useCourseNodes();
+  const [courses, setCourses] = useState<DetailedCourseNode[]>([]);
   const [isAiProcessing, setIsAiProcessing] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (courseNodesData?.items && courseNodesData.items.length > 0) {
       const found = courseNodesData.items.find(
-        (c: any) => c.courseCode.toLowerCase() === code?.toLowerCase()
+        (c: any) => (c?.courseCode || '').toLowerCase() === (code || '').toLowerCase()
       );
       if (found) {
         const f = found as any;
         const mapped: DetailedCourseNode = {
           id: String(f.courseNodeId),
-          code: f.courseCode,
-          title: f.courseName,
-          vietnameseTitle: f.vietnameseTitle || f.courseName,
-          description: f.description || `Môn học ${f.courseName} tại FPT University.`,
-          majorCode: f.majorCode || 'SE',
-          department: f.department || 'Kỹ thuật phần mềm',
-          syllabusVersion: f.syllabusVersion || 'v2026.1',
-          semester: f.semester || 1,
-          credits: f.creditCount || 3,
+          code: f.courseCode || '',
+          title: f.courseName || '',
+          vietnameseTitle: f.vietnameseTitle || f.courseName || '',
+          description: f.description || '',
+          majorCode: f.majorCode || 'N/A',
+          department: f.department || 'N/A',
+          syllabusVersion: f.syllabusVersion || 'v1.0',
+          semester: f.semester || 0,
+          credits: f.creditCount || 0,
           followerCount: f.followerCount || 0,
           discussionCount: f.discussionCount || 0,
           materialCount: f.materialCount || 0,
           workflowCount: f.workflowCount || 0,
           reviewCount: f.reviewCount || 0,
-          averageRating: f.averageRating || 5.0,
+          averageRating: f.averageRating || 0,
           prerequisites: f.prerequisites || [],
-          learningObjectives: f.learningObjectives || ['Nắm vững kiến thức cốt lõi môn học'],
-          campusOfferings: (f.campusOfferings || [
-            { campusCode: 'HL', activeClasses: 5, enrolledStudents: 150, lecturers: ['Bộ môn'] },
-            { campusCode: 'HCM', activeClasses: 5, enrolledStudents: 150, lecturers: ['Bộ môn'] },
-          ]) as any,
+          learningObjectives: f.learningObjectives || [],
+          campusOfferings: f.campusOfferings || [],
           topics: f.topics || [],
           aiAnalysis: {
-            difficultyScore: 7.8,
-            prerequisiteReadinessScore: 8.5,
-            duplicateQuestionsFiltered: 42,
-            summary: `Môn học ${f.courseCode} - ${f.courseName} đã được đồng bộ chuẩn đầu ra ABET từ Taxonomy Service.`,
-            suggestedTags: [f.courseCode.toLowerCase(), 'fpt-university', 'academic'],
+            difficultyScore: f.difficultyScore || 0,
+            prerequisiteReadinessScore: f.prerequisiteReadinessScore || 0,
+            duplicateQuestionsFiltered: f.duplicateQuestionsFiltered || 0,
+            summary: f.description || `Môn học ${f.courseCode} - ${f.courseName} từ Taxonomy Service.`,
+            suggestedTags: [(f.courseCode || '').toLowerCase()].filter(Boolean),
           },
         };
 
         setCourses((prev) => {
-          const idx = prev.findIndex((c) => c.code.toLowerCase() === code?.toLowerCase());
+          const idx = prev.findIndex((c) => (c?.code || '').toLowerCase() === (code || '').toLowerCase());
           if (idx >= 0) {
             const copy = [...prev];
             copy[idx] = mapped;
@@ -83,7 +80,7 @@ export const CourseNodeDetailPage: React.FC = () => {
     }
   }, [courseNodesData, code]);
 
-  const course = courses.find((c) => c.code.toLowerCase() === code?.toLowerCase()) || courses[0];
+  const course = courses.find((c) => (c?.code || '').toLowerCase() === (code || '').toLowerCase()) || null;
 
   const handleTriggerAISummary = () => {
     setIsAiProcessing(true);
@@ -102,6 +99,41 @@ export const CourseNodeDetailPage: React.FC = () => {
       setTimeout(() => setSuccessMessage(null), 3500);
     }, 700);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] text-slate-500">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-2" />
+        <p className="text-xs font-semibold">Loading course node details from Taxonomy Service...</p>
+      </div>
+    );
+  }
+
+  if (!course) {
+    return (
+      <div className="space-y-6 max-w-7xl mx-auto">
+        <div className="flex items-center justify-between">
+          <Link
+            to="/course-nodes"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back to Course Nodes
+          </Link>
+        </div>
+        <div className="p-8 bg-white rounded-xl border border-slate-200 text-center space-y-3">
+          <BookOpen className="w-10 h-10 text-slate-400 mx-auto" />
+          <h2 className="text-base font-bold text-slate-800">Course Node Not Found</h2>
+          <p className="text-xs text-slate-500">The course code &quot;{code}&quot; does not exist or has not been synced yet.</p>
+          <Link
+            to="/course-nodes"
+            className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-semibold"
+          >
+            Return to Registry
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -247,58 +279,70 @@ export const CourseNodeDetailPage: React.FC = () => {
           Campus Distribution & Offerings (5 Regional Nodes)
         </h3>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-          {course.campusOfferings.map((co) => (
-            <div key={co.campusCode} className="p-3 bg-slate-50 rounded-lg border border-slate-100 space-y-1.5 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="w-6 h-6 rounded bg-blue-600 text-white font-mono font-bold text-xs flex items-center justify-center">
-                  {co.campusCode}
-                </span>
-                <span className="text-[9px] px-1.5 py-0.2 bg-emerald-50 text-emerald-700 rounded font-bold">
-                  ACTIVE
-                </span>
+        {course.campusOfferings && course.campusOfferings.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+            {course.campusOfferings.map((co) => (
+              <div key={co.campusCode} className="p-3 bg-slate-50 rounded-lg border border-slate-100 space-y-1.5 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="w-6 h-6 rounded bg-blue-600 text-white font-mono font-bold text-xs flex items-center justify-center">
+                    {co.campusCode}
+                  </span>
+                  <span className="text-[9px] px-1.5 py-0.2 bg-emerald-50 text-emerald-700 rounded font-bold">
+                    ACTIVE
+                  </span>
+                </div>
+                <div>
+                  <div className="font-bold text-slate-900">{co.enrolledStudents || 0} Students</div>
+                  <div className="text-[10px] text-slate-400">{co.activeClasses || 0} Classes</div>
+                </div>
+                <div className="text-[10px] text-slate-500 pt-1 border-t border-slate-200 truncate">
+                  {co.lecturers && co.lecturers.length > 0 ? co.lecturers.join(', ') : 'Chưa phân công'}
+                </div>
               </div>
-              <div>
-                <div className="font-bold text-slate-900">{co.enrolledStudents} Students</div>
-                <div className="text-[10px] text-slate-400">{co.activeClasses} Classes</div>
-              </div>
-              <div className="text-[10px] text-slate-500 pt-1 border-t border-slate-200 truncate">
-                {co.lecturers.join(', ')}
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-slate-400">0 campus nodes offering this course.</p>
+        )}
       </div>
 
       {/* Syllabus Learning Objectives & Topics Breakdown */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="p-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-3">
           <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Learning Objectives (ABET)</h3>
-          <ul className="space-y-2 text-xs text-slate-700">
-            {course.learningObjectives.map((obj, i) => (
-              <li key={i} className="flex items-start gap-2">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                <span>{obj}</span>
-              </li>
-            ))}
-          </ul>
+          {course.learningObjectives && course.learningObjectives.length > 0 ? (
+            <ul className="space-y-2 text-xs text-slate-700">
+              {course.learningObjectives.map((obj, i) => (
+                <li key={i} className="flex items-start gap-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                  <span>{obj}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-xs text-slate-400">0 learning objectives defined.</p>
+          )}
         </div>
 
         <div className="p-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-3">
           <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Topics Syllabus</h3>
-          <div className="divide-y divide-slate-100 text-xs">
-            {course.topics.map((t) => (
-              <div key={t.id} className="py-2 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-600 font-bold text-[9px] flex items-center justify-center">
-                    {t.order}
-                  </span>
-                  <span className="font-medium text-slate-800">{t.title}</span>
+          {course.topics && course.topics.length > 0 ? (
+            <div className="divide-y divide-slate-100 text-xs">
+              {course.topics.map((t) => (
+                <div key={t.id} className="py-2 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-4 h-4 rounded-full bg-slate-100 text-slate-600 font-bold text-[9px] flex items-center justify-center">
+                      {t.order}
+                    </span>
+                    <span className="font-medium text-slate-800">{t.title}</span>
+                  </div>
+                  <span className="text-[11px] text-slate-400 font-mono">{t.estimatedHours || 0}h</span>
                 </div>
-                <span className="text-[11px] text-slate-400 font-mono">{t.estimatedHours}h</span>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-slate-400">0 topics in syllabus.</p>
+          )}
         </div>
       </div>
     </div>

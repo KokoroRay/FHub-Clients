@@ -183,10 +183,10 @@ export const AdminSubdomainLayout: React.FC = () => {
                   />
                   <div className="hidden xl:flex flex-col text-left">
                     <span className="text-xs font-semibold text-slate-800">
-                      Nguyen Admin
+                      {currentUser?.fullName || currentUser?.email?.split('@')[0] || 'Administrator'}
                     </span>
                     <span className="text-[10px] text-slate-400">
-                      System Admin
+                      {currentUser?.role || 'System Admin'}
                     </span>
                   </div>
                   <ChevronDown className="w-3 h-3 text-slate-400 hidden xl:block" />

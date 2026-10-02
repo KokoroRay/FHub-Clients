@@ -366,28 +366,28 @@ export const majorsApi = {
     if (params?.pageNumber) query.set('pageNumber', String(params.pageNumber));
     if (params?.pageSize) query.set('pageSize', String(params.pageSize));
 
-    const res = await apiClient.get<ApiResponse<PagedResult<MajorItemDto>>>(`/api/majors?${query.toString()}`);
-    return res.data.data;
+    const res = await apiClient.get<any>(`/api/majors?${query.toString()}`);
+    return res.data?.data ?? res.data;
   },
 
   getMajorById: async (id: number | string) => {
-    const res = await apiClient.get<ApiResponse<MajorItemDto>>(`/api/majors/${id}`);
-    return res.data.data;
+    const res = await apiClient.get<any>(`/api/majors/${id}`);
+    return res.data?.data ?? res.data;
   },
 
   getMajorByCode: async (code: string) => {
-    const res = await apiClient.get<ApiResponse<MajorItemDto>>(`/api/majors/code/${code}`);
-    return res.data.data;
+    const res = await apiClient.get<any>(`/api/majors/code/${code}`);
+    return res.data?.data ?? res.data;
   },
 
   createMajor: async (payload: { majorCode: string; majorName: string; vietnameseName?: string; description?: string; department?: string; headOfDepartment?: string; totalCreditsRequired?: number; isActive?: boolean }) => {
-    const res = await apiClient.post<ApiResponse<MajorItemDto>>('/api/majors', payload);
-    return res.data.data;
+    const res = await apiClient.post<any>('/api/majors', payload);
+    return res.data?.data ?? res.data;
   },
 
   updateMajor: async (id: number | string, payload: { majorName: string; description?: string; isActive?: boolean }) => {
-    const res = await apiClient.put<ApiResponse<MajorItemDto>>(`/api/majors/${id}`, payload);
-    return res.data.data;
+    const res = await apiClient.put<any>(`/api/majors/${id}`, payload);
+    return res.data?.data ?? res.data;
   },
 
   deleteMajor: async (id: number | string) => {
@@ -395,13 +395,13 @@ export const majorsApi = {
   },
 
   addCourseToSemester: async (majorId: number | string, payload: { semesterNumber: number; courseCode: string; courseTitle: string; credits: number; prerequisites?: string[]; isMandatory?: boolean }) => {
-    const res = await apiClient.post<ApiResponse<MajorItemDto>>(`/api/majors/${majorId}/curriculum-courses`, payload);
-    return res.data.data;
+    const res = await apiClient.post<any>(`/api/majors/${majorId}/curriculum-courses`, payload);
+    return res.data?.data ?? res.data;
   },
 
   removeCourseFromSemester: async (majorId: number | string, courseCode: string, semester: number = 1) => {
-    const res = await apiClient.delete<ApiResponse<MajorItemDto>>(`/api/majors/${majorId}/curriculum-courses/${courseCode}?semester=${semester}`);
-    return res.data.data;
+    const res = await apiClient.delete<any>(`/api/majors/${majorId}/curriculum-courses/${courseCode}?semester=${semester}`);
+    return res.data?.data ?? res.data;
   }
 };
 
@@ -441,18 +441,18 @@ export const courseNodesApi = {
     if (params?.pageNumber) query.set('pageNumber', String(params.pageNumber));
     if (params?.pageSize) query.set('pageSize', String(params.pageSize));
 
-    const res = await apiClient.get<ApiResponse<PagedResult<CourseNodeDto>>>(`/api/course-nodes?${query.toString()}`);
-    return res.data.data;
+    const res = await apiClient.get<any>(`/api/course-nodes?${query.toString()}`);
+    return res.data?.data ?? res.data;
   },
 
   getCourseNodeById: async (id: number | string) => {
-    const res = await apiClient.get<ApiResponse<CourseNodeDto>>(`/api/course-nodes/${id}`);
-    return res.data.data;
+    const res = await apiClient.get<any>(`/api/course-nodes/${id}`);
+    return res.data?.data ?? res.data;
   },
 
   createCourseNode: async (payload: { courseCode: string; courseName: string; description?: string; creditCount?: number; isActive?: boolean }) => {
-    const res = await apiClient.post<ApiResponse<CourseNodeDto>>('/api/course-nodes', payload);
-    return res.data.data;
+    const res = await apiClient.post<any>('/api/course-nodes', payload);
+    return res.data?.data ?? res.data;
   },
 
   updateCourseNode: async (id: number | string, payload: { courseName: string; description?: string; creditCount?: number; isActive?: boolean }) => {
@@ -469,23 +469,49 @@ export const courseNodesApi = {
 // 8. Reputation Rules API (Go Interaction Service)
 // ---------------------------------------------------------------------------
 export const reputationApi = {
-  getRules: async () => {
-    const res = await apiClient.get<ReputationRule[]>('/api/reputation/rules');
-    return res.data;
+  getRules: async (): Promise<ReputationRule[]> => {
+    const res = await apiClient.get<any[]>('/api/reputation/rules');
+    const rawList = Array.isArray(res.data) ? res.data : [];
+    return rawList.map((r: any) => ({
+      id: String(r.id || r.rule_id || `rep-${Math.random()}`),
+      actionCode: r.actionCode || r.rule_code || r.code || '',
+      actionName: r.actionName || r.rule_name || r.name || 'Unnamed Rule',
+      category: (r.category || (r.event_type?.includes('QUESTION') ? 'DISCUSSION' : r.event_type?.includes('REPORT') ? 'COMMUNITY' : (r.points_delta ?? r.pointDelta ?? 0) < 0 ? 'PENALTY' : 'CONTENT')) as any,
+      pointDelta: typeof r.pointDelta === 'number' ? r.pointDelta : (r.points_delta ?? 0),
+      description: r.description || '',
+      dailyCap: r.dailyCap ?? r.daily_limit ?? 0,
+      cooldownSeconds: r.cooldownSeconds ?? 0,
+      isActive: r.isActive ?? r.is_active ?? true,
+      lastUpdated: r.lastUpdated || r.updated_at || new Date().toISOString(),
+      updatedBy: r.updatedBy || 'System Policy Engine',
+    }));
   },
 
-  getRuleById: async (id: number | string) => {
-    const res = await apiClient.get<ReputationRule>(`/api/reputation/rules/${id}`);
-    return res.data;
+  getRuleById: async (id: number | string): Promise<ReputationRule> => {
+    const res = await apiClient.get<any>(`/api/reputation/rules/${id}`);
+    const r = res.data;
+    return {
+      id: String(r.id || r.rule_id || id),
+      actionCode: r.actionCode || r.rule_code || '',
+      actionName: r.actionName || r.rule_name || 'Rule',
+      category: (r.category || 'DISCUSSION') as any,
+      pointDelta: r.pointDelta ?? r.points_delta ?? 0,
+      description: r.description || '',
+      dailyCap: r.dailyCap ?? r.daily_limit ?? 0,
+      cooldownSeconds: r.cooldownSeconds ?? 0,
+      isActive: r.isActive ?? r.is_active ?? true,
+      lastUpdated: r.lastUpdated || r.updated_at || new Date().toISOString(),
+      updatedBy: r.updatedBy || 'Policy Engine',
+    };
   },
 
   createRule: async (payload: { actionCode: string; actionName: string; category: string; pointDelta: number; dailyCap: number; description?: string }) => {
-    const res = await apiClient.post<ReputationRule>('/api/admin/reputation/rules', payload);
+    const res = await apiClient.post<any>('/api/admin/reputation/rules', payload);
     return res.data;
   },
 
   updateRule: async (id: number | string, payload: { actionName: string; category?: string; pointDelta: number; dailyCap: number; description?: string; isActive?: boolean }) => {
-    const res = await apiClient.put<ReputationRule>(`/api/admin/reputation/rules/${id}`, payload);
+    const res = await apiClient.put<any>(`/api/admin/reputation/rules/${id}`, payload);
     return res.data;
   },
 
@@ -499,23 +525,51 @@ export const reputationApi = {
 // 9. Achievement Badges API (Go Interaction Service)
 // ---------------------------------------------------------------------------
 export const badgesApi = {
-  getBadges: async () => {
-    const res = await apiClient.get<DetailedBadge[]>('/api/badges');
-    return res.data;
+  getBadges: async (): Promise<DetailedBadge[]> => {
+    const res = await apiClient.get<any[]>('/api/badges');
+    const rawList = Array.isArray(res.data) ? res.data : [];
+    return rawList.map((b: any) => ({
+      id: String(b.id || b.badge_id || `badge-${Math.random()}`),
+      code: b.code || b.badge_code || '',
+      name: b.name || b.badge_name || 'Unnamed Badge',
+      description: b.description || '',
+      icon: b.icon || b.icon_url || 'Sparkles',
+      tier: (b.tier || ((b.criteria_value ?? b.pointValue ?? 0) >= 500 ? 'LEGENDARY' : (b.criteria_value ?? b.pointValue ?? 0) >= 100 ? 'PLATINUM' : (b.criteria_value ?? b.pointValue ?? 0) >= 10 ? 'GOLD' : 'SILVER')) as any,
+      category: (b.category || (b.criteria_type?.includes('QUESTION') ? 'CONTRIBUTOR' : b.criteria_type?.includes('MOD') ? 'MODERATOR' : 'COMMUNITY')) as any,
+      triggerCriteria: b.triggerCriteria || b.criteria_type || 'Custom Criteria',
+      pointValue: b.pointValue ?? (b.criteria_value ?? 0),
+      awardedCount: b.awardedCount ?? 0,
+      isActive: b.isActive ?? b.is_active ?? true,
+      createdAt: b.createdAt || b.created_at || new Date().toISOString(),
+    }));
   },
 
-  getBadgeById: async (id: number | string) => {
-    const res = await apiClient.get<DetailedBadge>(`/api/admin/badges/${id}`);
-    return res.data;
+  getBadgeById: async (id: number | string): Promise<DetailedBadge> => {
+    const res = await apiClient.get<any>(`/api/admin/badges/${id}`);
+    const b = res.data;
+    return {
+      id: String(b.id || b.badge_id || id),
+      code: b.code || b.badge_code || '',
+      name: b.name || b.badge_name || 'Badge',
+      description: b.description || '',
+      icon: b.icon || b.icon_url || 'Sparkles',
+      tier: (b.tier || 'GOLD') as any,
+      category: (b.category || 'CONTRIBUTOR') as any,
+      triggerCriteria: b.triggerCriteria || b.criteria_type || '',
+      pointValue: b.pointValue ?? b.criteria_value ?? 0,
+      awardedCount: b.awardedCount ?? 0,
+      isActive: b.isActive ?? b.is_active ?? true,
+      createdAt: b.createdAt || b.created_at || new Date().toISOString(),
+    };
   },
 
   createBadge: async (payload: { code: string; name: string; description?: string; tier?: string; category?: string; triggerCriteria?: string; pointValue?: number }) => {
-    const res = await apiClient.post<DetailedBadge>('/api/admin/badges', payload);
+    const res = await apiClient.post<any>('/api/admin/badges', payload);
     return res.data;
   },
 
   updateBadge: async (id: number | string, payload: { name: string; description?: string; tier?: string; category?: string; triggerCriteria?: string; pointValue?: number; isActive?: boolean }) => {
-    const res = await apiClient.put<DetailedBadge>(`/api/admin/badges/${id}`, payload);
+    const res = await apiClient.put<any>(`/api/admin/badges/${id}`, payload);
     return res.data;
   },
 
@@ -597,13 +651,13 @@ export const auditLogsApi = {
 export const healthApi = {
   checkAllServices: async () => {
     const services = [
-      { name: 'Identity Service', port: 5111, path: '/api/auth/login' },
-      { name: 'Taxonomy Service', port: 5255, path: '/api/campuses' },
-      { name: 'Governance Service', port: 5249, path: '/api/governance-accounts' },
-      { name: 'Interaction Service', port: 8081, path: '/api/badges' },
-      { name: 'Communication Service', port: 8082, path: '/health' },
-      { name: 'Content Service', port: 5121, path: '/health' },
-      { name: 'Profile Service', port: 5267, path: '/health' }
+      { name: 'Identity Service', port: 5111, path: '/api/health/identity' },
+      { name: 'Taxonomy Service', port: 5255, path: '/api/health/taxonomy' },
+      { name: 'Governance Service', port: 5249, path: '/api/health/governance' },
+      { name: 'Interaction Service', port: 8081, path: '/api/health/interaction' },
+      { name: 'Communication Service', port: 8082, path: '/api/health/communication' },
+      { name: 'Content Service', port: 5121, path: '/api/health/content' },
+      { name: 'Profile Service', port: 5267, path: '/api/health/profile' }
     ];
 
     const results = await Promise.allSettled(
@@ -613,16 +667,16 @@ export const healthApi = {
           await apiClient.get(s.path, { timeout: 3500 });
           const latency = Math.round(performance.now() - start);
           return { name: s.name, status: 'HEALTHY' as const, latencyMs: latency || 18, uptime: '99.98%' };
-        } catch (err) {
+        } catch {
           const latency = Math.round(performance.now() - start);
-          return { name: s.name, status: 'HEALTHY' as const, latencyMs: latency || 24, uptime: '99.9%' };
+          return { name: s.name, status: 'DEGRADED' as const, latencyMs: latency || 120, uptime: '98.5%' };
         }
       })
     );
 
     return results.map((r, i) => {
       if (r.status === 'fulfilled') return r.value;
-      return { name: services[i].name, status: 'DEGRADED' as const, latencyMs: 65, uptime: '99.2%' };
+      return { name: services[i].name, status: 'OFFLINE' as const, latencyMs: 999, uptime: '0%' };
     });
   }
 };

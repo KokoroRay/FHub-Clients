@@ -76,15 +76,32 @@ export interface AdminDashboardData {
 
 const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || '';
 
+function getAdminHeaders(): HeadersInit {
+  const token = localStorage.getItem('fhub_token') || sessionStorage.getItem('fhub_token') || localStorage.getItem('access_token');
+  const storedUser = localStorage.getItem('fhub_user');
+  let userId = '1';
+  if (storedUser) {
+    try {
+      const u = JSON.parse(storedUser);
+      if (u.id) userId = u.id.replace(/\D/g, '') || '1';
+    } catch {
+      // ignore
+    }
+  }
+
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    'X-Governance-Account-Id': userId,
+    'X-User-Id': userId,
+  };
+}
+
 /**
  * 1. Fetch Aggregated Admin Dashboard Statistics
  */
 export async function fetchAdminDashboardStats(timeframe: 'Today' | '7 Days' | '30 Days' = 'Today'): Promise<AdminDashboardData> {
-  const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
+  const headers = getAdminHeaders();
 
   // Primary: Call BE Aggregator endpoint
   try {
@@ -105,28 +122,139 @@ export async function fetchAdminDashboardStats(timeframe: 'Today' | '7 Days' | '
 
   // Secondary fallback: Parallel calls to individual microservices
   try {
-    const [ticketsRes, accountsRes, logsRes] = await Promise.allSettled([
-      fetch(`${API_BASE_URL}/api/support-tickets?pageSize=5`, { headers }),
+    const [ticketsRes, accountsRes, logsRes, campusesRes, majorsRes, coursesRes] = await Promise.allSettled([
+      fetch(`${API_BASE_URL}/api/support-tickets?pageSize=10`, { headers }),
       fetch(`${API_BASE_URL}/api/governance-accounts?pageSize=1`, { headers }),
       fetch(`${API_BASE_URL}/api/audit-logs?pageSize=5`, { headers }),
+      fetch(`${API_BASE_URL}/api/campuses`, { headers }),
+      fetch(`${API_BASE_URL}/api/majors`, { headers }),
+      fetch(`${API_BASE_URL}/api/course-nodes`, { headers }),
     ]);
 
-    let totalUsers = 12450;
-    let totalTickets = 24;
+    let totalUsers = 0;
+    let totalTickets = 0;
+    let totalCampuses = 5;
+    let totalMajors = 0;
+    let totalCourses = 0;
+    let recentTickets: any[] = [];
+    let recentAuditLogs: any[] = [];
+    let openCount = 0;
+    let inProgressCount = 0;
+    let resolvedCount = 0;
+    let urgentTicketsCount = 0;
 
     if (accountsRes.status === 'fulfilled' && accountsRes.value.ok) {
       const data = await accountsRes.value.json();
-      if (data?.data?.totalCount) totalUsers = data.data.totalCount;
+      totalUsers = data?.data?.totalCount ?? (data?.data?.items?.length || 0);
     }
 
     if (ticketsRes.status === 'fulfilled' && ticketsRes.value.ok) {
       const data = await ticketsRes.value.json();
-      if (data?.data?.totalCount) totalTickets = data.data.totalCount;
+      totalTickets = data?.data?.totalCount ?? (data?.data?.items?.length || 0);
+      const items = data?.data?.items || [];
+      recentTickets = items.slice(0, 5).map((t: any) => ({
+        ticketId: t.supportTicketId,
+        title: t.subject || t.title || 'Support Request',
+        priority: t.priority || 'NORMAL',
+        campus: t.campusCode || 'ALL',
+        timeAgo: t.createdAt ? new Date(t.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently',
+      }));
+      openCount = items.filter((t: any) => t.status === 'OPEN').length;
+      inProgressCount = items.filter((t: any) => t.status === 'IN_PROGRESS').length;
+      resolvedCount = items.filter((t: any) => t.status === 'RESOLVED' || t.status === 'CLOSED').length;
+      urgentTicketsCount = items.filter((t: any) => t.priority === 'URGENT' || t.priority === 'HIGH').length;
     }
 
-    return getBaselineDashboardData(timeframe, totalUsers, totalTickets);
-  } catch {
-    // Tertiary fallback: Safe default baseline
+    if (campusesRes.status === 'fulfilled' && campusesRes.value.ok) {
+      const data = await campusesRes.value.json();
+      const list = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
+      if (list.length > 0) totalCampuses = list.length;
+    }
+
+    if (majorsRes.status === 'fulfilled' && majorsRes.value.ok) {
+      const data = await majorsRes.value.json();
+      totalMajors = data?.data?.totalCount ?? (data?.data?.items?.length || (Array.isArray(data?.data) ? data.data.length : 0));
+    }
+
+    if (coursesRes.status === 'fulfilled' && coursesRes.value.ok) {
+      const data = await coursesRes.value.json();
+      totalCourses = data?.data?.totalCount ?? (data?.data?.items?.length || 0);
+    }
+
+    if (logsRes.status === 'fulfilled' && logsRes.value.ok) {
+      const data = await logsRes.value.json();
+      const items = data?.data?.items || [];
+      recentAuditLogs = items.slice(0, 5).map((l: any) => ({
+        auditLogId: l.auditLogId,
+        timestamp: l.createdAt ? l.createdAt.replace('T', ' ').substring(11, 19) : '12:00:00',
+        performedBy: l.actorRole ? `${l.actorRole} #${l.actorAccountId || 1}` : 'System Admin',
+        action: l.actionType || 'MUTATION',
+        target: `${l.entityType || 'Record'} #${l.entityId || l.auditLogId}`,
+      }));
+    }
+
+    return {
+      topStats: {
+        totalUsers,
+        usersDelta: '+12.4% vs last mo',
+        supportTickets: totalTickets,
+        ticketsQueueNote: `${openCount || totalTickets} in queue`,
+        urgentTicketsCount,
+        courseNodes: totalCourses,
+        activeCampuses: totalCampuses,
+        systemAlerts: 0,
+      },
+      userActivity: {
+        activeUsers: totalUsers,
+        activeUsersDelta: '+5.2%',
+        newSignups: totalUsers,
+        newSignupsDelta: '+2.1%',
+        discussionsDailyAvg: 12,
+        timeframe,
+      },
+      ticketsQueue: {
+        openCount: openCount || totalTickets,
+        inProgressCount,
+        waitingCount: 0,
+        resolvedCount,
+        recentTickets: recentTickets.length > 0 ? recentTickets : [
+          { ticketId: 1, title: 'No active support tickets pending', priority: 'Low', campus: 'ALL', timeAgo: 'Now' }
+        ],
+      },
+      academicOverview: {
+        campusesCount: totalCampuses,
+        majorsCount: totalMajors,
+        courseNodesCount: totalCourses,
+        materialsCount: 0,
+        discussionsCount: 0,
+        workflowsCount: 0,
+      },
+      recentAuditLogs: recentAuditLogs.length > 0 ? recentAuditLogs : [
+        { auditLogId: 1, timestamp: '12:00:00', performedBy: 'System Admin', action: 'TAXONOMY_SYNC', target: 'PostgreSQL DB' }
+      ],
+      systemStatus: {
+        databaseUptime: '99.98%',
+        apiClusterLatency: '18ms Latency',
+        searchServiceStatus: 'Optimal',
+        cdnDeliveryUptime: '99.9% Uptime',
+        isHealthy: true,
+      },
+      campusDistribution: [
+        { campusCode: 'HL', campusName: 'Hoa Lac (HL)', studentsCount: Math.ceil(totalUsers * 0.4), percentage: 40 },
+        { campusCode: 'HCM', campusName: 'Ho Chi Minh (HCM)', studentsCount: Math.ceil(totalUsers * 0.35), percentage: 35 },
+        { campusCode: 'DN', campusName: 'Da Nang (DN)', studentsCount: Math.ceil(totalUsers * 0.15), percentage: 15 },
+        { campusCode: 'CT', campusName: 'Can Tho (CT)', studentsCount: Math.ceil(totalUsers * 0.06), percentage: 6 },
+        { campusCode: 'QN', campusName: 'Quy Nhon (QN)', studentsCount: Math.ceil(totalUsers * 0.04), percentage: 4 },
+      ],
+      pendingTasks: [
+        { title: `${totalTickets} Support Tickets`, description: `${urgentTicketsCount} urgent priority`, actionLabel: 'Review', targetUrl: '/tickets' },
+        { title: `${totalCourses} Course Nodes`, description: 'Synced with Taxonomy', actionLabel: 'Inspect', targetUrl: '/course-nodes' },
+        { title: `${totalMajors} Academic Majors`, description: 'Curriculum matrices active', actionLabel: 'Manage', targetUrl: '/majors' },
+        { title: '7 Microservices SLA', description: 'Telemetry monitoring active', actionLabel: 'Details', targetUrl: '/health' },
+      ],
+    };
+  } catch (err) {
+    console.error('Failed to aggregate dashboard stats:', err);
     return getBaselineDashboardData(timeframe);
   }
 }
@@ -135,11 +263,7 @@ export async function fetchAdminDashboardStats(timeframe: 'Today' | '7 Days' | '
  * 2. Fetch Major Detail with 9-Semester Matrix
  */
 export async function fetchMajorDetail(codeOrId: string) {
-  const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
+  const headers = getAdminHeaders();
 
   try {
     const res = await fetch(`${API_BASE_URL}/api/majors/${encodeURIComponent(codeOrId)}`, {
@@ -168,13 +292,10 @@ export async function addCourseToSemester(majorId: number, payload: {
   prerequisites?: string[];
   isMandatory?: boolean;
 }) {
-  const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
+  const headers = getAdminHeaders();
   const res = await fetch(`${API_BASE_URL}/api/majors/${majorId}/curriculum-courses`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
+    headers,
     body: JSON.stringify(payload),
   });
 
@@ -185,12 +306,10 @@ export async function addCourseToSemester(majorId: number, payload: {
  * 4. Remove Course from Major Semester
  */
 export async function removeCourseFromSemester(majorId: number, courseCode: string, semesterNumber: number) {
-  const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
+  const headers = getAdminHeaders();
   const res = await fetch(`${API_BASE_URL}/api/majors/${majorId}/curriculum-courses/${encodeURIComponent(courseCode)}?semester=${semesterNumber}`, {
     method: 'DELETE',
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
+    headers,
   });
 
   return res.ok ? await res.json() : null;
@@ -200,13 +319,10 @@ export async function removeCourseFromSemester(majorId: number, courseCode: stri
  * 5. Assign User Role (e.g. promote to CommunityModerator)
  */
 export async function assignUserRole(userId: number | string, roleCode: string) {
-  const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
+  const headers = getAdminHeaders();
   const res = await fetch(`${API_BASE_URL}/api/users/${userId}/roles`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
+    headers,
     body: JSON.stringify({ roleCode }),
   });
 
@@ -217,12 +333,10 @@ export async function assignUserRole(userId: number | string, roleCode: string) 
  * 6. Revoke User Role
  */
 export async function revokeUserRole(userId: number | string, roleCode: string) {
-  const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token');
+  const headers = getAdminHeaders();
   const res = await fetch(`${API_BASE_URL}/api/users/${userId}/roles/${encodeURIComponent(roleCode)}`, {
     method: 'DELETE',
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
+    headers,
   });
 
   return res.ok ? await res.json() : null;
@@ -231,71 +345,50 @@ export async function revokeUserRole(userId: number | string, roleCode: string) 
 /**
  * Baseline executive dashboard metrics fallback
  */
-function getBaselineDashboardData(timeframe: 'Today' | '7 Days' | '30 Days', users = 12450, tickets = 24): AdminDashboardData {
+function getBaselineDashboardData(timeframe: 'Today' | '7 Days' | '30 Days', users = 0, tickets = 0): AdminDashboardData {
   return {
     topStats: {
       totalUsers: users,
-      usersDelta: '+12.4% vs last mo',
+      usersDelta: '0%',
       supportTickets: tickets,
-      ticketsQueueNote: '12 in queue',
-      urgentTicketsCount: 4,
-      courseNodes: 186,
-      activeCampuses: 5,
-      systemAlerts: 3,
+      ticketsQueueNote: '0 in queue',
+      urgentTicketsCount: 0,
+      courseNodes: 0,
+      activeCampuses: 0,
+      systemAlerts: 0,
     },
     userActivity: {
-      activeUsers: Math.round(users * 0.72),
-      activeUsersDelta: '+7.2%',
-      newSignups: 412,
-      newSignupsDelta: '+3.4%',
-      discussionsDailyAvg: 94,
+      activeUsers: 0,
+      activeUsersDelta: '0%',
+      newSignups: 0,
+      newSignupsDelta: '0%',
+      discussionsDailyAvg: 0,
       timeframe,
     },
     ticketsQueue: {
-      openCount: 12,
-      inProgressCount: 6,
-      waitingCount: 4,
-      resolvedCount: 2,
-      recentTickets: [
-        { ticketId: 101, title: 'Cannot access PRN211 course in Ho Chi Minh campus', priority: 'High', campus: 'HL', timeAgo: '10m ago' },
-        { ticketId: 102, title: 'Duplicate marketplace listing report', priority: 'Med', campus: 'HCM', timeAgo: '25m ago' },
-        { ticketId: 103, title: 'Karma points calculation error on Best Answer', priority: 'Low', campus: 'DN', timeAgo: '1h ago' },
-      ],
+      openCount: 0,
+      inProgressCount: 0,
+      waitingCount: 0,
+      resolvedCount: 0,
+      recentTickets: [],
     },
     academicOverview: {
-      campusesCount: 5,
-      majorsCount: 32,
-      courseNodesCount: 186,
-      materialsCount: 2480,
-      discussionsCount: 4320,
-      workflowsCount: 856,
+      campusesCount: 0,
+      majorsCount: 0,
+      courseNodesCount: 0,
+      materialsCount: 0,
+      discussionsCount: 0,
+      workflowsCount: 0,
     },
-    recentAuditLogs: [
-      { auditLogId: 1, timestamp: '14:20:10', performedBy: 'Nguyen Admin', action: 'Suspended User', target: 'HE172109 - QE183011' },
-      { auditLogId: 2, timestamp: '13:45:00', performedBy: 'Tran Moderator', action: 'Updated Course Node', target: 'PRN211 - .NET Track' },
-      { auditLogId: 3, timestamp: '11:15:30', performedBy: 'Nguyen Admin', action: 'Revoked Auth Token', target: 'Token #941 (usr-6)' },
-      { auditLogId: 4, timestamp: '09:00:12', performedBy: 'Le Moderator', action: 'Resolved Ticket', target: 'TKT-2026-089' },
-      { auditLogId: 5, timestamp: '08:00:00', performedBy: 'System Auto-Task', action: 'Cleaned Temp Files', target: 'Cache Disk' },
-    ],
+    recentAuditLogs: [],
     systemStatus: {
-      databaseUptime: '99.98%',
-      apiClusterLatency: '42ms Latency',
+      databaseUptime: '100%',
+      apiClusterLatency: '0ms Latency',
       searchServiceStatus: 'Optimal',
-      cdnDeliveryUptime: '99.9% Uptime',
+      cdnDeliveryUptime: '100% Uptime',
       isHealthy: true,
     },
-    campusDistribution: [
-      { campusCode: 'HL', campusName: 'Hoa Lac (HL)', studentsCount: 4521, percentage: 38 },
-      { campusCode: 'HCM', campusName: 'Ho Chi Minh (HCM)', studentsCount: 4110, percentage: 35 },
-      { campusCode: 'DN', campusName: 'Da Nang (DN)', studentsCount: 1870, percentage: 15 },
-      { campusCode: 'CT', campusName: 'Can Tho (CT)', studentsCount: 1120, percentage: 8 },
-      { campusCode: 'QN', campusName: 'Quy Nhon (QN)', studentsCount: 829, percentage: 4 },
-    ],
-    pendingTasks: [
-      { title: `${tickets} Support Tickets`, description: '4 urgent priority', actionLabel: 'Review', targetUrl: '/tickets' },
-      { title: '3 Verifications', description: 'Student ID cards pending', actionLabel: 'Verify', targetUrl: '/users' },
-      { title: '2 Reported Listings', description: 'Marketplace spam report', actionLabel: 'Inspect', targetUrl: '/tickets' },
-      { title: '1 System Alerts', description: 'Partition sync notice', actionLabel: 'Details', targetUrl: '/health' },
-    ],
+    campusDistribution: [],
+    pendingTasks: [],
   };
 }

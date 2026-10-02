@@ -68,6 +68,23 @@ apiClient.interceptors.response.use(
       message = error.message;
     }
 
+    if (error.response?.status === 401) {
+      // Clear invalid / expired credentials
+      localStorage.removeItem('fhub_token');
+      localStorage.removeItem('fhub_user');
+      sessionStorage.removeItem('fhub_token');
+      sessionStorage.removeItem('fhub_user');
+
+      // If accessing admin pages, automatically redirect to login
+      const currentPath = window.location.pathname;
+      const isSubdomain = window.location.hostname.startsWith('admin.');
+      if ((isSubdomain || currentPath.startsWith('/admin')) && !currentPath.includes('/login')) {
+        const redirectParam = encodeURIComponent(currentPath + window.location.search);
+        const loginUrl = isSubdomain ? `/login?redirect=${redirectParam}` : `/admin/login?redirect=${redirectParam}`;
+        window.location.href = loginUrl;
+      }
+    }
+
     console.warn(`[API Client Error] ${error.config?.method?.toUpperCase()} ${error.config?.url}:`, message);
     return Promise.reject(new Error(message));
   }

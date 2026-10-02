@@ -33,16 +33,24 @@ import {
   Database,
   ExternalLink,
 } from 'lucide-react';
-import { mockDetailedCampuses, mockAdminUsers, mockDetailedSupportTickets, mockDetailedAuditLogs } from '../../../services/adminMockData';
+import { useAuth } from '../../../context/AuthContext';
 import { fetchAdminDashboardStats, AdminDashboardData } from '../../../services/adminDashboardService';
 
 export const AdminDashboardPage: React.FC = () => {
+  const { currentUser } = useAuth();
   const [activityTimeframe, setActivityTimeframe] = useState<'Today' | '7 Days' | '30 Days'>('Today');
   const [showQuickActions, setShowQuickActions] = useState(false);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
   const [dashboardData, setDashboardData] = useState<AdminDashboardData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const navigate = useNavigate();
+
+  const formattedDate = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
 
   useEffect(() => {
     let isMounted = true;
@@ -70,7 +78,7 @@ export const AdminDashboardPage: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-              Welcome back, Admin
+              Welcome back, {currentUser?.fullName || 'Administrator'}
               <CheckCircle2 className="w-5 h-5 text-blue-600 fill-blue-50" />
             </h1>
           </div>
@@ -83,7 +91,7 @@ export const AdminDashboardPage: React.FC = () => {
           {/* Date pill */}
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-medium text-slate-600 shadow-2xs">
             <Calendar className="w-3.5 h-3.5 text-slate-400" />
-            <span>Sunday, Oct 24, 2026</span>
+            <span>{formattedDate}</span>
           </div>
 
           {/* Export Report Button */}
@@ -158,11 +166,11 @@ export const AdminDashboardPage: React.FC = () => {
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">TOTAL USERS</span>
             <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
-              {dashboardData?.topStats.usersDelta ?? '+12.4% vs last mo'}
+              {dashboardData?.topStats.usersDelta ?? '0%'}
             </span>
           </div>
           <h3 className="text-2xl font-bold text-slate-900 tracking-tight">
-            {dashboardData?.topStats.totalUsers.toLocaleString() ?? '12,450'}
+            {(dashboardData?.topStats.totalUsers ?? 0).toLocaleString()}
           </h3>
           <p className="text-[11px] text-slate-400 mt-1">Registered + staff accounts</p>
         </Link>
@@ -175,13 +183,13 @@ export const AdminDashboardPage: React.FC = () => {
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">SUPPORT TICKETS</span>
             <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
-              {dashboardData?.topStats.ticketsQueueNote ?? '12 in queue'}
+              {dashboardData?.topStats.ticketsQueueNote ?? '0 in queue'}
             </span>
           </div>
           <h3 className="text-2xl font-bold text-slate-900 tracking-tight">
-            {dashboardData?.topStats.supportTickets ?? 24}
+            {dashboardData?.topStats.supportTickets ?? 0}
           </h3>
-          <p className="text-[11px] text-slate-400 mt-1">{dashboardData?.topStats.urgentTicketsCount ?? 4} urgent priority</p>
+          <p className="text-[11px] text-slate-400 mt-1">{dashboardData?.topStats.urgentTicketsCount ?? 0} urgent priority</p>
         </Link>
 
         {/* Card 3: COURSE NODES */}
@@ -192,13 +200,13 @@ export const AdminDashboardPage: React.FC = () => {
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">COURSE NODES</span>
             <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200">
-              142 active discussions
+              {dashboardData?.academicOverview.discussionsCount ?? 0} active discussions
             </span>
           </div>
           <h3 className="text-2xl font-bold text-slate-900 tracking-tight">
-            {dashboardData?.topStats.courseNodes ?? 186}
+            {dashboardData?.topStats.courseNodes ?? 0}
           </h3>
-          <p className="text-[11px] text-slate-400 mt-1">Across {dashboardData?.academicOverview.majorsCount ?? 32} majors</p>
+          <p className="text-[11px] text-slate-400 mt-1">Across {dashboardData?.academicOverview.majorsCount ?? 0} majors</p>
         </Link>
 
         {/* Card 4: ACTIVE CAMPUSES */}
@@ -213,7 +221,7 @@ export const AdminDashboardPage: React.FC = () => {
             </span>
           </div>
           <h3 className="text-2xl font-bold text-slate-900 tracking-tight">
-            {dashboardData?.topStats.activeCampuses ?? 5}
+            {dashboardData?.topStats.activeCampuses ?? 0}
           </h3>
           <p className="text-[11px] text-slate-400 mt-1">HL • HCM • DN • CT • QN</p>
         </Link>
@@ -226,13 +234,15 @@ export const AdminDashboardPage: React.FC = () => {
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">SYSTEM ALERTS</span>
             <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.2 rounded border border-rose-200">
-              Action required
+              {dashboardData?.topStats.systemAlerts ? 'Action required' : 'Optimal'}
             </span>
           </div>
           <h3 className="text-2xl font-bold text-slate-900 tracking-tight">
-            {dashboardData?.topStats.systemAlerts ?? 3}
+            {dashboardData?.topStats.systemAlerts ?? 0}
           </h3>
-          <p className="text-[11px] text-slate-400 mt-1">2 warning, 1 critical</p>
+          <p className="text-[11px] text-slate-400 mt-1">
+            {dashboardData?.topStats.systemAlerts ? `${dashboardData.topStats.systemAlerts} warnings` : '0 issues'}
+          </p>
         </Link>
       </div>
 
@@ -271,21 +281,31 @@ export const AdminDashboardPage: React.FC = () => {
               <div>
                 <span className="text-[10px] text-slate-400 uppercase font-semibold">Active Users</span>
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-lg font-bold text-slate-900">8,940</span>
-                  <span className="text-[10px] font-bold text-emerald-600">+7.2%</span>
+                  <span className="text-lg font-bold text-slate-900">
+                    {dashboardData?.userActivity.activeUsers.toLocaleString() ?? '0'}
+                  </span>
+                  <span className="text-[10px] font-bold text-emerald-600">
+                    {dashboardData?.userActivity.activeUsersDelta ?? '+0%'}
+                  </span>
                 </div>
               </div>
               <div className="border-l border-slate-100 pl-6">
                 <span className="text-[10px] text-slate-400 uppercase font-semibold">New Signups</span>
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-lg font-bold text-slate-900">412</span>
-                  <span className="text-[10px] font-bold text-emerald-600">+3.4%</span>
+                  <span className="text-lg font-bold text-slate-900">
+                    {dashboardData?.userActivity.newSignups.toLocaleString() ?? '0'}
+                  </span>
+                  <span className="text-[10px] font-bold text-emerald-600">
+                    {dashboardData?.userActivity.newSignupsDelta ?? '+0%'}
+                  </span>
                 </div>
               </div>
               <div className="border-l border-slate-100 pl-6">
                 <span className="text-[10px] text-slate-400 uppercase font-semibold">Discussions</span>
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-lg font-bold text-slate-900">94</span>
+                  <span className="text-lg font-bold text-slate-900">
+                    {dashboardData?.userActivity.discussionsDailyAvg.toLocaleString() ?? '0'}
+                  </span>
                   <span className="text-[10px] text-slate-400">Daily avg</span>
                 </div>
               </div>
@@ -346,61 +366,51 @@ export const AdminDashboardPage: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <h3 className="font-bold text-xs text-slate-900">Support Tickets</h3>
                   <div className="flex items-center gap-1 text-[10px]">
-                    <span className="px-1.5 py-0.2 rounded bg-blue-50 text-blue-700 font-bold">12 Open</span>
-                    <span className="px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 font-bold">6 In Prog</span>
-                    <span className="px-1.5 py-0.2 rounded bg-slate-100 text-slate-600">4 Waiting</span>
-                    <span className="px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700">2 Resolved</span>
+                    <span className="px-1.5 py-0.2 rounded bg-blue-50 text-blue-700 font-bold">
+                      {dashboardData?.ticketsQueue.openCount ?? 0} Open
+                    </span>
+                    <span className="px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 font-bold">
+                      {dashboardData?.ticketsQueue.inProgressCount ?? 0} In Prog
+                    </span>
+                    <span className="px-1.5 py-0.2 rounded bg-slate-100 text-slate-600">
+                      {dashboardData?.ticketsQueue.waitingCount ?? 0} Waiting
+                    </span>
+                    <span className="px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700">
+                      {dashboardData?.ticketsQueue.resolvedCount ?? 0} Resolved
+                    </span>
                   </div>
                 </div>
 
                 <div className="space-y-2.5 divide-y divide-slate-100 text-xs">
-                  <div className="pt-2 first:pt-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="font-semibold text-slate-800 text-[11px] leading-snug line-clamp-1">
-                        Cannot access PRN211 course in Ho Chi Minh campus
-                      </span>
-                      <span className="text-[9px] px-1.5 py-0.2 rounded font-bold bg-rose-50 text-rose-700 border border-rose-200 shrink-0">
-                        High
-                      </span>
+                  {dashboardData?.ticketsQueue.recentTickets && dashboardData.ticketsQueue.recentTickets.length > 0 ? (
+                    dashboardData.ticketsQueue.recentTickets.map((ticket) => (
+                      <div key={ticket.ticketId} className="pt-2 first:pt-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <Link to="/tickets" className="font-semibold text-slate-800 text-[11px] leading-snug line-clamp-1 hover:text-blue-600">
+                            {ticket.title}
+                          </Link>
+                          <span className={`text-[9px] px-1.5 py-0.2 rounded font-bold shrink-0 ${
+                            ticket.priority === 'HIGH' || ticket.priority === 'URGENT'
+                              ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                              : ticket.priority === 'MEDIUM'
+                              ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                              : 'bg-blue-50 text-blue-700 border border-blue-200'
+                          }`}>
+                            {ticket.priority}
+                          </span>
+                        </div>
+                        <div className="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5">
+                          <span>Campus {ticket.campus}</span>
+                          <span>•</span>
+                          <span>{ticket.timeAgo}</span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-6 text-xs text-slate-400">
+                      Chưa có yêu cầu hỗ trợ nào trong hàng đợi
                     </div>
-                    <div className="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5">
-                      <span>Campus HL</span>
-                      <span>•</span>
-                      <span>10m ago</span>
-                    </div>
-                  </div>
-
-                  <div className="pt-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="font-semibold text-slate-800 text-[11px] leading-snug line-clamp-1">
-                        Duplicate marketplace listing report
-                      </span>
-                      <span className="text-[9px] px-1.5 py-0.2 rounded font-bold bg-amber-50 text-amber-700 border border-amber-200 shrink-0">
-                        Med
-                      </span>
-                    </div>
-                    <div className="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5">
-                      <span>Campus HCM</span>
-                      <span>•</span>
-                      <span>25m ago</span>
-                    </div>
-                  </div>
-
-                  <div className="pt-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="font-semibold text-slate-800 text-[11px] leading-snug line-clamp-1">
-                        Karma points calculation error on Best Answer
-                      </span>
-                      <span className="text-[9px] px-1.5 py-0.2 rounded font-bold bg-blue-50 text-blue-700 border border-blue-200 shrink-0">
-                        Low
-                      </span>
-                    </div>
-                    <div className="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5">
-                      <span>Campus DN</span>
-                      <span>•</span>
-                      <span>1h ago</span>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
 
@@ -424,44 +434,25 @@ export const AdminDashboardPage: React.FC = () => {
 
                 <div className="space-y-2.5 divide-y divide-slate-100 text-xs">
                   <div className="pt-2 first:pt-0 flex items-center gap-2.5">
-                    <img
-                      src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80"
-                      alt="User"
-                      className="w-7 h-7 rounded-full object-cover shrink-0"
-                    />
+                    <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0">
+                      AD
+                    </div>
                     <div className="min-w-0 flex-1">
                       <div className="text-[11px] text-slate-800 leading-snug">
-                        <strong>Nguyen Van A</strong> upvoted study node <strong>PRN211</strong>
+                        <strong>Admin Session</strong> active on FHub Operations Console
                       </div>
-                      <span className="text-[10px] text-slate-400">2m ago</span>
+                      <span className="text-[10px] text-slate-400">Just now</span>
                     </div>
                   </div>
-
                   <div className="pt-2 flex items-center gap-2.5">
-                    <img
-                      src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80"
-                      alt="User"
-                      className="w-7 h-7 rounded-full object-cover shrink-0"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="text-[11px] text-slate-800 leading-snug">
-                        <strong>Pham Thi B</strong> published marketplace item <strong>Giáo trình CSD201</strong>
-                      </div>
-                      <span className="text-[10px] text-slate-400">14m ago</span>
+                    <div className="w-7 h-7 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs shrink-0">
+                      ID
                     </div>
-                  </div>
-
-                  <div className="pt-2 flex items-center gap-2.5">
-                    <img
-                      src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80"
-                      alt="User"
-                      className="w-7 h-7 rounded-full object-cover shrink-0"
-                    />
                     <div className="min-w-0 flex-1">
                       <div className="text-[11px] text-slate-800 leading-snug">
-                        <strong>Tran Minh C</strong> earned badge <strong>Verified Mod</strong>
+                        <strong>Identity & Taxonomy Nodes</strong> synced with PostgreSQL
                       </div>
-                      <span className="text-[10px] text-slate-400">32m ago</span>
+                      <span className="text-[10px] text-slate-400">1m ago</span>
                     </div>
                   </div>
                 </div>
@@ -485,37 +476,37 @@ export const AdminDashboardPage: React.FC = () => {
 
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
               <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 text-center">
-                <div className="text-lg font-bold text-slate-900">5</div>
+                <div className="text-lg font-bold text-slate-900">{dashboardData?.academicOverview.campusesCount ?? 0}</div>
                 <div className="text-[10px] font-bold text-slate-500 uppercase mt-0.5">CAMPUSES</div>
                 <div className="text-[9px] text-slate-400">All nodes synced</div>
               </div>
 
               <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 text-center">
-                <div className="text-lg font-bold text-slate-900">32</div>
+                <div className="text-lg font-bold text-slate-900">{dashboardData?.academicOverview.majorsCount ?? 0}</div>
                 <div className="text-[10px] font-bold text-slate-500 uppercase mt-0.5">MAJORS</div>
-                <div className="text-[9px] text-slate-400">Software Eng, IS, AI...</div>
+                <div className="text-[9px] text-slate-400">Active curricula</div>
               </div>
 
               <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 text-center">
-                <div className="text-lg font-bold text-slate-900">186</div>
+                <div className="text-lg font-bold text-slate-900">{dashboardData?.academicOverview.courseNodesCount ?? 0}</div>
                 <div className="text-[10px] font-bold text-slate-500 uppercase mt-0.5">COURSE NODES</div>
                 <div className="text-[9px] text-slate-400">Syllabus live</div>
               </div>
 
               <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 text-center">
-                <div className="text-lg font-bold text-slate-900">2,480</div>
+                <div className="text-lg font-bold text-slate-900">{(dashboardData?.academicOverview.materialsCount ?? 0).toLocaleString()}</div>
                 <div className="text-[10px] font-bold text-slate-500 uppercase mt-0.5">MATERIALS</div>
                 <div className="text-[9px] text-slate-400">Uploaded & verified</div>
               </div>
 
               <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 text-center">
-                <div className="text-lg font-bold text-slate-900">4,320</div>
+                <div className="text-lg font-bold text-slate-900">{(dashboardData?.academicOverview.discussionsCount ?? 0).toLocaleString()}</div>
                 <div className="text-[10px] font-bold text-slate-500 uppercase mt-0.5">DISCUSSIONS</div>
-                <div className="text-[9px] text-slate-400">Total resolved: 92%</div>
+                <div className="text-[9px] text-slate-400">Community threads</div>
               </div>
 
               <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 text-center">
-                <div className="text-lg font-bold text-slate-900">856</div>
+                <div className="text-lg font-bold text-slate-900">{(dashboardData?.academicOverview.workflowsCount ?? 0).toLocaleString()}</div>
                 <div className="text-[10px] font-bold text-slate-500 uppercase mt-0.5">WORKFLOWS</div>
                 <div className="text-[9px] text-slate-400">Standard guides</div>
               </div>
@@ -546,60 +537,32 @@ export const AdminDashboardPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  <tr className="hover:bg-slate-50/70 transition-colors">
-                    <td className="py-2.5 px-3 font-mono text-[11px] text-slate-500">14:20:10</td>
-                    <td className="py-2.5 px-3 font-semibold text-slate-800">Nguyen Admin</td>
-                    <td className="py-2.5 px-3">
-                      <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                        Suspended User
-                      </span>
-                    </td>
-                    <td className="py-2.5 px-3 font-mono text-[11px] text-slate-600">HE172109 - QE183011</td>
-                  </tr>
-
-                  <tr className="hover:bg-slate-50/70 transition-colors">
-                    <td className="py-2.5 px-3 font-mono text-[11px] text-slate-500">13:45:00</td>
-                    <td className="py-2.5 px-3 font-semibold text-slate-800">Tran Moderator</td>
-                    <td className="py-2.5 px-3">
-                      <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                        Updated Course Node
-                      </span>
-                    </td>
-                    <td className="py-2.5 px-3 font-mono text-[11px] text-slate-600">PRN211 - .NET Track</td>
-                  </tr>
-
-                  <tr className="hover:bg-slate-50/70 transition-colors">
-                    <td className="py-2.5 px-3 font-mono text-[11px] text-slate-500">11:15:30</td>
-                    <td className="py-2.5 px-3 font-semibold text-slate-800">Nguyen Admin</td>
-                    <td className="py-2.5 px-3">
-                      <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                        Revoked Auth Token
-                      </span>
-                    </td>
-                    <td className="py-2.5 px-3 font-mono text-[11px] text-slate-600">Token #941 (usr-6)</td>
-                  </tr>
-
-                  <tr className="hover:bg-slate-50/70 transition-colors">
-                    <td className="py-2.5 px-3 font-mono text-[11px] text-slate-500">09:00:12</td>
-                    <td className="py-2.5 px-3 font-semibold text-slate-800">Le Moderator</td>
-                    <td className="py-2.5 px-3">
-                      <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        Resolved Ticket
-                      </span>
-                    </td>
-                    <td className="py-2.5 px-3 font-mono text-[11px] text-slate-600">TKT-2026-089</td>
-                  </tr>
-
-                  <tr className="hover:bg-slate-50/70 transition-colors">
-                    <td className="py-2.5 px-3 font-mono text-[11px] text-slate-500">08:00:00</td>
-                    <td className="py-2.5 px-3 font-semibold text-slate-800">System Auto-Task</td>
-                    <td className="py-2.5 px-3">
-                      <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-slate-100 text-slate-600">
-                        Cleaned Temp Files
-                      </span>
-                    </td>
-                    <td className="py-2.5 px-3 font-mono text-[11px] text-slate-600">Cache Disk</td>
-                  </tr>
+                  {dashboardData?.recentAuditLogs && dashboardData.recentAuditLogs.length > 0 ? (
+                    dashboardData.recentAuditLogs.map((log) => (
+                      <tr key={log.auditLogId} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="py-2.5 px-3 font-mono text-[11px] text-slate-500">{log.timestamp}</td>
+                        <td className="py-2.5 px-3 font-semibold text-slate-800">{log.performedBy}</td>
+                        <td className="py-2.5 px-3">
+                          <span className={`px-1.5 py-0.2 rounded text-[10px] font-bold ${
+                            log.action.includes('Suspended') || log.action.includes('Revoked')
+                              ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                              : log.action.includes('Resolved')
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : 'bg-blue-50 text-blue-700 border border-blue-200'
+                          }`}>
+                            {log.action}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3 font-mono text-[11px] text-slate-600">{log.target}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={4} className="py-6 text-center text-xs text-slate-400">
+                        Chưa có nhật ký kiểm toán hệ thống nào
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -624,7 +587,9 @@ export const AdminDashboardPage: React.FC = () => {
                   <span className="font-semibold text-slate-800">Database (Postgres)</span>
                 </div>
                 <div className="text-right">
-                  <span className="font-mono text-emerald-600 font-bold">99.98%</span>
+                  <span className="font-mono text-emerald-600 font-bold">
+                    {dashboardData?.systemStatus.databaseUptime ?? '99.98%'}
+                  </span>
                   <span className="text-[10px] text-slate-400 block">Master + 2 replicas</span>
                 </div>
               </div>
@@ -635,30 +600,36 @@ export const AdminDashboardPage: React.FC = () => {
                   <span className="font-semibold text-slate-800">API Cluster</span>
                 </div>
                 <div className="text-right">
-                  <span className="font-mono text-slate-800 font-bold">42ms Latency</span>
-                  <span className="text-[10px] text-slate-400 block">4/4 nodes active</span>
+                  <span className="font-mono text-slate-800 font-bold">
+                    {dashboardData?.systemStatus.apiClusterLatency ?? '42ms Latency'}
+                  </span>
+                  <span className="text-[10px] text-slate-400 block">7/7 nodes active</span>
                 </div>
               </div>
 
               <div className="pt-2 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                  <span className="font-semibold text-slate-800">Search Service</span>
+                  <span className="font-semibold text-slate-800">Search & Cache</span>
                 </div>
                 <div className="text-right">
-                  <span className="font-mono text-emerald-600 font-bold">Optimal</span>
-                  <span className="text-[10px] text-slate-400 block">Elastic cluster</span>
+                  <span className="font-mono text-emerald-600 font-bold">
+                    {dashboardData?.systemStatus.searchServiceStatus ?? 'Optimal'}
+                  </span>
+                  <span className="text-[10px] text-slate-400 block">Redis Cluster</span>
                 </div>
               </div>
 
               <div className="pt-2 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                  <span className="font-semibold text-slate-800">CDN Delivery</span>
+                  <span className="font-semibold text-slate-800">Telemetry SLA</span>
                 </div>
                 <div className="text-right">
-                  <span className="font-mono text-emerald-600 font-bold">99.9% Uptime</span>
-                  <span className="text-[10px] text-slate-400 block">Edge DC cache 98%</span>
+                  <span className="font-mono text-emerald-600 font-bold">
+                    {dashboardData?.systemStatus.cdnDeliveryUptime ?? '99.9% Uptime'}
+                  </span>
+                  <span className="text-[10px] text-slate-400 block">Automated health checks</span>
                 </div>
               </div>
             </div>
@@ -669,50 +640,28 @@ export const AdminDashboardPage: React.FC = () => {
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Pending Tasks</h3>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
-                8 Tasks
+                {dashboardData?.pendingTasks.length ?? 0} Tasks
               </span>
             </div>
 
             <div className="space-y-2.5 text-xs">
-              <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-slate-800">24 Support Tickets</div>
-                  <div className="text-[10px] text-rose-600 font-bold">4 urgent priority</div>
+              {dashboardData?.pendingTasks && dashboardData.pendingTasks.length > 0 ? (
+                dashboardData.pendingTasks.map((task, idx) => (
+                  <div key={idx} className="p-2.5 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between">
+                    <div>
+                      <div className="font-semibold text-slate-800">{task.title}</div>
+                      <div className="text-[10px] text-slate-500">{task.description}</div>
+                    </div>
+                    <Link to={task.targetUrl} className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded text-[11px] font-semibold text-slate-700 shadow-2xs">
+                      {task.actionLabel}
+                    </Link>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-4 text-xs text-slate-400">
+                  Không có tác vụ nào đang chờ xử lý
                 </div>
-                <Link to="/tickets" className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded text-[11px] font-semibold text-slate-700 shadow-2xs">
-                  Review
-                </Link>
-              </div>
-
-              <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-slate-800">3 Verifications</div>
-                  <div className="text-[10px] text-amber-600">Student ID cards pending</div>
-                </div>
-                <Link to="/users" className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded text-[11px] font-semibold text-slate-700 shadow-2xs">
-                  Verify
-                </Link>
-              </div>
-
-              <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-slate-800">2 Reported Listings</div>
-                  <div className="text-[10px] text-slate-400">Marketplace spam report</div>
-                </div>
-                <Link to="/tickets" className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded text-[11px] font-semibold text-slate-700 shadow-2xs">
-                  Inspect
-                </Link>
-              </div>
-
-              <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between">
-                <div>
-                  <div className="font-semibold text-slate-800">1 System Alerts</div>
-                  <div className="text-[10px] text-blue-600">Partition sync notice</div>
-                </div>
-                <Link to="/health" className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded text-[11px] font-semibold text-slate-700 shadow-2xs">
-                  Details
-                </Link>
-              </div>
+              )}
             </div>
           </div>
 
@@ -721,55 +670,26 @@ export const AdminDashboardPage: React.FC = () => {
             <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Campus Distribution</h3>
 
             <div className="space-y-3 text-xs">
-              <div>
-                <div className="flex justify-between text-[11px] mb-1">
-                  <span className="font-semibold text-slate-700">Hoa Lac (HL)</span>
-                  <span className="text-slate-500">4,521 students (38%)</span>
+              {dashboardData?.campusDistribution && dashboardData.campusDistribution.length > 0 ? (
+                dashboardData.campusDistribution.map((campus) => (
+                  <div key={campus.campusCode}>
+                    <div className="flex justify-between text-[11px] mb-1">
+                      <span className="font-semibold text-slate-700">{campus.campusName}</span>
+                      <span className="text-slate-500">{campus.studentsCount.toLocaleString()} students ({campus.percentage}%)</span>
+                    </div>
+                    <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                      <div
+                        className="bg-blue-600 h-full rounded-full transition-all duration-500"
+                        style={{ width: `${campus.percentage}%` }}
+                      />
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-4 text-xs text-slate-400">
+                  Chưa có thống kê phân bổ phân hiệu
                 </div>
-                <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                  <div className="bg-blue-600 h-full rounded-full" style={{ width: '38%' }} />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between text-[11px] mb-1">
-                  <span className="font-semibold text-slate-700">Ho Chi Minh (HCM)</span>
-                  <span className="text-slate-500">4,110 students (35%)</span>
-                </div>
-                <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                  <div className="bg-blue-600 h-full rounded-full" style={{ width: '35%' }} />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between text-[11px] mb-1">
-                  <span className="font-semibold text-slate-700">Da Nang (DN)</span>
-                  <span className="text-slate-500">1,870 students (15%)</span>
-                </div>
-                <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                  <div className="bg-blue-600 h-full rounded-full" style={{ width: '15%' }} />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between text-[11px] mb-1">
-                  <span className="font-semibold text-slate-700">Can Tho (CT)</span>
-                  <span className="text-slate-500">1,120 students (8%)</span>
-                </div>
-                <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                  <div className="bg-blue-600 h-full rounded-full" style={{ width: '8%' }} />
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between text-[11px] mb-1">
-                  <span className="font-semibold text-slate-700">Quy Nhon (QN)</span>
-                  <span className="text-slate-500">829 students (4%)</span>
-                </div>
-                <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                  <div className="bg-blue-600 h-full rounded-full" style={{ width: '4%' }} />
-                </div>
-              </div>
+              )}
             </div>
 
             <div className="pt-3 border-t border-slate-100">

@@ -16,13 +16,12 @@ import {
   MoreVertical,
   Download,
 } from 'lucide-react';
-import { mockDetailedSupportTickets } from '../../../services/adminMockData';
 import { SupportTicket } from '../../../types';
 import { useSupportTickets, useAddTicketReply, useUpdateTicketStatus } from '../../../services/api';
 
 export const SupportTicketsAdminPage: React.FC = () => {
-  const [tickets, setTickets] = useState<SupportTicket[]>(mockDetailedSupportTickets);
-  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(mockDetailedSupportTickets[0]);
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
+  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [priorityFilter, setPriorityFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -40,40 +39,54 @@ export const SupportTicketsAdminPage: React.FC = () => {
 
   // Populate from real BE tickets when available
   React.useEffect(() => {
-    if (ticketsData?.items && ticketsData.items.length > 0) {
-      const apiTickets: SupportTicket[] = ticketsData.items.map((t, idx) => ({
-        id: String(t.supportTicketId),
-        ticketCode: t.ticketCode || `TKT-2026-00${t.supportTicketId}`,
-        title: t.subject || `Support Ticket #${t.supportTicketId}`,
-        category: (t.category || 'ACADEMIC') as any,
-        priority: (t.priority || 'MEDIUM') as any,
-        status: (t.status || 'OPEN') as any,
-        createdAt: t.createdAt,
-        updatedAt: t.updatedAt,
-        author: {
-          id: String(t.submitterAccountId),
-          fullName: t.submitterName || `Sinh viên #${t.submitterAccountId}`,
-          email: `user.${t.submitterAccountId}@fpt.edu.vn`,
-          avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-          role: 'Student',
-          campus: (['HL', 'HCM', 'DN', 'CT', 'QN'][idx % 5]) as any,
-          major: 'Software Engineering',
-        },
-        description: t.description,
-        repliesCount: t.repliesCount || 0,
-      }));
+    if (ticketsData?.items) {
+      const apiTickets: SupportTicket[] = ticketsData.items.map((raw) => {
+        const t = raw as any;
+        return {
+          id: String(t.supportTicketId),
+          ticketCode: t.ticketCode || `TKT-2026-00${t.supportTicketId}`,
+          title: t.subject || `Support Ticket #${t.supportTicketId}`,
+          category: (t.category || 'ACADEMIC') as any,
+          priority: (t.priority || 'MEDIUM') as any,
+          status: (t.status || 'OPEN') as any,
+          repliesCount: t.repliesCount ?? (t.replies?.length || 0),
+          createdAt: t.createdAt,
+          updatedAt: t.updatedAt,
+          author: {
+            id: String(t.submitterAccountId),
+            fullName: t.submitterName || `User #${t.submitterAccountId}`,
+            email: `user.${t.submitterAccountId}@fhub.com.vn`,
+            role: 'Student',
+            campus: 'HL',
+            avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${t.submitterAccountId}`,
+          },
+          responses: (t.replies || []).map((r: any, rIdx: number) => ({
+            id: String(r.replyId || `rep-${rIdx}`),
+            author: {
+              id: String(r.responderId || '1'),
+              fullName: r.responderName || 'System Admin',
+              role: 'Admin',
+              campus: 'HL',
+            },
+            content: r.message,
+            createdAt: r.createdAt,
+            isInternal: r.isInternalNote,
+          })),
+        };
+      });
       setTickets(apiTickets);
       if (apiTickets.length > 0) {
-        setSelectedTicket(apiTickets[0]);
+        setSelectedTicket((prev) => prev ? apiTickets.find(x => x.id === prev.id) || apiTickets[0] : apiTickets[0]);
       }
     }
   }, [ticketsData]);
 
   const filteredTickets = tickets.filter((t) => {
-    const matchesSearch =
-      t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.ticketCode.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.author.fullName.toLowerCase().includes(searchQuery.toLowerCase());
+    const q = (searchQuery || '').toLowerCase();
+    const titleMatch = (t?.title || '').toLowerCase().includes(q);
+    const codeMatch = (t?.ticketCode || '').toLowerCase().includes(q);
+    const authorMatch = (t?.author?.fullName || '').toLowerCase().includes(q);
+    const matchesSearch = titleMatch || codeMatch || authorMatch;
     const matchesStatus = statusFilter === 'ALL' || t.status === statusFilter;
     const matchesPriority = priorityFilter === 'ALL' || t.priority === priorityFilter;
 
@@ -157,19 +170,27 @@ export const SupportTicketsAdminPage: React.FC = () => {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">URGENT TICKETS</span>
-          <p className="text-2xl font-bold text-rose-600 mt-1">4</p>
+          <p className="text-2xl font-bold text-rose-600 mt-1">
+            {tickets.filter((t) => t.priority === 'URGENT').length}
+          </p>
         </div>
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">IN PROGRESS</span>
-          <p className="text-2xl font-bold text-amber-600 mt-1">6</p>
+          <p className="text-2xl font-bold text-amber-600 mt-1">
+            {tickets.filter((t) => t.status === 'IN_PROGRESS').length}
+          </p>
         </div>
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">OPEN IN QUEUE</span>
-          <p className="text-2xl font-bold text-blue-600 mt-1">14</p>
+          <p className="text-2xl font-bold text-blue-600 mt-1">
+            {tickets.filter((t) => t.status === 'OPEN').length}
+          </p>
         </div>
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">RESOLVED (30D)</span>
-          <p className="text-2xl font-bold text-emerald-600 mt-1">128</p>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">RESOLVED</span>
+          <p className="text-2xl font-bold text-emerald-600 mt-1">
+            {tickets.filter((t) => t.status === 'RESOLVED' || t.status === 'CLOSED').length}
+          </p>
         </div>
       </div>
 
@@ -214,7 +235,12 @@ export const SupportTicketsAdminPage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Tickets Queue */}
         <div className="lg:col-span-5 space-y-3">
-          {filteredTickets.map((t) => {
+          {filteredTickets.length === 0 ? (
+            <div className="p-8 text-center bg-white rounded-xl border border-slate-200 text-slate-400 text-xs">
+              0 support tickets in queue.
+            </div>
+          ) : (
+            filteredTickets.map((t) => {
             const isSelected = selectedTicket?.id === t.id;
             return (
               <div
@@ -276,7 +302,7 @@ export const SupportTicketsAdminPage: React.FC = () => {
                 </div>
               </div>
             );
-          })}
+          }))}
         </div>
 
         {/* Right Column: Selected Ticket Detail */}

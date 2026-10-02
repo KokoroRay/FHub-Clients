@@ -33,7 +33,7 @@ import {
   ExternalLink,
   RefreshCw,
 } from 'lucide-react';
-import { mockAdminUsers, AdminUser } from '../../../services/adminMockData';
+import { AdminUser } from '../../../services/adminMockData';
 import {
   useGovernanceAccountDetail,
   useApplyGovernanceAction,
@@ -48,7 +48,6 @@ export const UserDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const numericId = id?.replace(/\D/g, '') || '1';
 
-  const [usersList, setUsersList] = useState<AdminUser[]>(mockAdminUsers);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [showAddPolicy, setShowAddPolicy] = useState(false);
   const [newPolicyInput, setNewPolicyInput] = useState('');
@@ -60,7 +59,43 @@ export const UserDetailPage: React.FC = () => {
   const revokeRoleMutation = useRevokeUserRole();
   const wipeAccountMutation = useWipeGovernanceAccount();
 
-  const user = usersList.find((u) => u.id === id) || usersList[1]; // fallback to usr-1 (Nguyen Van A)
+  const [overrides, setOverrides] = useState<Partial<AdminUser>>({});
+
+  const baseUser: AdminUser = React.useMemo(() => {
+    if (beAccountData) {
+      return {
+        id: String(beAccountData.userId || numericId),
+        fullName: beAccountData.governanceRole === 'ADMIN' ? 'System Administrator' : (beAccountData.fullName || beAccountData.name || `User #${beAccountData.userId}`),
+        email: beAccountData.email || (beAccountData.governanceRole === 'ADMIN' ? 'admin@fhub.com.vn' : `user.${beAccountData.userId}@fhub.com.vn`),
+        role: (beAccountData.governanceRole === 'ADMIN' ? 'Admin' : beAccountData.governanceRole === 'COMMUNITYMODERATOR' ? 'Community Moderator' : beAccountData.governanceRole === 'STAFF' ? 'Staff' : 'Student') as any,
+        campus: beAccountData.campusCode || beAccountData.campus || 'HL',
+        major: beAccountData.major || beAccountData.majorCode || '',
+        studentId: beAccountData.studentId || '',
+        karma: beAccountData.karma || 0,
+        status: beAccountData.isActive ? 'ACTIVE' : 'SUSPENDED',
+        verifiedAt: beAccountData.createdAt,
+        activeSessions: [],
+        inlinePolicies: beAccountData.policies || [],
+        badges: beAccountData.badges || [],
+      };
+    }
+    return {
+      id: numericId,
+      fullName: `User #${numericId}`,
+      email: `user.${numericId}@fhub.com.vn`,
+      role: 'Student',
+      campus: 'HL',
+      major: '',
+      studentId: '',
+      karma: 0,
+      status: 'ACTIVE',
+      activeSessions: [],
+      inlinePolicies: [],
+      badges: [],
+    };
+  }, [beAccountData, numericId]);
+
+  const user: AdminUser = { ...baseUser, ...overrides };
 
   const handleStatusToggle = async (newStatus: 'ACTIVE' | 'MUTED' | 'SUSPENDED') => {
     try {
@@ -71,12 +106,11 @@ export const UserDetailPage: React.FC = () => {
           reason: `Admin updated status to ${newStatus}`,
         },
       });
+      refetch();
     } catch (e) {
       console.warn('API status toggle error, falling back locally', e);
     }
-    setUsersList((prev) =>
-      prev.map((u) => (u.id === user.id ? { ...u, status: newStatus } : u))
-    );
+    setOverrides((prev) => ({ ...prev, status: newStatus }));
     setActionSuccess(`Account status updated to ${newStatus}`);
     setTimeout(() => setActionSuccess(null), 3000);
   };
@@ -89,22 +123,17 @@ export const UserDetailPage: React.FC = () => {
     }
     if (user.activeSessions) {
       const updatedSessions = user.activeSessions.filter((s) => s.id !== sessionId);
-      setUsersList((prev) =>
-        prev.map((u) => (u.id === user.id ? { ...u, activeSessions: updatedSessions } : u))
-      );
+      setOverrides((prev) => ({ ...prev, activeSessions: updatedSessions }));
       setActionSuccess('Device session revoked successfully.');
       setTimeout(() => setActionSuccess(null), 3000);
     }
   };
 
-
   const handleAddPolicy = () => {
     if (newPolicyInput.trim()) {
       const currentPolicies = user.inlinePolicies || [];
       const updated = [...currentPolicies, newPolicyInput.trim().toUpperCase()];
-      setUsersList((prev) =>
-        prev.map((u) => (u.id === user.id ? { ...u, inlinePolicies: updated } : u))
-      );
+      setOverrides((prev) => ({ ...prev, inlinePolicies: updated }));
       setNewPolicyInput('');
       setShowAddPolicy(false);
       setActionSuccess(`Policy ${newPolicyInput.toUpperCase()} attached to user.`);
@@ -115,9 +144,7 @@ export const UserDetailPage: React.FC = () => {
   const handleRemovePolicy = (policy: string) => {
     const currentPolicies = user.inlinePolicies || [];
     const updated = currentPolicies.filter((p) => p !== policy);
-    setUsersList((prev) =>
-      prev.map((u) => (u.id === user.id ? { ...u, inlinePolicies: updated } : u))
-    );
+    setOverrides((prev) => ({ ...prev, inlinePolicies: updated }));
     setActionSuccess(`Policy ${policy} detached.`);
     setTimeout(() => setActionSuccess(null), 3000);
   };
@@ -197,7 +224,7 @@ export const UserDetailPage: React.FC = () => {
               </div>
 
               <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                <span className="font-mono text-slate-700 font-semibold">{user.studentId || 'HE163421'}</span>
+                <span className="font-mono text-slate-700 font-semibold">{user.studentId || 'N/A'}</span>
                 <span>•</span>
                 <span className="text-slate-600 font-mono text-[11px]">{user.email}</span>
                 <span>•</span>
@@ -205,7 +232,7 @@ export const UserDetailPage: React.FC = () => {
                   <MapPin className="w-3.5 h-3.5 text-blue-600" /> Campus: {user.campus}
                 </span>
                 <span>•</span>
-                <span>Joined: Sep 01, 2022</span>
+                <span>Joined: {user.verifiedAt ? new Date(user.verifiedAt).toLocaleDateString() : 'N/A'}</span>
               </div>
             </div>
           </div>
@@ -213,8 +240,7 @@ export const UserDetailPage: React.FC = () => {
           <div className="flex items-center gap-3 md:border-l md:border-slate-100 md:pl-6">
             <div>
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Karma Points</span>
-              <div className="text-xl font-bold text-blue-600">{user.karma} pts</div>
-              <span className="text-[10px] text-slate-400">#14 Contributor Rank</span>
+              <div className="text-xl font-bold text-blue-600">{user.karma || 0} pts</div>
             </div>
           </div>
         </div>
@@ -235,7 +261,7 @@ export const UserDetailPage: React.FC = () => {
               </div>
               <div>
                 <span className="text-slate-400 text-[11px] block">Student / Staff ID</span>
-                <span className="font-mono font-semibold text-slate-800">{user.studentId || 'HE163421'}</span>
+                <span className="font-mono font-semibold text-slate-800">{user.studentId || 'N/A'}</span>
               </div>
               <div>
                 <span className="text-slate-400 text-[11px] block">Institutional Email</span>
@@ -243,15 +269,15 @@ export const UserDetailPage: React.FC = () => {
               </div>
               <div>
                 <span className="text-slate-400 text-[11px] block">Contact Phone</span>
-                <span className="font-mono text-slate-800">0912 345 678</span>
+                <span className="font-mono text-slate-800">{user.phone || 'N/A'}</span>
               </div>
               <div>
                 <span className="text-slate-400 text-[11px] block">Current Major</span>
-                <span className="font-semibold text-slate-800">{user.major || 'Software Engineering'}</span>
+                <span className="font-semibold text-slate-800">{user.major || 'N/A'}</span>
               </div>
               <div>
-                <span className="text-slate-400 text-[11px] block">Cohort & Campus Partition</span>
-                <span className="font-semibold text-slate-800">K16 (Campus {user.campus} - 2022)</span>
+                <span className="text-slate-400 text-[11px] block">Campus Partition</span>
+                <span className="font-semibold text-slate-800">{user.campus ? `Campus ${user.campus}` : 'N/A'}</span>
               </div>
             </div>
 
@@ -325,23 +351,23 @@ export const UserDetailPage: React.FC = () => {
 
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
               <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                <div className="text-lg font-bold text-slate-900">{user.activityStats?.questionsCount || 24}</div>
+                <div className="text-lg font-bold text-slate-900">{user.activityStats?.questionsCount || 0}</div>
                 <div className="text-[10px] text-slate-500 uppercase font-semibold mt-0.5">QUESTIONS</div>
               </div>
               <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                <div className="text-lg font-bold text-emerald-600">{user.activityStats?.answersCount || 65}</div>
-                <div className="text-[10px] text-slate-500 uppercase font-semibold mt-0.5">ANSWERS (12 Best)</div>
+                <div className="text-lg font-bold text-emerald-600">{user.activityStats?.answersCount || 0}</div>
+                <div className="text-[10px] text-slate-500 uppercase font-semibold mt-0.5">ANSWERS</div>
               </div>
               <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                <div className="text-lg font-bold text-slate-900">{user.activityStats?.materialsUploaded || 8}</div>
+                <div className="text-lg font-bold text-slate-900">{user.activityStats?.materialsUploaded || 0}</div>
                 <div className="text-[10px] text-slate-500 uppercase font-semibold mt-0.5">MATERIALS</div>
               </div>
               <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                <div className="text-lg font-bold text-slate-900">{user.activityStats?.articlesCount || 5}</div>
+                <div className="text-lg font-bold text-slate-900">{user.activityStats?.articlesCount || 0}</div>
                 <div className="text-[10px] text-slate-500 uppercase font-semibold mt-0.5">ARTICLES</div>
               </div>
               <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
-                <div className="text-lg font-bold text-blue-600">{user.karma}</div>
+                <div className="text-lg font-bold text-blue-600">{user.karma || 0}</div>
                 <div className="text-[10px] text-slate-500 uppercase font-semibold mt-0.5">KARMA REP</div>
               </div>
             </div>
@@ -351,36 +377,8 @@ export const UserDetailPage: React.FC = () => {
           <div className="p-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-3">
             <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Recent Activity Timeline</h3>
 
-            <div className="space-y-3 divide-y divide-slate-100 text-xs">
-              <div className="pt-2 first:pt-0 flex items-start gap-2.5">
-                <div className="w-2 h-2 rounded-full bg-blue-600 mt-1.5 shrink-0" />
-                <div>
-                  <div className="font-semibold text-slate-800">
-                    Logged in from Chrome on MacOS (14.225.244.11)
-                  </div>
-                  <span className="text-[10px] text-slate-400">10:32 AM • Hanoi, Vietnam</span>
-                </div>
-              </div>
-
-              <div className="pt-2 flex items-start gap-2.5">
-                <div className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
-                <div>
-                  <div className="font-semibold text-slate-800">
-                    Received +50 Karma: Answer accepted as Best Answer on question PRN231 Web API
-                  </div>
-                  <span className="text-[10px] text-slate-400">Yesterday, 16:45 • Academic Interaction</span>
-                </div>
-              </div>
-
-              <div className="pt-2 flex items-start gap-2.5">
-                <div className="w-2 h-2 rounded-full bg-amber-500 mt-1.5 shrink-0" />
-                <div>
-                  <div className="font-semibold text-slate-800">
-                    Published marketplace listing: "Giáo trình CSD201 + MAS291 in màu"
-                  </div>
-                  <span className="text-[10px] text-slate-400">2 days ago • Campus Marketplace</span>
-                </div>
-              </div>
+            <div className="py-2 text-xs text-slate-400">
+              0 recent activities recorded for this user account.
             </div>
           </div>
         </div>
@@ -394,19 +392,19 @@ export const UserDetailPage: React.FC = () => {
             <div className="space-y-2.5 text-xs divide-y divide-slate-100">
               <div className="pt-2 first:pt-0 flex justify-between">
                 <span className="text-slate-500">Status</span>
-                <span className="font-bold text-emerald-600">Active</span>
+                <span className="font-bold text-emerald-600">{user.status}</span>
               </div>
               <div className="pt-2 flex justify-between">
-                <span className="text-slate-500">Manual Verified</span>
-                <span className="font-semibold text-slate-800">Aug 15, 2024</span>
+                <span className="text-slate-500">Verified At</span>
+                <span className="font-semibold text-slate-800">{user.verifiedAt ? new Date(user.verifiedAt).toLocaleDateString() : 'Unverified'}</span>
               </div>
               <div className="pt-2 flex justify-between">
                 <span className="text-slate-500">2-Factor Auth (2FA)</span>
-                <span className="font-semibold text-blue-600">Enabled (TOTP)</span>
+                <span className="font-semibold text-blue-600">{user.twoFactorEnabled ? 'Enabled' : 'Disabled'}</span>
               </div>
               <div className="pt-2 flex justify-between">
                 <span className="text-slate-500">Active Devices</span>
-                <span className="font-semibold text-slate-800">2 Active Devices</span>
+                <span className="font-semibold text-slate-800">{user.activeSessions?.length || 0} Active Devices</span>
               </div>
             </div>
           </div>
@@ -415,11 +413,11 @@ export const UserDetailPage: React.FC = () => {
           <div className="p-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-2.5 text-xs">
             <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Institutional Verification</h3>
             <p className="text-slate-500 text-[11px] leading-relaxed">
-              Verified through institutional student email & official student card ID submission on Aug 15, 2024 by <strong>Admin Nguyen (HL)</strong>.
+              {user.verifiedAt ? `Account registered and verified in Governance Service on ${new Date(user.verifiedAt).toLocaleDateString()}.` : 'Standard account registration in Governance Service.'}
             </p>
             <div className="pt-1 flex items-center gap-1.5 text-emerald-600 font-semibold text-[11px]">
               <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Full Academic Trust Level</span>
+              <span>Academic Trust Verified</span>
             </div>
           </div>
 
@@ -428,31 +426,37 @@ export const UserDetailPage: React.FC = () => {
             <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Active Login Sessions</h3>
 
             <div className="space-y-2.5 divide-y divide-slate-100 text-xs">
-              {user.activeSessions && user.activeSessions.map((s) => (
-                <div key={s.id} className="pt-2 first:pt-0 flex items-center justify-between">
-                  <div>
-                    <div className="font-semibold text-slate-800 flex items-center gap-1.5">
-                      <Laptop className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{s.device}</span>
-                      {s.isCurrent && (
-                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 font-bold">
-                          Current
-                        </span>
-                      )}
+              {user.activeSessions && user.activeSessions.length > 0 ? (
+                user.activeSessions.map((s) => (
+                  <div key={s.id} className="pt-2 first:pt-0 flex items-center justify-between">
+                    <div>
+                      <div className="font-semibold text-slate-800 flex items-center gap-1.5">
+                        <Laptop className="w-3.5 h-3.5 text-slate-400" />
+                        <span>{s.device}</span>
+                        {s.isCurrent && (
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 font-bold">
+                            Current
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[10px] text-slate-400 block">{s.ipAddress} • {s.location}</span>
                     </div>
-                    <span className="text-[10px] text-slate-400 block">{s.ipAddress} • {s.location}</span>
-                  </div>
 
-                  {!s.isCurrent && (
-                    <button
-                      onClick={() => handleRevokeSession(s.id)}
-                      className="text-[11px] text-rose-600 font-semibold hover:underline cursor-pointer"
-                    >
-                      Revoke
-                    </button>
-                  )}
+                    {!s.isCurrent && (
+                      <button
+                        onClick={() => handleRevokeSession(s.id)}
+                        className="text-[11px] text-rose-600 font-semibold hover:underline cursor-pointer"
+                      >
+                        Revoke
+                      </button>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="py-2 text-xs text-slate-400">
+                  0 active login sessions recorded.
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>

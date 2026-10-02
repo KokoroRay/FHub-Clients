@@ -28,6 +28,13 @@ export default defineConfig({
       '/api/badges': { target: 'http://localhost:8081', changeOrigin: true },
       '/api/admin/badges': { target: 'http://localhost:8081', changeOrigin: true },
       '/api/communication': { target: 'http://localhost:8082', changeOrigin: true },
+      '/api/health/identity': { target: 'http://localhost:5111', rewrite: () => '/health', changeOrigin: true },
+      '/api/health/taxonomy': { target: 'http://localhost:5255', rewrite: () => '/health', changeOrigin: true },
+      '/api/health/governance': { target: 'http://localhost:5249', rewrite: () => '/health', changeOrigin: true },
+      '/api/health/content': { target: 'http://localhost:5121', rewrite: () => '/health', changeOrigin: true },
+      '/api/health/profile': { target: 'http://localhost:5267', rewrite: () => '/health', changeOrigin: true },
+      '/api/health/interaction': { target: 'http://localhost:8081', rewrite: () => '/health', changeOrigin: true },
+      '/api/health/communication': { target: 'http://localhost:8082', rewrite: () => '/health', changeOrigin: true },
     }
   }
 })

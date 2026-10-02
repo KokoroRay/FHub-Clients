@@ -16,7 +16,7 @@ import {
   Users,
   Loader2,
 } from 'lucide-react';
-import { mockDetailedBadges, DetailedBadge } from '../../../services/adminMockData';
+import { DetailedBadge } from '../../../services/adminMockData';
 import { useBadges, useCreateBadge, useDeleteBadge } from '../../../services/api';
 
 export const AchievementBadgesPage: React.FC = () => {
@@ -24,7 +24,7 @@ export const AchievementBadgesPage: React.FC = () => {
   const createBadgeMutation = useCreateBadge();
   const deleteBadgeMutation = useDeleteBadge();
 
-  const [badges, setBadges] = useState<DetailedBadge[]>(mockDetailedBadges);
+  const [badges, setBadges] = useState<DetailedBadge[]>([]);
   const [selectedTier, setSelectedTier] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -40,15 +40,16 @@ export const AchievementBadgesPage: React.FC = () => {
   const [newDesc, setNewDesc] = useState('');
 
   useEffect(() => {
-    if (Array.isArray(badgesData) && badgesData.length > 0) {
+    if (Array.isArray(badgesData)) {
       setBadges(badgesData);
     }
   }, [badgesData]);
 
   const filteredBadges = badges.filter((b) => {
-    const matchesSearch =
-      b.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      b.code.toLowerCase().includes(searchQuery.toLowerCase());
+    const badgeName = (b?.name || (b as any)?.badge_name || '').toLowerCase();
+    const badgeCode = (b?.code || (b as any)?.badge_code || '').toLowerCase();
+    const q = (searchQuery || '').toLowerCase();
+    const matchesSearch = badgeName.includes(q) || badgeCode.includes(q);
     const matchesTier = selectedTier === 'ALL' || b.tier === selectedTier;
     return matchesSearch && matchesTier;
   });
@@ -171,7 +172,12 @@ export const AchievementBadgesPage: React.FC = () => {
 
       {/* Badges Grid (Figma 57:6275) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredBadges.map((badge) => (
+        {filteredBadges.length === 0 ? (
+          <div className="col-span-full p-8 text-center bg-white rounded-xl border border-slate-200 text-slate-400 text-xs">
+            0 achievement badges found matching your filters.
+          </div>
+        ) : (
+          filteredBadges.map((badge) => (
           <div
             key={badge.id}
             className="bg-white rounded-xl border border-slate-200/90 p-5 shadow-2xs hover:border-blue-400 transition-all flex flex-col justify-between"
@@ -243,7 +249,7 @@ export const AchievementBadgesPage: React.FC = () => {
               </button>
             </div>
           </div>
-        ))}
+        )))}
       </div>
 
       {/* Modal: Create Badge */}
