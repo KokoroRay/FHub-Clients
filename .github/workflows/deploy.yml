@@ -30,6 +30,8 @@ jobs:
           npm ci
 
       - name: Build production assets
+        env:
+          VITE_API_URL: https://api.fhub.com.vn
         run: |
           cd apps/web
           npm run build
