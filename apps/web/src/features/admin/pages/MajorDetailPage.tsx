@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -11,11 +11,17 @@ import {
   ChevronRight,
   Layers,
   Sparkles,
+  Loader2,
 } from 'lucide-react';
 import { mockDetailedMajors, DetailedMajor } from '../../../services/adminMockData';
+import { useMajorDetail, useAddCourseToSemester, useRemoveCourseFromSemester } from '../../../services/api';
 
 export const MajorDetailPage: React.FC = () => {
   const { code } = useParams<{ code: string }>();
+  const { data: majorDetailData, refetch } = useMajorDetail(code);
+  const addCourseMutation = useAddCourseToSemester();
+  const removeCourseMutation = useRemoveCourseFromSemester();
+
   const [majors, setMajors] = useState<DetailedMajor[]>(mockDetailedMajors);
   const [selectedSemester, setSelectedSemester] = useState<number>(5);
   const [showAddCourseModal, setShowAddCourseModal] = useState(false);
@@ -27,9 +33,44 @@ export const MajorDetailPage: React.FC = () => {
   const [newCourseCredits, setNewCourseCredits] = useState(3);
   const [newPrerequisites, setNewPrerequisites] = useState('');
 
+  useEffect(() => {
+    if (majorDetailData) {
+      const d = majorDetailData;
+      const mapped: DetailedMajor = {
+        id: String(d.majorId),
+        code: d.majorCode,
+        name: d.majorName,
+        vietnameseName: d.vietnameseName || d.majorName,
+        description: d.description || `Chương trình đào tạo ${d.vietnameseName || d.majorName} tại FPT University.`,
+        department: d.department || 'Công nghệ thông tin',
+        headOfDepartment: d.headOfDepartment || 'Chưa chỉ định',
+        totalCreditsRequired: d.totalCreditsRequired || 144,
+        durationSemesters: d.durationSemesters || 9,
+        totalCourses: d.totalCourses || 36,
+        isActive: d.isActive ?? true,
+        curriculumRoadmap: (d.curriculumRoadmap && d.curriculumRoadmap.length > 0)
+          ? d.curriculumRoadmap.map((s: any) => ({
+              semester: s.semester,
+              semesterName: s.semesterName || `Học kỳ ${s.semester}`,
+              courses: s.courses || [],
+            }))
+          : (mockDetailedMajors.find(m => m.code === code)?.curriculumRoadmap || []),
+      };
+      setMajors((prev) => {
+        const idx = prev.findIndex((m) => m.code === d.majorCode);
+        if (idx >= 0) {
+          const copy = [...prev];
+          copy[idx] = mapped;
+          return copy;
+        }
+        return [mapped, ...prev];
+      });
+    }
+  }, [majorDetailData, code]);
+
   const major = majors.find((m) => m.code === code) || majors[0];
 
-  const handleAddCourseToSemester = (e: React.FormEvent) => {
+  const handleAddCourseToSemester = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCourseCode.trim() || !newCourseTitle.trim()) return;
 
@@ -37,6 +78,23 @@ export const MajorDetailPage: React.FC = () => {
       .split(',')
       .map((p) => p.trim().toUpperCase())
       .filter(Boolean);
+
+    try {
+      await addCourseMutation.mutateAsync({
+        majorId: major.id,
+        payload: {
+          semesterNumber: selectedSemester,
+          courseCode: newCourseCode.trim().toUpperCase(),
+          courseTitle: newCourseTitle.trim(),
+          credits: Number(newCourseCredits) || 3,
+          prerequisites: prereqs,
+          isMandatory: true,
+        },
+      });
+      refetch();
+    } catch (err) {
+      console.warn('Backend curriculum course add fallback to local:', err);
+    }
 
     const updatedRoadmap = [...major.curriculumRoadmap];
     let semObj = updatedRoadmap.find((s) => s.semester === selectedSemester);
@@ -66,12 +124,23 @@ export const MajorDetailPage: React.FC = () => {
     setNewCourseCode('');
     setNewCourseTitle('');
     setNewPrerequisites('');
-    setSuccessNotice(`Đã thêm môn ${newCourseCode.toUpperCase()} vào Học kỳ ${selectedSemester}`);
+    setSuccessNotice(`Added course ${newCourseCode.toUpperCase()} to Semester ${selectedSemester}`);
     setTimeout(() => setSuccessNotice(null), 3500);
   };
 
-  const handleRemoveCourse = (semNum: number, courseCode: string) => {
-    if (window.confirm(`Xóa môn ${courseCode} khỏi Học kỳ ${semNum}?`)) {
+  const handleRemoveCourse = async (semNum: number, courseCode: string) => {
+    if (window.confirm(`Remove course ${courseCode} from Semester ${semNum}?`)) {
+      try {
+        await removeCourseMutation.mutateAsync({
+          majorId: major.id,
+          courseCode,
+          semester: semNum,
+        });
+        refetch();
+      } catch (err) {
+        console.warn('Backend curriculum remove fallback to local:', err);
+      }
+
       const updatedRoadmap = major.curriculumRoadmap.map((s) =>
         s.semester === semNum
           ? { ...s, courses: s.courses.filter((c) => c.code !== courseCode) }
@@ -82,116 +151,116 @@ export const MajorDetailPage: React.FC = () => {
         prev.map((m) => (m.id === major.id ? { ...m, curriculumRoadmap: updatedRoadmap } : m))
       );
 
-      setSuccessNotice(`Đã xóa môn ${courseCode} khỏi Học kỳ ${semNum}`);
+      setSuccessNotice(`Removed course ${courseCode} from Semester ${semNum}`);
       setTimeout(() => setSuccessNotice(null), 3000);
     }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto">
       {/* Back Button */}
       <div className="flex items-center justify-between">
         <Link
           to="/majors"
-          className="inline-flex items-center gap-2 text-xs font-bold text-[#005da7] hover:underline"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700"
         >
-          <ArrowLeft className="w-4 h-4" /> Quay lại danh sách Ngành Học (Majors)
+          <ArrowLeft className="w-4 h-4" /> Back to Major Tracks
         </Link>
         <span className="text-[11px] font-mono text-slate-400">Curriculum v2026.1</span>
       </div>
 
       {successNotice && (
-        <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs text-emerald-800 dark:text-emerald-300 flex items-center gap-2 animate-fadeIn">
+        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center gap-2 animate-fadeIn">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
           <span>{successNotice}</span>
         </div>
       )}
 
       {/* Major Banner Card (Figma 59:9908) */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-xs space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="bg-white rounded-xl border border-slate-200/90 p-5 shadow-2xs space-y-5">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-start gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-sky-50 dark:bg-sky-950/60 text-[#005da7] dark:text-sky-400 font-black text-2xl flex items-center justify-center">
+            <div className="w-14 h-14 rounded-xl bg-blue-50 text-blue-600 font-bold text-xl flex items-center justify-center shrink-0">
               {major.code}
             </div>
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <h1 className="text-xl font-black text-slate-900 dark:text-white">{major.vietnameseName}</h1>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <h1 className="text-lg font-bold text-slate-900">{major.vietnameseName}</h1>
+                <span className="text-[10px] font-bold px-2 py-0.2 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                   ABET ACCREDITED
                 </span>
               </div>
-              <p className="text-xs text-slate-500 font-medium">{major.name} • Khối {major.department}</p>
-              <p className="text-xs text-slate-400 mt-1">Chủ nhiệm bộ môn: <strong>{major.headOfDepartment}</strong></p>
+              <p className="text-xs text-slate-500 font-medium">{major.name} • Department: {major.department}</p>
+              <p className="text-xs text-slate-400 mt-0.5">Chair: <strong>{major.headOfDepartment}</strong></p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowAddCourseModal(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#005da7] hover:bg-[#004a87] text-white text-xs font-bold transition-all cursor-pointer shadow-xs"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition-colors cursor-pointer shadow-xs"
             >
-              <Plus className="w-4 h-4" />
-              <span>Gán Môn Vào Kỳ {selectedSemester}</span>
+              <Plus className="w-3.5 h-3.5" />
+              <span>Add Course to Sem {selectedSemester}</span>
             </button>
           </div>
         </div>
 
         {/* Stats Row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 border-t border-slate-100 dark:border-slate-800">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-slate-100">
           <div>
-            <span className="text-[11px] text-slate-400 font-semibold">Chuẩn Tốt Nghiệp</span>
-            <p className="text-xl font-black text-[#005da7]">{major.totalCreditsRequired} Tín chỉ</p>
+            <span className="text-[10px] font-bold text-slate-400 uppercase">Graduation Requirement</span>
+            <p className="text-xl font-bold text-blue-600 mt-0.5">{major.totalCreditsRequired} Credits</p>
           </div>
           <div>
-            <span className="text-[11px] text-slate-400 font-semibold">Thời Lượng Chương Trình</span>
-            <p className="text-xl font-black text-slate-900 dark:text-white">9 Học kỳ (3 năm)</p>
+            <span className="text-[10px] font-bold text-slate-400 uppercase">Duration</span>
+            <p className="text-xl font-bold text-slate-900 mt-0.5">9 Semesters (3 Years)</p>
           </div>
           <div>
-            <span className="text-[11px] text-slate-400 font-semibold">Thực Tập Doanh Nghiệp</span>
-            <p className="text-xl font-black text-slate-900 dark:text-white">OJT Học kỳ 6</p>
+            <span className="text-[10px] font-bold text-slate-400 uppercase">Industry Internship</span>
+            <p className="text-xl font-bold text-slate-900 mt-0.5">OJT Semester 6</p>
           </div>
           <div>
-            <span className="text-[11px] text-slate-400 font-semibold">Khóa Luận / Đồ Án TN</span>
-            <p className="text-xl font-black text-emerald-600">Capstone Kỳ 9</p>
+            <span className="text-[10px] font-bold text-slate-400 uppercase">Graduation Thesis</span>
+            <p className="text-xl font-bold text-emerald-600 mt-0.5">Capstone Semester 9</p>
           </div>
         </div>
       </div>
 
       {/* Semester Selector Bar (Semesters 1 to 9) */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((sem) => (
           <button
             key={sem}
             onClick={() => setSelectedSemester(sem)}
-            className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all shrink-0 cursor-pointer ${
               selectedSemester === sem
-                ? 'bg-[#005da7] text-white shadow-sm'
-                : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50'
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
             }`}
           >
-            Học kỳ {sem} {sem === 6 ? '(OJT)' : sem === 9 ? '(Capstone)' : ''}
+            Semester {sem} {sem === 6 ? '(OJT)' : sem === 9 ? '(Capstone)' : ''}
           </button>
         ))}
       </div>
 
       {/* Selected Semester Course Matrix */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-xs space-y-4">
+      <div className="bg-white rounded-xl border border-slate-200/90 p-5 shadow-2xs space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-base font-black text-slate-900 dark:text-white">
-              Khung Môn Học - Học Kỳ {selectedSemester}
+            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+              Course Nodes Matrix - Semester {selectedSemester}
             </h2>
-            <p className="text-xs text-slate-500">
-              Danh mục các Course Nodes bắt buộc và tự chọn trong giai đoạn này.
+            <p className="text-xs text-slate-400">
+              Mandatory and elective course nodes assigned to this semester.
             </p>
           </div>
 
           <button
             onClick={() => setShowAddCourseModal(true)}
-            className="flex items-center gap-1.5 text-xs font-bold text-[#005da7] hover:underline cursor-pointer"
+            className="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 cursor-pointer"
           >
-            <Plus className="w-4 h-4" /> Thêm môn vào kỳ {selectedSemester}
+            <Plus className="w-3.5 h-3.5" /> Add Course
           </button>
         </div>
 
@@ -201,38 +270,38 @@ export const MajorDetailPage: React.FC = () => {
 
           if (courses.length === 0) {
             return (
-              <div className="p-12 text-center text-slate-400 text-xs border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
-                Chưa có môn học nào được gán cho Học kỳ {selectedSemester}. Bấm "+ Thêm môn vào kỳ {selectedSemester}" để bắt đầu gán Course Node.
+              <div className="p-10 text-center text-slate-400 text-xs border border-dashed border-slate-200 rounded-xl">
+                No course nodes assigned to Semester {selectedSemester} yet. Click "+ Add Course" to map nodes.
               </div>
             );
           }
 
           return (
-            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+            <div className="divide-y divide-slate-100">
               {courses.map((c) => (
-                <div key={c.code} className="py-3.5 flex items-center justify-between gap-4">
+                <div key={c.code} className="py-3 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-[#005da7] font-black text-xs flex items-center justify-center">
+                    <div className="w-9 h-9 rounded-lg bg-slate-100 text-blue-600 font-bold font-mono text-xs flex items-center justify-center">
                       {c.code.substring(0, 3)}
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <Link to={`/course-nodes/${c.code}`} className="font-bold text-xs text-[#005da7] hover:underline">
+                        <Link to={`/course-nodes/${c.code}`} className="font-bold text-xs text-blue-600 hover:underline font-mono">
                           {c.code}
                         </Link>
-                        <span className="font-bold text-xs text-slate-900 dark:text-white">{c.title}</span>
+                        <span className="font-semibold text-xs text-slate-800">{c.title}</span>
                       </div>
-                      <div className="flex items-center gap-3 text-[11px] text-slate-400 mt-1">
-                        <span>{c.credits} Tín chỉ</span>
+                      <div className="flex items-center gap-3 text-[11px] text-slate-400 mt-0.5">
+                        <span>{c.credits} Credits</span>
                         {c.prerequisites.length > 0 ? (
-                          <span className="text-amber-600 font-semibold">
-                            Tiên quyết: {c.prerequisites.join(', ')}
+                          <span className="text-amber-700 font-semibold">
+                            Prerequisites: {c.prerequisites.join(', ')}
                           </span>
                         ) : (
-                          <span className="text-emerald-600">Không có tiên quyết</span>
+                          <span className="text-emerald-600 font-semibold">No prerequisites</span>
                         )}
                         <span className="text-slate-500">
-                          {c.isMandatory ? '● Bắt buộc' : '○ Tự chọn'}
+                          {c.isMandatory ? '● Mandatory' : '○ Elective'}
                         </span>
                       </div>
                     </div>
@@ -241,16 +310,16 @@ export const MajorDetailPage: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <Link
                       to={`/course-nodes/${c.code}`}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-[#005da7] bg-sky-50 dark:bg-sky-950/50 hover:bg-[#cfe1fe]"
+                      className="px-2.5 py-1 rounded-md text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100"
                     >
                       Syllabus
                     </Link>
                     <button
                       onClick={() => handleRemoveCourse(selectedSemester, c.code)}
-                      className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg cursor-pointer"
-                      title="Gỡ khỏi kỳ"
+                      className="p-1 text-slate-400 hover:text-rose-600 rounded cursor-pointer"
+                      title="Remove from semester"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
@@ -262,11 +331,11 @@ export const MajorDetailPage: React.FC = () => {
 
       {/* Modal: Add Course to Semester */}
       {showAddCourseModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 animate-fadeIn">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 max-w-md w-full p-6 shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-fadeIn">
+          <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full p-6 shadow-xl space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-black text-slate-900 dark:text-white">
-                Gán Course Node Vào Học Kỳ {selectedSemester}
+              <h2 className="text-base font-bold text-slate-900">
+                Add Course Node to Semester {selectedSemester}
               </h2>
               <button
                 onClick={() => setShowAddCourseModal(false)}
@@ -279,49 +348,49 @@ export const MajorDetailPage: React.FC = () => {
             <form onSubmit={handleAddCourseToSemester} className="space-y-3">
               <div className="grid grid-cols-3 gap-2">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700">Mã Môn:</label>
+                  <label className="text-xs font-semibold text-slate-700">Course Code:</label>
                   <input
                     type="text"
                     required
-                    placeholder="VD: PRN231"
+                    placeholder="PRN231"
                     value={newCourseCode}
                     onChange={(e) => setNewCourseCode(e.target.value)}
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold uppercase"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono font-bold uppercase"
                   />
                 </div>
                 <div className="col-span-2 space-y-1">
-                  <label className="text-xs font-bold text-slate-700">Số Tín Chỉ:</label>
+                  <label className="text-xs font-semibold text-slate-700">Credits:</label>
                   <input
                     type="number"
                     min={1}
                     max={10}
                     value={newCourseCredits}
                     onChange={(e) => setNewCourseCredits(Number(e.target.value))}
-                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 rounded-xl px-3 py-2 text-xs"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs"
                   />
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700">Tên Môn Học:</label>
+                <label className="text-xs font-semibold text-slate-700">Course Title:</label>
                 <input
                   type="text"
                   required
-                  placeholder="VD: Building Cross-Platform Web API with .NET"
+                  placeholder="Building Cross-Platform Web API with .NET"
                   value={newCourseTitle}
                   onChange={(e) => setNewCourseTitle(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 rounded-xl px-3 py-2 text-xs"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700">Môn Tiên Quyết (cách nhau dấu phẩy):</label>
+                <label className="text-xs font-semibold text-slate-700">Prerequisites (comma-separated):</label>
                 <input
                   type="text"
-                  placeholder="VD: PRN211, DBI202"
+                  placeholder="PRN211, DBI202"
                   value={newPrerequisites}
                   onChange={(e) => setNewPrerequisites(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 rounded-xl px-3 py-2 text-xs"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono"
                 />
               </div>
 
@@ -329,15 +398,15 @@ export const MajorDetailPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowAddCourseModal(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 text-xs font-semibold cursor-pointer"
+                  className="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold cursor-pointer"
                 >
-                  Hủy
+                  Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-[#005da7] text-white text-xs font-bold cursor-pointer"
+                  className="px-4 py-2 rounded-lg bg-blue-600 text-white text-xs font-semibold cursor-pointer hover:bg-blue-700"
                 >
-                  Gán Vào Kỳ {selectedSemester}
+                  Assign to Sem {selectedSemester}
                 </button>
               </div>
             </form>

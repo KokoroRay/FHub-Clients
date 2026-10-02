@@ -13,3 +13,4 @@ export * from './AchievementBadgesPage';
 export * from './AuditLogsPage';
 export * from './AuditLogDetailPage';
 export * from './SystemHealthAdminPage';
+export * from './AdminLoginPage';

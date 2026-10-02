@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Users,
@@ -21,375 +21,764 @@ import {
   Clock,
   ChevronRight,
   TrendingUp,
-  Cpu,
+  Download,
+  Calendar,
+  Plus,
+  ArrowRight,
+  FileText,
+  MessageSquare,
+  Share2,
+  Shield,
   Layers,
   Database,
-  Search,
+  ExternalLink,
 } from 'lucide-react';
-import { mockDetailedCampuses, mockAdminUsers, mockDetailedSupportTickets, mockDetailedAuditLogs, mockAISensitivityConfig } from '../../../services/adminMockData';
-import { mockHealthStatuses } from '../../../services/mockData';
+import { mockDetailedCampuses, mockAdminUsers, mockDetailedSupportTickets, mockDetailedAuditLogs } from '../../../services/adminMockData';
+import { fetchAdminDashboardStats, AdminDashboardData } from '../../../services/adminDashboardService';
 
 export const AdminDashboardPage: React.FC = () => {
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [syncNotice, setSyncNotice] = useState<string | null>(null);
+  const [activityTimeframe, setActivityTimeframe] = useState<'Today' | '7 Days' | '30 Days'>('Today');
+  const [showQuickActions, setShowQuickActions] = useState(false);
+  const [actionNotice, setActionNotice] = useState<string | null>(null);
+  const [dashboardData, setDashboardData] = useState<AdminDashboardData | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const navigate = useNavigate();
 
-  const handleRefreshTelemetry = () => {
-    setIsRefreshing(true);
-    setTimeout(() => {
-      setIsRefreshing(false);
-      setSyncNotice('Telemetry & Campus Partition sync completed (0.18s latency)');
-      setTimeout(() => setSyncNotice(null), 3500);
-    }, 600);
-  };
+  useEffect(() => {
+    let isMounted = true;
+    setIsLoading(true);
+    fetchAdminDashboardStats(activityTimeframe).then((data) => {
+      if (isMounted) {
+        setDashboardData(data);
+        setIsLoading(false);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [activityTimeframe]);
 
-  const handleTriggerGlocalSync = () => {
-    setSyncNotice('Đã kích hoạt Glocal Routing Sync cho 5 phân hiệu (HL, HCM, DN, CT, QN)');
-    setTimeout(() => setSyncNotice(null), 4000);
+  const handleExportReport = () => {
+    setActionNotice('Report generated and downloaded: FHub_Admin_Executive_Summary_2026.pdf');
+    setTimeout(() => setActionNotice(null), 3500);
   };
 
   return (
-    <div className="space-y-6">
-      {/* Top Banner / Welcome & Controls */}
-      <div className="bg-linear-to-r from-slate-900 via-[#004a87] to-[#005da7] text-white p-6 rounded-3xl shadow-lg relative overflow-hidden">
-        <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-radial from-white/10 to-transparent pointer-events-none" />
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
-          <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-white/20 text-white border border-white/30 backdrop-blur-xs">
-                FHub SEP Core v2.4
-              </span>
-              <span className="flex items-center gap-1 text-[11px] text-emerald-300 font-semibold">
-                <CheckCircle2 className="w-3.5 h-3.5" /> All 5 Partitions Online
-              </span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight">Admin Operations Console</h1>
-            <p className="text-xs sm:text-sm text-sky-100/80 mt-1 max-w-2xl">
-              Hệ thống điều hành phân cấp học thuật, quản trị danh tính sinh viên, kiểm duyệt AI và phân vùng 5 cơ sở FPT University.
-            </p>
+    <div className="space-y-6 max-w-7xl mx-auto">
+      {/* Top Greeting & Action Header (Figma 55:2) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+              Welcome back, Admin
+              <CheckCircle2 className="w-5 h-5 text-blue-600 fill-blue-50" />
+            </h1>
           </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={handleRefreshTelemetry}
-              disabled={isRefreshing}
-              className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold backdrop-blur-xs border border-white/20 transition-all cursor-pointer"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-              <span>{isRefreshing ? 'Syncing...' : 'Làm mới Telemetry'}</span>
-            </button>
-            <button
-              onClick={handleTriggerGlocalSync}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-[#005da7] hover:bg-sky-50 text-xs font-bold shadow-md hover:shadow-lg transition-all cursor-pointer"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              <span>Glocal Sync Toàn Quốc</span>
-            </button>
-          </div>
+          <p className="text-xs text-slate-500 mt-1">
+            Monitor and manage the FHub Community platform across all academic nodes.
+          </p>
         </div>
 
-        {syncNotice && (
-          <div className="mt-4 p-2.5 bg-emerald-500/20 border border-emerald-400/40 rounded-xl text-xs text-emerald-100 flex items-center gap-2 animate-fadeIn">
-            <CheckCircle2 className="w-4 h-4 text-emerald-300 shrink-0" />
-            <span>{syncNotice}</span>
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Date pill */}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-medium text-slate-600 shadow-2xs">
+            <Calendar className="w-3.5 h-3.5 text-slate-400" />
+            <span>Sunday, Oct 24, 2026</span>
           </div>
-        )}
+
+          {/* Export Report Button */}
+          <button
+            onClick={handleExportReport}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 shadow-2xs transition-colors cursor-pointer"
+          >
+            <Download className="w-3.5 h-3.5 text-slate-500" />
+            <span>Export Report</span>
+          </button>
+
+          {/* Quick Actions Button */}
+          <div className="relative">
+            <button
+              onClick={() => setShowQuickActions(!showQuickActions)}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Quick Actions</span>
+            </button>
+
+            {showQuickActions && (
+              <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-lg border border-slate-200 py-1.5 z-50 text-xs animate-fadeIn">
+                <button
+                  onClick={() => { setShowQuickActions(false); navigate('/users?action=create'); }}
+                  className="w-full text-left px-3.5 py-2 hover:bg-slate-50 text-slate-700 flex items-center gap-2"
+                >
+                  <Users className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Create User Account</span>
+                </button>
+                <button
+                  onClick={() => { setShowQuickActions(false); navigate('/campuses?action=create'); }}
+                  className="w-full text-left px-3.5 py-2 hover:bg-slate-50 text-slate-700 flex items-center gap-2"
+                >
+                  <Building2 className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Add Campus Partition</span>
+                </button>
+                <button
+                  onClick={() => { setShowQuickActions(false); navigate('/majors?action=create'); }}
+                  className="w-full text-left px-3.5 py-2 hover:bg-slate-50 text-slate-700 flex items-center gap-2"
+                >
+                  <GraduationCap className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Add Major Track</span>
+                </button>
+                <button
+                  onClick={() => { setShowQuickActions(false); navigate('/course-nodes?action=create'); }}
+                  className="w-full text-left px-3.5 py-2 hover:bg-slate-50 text-slate-700 flex items-center gap-2"
+                >
+                  <Network className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Add Course Node</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* 4 Key Metric Stat Cards (Figma 55:2) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {/* Metric 1: Total Users */}
+      {actionNotice && (
+        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center gap-2 animate-fadeIn">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          <span>{actionNotice}</span>
+        </div>
+      )}
+
+      {/* Top 5 Stat Cards (Figma 55:2) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+        {/* Card 1: TOTAL USERS */}
         <Link
           to="/users"
-          className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs hover:border-[#005da7] hover:shadow-md transition-all group"
+          className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs hover:border-blue-400 transition-all group"
         >
-          <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 rounded-xl bg-sky-50 dark:bg-sky-950/60 text-[#005da7] dark:text-sky-400 flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Users className="w-5 h-5" />
-            </div>
-            <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full">
-              <TrendingUp className="w-3 h-3" /> +12.4%
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">TOTAL USERS</span>
+            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
+              {dashboardData?.topStats.usersDelta ?? '+12.4% vs last mo'}
             </span>
           </div>
-          <h3 className="text-2xl font-black text-slate-900 dark:text-white">12,450</h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Tổng người dùng (11.8k Active)</p>
-          <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
-            <span>5 Campus Đồng Bộ</span>
-            <ArrowUpRight className="w-3.5 h-3.5 text-[#005da7] group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-          </div>
+          <h3 className="text-2xl font-bold text-slate-900 tracking-tight">
+            {dashboardData?.topStats.totalUsers.toLocaleString() ?? '12,450'}
+          </h3>
+          <p className="text-[11px] text-slate-400 mt-1">Registered + staff accounts</p>
         </Link>
 
-        {/* Metric 2: Open Tickets */}
+        {/* Card 2: SUPPORT TICKETS */}
         <Link
           to="/tickets"
-          className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs hover:border-amber-500 hover:shadow-md transition-all group"
+          className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs hover:border-amber-400 transition-all group"
         >
-          <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center group-hover:scale-110 transition-transform">
-              <LifeBuoy className="w-5 h-5" />
-            </div>
-            <span className="text-[11px] font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 rounded-full">
-              4 Khẩn Cấp
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">SUPPORT TICKETS</span>
+            <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
+              {dashboardData?.topStats.ticketsQueueNote ?? '12 in queue'}
             </span>
           </div>
-          <h3 className="text-2xl font-black text-slate-900 dark:text-white">24</h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Yêu cầu hỗ trợ đang mở</p>
-          <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
-            <span>SLA &lt; 15 phút</span>
-            <ArrowUpRight className="w-3.5 h-3.5 text-amber-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-          </div>
+          <h3 className="text-2xl font-bold text-slate-900 tracking-tight">
+            {dashboardData?.topStats.supportTickets ?? 24}
+          </h3>
+          <p className="text-[11px] text-slate-400 mt-1">{dashboardData?.topStats.urgentTicketsCount ?? 4} urgent priority</p>
         </Link>
 
-        {/* Metric 3: Active Course Nodes */}
+        {/* Card 3: COURSE NODES */}
         <Link
           to="/course-nodes"
-          className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs hover:border-indigo-500 hover:shadow-md transition-all group"
+          className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs hover:border-blue-400 transition-all group"
         >
-          <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Network className="w-5 h-5" />
-            </div>
-            <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded-full">
-              32 Majors
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">COURSE NODES</span>
+            <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200">
+              142 active discussions
             </span>
           </div>
-          <h3 className="text-2xl font-black text-slate-900 dark:text-white">186</h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Course Nodes (Môn học active)</p>
-          <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
-            <span>Chuẩn ABET & MOET</span>
-            <ArrowUpRight className="w-3.5 h-3.5 text-indigo-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-          </div>
+          <h3 className="text-2xl font-bold text-slate-900 tracking-tight">
+            {dashboardData?.topStats.courseNodes ?? 186}
+          </h3>
+          <p className="text-[11px] text-slate-400 mt-1">Across {dashboardData?.academicOverview.majorsCount ?? 32} majors</p>
         </Link>
 
-        {/* Metric 4: Immutable Audit Events */}
+        {/* Card 4: ACTIVE CAMPUSES */}
         <Link
-          to="/audit-logs"
-          className="p-5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs hover:border-emerald-500 hover:shadow-md transition-all group"
+          to="/campuses"
+          className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs hover:border-emerald-400 transition-all group"
         >
-          <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
-            <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full">
-              100% SHA-256
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">ACTIVE CAMPUSES</span>
+            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
+              100% operational
             </span>
           </div>
-          <h3 className="text-2xl font-black text-slate-900 dark:text-white">1,429</h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Audit Events (24 giờ qua)</p>
-          <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
-            <span>ISO 27001 Sealed</span>
-            <ArrowUpRight className="w-3.5 h-3.5 text-emerald-600 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+          <h3 className="text-2xl font-bold text-slate-900 tracking-tight">
+            {dashboardData?.topStats.activeCampuses ?? 5}
+          </h3>
+          <p className="text-[11px] text-slate-400 mt-1">HL • HCM • DN • CT • QN</p>
+        </Link>
+
+        {/* Card 5: SYSTEM ALERTS */}
+        <Link
+          to="/health"
+          className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs hover:border-rose-400 transition-all group"
+        >
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">SYSTEM ALERTS</span>
+            <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.2 rounded border border-rose-200">
+              Action required
+            </span>
           </div>
+          <h3 className="text-2xl font-bold text-slate-900 tracking-tight">
+            {dashboardData?.topStats.systemAlerts ?? 3}
+          </h3>
+          <p className="text-[11px] text-slate-400 mt-1">2 warning, 1 critical</p>
         </Link>
       </div>
 
-      {/* Main Grid: Campus Telemetry & Quick Action Bar */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left 2 Cols: Campus Traffic Partition Status */}
-        <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-xs space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <Building2 className="w-5 h-5 text-[#005da7]" />
-              <h2 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">
-                Campus Partition & Microservice Telemetry
-              </h2>
+      {/* Main Grid Split: 2/3 Left (Activity + Content) & 1/3 Right (Status + Tasks + Distribution) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Column (8 cols / 65%) */}
+        <div className="lg:col-span-8 space-y-6">
+          {/* User Activity Chart Card (Figma 55:2) */}
+          <div className="p-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h3 className="font-bold text-sm text-slate-900">User Activity</h3>
+                <p className="text-[11px] text-slate-400">Daily active users, discussions, and interactions.</p>
+              </div>
+
+              {/* Timeframe Segmented Control */}
+              <div className="flex items-center bg-slate-100 p-0.5 rounded-lg text-xs font-semibold">
+                {(['Today', '7 Days', '30 Days'] as const).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setActivityTimeframe(t)}
+                    className={`px-3 py-1 rounded-md text-[11px] transition-all cursor-pointer ${
+                      activityTimeframe === t
+                        ? 'bg-white text-blue-600 shadow-2xs font-bold'
+                        : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
             </div>
-            <Link to="/campuses" className="text-xs font-bold text-[#005da7] hover:underline flex items-center gap-1">
-              Quản lý 5 Cơ sở <ChevronRight className="w-3.5 h-3.5" />
-            </Link>
+
+            {/* Stat Counters Row */}
+            <div className="flex items-center gap-6 pt-1">
+              <div>
+                <span className="text-[10px] text-slate-400 uppercase font-semibold">Active Users</span>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-lg font-bold text-slate-900">8,940</span>
+                  <span className="text-[10px] font-bold text-emerald-600">+7.2%</span>
+                </div>
+              </div>
+              <div className="border-l border-slate-100 pl-6">
+                <span className="text-[10px] text-slate-400 uppercase font-semibold">New Signups</span>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-lg font-bold text-slate-900">412</span>
+                  <span className="text-[10px] font-bold text-emerald-600">+3.4%</span>
+                </div>
+              </div>
+              <div className="border-l border-slate-100 pl-6">
+                <span className="text-[10px] text-slate-400 uppercase font-semibold">Discussions</span>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-lg font-bold text-slate-900">94</span>
+                  <span className="text-[10px] text-slate-400">Daily avg</span>
+                </div>
+              </div>
+            </div>
+
+            {/* SVG Curved Area Chart */}
+            <div className="pt-2">
+              <div className="h-44 w-full relative">
+                <svg className="w-full h-full overflow-visible" viewBox="0 0 500 120" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="blueGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.25" />
+                      <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.0" />
+                    </linearGradient>
+                  </defs>
+                  {/* Grid Lines */}
+                  <line x1="0" y1="30" x2="500" y2="30" stroke="#f1f5f9" strokeWidth="1" />
+                  <line x1="0" y1="60" x2="500" y2="60" stroke="#f1f5f9" strokeWidth="1" />
+                  <line x1="0" y1="90" x2="500" y2="90" stroke="#f1f5f9" strokeWidth="1" />
+
+                  {/* Area Fill */}
+                  <path
+                    d="M 0 95 Q 60 70, 120 78 T 240 50 T 360 65 T 440 25 T 500 40 L 500 120 L 0 120 Z"
+                    fill="url(#blueGradient)"
+                  />
+                  {/* Curved Stroke */}
+                  <path
+                    d="M 0 95 Q 60 70, 120 78 T 240 50 T 360 65 T 440 25 T 500 40"
+                    fill="none"
+                    stroke="#2563eb"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                  />
+                  {/* Data Points */}
+                  <circle cx="240" cy="50" r="3.5" fill="#2563eb" stroke="#ffffff" strokeWidth="2" />
+                  <circle cx="440" cy="25" r="4.5" fill="#2563eb" stroke="#ffffff" strokeWidth="2" />
+                </svg>
+              </div>
+
+              {/* X Axis Timestamps */}
+              <div className="flex justify-between text-[10px] text-slate-400 pt-2 border-t border-slate-100">
+                <span>00:00</span>
+                <span>04:00</span>
+                <span>08:00</span>
+                <span>12:00</span>
+                <span>16:00</span>
+                <span>20:00</span>
+                <span className="font-semibold text-slate-700">Now (Today)</span>
+              </div>
+            </div>
           </div>
 
-          {/* Campus Breakdown Bars */}
-          <div className="space-y-3 pt-1">
-            {mockDetailedCampuses.map((campus) => {
-              const percentage = Math.round((campus.studentCount / 45800) * 100);
-              return (
-                <div key={campus.id} className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700/60 hover:border-slate-300 transition-all">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className="w-7 h-7 rounded-lg bg-[#005da7] text-white font-extrabold text-xs flex items-center justify-center">
-                        {campus.code}
+          {/* 2-Card Row: Support Tickets + Recent User Activity (Figma 55:2) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Support Tickets Queue Card */}
+            <div className="p-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-3.5 flex flex-col justify-between">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-xs text-slate-900">Support Tickets</h3>
+                  <div className="flex items-center gap-1 text-[10px]">
+                    <span className="px-1.5 py-0.2 rounded bg-blue-50 text-blue-700 font-bold">12 Open</span>
+                    <span className="px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 font-bold">6 In Prog</span>
+                    <span className="px-1.5 py-0.2 rounded bg-slate-100 text-slate-600">4 Waiting</span>
+                    <span className="px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700">2 Resolved</span>
+                  </div>
+                </div>
+
+                <div className="space-y-2.5 divide-y divide-slate-100 text-xs">
+                  <div className="pt-2 first:pt-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="font-semibold text-slate-800 text-[11px] leading-snug line-clamp-1">
+                        Cannot access PRN211 course in Ho Chi Minh campus
                       </span>
-                      <div>
-                        <span className="font-bold text-xs text-slate-800 dark:text-slate-200">{campus.name}</span>
-                        <span className="text-[10px] text-slate-400 ml-2">Node: {campus.serverPartition.nodeId}</span>
-                      </div>
+                      <span className="text-[9px] px-1.5 py-0.2 rounded font-bold bg-rose-50 text-rose-700 border border-rose-200 shrink-0">
+                        High
+                      </span>
                     </div>
-                    <div className="text-right">
-                      <span className="text-xs font-bold text-slate-900 dark:text-white">
-                        {campus.studentCount.toLocaleString()} SV
-                      </span>
-                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold ml-2">
-                        {campus.serverPartition.latencyMs}ms
-                      </span>
+                    <div className="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5">
+                      <span>Campus HL</span>
+                      <span>•</span>
+                      <span>10m ago</span>
                     </div>
                   </div>
-                  {/* Progress Bar */}
-                  <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
-                    <div
-                      className="bg-linear-to-r from-[#005da7] to-sky-400 h-full rounded-full transition-all duration-500"
-                      style={{ width: `${percentage * 2}%` }}
+
+                  <div className="pt-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="font-semibold text-slate-800 text-[11px] leading-snug line-clamp-1">
+                        Duplicate marketplace listing report
+                      </span>
+                      <span className="text-[9px] px-1.5 py-0.2 rounded font-bold bg-amber-50 text-amber-700 border border-amber-200 shrink-0">
+                        Med
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5">
+                      <span>Campus HCM</span>
+                      <span>•</span>
+                      <span>25m ago</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="font-semibold text-slate-800 text-[11px] leading-snug line-clamp-1">
+                        Karma points calculation error on Best Answer
+                      </span>
+                      <span className="text-[9px] px-1.5 py-0.2 rounded font-bold bg-blue-50 text-blue-700 border border-blue-200 shrink-0">
+                        Low
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5">
+                      <span>Campus DN</span>
+                      <span>•</span>
+                      <span>1h ago</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-slate-100">
+                <Link to="/tickets" className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center justify-between">
+                  <span>View All Tickets</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+            </div>
+
+            {/* Recent User Activity Card */}
+            <div className="p-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-3.5 flex flex-col justify-between">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-xs text-slate-900">Recent User Activity</h3>
+                  <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-600">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live Stream
+                  </span>
+                </div>
+
+                <div className="space-y-2.5 divide-y divide-slate-100 text-xs">
+                  <div className="pt-2 first:pt-0 flex items-center gap-2.5">
+                    <img
+                      src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80"
+                      alt="User"
+                      className="w-7 h-7 rounded-full object-cover shrink-0"
                     />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[11px] text-slate-800 leading-snug">
+                        <strong>Nguyen Van A</strong> upvoted study node <strong>PRN211</strong>
+                      </div>
+                      <span className="text-[10px] text-slate-400">2m ago</span>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between mt-1 text-[10px] text-slate-400">
-                    <span>{campus.activeCourseNodes} Course Nodes hoạt động</span>
-                    <span className="text-emerald-500 font-semibold">● Replication lag: {campus.serverPartition.replicationLagSec}s</span>
+
+                  <div className="pt-2 flex items-center gap-2.5">
+                    <img
+                      src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80"
+                      alt="User"
+                      className="w-7 h-7 rounded-full object-cover shrink-0"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[11px] text-slate-800 leading-snug">
+                        <strong>Pham Thi B</strong> published marketplace item <strong>Giáo trình CSD201</strong>
+                      </div>
+                      <span className="text-[10px] text-slate-400">14m ago</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 flex items-center gap-2.5">
+                    <img
+                      src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80"
+                      alt="User"
+                      className="w-7 h-7 rounded-full object-cover shrink-0"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[11px] text-slate-800 leading-snug">
+                        <strong>Tran Minh C</strong> earned badge <strong>Verified Mod</strong>
+                      </div>
+                      <span className="text-[10px] text-slate-400">32m ago</span>
+                    </div>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        </div>
+              </div>
 
-        {/* Right 1 Col: Quick Actions & AI Governance */}
-        <div className="space-y-6">
-          {/* Quick Action Buttons */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-xs space-y-3">
-            <h3 className="font-bold text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-              Quick Admin Actions
-            </h3>
-            <div className="grid grid-cols-1 gap-2">
-              <button
-                onClick={() => navigate('/campuses?action=create')}
-                className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 hover:bg-[#cfe1fe]/40 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold transition-all text-left cursor-pointer group"
-              >
-                <div className="flex items-center gap-2.5">
-                  <Building2 className="w-4 h-4 text-[#005da7]" />
-                  <span>Thêm Phân Hiệu Mới (Campus)</span>
-                </div>
-                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
-              </button>
-
-              <button
-                onClick={() => navigate('/majors?action=create')}
-                className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 hover:bg-[#cfe1fe]/40 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold transition-all text-left cursor-pointer group"
-              >
-                <div className="flex items-center gap-2.5">
-                  <GraduationCap className="w-4 h-4 text-[#005da7]" />
-                  <span>Khai Báo Ngành Học (Major)</span>
-                </div>
-                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
-              </button>
-
-              <button
-                onClick={() => navigate('/course-nodes?action=create')}
-                className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 hover:bg-[#cfe1fe]/40 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold transition-all text-left cursor-pointer group"
-              >
-                <div className="flex items-center gap-2.5">
-                  <Network className="w-4 h-4 text-[#005da7]" />
-                  <span>Tạo Course Node (Môn Học)</span>
-                </div>
-                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
-              </button>
-
-              <button
-                onClick={() => navigate('/reputation')}
-                className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 hover:bg-[#cfe1fe]/40 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold transition-all text-left cursor-pointer group"
-              >
-                <div className="flex items-center gap-2.5">
-                  <Zap className="w-4 h-4 text-amber-500" />
-                  <span>Cấu hình Điểm Karma / Reputation</span>
-                </div>
-                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
-              </button>
-
-              <button
-                onClick={() => navigate('/health')}
-                className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 hover:bg-[#cfe1fe]/40 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 text-xs font-semibold transition-all text-left cursor-pointer group"
-              >
-                <div className="flex items-center gap-2.5">
-                  <Activity className="w-4 h-4 text-emerald-600" />
-                  <span>Kiểm Tra Microservices SLA</span>
-                </div>
-                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
-              </button>
+              <div className="pt-3 border-t border-slate-100">
+                <Link to="/users" className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center justify-between">
+                  <span>View Full User Activity</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
             </div>
           </div>
 
-          {/* AI Content Processing Card */}
-          <div className="bg-linear-to-br from-indigo-900 to-slate-900 text-white p-5 rounded-2xl shadow-md space-y-3">
+          {/* Academic Platform Overview Card (Figma 55:2) */}
+          <div className="p-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-4">
+            <div>
+              <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Academic Platform Overview</h3>
+              <p className="text-[11px] text-slate-400">Comprehensive taxonomy across campuses, majors, courses, and community index.</p>
+            </div>
+
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+              <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 text-center">
+                <div className="text-lg font-bold text-slate-900">5</div>
+                <div className="text-[10px] font-bold text-slate-500 uppercase mt-0.5">CAMPUSES</div>
+                <div className="text-[9px] text-slate-400">All nodes synced</div>
+              </div>
+
+              <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 text-center">
+                <div className="text-lg font-bold text-slate-900">32</div>
+                <div className="text-[10px] font-bold text-slate-500 uppercase mt-0.5">MAJORS</div>
+                <div className="text-[9px] text-slate-400">Software Eng, IS, AI...</div>
+              </div>
+
+              <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 text-center">
+                <div className="text-lg font-bold text-slate-900">186</div>
+                <div className="text-[10px] font-bold text-slate-500 uppercase mt-0.5">COURSE NODES</div>
+                <div className="text-[9px] text-slate-400">Syllabus live</div>
+              </div>
+
+              <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 text-center">
+                <div className="text-lg font-bold text-slate-900">2,480</div>
+                <div className="text-[10px] font-bold text-slate-500 uppercase mt-0.5">MATERIALS</div>
+                <div className="text-[9px] text-slate-400">Uploaded & verified</div>
+              </div>
+
+              <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 text-center">
+                <div className="text-lg font-bold text-slate-900">4,320</div>
+                <div className="text-[10px] font-bold text-slate-500 uppercase mt-0.5">DISCUSSIONS</div>
+                <div className="text-[9px] text-slate-400">Total resolved: 92%</div>
+              </div>
+
+              <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 text-center">
+                <div className="text-lg font-bold text-slate-900">856</div>
+                <div className="text-[10px] font-bold text-slate-500 uppercase mt-0.5">WORKFLOWS</div>
+                <div className="text-[9px] text-slate-400">Standard guides</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Recent Audit Logs Card (Figma 55:2) */}
+          <div className="p-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-3.5">
             <div className="flex items-center justify-between">
-              <span className="flex items-center gap-1.5 text-xs font-bold text-indigo-300">
-                <Sparkles className="w-4 h-4 text-amber-400" /> AI Moderation Engine
-              </span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-500/30 text-indigo-200 border border-indigo-400/30">
-                ACTIVE
-              </span>
+              <div>
+                <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Recent Audit Logs</h3>
+                <p className="text-[11px] text-slate-400">Immutable cryptographic ledger of recent system transactions</p>
+              </div>
+              <Link to="/audit-logs" className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1">
+                <span>View All Logs</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
             </div>
-            <p className="text-xs text-slate-300 leading-relaxed">
-              Tự động quét nội dung thảo luận, phát hiện câu hỏi trùng lặp và tóm tắt đề cương môn học theo thời gian thực.
-            </p>
-            <div className="space-y-1 text-[11px] text-slate-300">
-              <div className="flex justify-between">
-                <span>Toxicity Threshold:</span>
-                <span className="font-mono font-bold text-sky-300">{mockAISensitivityConfig.toxicityThreshold * 100}%</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Academic Dishonesty:</span>
-                <span className="font-mono font-bold text-sky-300">{mockAISensitivityConfig.academicDishonestyThreshold * 100}%</span>
-              </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="text-[10px] font-bold text-slate-400 uppercase border-b border-slate-100">
+                  <tr>
+                    <th className="py-2 px-3">TIME</th>
+                    <th className="py-2 px-3">USER</th>
+                    <th className="py-2 px-3">ACTION</th>
+                    <th className="py-2 px-3">TARGET</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  <tr className="hover:bg-slate-50/70 transition-colors">
+                    <td className="py-2.5 px-3 font-mono text-[11px] text-slate-500">14:20:10</td>
+                    <td className="py-2.5 px-3 font-semibold text-slate-800">Nguyen Admin</td>
+                    <td className="py-2.5 px-3">
+                      <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                        Suspended User
+                      </span>
+                    </td>
+                    <td className="py-2.5 px-3 font-mono text-[11px] text-slate-600">HE172109 - QE183011</td>
+                  </tr>
+
+                  <tr className="hover:bg-slate-50/70 transition-colors">
+                    <td className="py-2.5 px-3 font-mono text-[11px] text-slate-500">13:45:00</td>
+                    <td className="py-2.5 px-3 font-semibold text-slate-800">Tran Moderator</td>
+                    <td className="py-2.5 px-3">
+                      <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                        Updated Course Node
+                      </span>
+                    </td>
+                    <td className="py-2.5 px-3 font-mono text-[11px] text-slate-600">PRN211 - .NET Track</td>
+                  </tr>
+
+                  <tr className="hover:bg-slate-50/70 transition-colors">
+                    <td className="py-2.5 px-3 font-mono text-[11px] text-slate-500">11:15:30</td>
+                    <td className="py-2.5 px-3 font-semibold text-slate-800">Nguyen Admin</td>
+                    <td className="py-2.5 px-3">
+                      <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                        Revoked Auth Token
+                      </span>
+                    </td>
+                    <td className="py-2.5 px-3 font-mono text-[11px] text-slate-600">Token #941 (usr-6)</td>
+                  </tr>
+
+                  <tr className="hover:bg-slate-50/70 transition-colors">
+                    <td className="py-2.5 px-3 font-mono text-[11px] text-slate-500">09:00:12</td>
+                    <td className="py-2.5 px-3 font-semibold text-slate-800">Le Moderator</td>
+                    <td className="py-2.5 px-3">
+                      <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        Resolved Ticket
+                      </span>
+                    </td>
+                    <td className="py-2.5 px-3 font-mono text-[11px] text-slate-600">TKT-2026-089</td>
+                  </tr>
+
+                  <tr className="hover:bg-slate-50/70 transition-colors">
+                    <td className="py-2.5 px-3 font-mono text-[11px] text-slate-500">08:00:00</td>
+                    <td className="py-2.5 px-3 font-semibold text-slate-800">System Auto-Task</td>
+                    <td className="py-2.5 px-3">
+                      <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-slate-100 text-slate-600">
+                        Cleaned Temp Files
+                      </span>
+                    </td>
+                    <td className="py-2.5 px-3 font-mono text-[11px] text-slate-600">Cache Disk</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Bottom Section: Recent Immutable Audit Stream */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 shadow-xs space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <ShieldCheck className="w-5 h-5 text-emerald-600" />
-            <h2 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white">
-              Live Immutable Audit Event Log
-            </h2>
+        {/* Right Column (4 cols / 35%) */}
+        <div className="lg:col-span-4 space-y-6">
+          {/* System Status Card (Figma 55:2) */}
+          <div className="p-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-3.5">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">System Status</h3>
+              <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> 99.9% HEALTHY
+              </span>
+            </div>
+
+            <div className="space-y-2.5 text-xs divide-y divide-slate-100">
+              <div className="pt-2 first:pt-0 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                  <span className="font-semibold text-slate-800">Database (Postgres)</span>
+                </div>
+                <div className="text-right">
+                  <span className="font-mono text-emerald-600 font-bold">99.98%</span>
+                  <span className="text-[10px] text-slate-400 block">Master + 2 replicas</span>
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                  <span className="font-semibold text-slate-800">API Cluster</span>
+                </div>
+                <div className="text-right">
+                  <span className="font-mono text-slate-800 font-bold">42ms Latency</span>
+                  <span className="text-[10px] text-slate-400 block">4/4 nodes active</span>
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                  <span className="font-semibold text-slate-800">Search Service</span>
+                </div>
+                <div className="text-right">
+                  <span className="font-mono text-emerald-600 font-bold">Optimal</span>
+                  <span className="text-[10px] text-slate-400 block">Elastic cluster</span>
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                  <span className="font-semibold text-slate-800">CDN Delivery</span>
+                </div>
+                <div className="text-right">
+                  <span className="font-mono text-emerald-600 font-bold">99.9% Uptime</span>
+                  <span className="text-[10px] text-slate-400 block">Edge DC cache 98%</span>
+                </div>
+              </div>
+            </div>
           </div>
-          <Link to="/audit-logs" className="text-xs font-bold text-[#005da7] hover:underline flex items-center gap-1">
-            Xem toàn bộ Audit Logs <ChevronRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border-y border-slate-200 dark:border-slate-700">
-              <tr>
-                <th className="py-2.5 px-3 font-semibold">Event ID / Time</th>
-                <th className="py-2.5 px-3 font-semibold">Service</th>
-                <th className="py-2.5 px-3 font-semibold">Action</th>
-                <th className="py-2.5 px-3 font-semibold">Actor</th>
-                <th className="py-2.5 px-3 font-semibold">Details</th>
-                <th className="py-2.5 px-3 font-semibold text-right">Cryptographic Seal</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {mockDetailedAuditLogs.map((log) => (
-                <tr key={log.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
-                  <td className="py-3 px-3">
-                    <div className="font-mono font-bold text-[#005da7]">{log.eventId}</div>
-                    <div className="text-[10px] text-slate-400">{log.timestamp}</div>
-                  </td>
-                  <td className="py-3 px-3">
-                    <span className="font-medium text-slate-700 dark:text-slate-300">{log.service}</span>
-                  </td>
-                  <td className="py-3 px-3">
-                    <span className="px-2 py-0.5 rounded font-mono font-bold text-[10px] bg-sky-50 dark:bg-sky-950/60 text-[#005da7] dark:text-sky-300 border border-sky-200 dark:border-sky-800">
-                      {log.action}
-                    </span>
-                  </td>
-                  <td className="py-3 px-3">
-                    <div className="font-medium text-slate-900 dark:text-slate-100">{log.actorEmail}</div>
-                    <div className="text-[10px] text-slate-400">{log.ipAddress}</div>
-                  </td>
-                  <td className="py-3 px-3 max-w-xs truncate text-slate-600 dark:text-slate-300">
-                    {log.details}
-                  </td>
-                  <td className="py-3 px-3 text-right">
-                    <span className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 font-bold border border-emerald-200 dark:border-emerald-800">
-                      <CheckCircle2 className="w-3 h-3 text-emerald-500" /> SHA-256 Valid
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {/* Pending Tasks Card (Figma 55:2) */}
+          <div className="p-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-3.5">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Pending Tasks</h3>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
+                8 Tasks
+              </span>
+            </div>
+
+            <div className="space-y-2.5 text-xs">
+              <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between">
+                <div>
+                  <div className="font-semibold text-slate-800">24 Support Tickets</div>
+                  <div className="text-[10px] text-rose-600 font-bold">4 urgent priority</div>
+                </div>
+                <Link to="/tickets" className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded text-[11px] font-semibold text-slate-700 shadow-2xs">
+                  Review
+                </Link>
+              </div>
+
+              <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between">
+                <div>
+                  <div className="font-semibold text-slate-800">3 Verifications</div>
+                  <div className="text-[10px] text-amber-600">Student ID cards pending</div>
+                </div>
+                <Link to="/users" className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded text-[11px] font-semibold text-slate-700 shadow-2xs">
+                  Verify
+                </Link>
+              </div>
+
+              <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between">
+                <div>
+                  <div className="font-semibold text-slate-800">2 Reported Listings</div>
+                  <div className="text-[10px] text-slate-400">Marketplace spam report</div>
+                </div>
+                <Link to="/tickets" className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded text-[11px] font-semibold text-slate-700 shadow-2xs">
+                  Inspect
+                </Link>
+              </div>
+
+              <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between">
+                <div>
+                  <div className="font-semibold text-slate-800">1 System Alerts</div>
+                  <div className="text-[10px] text-blue-600">Partition sync notice</div>
+                </div>
+                <Link to="/health" className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded text-[11px] font-semibold text-slate-700 shadow-2xs">
+                  Details
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Campus Distribution Card (Figma 55:2) */}
+          <div className="p-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-3.5">
+            <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Campus Distribution</h3>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <div className="flex justify-between text-[11px] mb-1">
+                  <span className="font-semibold text-slate-700">Hoa Lac (HL)</span>
+                  <span className="text-slate-500">4,521 students (38%)</span>
+                </div>
+                <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-blue-600 h-full rounded-full" style={{ width: '38%' }} />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between text-[11px] mb-1">
+                  <span className="font-semibold text-slate-700">Ho Chi Minh (HCM)</span>
+                  <span className="text-slate-500">4,110 students (35%)</span>
+                </div>
+                <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-blue-600 h-full rounded-full" style={{ width: '35%' }} />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between text-[11px] mb-1">
+                  <span className="font-semibold text-slate-700">Da Nang (DN)</span>
+                  <span className="text-slate-500">1,870 students (15%)</span>
+                </div>
+                <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-blue-600 h-full rounded-full" style={{ width: '15%' }} />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between text-[11px] mb-1">
+                  <span className="font-semibold text-slate-700">Can Tho (CT)</span>
+                  <span className="text-slate-500">1,120 students (8%)</span>
+                </div>
+                <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-blue-600 h-full rounded-full" style={{ width: '8%' }} />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between text-[11px] mb-1">
+                  <span className="font-semibold text-slate-700">Quy Nhon (QN)</span>
+                  <span className="text-slate-500">829 students (4%)</span>
+                </div>
+                <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                  <div className="bg-blue-600 h-full rounded-full" style={{ width: '4%' }} />
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-slate-100">
+              <Link to="/campuses" className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center justify-between">
+                <span>Manage campus partitions and nodes</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     </div>

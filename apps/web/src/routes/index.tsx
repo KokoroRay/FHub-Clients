@@ -52,6 +52,7 @@ import {
   AuditLogsPage,
   AuditLogDetailPage,
   SystemHealthAdminPage,
+  AdminLoginPage,
 } from '../features/admin/pages';
 
 // Admin & Staff Governance (Legacy / Domain Portal)
@@ -77,6 +78,7 @@ import { ForgotPasswordPage } from '../features/auth/ForgotPasswordPage';
  * Subdomain Routes Definition (admin.fhub.edu.vn / admin.localhost)
  * Clean URLs mapped directly to root:
  * - / -> AdminDashboardPage (Figma 55:2)
+ * - /login -> AdminLoginPage
  * - /users -> UserManagementPage (Figma 55:4074)
  * - /users/:id -> UserDetailPage (Figma 55:3199)
  * - /tickets -> SupportTicketsAdminPage (Figma 56:4833)
@@ -93,6 +95,10 @@ import { ForgotPasswordPage } from '../features/auth/ForgotPasswordPage';
  * - /health -> SystemHealthAdminPage
  */
 const getSubdomainRoutes = () => [
+  {
+    path: '/login',
+    element: <AdminLoginPage />,
+  },
   {
     path: '/',
     element: <AdminSubdomainLayout />,
@@ -203,9 +209,11 @@ const getMainPortalRoutes = () => [
     element: <AuthLayout />,
     children: [
       { path: 'login', element: <LoginPage /> },
+      { path: 'admin-login', element: <AdminLoginPage /> },
       { path: 'register', element: <RegisterPage /> },
       { path: 'forgot-password', element: <ForgotPasswordPage /> },
     ],
+
   },
 
   // Fallback redirect
