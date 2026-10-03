@@ -108,7 +108,7 @@ export const UserAccountsPage: React.FC = () => {
       header: 'Karma',
       accessorKey: 'karma',
       cell: (item) => (
-        <span className={`font-bold font-mono ${item.karma < 0 ? 'text-rose-600' : 'text-[#005da7]'}`}>
+        <span className={`font-bold font-mono ${item.karma < 0 ? 'text-rose-600' : 'text-[#2563eb]'}`}>
           {item.karma} pts
         </span>
       ),
@@ -177,7 +177,7 @@ export const UserAccountsPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <Users className="w-6 h-6 text-[#005da7]" />
+            <Users className="w-6 h-6 text-[#2563eb]" />
             <span>User Account Management & Governance</span>
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -192,7 +192,7 @@ export const UserAccountsPage: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Tìm theo tên, email, MSSV..."
-            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#005da7]"
+            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
           />
         </div>
       </div>
@@ -259,3 +259,4 @@ export const UserAccountsPage: React.FC = () => {
     </div>
   );
 };
+

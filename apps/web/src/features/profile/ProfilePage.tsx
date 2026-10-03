@@ -31,7 +31,7 @@ export const ProfilePage: React.FC = () => {
     <div className="space-y-6 max-w-4xl mx-auto">
       {/* Profile Hero Header */}
       <Card className="overflow-hidden">
-        <div className="h-32 bg-linear-to-r from-[#005da7] via-[#0076d1] to-[#6f507e]" />
+        <div className="h-32 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-800" />
         <CardBody className="p-6 pt-0 relative">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 -mt-12 mb-4">
             <div className="flex items-end gap-4">
@@ -60,13 +60,13 @@ export const ProfilePage: React.FC = () => {
             </Link>
           </div>
 
-          <p className="text-xs text-slate-600 dark:text-slate-300 max-w-2xl leading-relaxed">
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-2xl leading-relaxed">
             {user.bio}
           </p>
 
           <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-500">
             <div className="flex items-center gap-4">
-              <span className="font-bold text-[#005da7] font-mono text-sm">{user.karma.toLocaleString()} Karma Points</span>
+              <span className="font-bold text-blue-600 font-mono text-sm">{user.karma.toLocaleString()} Karma Points</span>
               <span>• Tham gia từ: 09/2025</span>
             </div>
 
@@ -101,32 +101,15 @@ export const ProfilePage: React.FC = () => {
       <div className="space-y-4">
         {activeTab === 'contributions' && (
           <div className="space-y-3">
-            <h3 className="font-bold text-xs text-slate-400 uppercase tracking-wider">
-              Câu hỏi & Workflows đã đóng góp
-            </h3>
             {userQuestions.map((q) => (
               <Card key={q.id} hoverable>
                 <CardBody className="p-4 space-y-1.5">
                   <div className="flex items-center gap-2">
                     <Badge variant="primary" size="sm">{q.courseCode}</Badge>
-                    <span className="text-[11px] text-slate-400">• {q.answersCount} câu trả lời</span>
+                    <span className="text-xs text-slate-400">Câu hỏi Q&A</span>
                   </div>
-                  <Link to={`/discussions/${q.id}`} className="font-bold text-xs text-slate-900 dark:text-slate-100 hover:text-[#005da7] block">
+                  <Link to={`/discussions/${q.id}`} className="font-bold text-sm text-slate-900 dark:text-slate-100 hover:text-blue-600 block">
                     {q.title}
-                  </Link>
-                </CardBody>
-              </Card>
-            ))}
-
-            {userWorkflows.map((w) => (
-              <Card key={w.id} hoverable>
-                <CardBody className="p-4 space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="purple" size="sm">{w.technology}</Badge>
-                    <span className="text-[11px] text-slate-400">• {w.usageCount} lượt áp dụng</span>
-                  </div>
-                  <Link to={`/workflows/${w.id}`} className="font-bold text-xs text-slate-900 dark:text-slate-100 hover:text-[#005da7] block">
-                    {w.title}
                   </Link>
                 </CardBody>
               </Card>
@@ -135,20 +118,18 @@ export const ProfilePage: React.FC = () => {
         )}
 
         {activeTab === 'badges' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {user.badges.map((b) => (
               <Card key={b.id}>
-                <CardBody className="p-4 space-y-2 text-center">
-                  <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto shadow-2xs">
-                    <Award className="w-6 h-6" />
+                <CardBody className="p-4 flex items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 flex items-center justify-center text-2xl shrink-0">
+                    {b.icon || '🏅'}
                   </div>
                   <div>
-                    <h4 className="font-bold text-xs text-slate-900 dark:text-slate-100">{b.name}</h4>
-                    <p className="text-[11px] text-slate-400 mt-0.5">{b.description}</p>
+                    <h4 className="font-bold text-sm text-slate-900 dark:text-slate-100">{b.name}</h4>
+                    <p className="text-xs text-slate-500">{b.description}</p>
+                    <span className="text-[10px] text-amber-600 font-bold block mt-0.5">+{b.karmaReward} Karma</span>
                   </div>
-                  <Badge variant={b.tier === 'GOLD' ? 'warning' : 'neutral'} size="sm">
-                    {b.tier} • {b.earnedAt}
-                  </Badge>
                 </CardBody>
               </Card>
             ))}
@@ -156,24 +137,11 @@ export const ProfilePage: React.FC = () => {
         )}
 
         {activeTab === 'votes' && (
-          <div className="space-y-3">
-            <p className="text-xs text-slate-500">
-              Danh sách các câu hỏi và câu trả lời hữu ích mà bạn đã Upvote gần đây.
-            </p>
-            {mockQuestions.slice(0, 2).map((q) => (
-              <Card key={q.id}>
-                <CardBody className="p-4 flex items-center justify-between">
-                  <div>
-                    <Link to={`/discussions/${q.id}`} className="font-bold text-xs hover:text-[#005da7]">
-                      {q.title}
-                    </Link>
-                    <span className="text-[11px] text-slate-400 block mt-0.5">Đã Upvote • Tác giả: {q.author.fullName}</span>
-                  </div>
-                  <Badge variant="primary" size="sm">+10 Karma</Badge>
-                </CardBody>
-              </Card>
-            ))}
-          </div>
+          <Card>
+            <CardBody className="p-6 text-center text-xs text-slate-400">
+              Bạn đã upvote cho 48 câu hỏi và 22 bài viết hữu ích trong học kỳ này.
+            </CardBody>
+          </Card>
         )}
       </div>
     </div>

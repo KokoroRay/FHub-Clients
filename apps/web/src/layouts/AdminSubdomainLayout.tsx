@@ -89,9 +89,9 @@ export const AdminSubdomainLayout: React.FC = () => {
     }`;
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col font-sans selection:bg-blue-100 selection:text-blue-700">
+    <div className="h-screen bg-[#f8fafc] text-slate-900 flex flex-col font-sans selection:bg-blue-100 selection:text-blue-700 overflow-hidden">
       {/* Top Header (Figma Header) */}
-      <header className="sticky top-0 z-40 w-full bg-white border-b border-slate-200">
+      <header className="sticky top-0 z-50 w-full bg-white border-b border-slate-200 shrink-0">
         <div className="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
           {/* Brand Logo & Tag */}
           <div className="flex items-center gap-3 shrink-0">
@@ -207,9 +207,9 @@ export const AdminSubdomainLayout: React.FC = () => {
       </header>
 
       {/* Main Layout Body (Sidebar + Content) */}
-      <div className="w-full flex-1 flex">
-        {/* Left Sidebar (Figma Aside) */}
-        <aside className="w-60 shrink-0 hidden lg:flex flex-col justify-between bg-white border-r border-slate-200 min-h-[calc(100vh-4rem)] p-4 space-y-6">
+      <div className="w-full flex-1 flex overflow-hidden">
+        {/* Left Sidebar (Figma Aside) - Fixed/Locked Navigation */}
+        <aside className="w-60 shrink-0 hidden lg:flex flex-col justify-between bg-white border-r border-slate-200 h-full overflow-y-auto p-4 space-y-6">
           <div className="space-y-6">
             {navGroups.map((group) => (
               <div key={group.title} className="space-y-1">
@@ -278,7 +278,7 @@ export const AdminSubdomainLayout: React.FC = () => {
         </aside>
 
         {/* Main Content Area */}
-        <main className="flex-1 min-w-0 p-6 lg:p-8">
+        <main className="flex-1 min-w-0 h-full overflow-y-auto p-6 lg:p-8">
           <Outlet />
         </main>
       </div>

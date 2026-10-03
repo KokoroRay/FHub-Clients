@@ -19,7 +19,7 @@ export const Alert: React.FC<AlertProps> = ({
   const configs = {
     info: {
       bg: 'bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-200',
-      icon: <Info className="w-5 h-5 text-[#005da7] shrink-0" />,
+      icon: <Info className="w-5 h-5 text-blue-600 shrink-0" />,
     },
     success: {
       bg: 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200',

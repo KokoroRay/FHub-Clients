@@ -45,12 +45,12 @@ export const Header: React.FC = () => {
     {
       id: 'ask-question',
       label: 'Đặt câu hỏi Q&A',
-      icon: <HelpCircle className="w-4 h-4 text-sky-500" />,
+      icon: <HelpCircle className="w-4 h-4 text-blue-500" />,
       onClick: () => navigate('/discussions?action=create'),
     },
     {
       id: 'share-workflow',
-      label: 'Chia sẻ Workflow',
+      label: 'Chia sẻ Workflow đồ án',
       icon: <Code className="w-4 h-4 text-purple-500" />,
       onClick: () => navigate('/workflows?action=create'),
     },
@@ -78,7 +78,7 @@ export const Header: React.FC = () => {
     {
       id: 'profile',
       label: 'Trang cá nhân',
-      icon: <UserIcon className="w-4 h-4" />,
+      icon: <UserIcon className="w-4 h-4 text-blue-600" />,
       onClick: () => navigate('/profile'),
     },
     {
@@ -90,7 +90,7 @@ export const Header: React.FC = () => {
     {
       id: 'admin-subdomain',
       label: 'Admin Console (Subdomain)',
-      icon: <Shield className="w-4 h-4 text-[#005da7]" />,
+      icon: <Shield className="w-4 h-4 text-blue-600" />,
       onClick: () => setSubdomainMode('admin'),
     },
     ...(currentRole === 'Admin' || currentRole === 'Staff'
@@ -98,7 +98,7 @@ export const Header: React.FC = () => {
           {
             id: 'admin-portal',
             label: currentRole === 'Admin' ? 'Admin Control Center' : 'Staff Governance',
-            icon: <Shield className="w-4 h-4 text-[#005da7]" />,
+            icon: <Shield className="w-4 h-4 text-blue-600" />,
             onClick: () => navigate(currentRole === 'Admin' ? '/admin/campus' : '/staff/accounts'),
           },
         ]
@@ -124,21 +124,17 @@ export const Header: React.FC = () => {
   ];
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-colors">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+    <header className="sticky top-0 z-50 w-full bg-white dark:bg-slate-900 border-b border-slate-200/90 dark:border-slate-800 transition-colors shrink-0 shadow-2xs">
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
         {/* Logo & Campus Switcher */}
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-4">
           <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl overflow-hidden bg-white shadow-xs border border-slate-100 dark:border-slate-800 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
-              <img
-                src="/fhub.jpg"
-                alt="FHub Logo"
-                className="w-full h-full object-cover"
-              />
+            <div className="w-9 h-9 rounded-xl overflow-hidden bg-blue-600 text-white flex items-center justify-center font-black text-lg shadow-xs group-hover:scale-105 transition-transform shrink-0">
+              F
             </div>
             <div className="flex flex-col">
               <span className="font-extrabold text-base tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-1.5 leading-tight">
-                FHub <span className="text-[10px] px-1.5 py-0.5 bg-[#cfe1fe] text-[#005da7] dark:bg-sky-950 dark:text-sky-300 rounded-md font-bold">EDU</span>
+                FHub <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300 rounded-md font-bold border border-blue-100 dark:border-blue-800">EDU</span>
               </span>
               <span className="text-[10px] text-slate-400 font-medium">Academic Network</span>
             </div>
@@ -148,8 +144,8 @@ export const Header: React.FC = () => {
           <div className="hidden lg:flex items-center">
             <Dropdown
               trigger={
-                <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200/70 transition-colors">
-                  <MapPin className="w-3.5 h-3.5 text-[#005da7]" />
+                <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 hover:bg-slate-100 transition-colors cursor-pointer">
+                  <MapPin className="w-3.5 h-3.5 text-blue-600" />
                   <span>{currentCampusObj.code}</span>
                   <ChevronDown className="w-3 h-3 text-slate-400" />
                 </button>
@@ -169,24 +165,24 @@ export const Header: React.FC = () => {
         </div>
 
         {/* Global Search Bar */}
-        <form onSubmit={handleSearch} className="flex-1 max-w-xl hidden md:block">
+        <form onSubmit={handleSearch} className="flex-1 max-w-lg hidden md:block">
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tìm môn học (PRN211...), câu hỏi, workflow, tài liệu..."
-              className="w-full bg-slate-100 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/80 rounded-xl pl-9 pr-12 py-2 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#005da7]/20 focus:border-[#005da7] transition-all"
+              placeholder="Tìm kiếm môn học (PRN211...), câu hỏi, workflow, tài liệu..."
+              className="w-full bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-14 py-2 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all"
             />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-400 bg-white dark:bg-slate-700 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-600 shadow-2xs">
+            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-400 bg-white dark:bg-slate-700 px-1.5 py-0.5 rounded-md border border-slate-200 dark:border-slate-600 shadow-2xs">
               Ctrl K
             </span>
           </div>
         </form>
 
         {/* Action Controls & Role Switcher */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           {/* Quick Role Switcher for Test & Evaluation */}
           <Dropdown
             trigger={
@@ -201,7 +197,7 @@ export const Header: React.FC = () => {
               label: (
                 <div className="flex items-center justify-between w-full">
                   <span>{r}</span>
-                  {r === currentRole && <span className="text-xs text-[#005da7]">✓</span>}
+                  {r === currentRole && <span className="text-xs text-blue-600 font-bold">✓</span>}
                 </div>
               ),
               onClick: () => switchRole(r),
@@ -211,10 +207,10 @@ export const Header: React.FC = () => {
           {/* Admin Subdomain Console Pill */}
           <button
             onClick={() => setSubdomainMode('admin')}
-            className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-extrabold rounded-lg bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 hover:bg-rose-100 transition-all cursor-pointer shadow-2xs"
+            className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-extrabold rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 transition-all cursor-pointer shadow-2xs"
             title="Mở Admin Subdomain Console (admin.fhub.edu.vn)"
           >
-            <Shield className="w-3 h-3 text-rose-600" />
+            <Shield className="w-3 h-3 text-blue-600" />
             <span>Admin Console</span>
           </button>
 
@@ -233,19 +229,19 @@ export const Header: React.FC = () => {
               {/* Messages Link */}
               <Link
                 to="/messages"
-                className="p-2 text-slate-500 hover:text-[#005da7] hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors relative"
+                className="p-2 text-slate-500 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors relative"
                 title="Tin nhắn"
               >
-                <MessageSquare className="w-5 h-5" />
+                <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
               </Link>
 
               {/* Notifications Link */}
               <button
                 onClick={() => setShowNotifDrawer(!showNotifDrawer)}
-                className="p-2 text-slate-500 hover:text-[#005da7] hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors relative cursor-pointer"
+                className="p-2 text-slate-500 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors relative cursor-pointer"
                 title="Thông báo"
               >
-                <Bell className="w-5 h-5" />
+                <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white dark:ring-slate-900" />
               </button>
 
@@ -256,7 +252,7 @@ export const Header: React.FC = () => {
                     <img
                       src={currentUser.avatarUrl}
                       alt={currentUser.fullName}
-                      className="w-8 h-8 rounded-xl object-cover ring-1 ring-slate-300 dark:ring-slate-700"
+                      className="w-8 h-8 rounded-xl object-cover ring-1 ring-slate-200 dark:ring-slate-700"
                     />
                     <div className="hidden xl:flex flex-col text-left">
                       <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate max-w-[120px]">

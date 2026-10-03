@@ -78,16 +78,16 @@ export const MentorshipPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <Users className="w-6 h-6 text-[#005da7]" />
+          <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2.5 tracking-tight">
+            <Users className="w-6 h-6 text-blue-600" />
             <span>Mentorship Pairing Program</span>
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
             Kết nối sinh viên với các Cựu sinh viên (Alumni) và Tiền bối đạt danh hiệu xuất sắc để cố vấn học tập & đồ án.
           </p>
         </div>
 
-        <Button variant="primary" onClick={() => setIsModalOpen(true)} leftIcon={<Plus className="w-4 h-4" />}>
+        <Button variant="primary" onClick={() => setIsModalOpen(true)} leftIcon={<Plus className="w-4 h-4" />} className="shadow-xs">
           Gửi yêu cầu ghép đôi Mentor
         </Button>
       </div>
@@ -98,47 +98,47 @@ export const MentorshipPage: React.FC = () => {
             <CardBody className="p-5 space-y-3">
               <div className="flex items-center justify-between">
                 <Badge variant="primary" size="sm">{req.courseCode}</Badge>
-                <Badge
-                  variant={req.status === 'ACTIVE' ? 'success' : req.status === 'PENDING' ? 'warning' : 'neutral'}
-                  size="sm"
-                >
-                  {req.status}
-                </Badge>
+                {req.status === 'ACTIVE' ? (
+                  <Badge variant="success" size="sm" icon={<CheckCircle2 className="w-3 h-3" />}>Đang diễn ra</Badge>
+                ) : req.status === 'PENDING' ? (
+                  <Badge variant="warning" size="sm" icon={<Clock className="w-3 h-3" />}>Chờ Mentor xác nhận</Badge>
+                ) : (
+                  <Badge variant="neutral" size="sm">Đã kết thúc</Badge>
+                )}
               </div>
 
               <div>
                 <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">{req.topic}</h3>
-                <div className="mt-2 space-y-1 text-xs text-slate-600 dark:text-slate-300">
-                  <p><strong>Mentor:</strong> {req.mentorName} ({req.mentorRole})</p>
-                  <p><strong>Mentee:</strong> {req.menteeName}</p>
-                  <p className="text-[11px] text-slate-400">Bắt đầu: {req.startDate}</p>
+                <div className="mt-2 text-xs text-slate-500 space-y-1">
+                  <div><strong>Mentor:</strong> {req.mentorName} ({req.mentorRole})</div>
+                  <div><strong>Mentee:</strong> {req.menteeName}</div>
+                  <div><strong>Ngày bắt đầu:</strong> {req.startDate}</div>
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-2">
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <Button variant="outline" size="sm" leftIcon={<MessageSquare className="w-3.5 h-3.5" />}>
+                  Nhắn tin trao đổi
+                </Button>
                 {req.status === 'ACTIVE' && (
-                  <Button variant="outline" size="sm" onClick={() => handleTerminate(req.id)}>
-                    Kết thúc Mentorship
+                  <Button variant="danger" size="sm" onClick={() => handleTerminate(req.id)}>
+                    Kết thúc
                   </Button>
                 )}
-                <Button variant="secondary" size="sm" leftIcon={<MessageSquare className="w-4 h-4" />}>
-                  Nhắn tin với Mentor
-                </Button>
               </div>
             </CardBody>
           </Card>
         ))}
       </div>
 
-      {/* Modal Request */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title="Gửi yêu cầu ghép đôi Mentorship"
+        title="Đăng ký nhận Mentor cố vấn học tập"
         footer={
           <>
             <Button variant="outline" onClick={() => setIsModalOpen(false)}>Hủy</Button>
-            <Button variant="primary" onClick={handleCreateRequest}>Gửi yêu cầu</Button>
+            <Button variant="primary" onClick={handleCreateRequest}>Gửi yêu cầu (+10 Karma)</Button>
           </>
         }
       >
@@ -148,21 +148,18 @@ export const MentorshipPage: React.FC = () => {
             value={mentorName}
             onChange={(e) => setMentorName(e.target.value)}
             options={[
-              { value: 'Lê Hoàng Long (Alumni)', label: 'Lê Hoàng Long - Alumni (.NET & Cloud Lead)' },
-              { value: 'Phạm Minh Đức (Mod)', label: 'Phạm Minh Đức - Moderator (AI & Data Science)' },
-              { value: 'Trần Đình Khang (Giảng viên)', label: 'Thầy Trần Đình Khang - Advisor (SE Dept)' },
+              { value: 'Lê Hoàng Long (Alumni - Senior .NET)', label: 'Lê Hoàng Long (Alumni - Senior .NET Engineer)' },
+              { value: 'Phạm Minh Đức (Mod - AI Spec)', label: 'Phạm Minh Đức (Community Moderator - AI Spec)' },
             ]}
           />
           <Input
             label="Môn học / Đồ án cần hỗ trợ"
-            placeholder="PRN231 / SWP391 / Capstone"
             value={courseCode}
             onChange={(e) => setCourseCode(e.target.value)}
-            required
           />
           <Textarea
-            label="Nội dung cần cố vấn & Mục tiêu mong muốn đạt được"
-            placeholder="Mô tả kỹ năng cần cải thiện, đồ án đang gặp vướng mắc..."
+            label="Mục tiêu & nội dung cần cố vấn"
+            placeholder="Nêu rõ khó khăn hiện tại, định hướng đồ án và mong muốn được hỗ trợ..."
             rows={4}
             value={topic}
             onChange={(e) => setTopic(e.target.value)}

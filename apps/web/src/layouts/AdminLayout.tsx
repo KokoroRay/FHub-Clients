@@ -45,26 +45,26 @@ export const AdminLayout: React.FC = () => {
   ];
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+    `flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
       isActive
-        ? 'bg-[#005da7] text-white shadow-xs'
+        ? 'bg-blue-600 text-white shadow-xs'
         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
     }`;
 
   return (
-    <div className="min-h-screen bg-[#faf9fd] dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col">
+    <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans">
       <Header />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full flex gap-6">
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full flex gap-6">
         {/* Admin Navigation Sidebar */}
         <aside className="w-64 shrink-0 hidden md:block sticky top-20 h-[calc(100vh-5.5rem)] overflow-y-auto pr-2 space-y-6">
-          <div className="p-3 bg-sky-50 dark:bg-sky-950/40 rounded-xl border border-sky-200 dark:border-sky-800 flex items-center justify-between">
+          <div className="p-3 bg-blue-50 dark:bg-blue-950/40 rounded-xl border border-blue-200 dark:border-blue-800 flex items-center justify-between">
             <div>
-              <h3 className="font-extrabold text-xs text-[#005da7] uppercase tracking-wide">
+              <h3 className="font-extrabold text-xs text-blue-600 dark:text-blue-400 uppercase tracking-wide">
                 {currentRole === 'Admin' ? 'Admin Portal' : 'Staff Governance'}
               </h3>
               <p className="text-[10px] text-slate-500">SEP Core Control Center</p>
             </div>
-            <Link to="/" className="text-xs text-sky-700 hover:underline flex items-center gap-0.5" title="Về trang chủ">
+            <Link to="/" className="text-xs text-blue-700 hover:underline flex items-center gap-0.5" title="Về trang chủ">
               <ArrowLeft className="w-3.5 h-3.5" />
             </Link>
           </div>

@@ -13,6 +13,14 @@ import {
   Sparkles,
   Lock,
   Pin,
+  Copy,
+  Code,
+  Bold,
+  Italic,
+  List,
+  Quote,
+  Send,
+  CornerDownRight,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { mockQuestions } from '../../services/mockData';
@@ -31,6 +39,9 @@ export const QuestionDetailPage: React.FC = () => {
   const [userVote, setUserVote] = useState<'UP' | 'DOWN' | null>(question.userVote || null);
   const [isLocked, setIsLocked] = useState(question.isLocked || false);
   const [isPinned, setIsPinned] = useState(question.isPinned || false);
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
+  const [composerTab, setComposerTab] = useState<'write' | 'preview'>('write');
 
   const [answers, setAnswers] = useState<Answer[]>([
     {
@@ -42,6 +53,7 @@ export const QuestionDetailPage: React.FC = () => {
         avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
         role: 'Alumni',
         karma: 2890,
+        campus: 'FU-HL',
       },
       content: `Để tối ưu DbContext và tránh timeout connection pool trong ASP.NET Core, bạn nên áp dụng các giải pháp sau:
 
@@ -90,8 +102,9 @@ Kiểm tra xem có service Singleton nào đang inject DbContext hay không đ�
         avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80',
         role: 'Community Moderator',
         karma: 1800,
+        campus: 'FU-HCM',
       },
-      content: 'Bổ sung thêm: Nếu dùng Dapper cho các query nặng thì tốc độ đọc còn nhanh gấp 3-5 lần so với EF Core thông thường nhé.',
+      content: `Bổ sung thêm: Nếu dùng Dapper cho các query báo cáo nặng thì tốc độ đọc còn nhanh gấp 3-5 lần so với EF Core thông thường nhé. Bạn có thể kết hợp cả 2: Dapper cho Query (Read), EF Core cho Command (Write) theo mô hình CQRS nhẹ.`,
       upvotes: 12,
       downvotes: 0,
       userVote: null,
@@ -155,11 +168,12 @@ Kiểm tra xem có service Singleton nào đang inject DbContext hay không đ�
       id: `ans-${Date.now()}`,
       questionId: question.id,
       author: {
-        id: currentUser?.id || 'usr-me',
+        id: currentUser?.id || 'usr-current',
         fullName: currentUser?.fullName || 'Sinh viên FHub',
         avatarUrl: currentUser?.avatarUrl,
         role: currentUser?.role || 'Student',
         karma: currentUser?.karma || 0,
+        campus: currentUser?.campus || 'FU-HL',
       },
       content: newAnswerContent,
       upvotes: 0,
@@ -177,14 +191,14 @@ Kiểm tra xem có service Singleton nào đang inject DbContext hay không đ�
 
   const handleAddComment = (ansId: string) => {
     const text = commentInputs[ansId];
-    if (!text?.trim()) return;
+    if (!text || !text.trim()) return;
 
     const newComment: CommentItem = {
       id: `c-${Date.now()}`,
       parentId: ansId,
       author: {
-        id: currentUser?.id || 'me',
-        fullName: currentUser?.fullName || 'Bạn',
+        id: currentUser?.id || 'usr-current',
+        fullName: currentUser?.fullName || 'Sinh viên FHub',
       },
       content: text,
       createdAt: 'Vừa xong',
@@ -196,159 +210,219 @@ Kiểm tra xem có service Singleton nào đang inject DbContext hay không đ�
     setCommentInputs({ ...commentInputs, [ansId]: '' });
   };
 
-  const isModeratorOrAdmin =
-    currentRole === 'Community Moderator' || currentRole === 'Admin' || currentRole === 'Staff';
+  const copySnippet = (codeText: string) => {
+    navigator.clipboard.writeText(codeText);
+    setCopiedCode(true);
+    setTimeout(() => setCopiedCode(false), 2000);
+  };
 
   return (
-    <div className="space-y-6">
-      {/* Back button */}
-      <Link to="/discussions" className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-[#005da7] transition-colors">
-        <ArrowLeft className="w-4 h-4" /> Quay lại danh sách câu hỏi
-      </Link>
+    <div className="space-y-6 max-w-4xl mx-auto">
+      {/* Breadcrumb Navigation */}
+      <div className="flex items-center gap-2 text-xs text-slate-500 flex-wrap">
+        <Link to="/courses" className="hover:text-blue-600 transition-colors">Course Hub</Link>
+        <span>/</span>
+        {question.courseCode && (
+          <>
+            <Link to={`/courses/${question.courseCode}`} className="font-bold text-blue-600 hover:underline">
+              {question.courseCode}
+            </Link>
+            <span>/</span>
+          </>
+        )}
+        <Link to="/discussions" className="hover:text-blue-600 transition-colors">Discussions</Link>
+        <span>/</span>
+        <span className="text-slate-400 truncate max-w-[200px]">{question.title}</span>
+      </div>
 
-      {/* Moderator Action Bar if Mod/Admin */}
-      {isModeratorOrAdmin && (
-        <div className="p-3 bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 rounded-xl flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-purple-600" />
-            <span className="font-bold text-xs text-purple-900 dark:text-purple-200">
-              Bảng điều khiển Moderator cho câu hỏi này
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsPinned(!isPinned)}
-              leftIcon={<Pin className="w-3.5 h-3.5" />}
-            >
-              {isPinned ? 'Bỏ ghim' : 'Ghim lên đầu'}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsLocked(!isLocked)}
-              leftIcon={<Lock className="w-3.5 h-3.5" />}
-            >
-              {isLocked ? 'Mở khóa thảo luận' : 'Khóa thảo luận'}
-            </Button>
-          </div>
-        </div>
-      )}
+      {/* Main Question Card (Figma Frame 5: Discussions Detail) */}
+      <Card>
+        <CardBody className="p-6 sm:p-8 space-y-5">
+          {/* Header Metadata */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              {question.courseCode && (
+                <Link to={`/courses/${question.courseCode}`}>
+                  <Badge variant="primary" size="md">
+                    {question.courseCode}
+                  </Badge>
+                </Link>
+              )}
+              {isPinned && <Badge variant="warning" size="sm">Ghim đầu mục</Badge>}
+              {isLocked && <Badge variant="danger" size="sm" icon={<Lock className="w-3 h-3" />}>Đã khóa</Badge>}
+              {question.isSolved && (
+                <Badge variant="success" size="sm" icon={<CheckCircle2 className="w-3 h-3" />}>
+                  Đã giải quyết
+                </Badge>
+              )}
+            </div>
 
-      {/* Question Main Card (Figma 23:3111) */}
-      <Card className="border-slate-200 dark:border-slate-800">
-        <CardBody className="p-6 space-y-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-2">
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 leading-tight">
+              {question.title}
+            </h1>
+
+            <div className="flex items-center justify-between gap-4 pt-2 border-b border-slate-100 dark:border-slate-800 pb-4 text-xs text-slate-500">
+              <div className="flex items-center gap-2.5">
+                <img
+                  src={question.author.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
+                  alt={question.author.fullName}
+                  className="w-8 h-8 rounded-full object-cover"
+                />
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-bold text-slate-800 dark:text-slate-200">{question.author.fullName}</span>
+                    <Badge variant="neutral" size="sm">{question.author.campus || 'FU-HL'}</Badge>
+                  </div>
+                  <span className="text-[10px] text-slate-400">
+                    Đã hỏi: {new Date(question.createdAt).toLocaleDateString('vi-VN')} • Xem: {question.viewsCount} lượt
+                  </span>
+                </div>
+              </div>
+
               <div className="flex items-center gap-2">
-                {question.courseCode && (
-                  <Link to={`/courses/${question.courseCode}`}>
-                    <Badge variant="primary" size="md">{question.courseCode}</Badge>
-                  </Link>
-                )}
-                {isPinned && <Badge variant="warning" size="sm">Đã ghim</Badge>}
-                {isLocked && <Badge variant="danger" size="sm" icon={<Lock className="w-3 h-3" />}>Đã khóa</Badge>}
-              </div>
-              <h1 className="text-xl font-black text-slate-900 dark:text-slate-100 leading-snug">
-                {question.title}
-              </h1>
-            </div>
-
-            {/* Upvote Box */}
-            <div className="flex flex-col items-center bg-slate-50 dark:bg-slate-800 p-2 rounded-xl border border-slate-200 dark:border-slate-700">
-              <button
-                onClick={() => handleVoteQuestion('UP')}
-                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                  userVote === 'UP' ? 'bg-[#005da7] text-white' : 'hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600'
-                }`}
-              >
-                <ThumbsUp className="w-4 h-4" />
-              </button>
-              <span className="font-extrabold text-sm my-1 text-slate-800 dark:text-slate-200">{upvotes}</span>
-              <button
-                onClick={() => handleVoteQuestion('DOWN')}
-                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                  userVote === 'DOWN' ? 'bg-rose-600 text-white' : 'hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600'
-                }`}
-              >
-                <ThumbsDown className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Author info */}
-          <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
-            <div className="flex items-center gap-2.5">
-              <img
-                src={question.author.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
-                alt={question.author.fullName}
-                className="w-8 h-8 rounded-full object-cover"
-              />
-              <div>
-                <span className="font-bold text-slate-800 dark:text-slate-200">{question.author.fullName}</span>
-                <span className="text-[10px] text-slate-400 block">{question.author.karma} Karma points</span>
+                <Button
+                  size="sm"
+                  variant={isBookmarked ? 'secondary' : 'outline'}
+                  onClick={() => setIsBookmarked(!isBookmarked)}
+                  leftIcon={<Bookmark className={`w-3.5 h-3.5 ${isBookmarked ? 'fill-blue-600' : ''}`} />}
+                >
+                  {isBookmarked ? 'Đã lưu' : 'Lưu'}
+                </Button>
+                <Button size="sm" variant="outline" className="p-2">
+                  <Share2 className="w-3.5 h-3.5" />
+                </Button>
               </div>
             </div>
-            <span className="text-slate-400">Đăng ngày: 15/03/2026</span>
           </div>
 
-          {/* Full content */}
-          <div className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed space-y-2 whitespace-pre-line bg-slate-50/50 dark:bg-slate-900/50 p-4 rounded-xl">
-            {question.content}
+          {/* Question Content with Formatted Snippet */}
+          <div className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 space-y-4 leading-relaxed">
+            <p>{question.content}</p>
+
+            {/* Code Snippet Box with Copy Button */}
+            <div className="relative rounded-xl overflow-hidden bg-slate-900 text-slate-100 border border-slate-800 my-3 font-mono text-xs shadow-inner">
+              <div className="flex items-center justify-between px-4 py-2 bg-slate-950/80 border-b border-slate-800 text-[11px] text-slate-400">
+                <span className="font-semibold text-blue-400">C# • ASP.NET Core EF Configuration</span>
+                <button
+                  onClick={() =>
+                    copySnippet(`// Program.cs Configuration
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(connectionString));`)
+                  }
+                  className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer"
+                >
+                  <Copy className="w-3 h-3" />
+                  <span>{copiedCode ? 'Đã sao chép!' : 'Copy Code'}</span>
+                </button>
+              </div>
+              <pre className="p-4 overflow-x-auto text-slate-200">
+                <code>{`// Program.cs Configuration
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(connectionString));`}</code>
+              </pre>
+            </div>
           </div>
 
-          {/* Tags */}
-          <div className="flex flex-wrap gap-1.5 pt-2">
-            {question.tags.map((tag) => (
-              <span key={tag} className="text-[11px] font-medium px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                #{tag}
-              </span>
-            ))}
+          {/* Question Tags & Voting Action */}
+          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex flex-wrap gap-1.5">
+              {question.tags.map((tag) => (
+                <Link
+                  key={tag}
+                  to={`/discussions?tag=${tag}`}
+                  className="text-[11px] font-semibold px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-blue-50 hover:text-blue-600 transition-colors"
+                >
+                  #{tag}
+                </Link>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl p-0.5 border border-slate-200 dark:border-slate-700">
+                <button
+                  onClick={() => handleVoteQuestion('UP')}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    userVote === 'UP' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-200'
+                  }`}
+                >
+                  <ThumbsUp className="w-3.5 h-3.5" />
+                  <span>{upvotes}</span>
+                </button>
+                <button
+                  onClick={() => handleVoteQuestion('DOWN')}
+                  className={`p-1.5 rounded-lg text-xs transition-all cursor-pointer ${
+                    userVote === 'DOWN' ? 'bg-rose-600 text-white shadow-xs' : 'text-slate-500 hover:bg-slate-200'
+                  }`}
+                >
+                  <ThumbsDown className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
           </div>
         </CardBody>
       </Card>
 
-      {/* Answers Section */}
+      {/* Accepted Best Answer Highlight Banner (Figma Frame 5) */}
+      {answers.some((a) => a.isBestAnswer) && (
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-emerald-500/10 to-transparent border border-emerald-300/80 dark:border-emerald-800/80 flex items-center justify-between gap-3 text-emerald-950 dark:text-emerald-200 shadow-2xs">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-emerald-600 text-white shrink-0 shadow-xs">
+              <CheckCircle2 className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-extrabold text-sm text-emerald-900 dark:text-emerald-200">
+                Accepted Best Answer by Author
+              </h4>
+              <p className="text-xs text-emerald-700 dark:text-emerald-300">
+                Câu trả lời chính xác đã giải quyết được vấn đề • Đã cộng +50 Karma cho tác giả
+              </p>
+            </div>
+          </div>
+          <Badge variant="success" size="md">
+            +50 Karma
+          </Badge>
+        </div>
+      )}
+
+      {/* Answers Section List */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <MessageSquare className="w-5 h-5 text-[#005da7]" />
-            <span>{answers.length} Câu trả lời</span>
+          <h2 className="text-lg font-black text-slate-900 dark:text-slate-100">
+            {answers.length} Câu trả lời
           </h2>
+          <span className="text-xs text-slate-400">Sắp xếp theo: Điểm cao nhất</span>
         </div>
 
         {answers.map((ans) => (
           <Card
             key={ans.id}
-            className={`${
-              ans.isBestAnswer
-                ? 'border-emerald-500 dark:border-emerald-600 ring-2 ring-emerald-400/20'
-                : 'border-slate-200 dark:border-slate-800'
-            }`}
+            className={`${ans.isBestAnswer ? 'border-2 border-emerald-500/80 shadow-xs ring-2 ring-emerald-500/10' : ''}`}
           >
             <CardBody className="p-6 space-y-4">
-              {/* Answer Header */}
+              {/* Answer Author */}
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-3">
                   <img src={ans.author.avatarUrl} alt={ans.author.fullName} className="w-8 h-8 rounded-full object-cover" />
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-xs text-slate-900 dark:text-slate-100">{ans.author.fullName}</span>
+                      <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100">{ans.author.fullName}</span>
                       <Badge variant="purple" size="sm">{ans.author.role}</Badge>
+                      <Badge variant="neutral" size="sm">{ans.author.campus || 'FU-HL'}</Badge>
                     </div>
-                    <span className="text-[10px] text-slate-400 font-semibold">{ans.author.karma} Karma</span>
+                    <span className="text-[10px] text-slate-400 font-medium">
+                      Karma: {ans.author.karma.toLocaleString()} pts • Trả lời: {new Date(ans.createdAt).toLocaleDateString('vi-VN')}
+                    </span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   {ans.isBestAnswer && (
-                    <Badge variant="success" size="md" icon={<Check className="w-3.5 h-3.5" />}>
-                      Best Answer (Đã chấp nhận)
+                    <Badge variant="success" size="md" icon={<CheckCircle2 className="w-3.5 h-3.5" />}>
+                      Best Answer
                     </Badge>
                   )}
                   {ans.isModVerified && (
-                    <Badge variant="purple" size="md" icon={<ShieldCheck className="w-3.5 h-3.5" />}>
+                    <Badge variant="info" size="sm" icon={<Check className="w-3 h-3" />}>
                       Mod Verified
                     </Badge>
                   )}
@@ -356,67 +430,70 @@ Kiểm tra xem có service Singleton nào đang inject DbContext hay không đ�
               </div>
 
               {/* Answer Content */}
-              <div className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-line space-y-2">
+              <div className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 whitespace-pre-line leading-relaxed font-sans">
                 {ans.content}
               </div>
 
-              {/* Answer Actions */}
-              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+              {/* Action Buttons on Answer */}
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleVoteAnswer(ans.id, 'UP')}
-                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs font-semibold cursor-pointer transition-colors ${
-                      ans.userVote === 'UP' ? 'bg-[#005da7] text-white border-[#005da7]' : 'border-slate-200 hover:bg-slate-100 text-slate-600'
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      ans.userVote === 'UP' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 hover:bg-slate-200'
                     }`}
                   >
-                    <ThumbsUp className="w-3.5 h-3.5" /> {ans.upvotes}
+                    <ThumbsUp className="w-3.5 h-3.5" />
+                    <span>{ans.upvotes}</span>
                   </button>
-
                   <button
-                    onClick={() => handleMarkBestAnswer(ans.id)}
-                    className={`text-xs font-semibold px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
-                      ans.isBestAnswer ? 'border-emerald-500 text-emerald-700 bg-emerald-50' : 'border-slate-200 hover:bg-slate-100 text-slate-500'
+                    onClick={() => handleVoteAnswer(ans.id, 'DOWN')}
+                    className={`p-1.5 rounded-lg text-xs cursor-pointer ${
+                      ans.userVote === 'DOWN' ? 'bg-rose-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:bg-slate-200'
                     }`}
                   >
-                    {ans.isBestAnswer ? '✓ Bỏ chọn Best Answer' : 'Đánh dấu Best Answer'}
+                    <ThumbsDown className="w-3.5 h-3.5" />
                   </button>
+                </div>
 
-                  {isModeratorOrAdmin && (
-                    <button
-                      onClick={() => handleToggleModVerified(ans.id)}
-                      className={`text-xs font-semibold px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
-                        ans.isModVerified ? 'border-purple-500 text-purple-700 bg-purple-50' : 'border-slate-200 hover:bg-slate-100 text-purple-600'
-                      }`}
-                    >
-                      {ans.isModVerified ? '✓ Bỏ Mod Verified' : 'Gắn Mod Verified'}
-                    </button>
-                  )}
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant={ans.isBestAnswer ? 'secondary' : 'outline'}
+                    onClick={() => handleMarkBestAnswer(ans.id)}
+                    leftIcon={<CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
+                  >
+                    {ans.isBestAnswer ? 'Hủy chọn Best Answer' : 'Chọn làm Best Answer'}
+                  </Button>
                 </div>
               </div>
 
-              {/* Comments list under answer */}
+              {/* Comment Thread under Answer */}
               {ans.comments.length > 0 && (
-                <div className="pl-4 border-l-2 border-slate-200 dark:border-slate-800 space-y-2 pt-1">
-                  {ans.comments.map((cm) => (
-                    <div key={cm.id} className="text-[11px] text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/40 p-2.5 rounded-lg">
-                      <span className="font-bold text-slate-800 dark:text-slate-200 mr-1.5">{cm.author.fullName}:</span>
-                      <span>{cm.content}</span>
+                <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2 bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl">
+                  {ans.comments.map((cmt) => (
+                    <div key={cmt.id} className="text-xs text-slate-600 dark:text-slate-400 space-y-0.5">
+                      <div className="flex items-center gap-1.5 font-bold text-slate-800 dark:text-slate-200">
+                        <CornerDownRight className="w-3 h-3 text-slate-400" />
+                        <span>{cmt.author.fullName}:</span>
+                        <span className="font-normal text-slate-600 dark:text-slate-300">{cmt.content}</span>
+                        <span className="text-[10px] text-slate-400 ml-auto">{cmt.createdAt}</span>
+                      </div>
                     </div>
                   ))}
                 </div>
               )}
 
-              {/* Add comment mini-input */}
-              <div className="flex gap-2 pt-1">
+              {/* Inline Add Comment Input */}
+              <div className="flex items-center gap-2 pt-2">
                 <input
                   type="text"
-                  placeholder="Viết phản hồi ngắn hoặc câu hỏi phụ..."
+                  placeholder="Viết phản hồi ngắn cho câu trả lời này..."
                   value={commentInputs[ans.id] || ''}
                   onChange={(e) => setCommentInputs({ ...commentInputs, [ans.id]: e.target.value })}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddComment(ans.id)}
-                  className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-[#005da7]"
+                  className="flex-1 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-600"
                 />
-                <Button variant="outline" size="sm" onClick={() => handleAddComment(ans.id)}>
+                <Button size="sm" variant="secondary" onClick={() => handleAddComment(ans.id)}>
                   Gửi
                 </Button>
               </div>
@@ -425,39 +502,109 @@ Kiểm tra xem có service Singleton nào đang inject DbContext hay không đ�
         ))}
       </div>
 
-      {/* Answer Editor Box */}
-      {!isLocked ? (
-        <Card className="border-slate-200 dark:border-slate-800">
-          <CardHeader>
+      {/* Answer Composer (Figma Frame 5: Markdown Answer Editor) */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
             <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">
-              Đóng góp câu trả lời của bạn
+              Câu trả lời của bạn
             </h3>
-          </CardHeader>
-          <CardBody className="p-5">
-            <form onSubmit={handleSubmitAnswer} className="space-y-3">
+            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg">
+              <button
+                onClick={() => setComposerTab('write')}
+                className={`px-3 py-1 text-xs font-bold rounded-md cursor-pointer ${
+                  composerTab === 'write' ? 'bg-white dark:bg-slate-900 text-blue-600 shadow-2xs' : 'text-slate-500'
+                }`}
+              >
+                Soạn thảo
+              </button>
+              <button
+                onClick={() => setComposerTab('preview')}
+                className={`px-3 py-1 text-xs font-bold rounded-md cursor-pointer ${
+                  composerTab === 'preview' ? 'bg-white dark:bg-slate-900 text-blue-600 shadow-2xs' : 'text-slate-500'
+                }`}
+              >
+                Xem trước
+              </button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardBody className="p-5 space-y-4">
+          {composerTab === 'write' ? (
+            <div className="space-y-2">
+              {/* Markdown Helper Toolbar */}
+              <div className="flex items-center gap-1 pb-2 border-b border-slate-100 dark:border-slate-800 text-slate-500">
+                <button
+                  type="button"
+                  onClick={() => setNewAnswerContent((c) => `${c}\n\`\`\`csharp\n// your code here\n\`\`\`\n`)}
+                  className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-xs font-mono flex items-center gap-1 hover:text-blue-600 cursor-pointer"
+                  title="Thêm Code Block"
+                >
+                  <Code className="w-3.5 h-3.5" /> <span>Code</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNewAnswerContent((c) => `${c} **in đậm** `)}
+                  className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-xs hover:text-blue-600 cursor-pointer"
+                  title="In đậm"
+                >
+                  <Bold className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNewAnswerContent((c) => `${c} *in nghiêng* `)}
+                  className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-xs hover:text-blue-600 cursor-pointer"
+                  title="In nghiêng"
+                >
+                  <Italic className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNewAnswerContent((c) => `${c}\n- Item 1\n- Item 2\n`)}
+                  className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-xs hover:text-blue-600 cursor-pointer"
+                  title="Danh sách"
+                >
+                  <List className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNewAnswerContent((c) => `${c}\n> Trích dẫn\n`)}
+                  className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-xs hover:text-blue-600 cursor-pointer"
+                  title="Trích dẫn"
+                >
+                  <Quote className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
               <Textarea
-                placeholder="Nhập chi tiết lời giải, code snippet và giải thích cặn kẽ..."
+                placeholder="Nhập nội dung giải đáp chi tiết, hướng dẫn từng bước và kèm code snippet mẫu..."
                 rows={6}
                 value={newAnswerContent}
                 onChange={(e) => setNewAnswerContent(e.target.value)}
-                required
               />
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] text-slate-400">
-                  Câu trả lời hữu ích sẽ nhận được điểm Karma và ghi nhận vào bảng thành tích.
-                </span>
-                <Button variant="primary" type="submit">
-                  Đăng câu trả lời
-                </Button>
-              </div>
-            </form>
-          </CardBody>
-        </Card>
-      ) : (
-        <div className="p-4 bg-slate-100 dark:bg-slate-800 text-center rounded-xl text-xs text-slate-500 flex items-center justify-center gap-2">
-          <Lock className="w-4 h-4" /> Thảo luận này đã bị khóa bởi Moderator.
-        </div>
-      )}
+            </div>
+          ) : (
+            <div className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl min-h-[160px] text-xs sm:text-sm text-slate-700 dark:text-slate-300 whitespace-pre-line">
+              {newAnswerContent || 'Chưa có nội dung để xem trước.'}
+            </div>
+          )}
+
+          <div className="flex items-center justify-between pt-2">
+            <p className="text-[11px] text-slate-400">
+              💡 Hỗ trợ Markdown: dùng <code>```csharp</code> để highlight code.
+            </p>
+            <Button
+              variant="primary"
+              onClick={handleSubmitAnswer}
+              disabled={!newAnswerContent.trim()}
+              leftIcon={<Send className="w-3.5 h-3.5" />}
+              className="shadow-xs"
+            >
+              Gửi câu trả lời (+15 Karma)
+            </Button>
+          </div>
+        </CardBody>
+      </Card>
     </div>
   );
 };

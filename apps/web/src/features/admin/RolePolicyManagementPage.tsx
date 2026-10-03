@@ -80,7 +80,7 @@ export const RolePolicyManagementPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <KeyRound className="w-6 h-6 text-[#005da7]" />
+            <KeyRound className="w-6 h-6 text-[#2563eb]" />
             <span>Role & Policy Management (IAM)</span>
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -131,11 +131,11 @@ export const RolePolicyManagementPage: React.FC = () => {
                           onClick={() => togglePolicyInRole(role.id, p.id)}
                           className={`flex items-start gap-2 p-2.5 rounded-xl border text-left text-xs transition-colors cursor-pointer ${
                             isAttached
-                              ? 'bg-sky-50 dark:bg-sky-950/40 border-sky-300 dark:border-sky-800 text-[#005da7]'
+                              ? 'bg-sky-50 dark:bg-sky-950/40 border-sky-300 dark:border-sky-800 text-[#2563eb]'
                               : 'border-slate-200 dark:border-slate-800 text-slate-500 hover:bg-slate-50'
                           }`}
                         >
-                          <div className={`w-4 h-4 rounded-md flex items-center justify-center text-white shrink-0 mt-0.5 ${isAttached ? 'bg-[#005da7]' : 'bg-slate-300'}`}>
+                          <div className={`w-4 h-4 rounded-md flex items-center justify-center text-white shrink-0 mt-0.5 ${isAttached ? 'bg-[#2563eb]' : 'bg-slate-300'}`}>
                             {isAttached && <Check className="w-3 h-3" />}
                           </div>
                           <div>
@@ -205,3 +205,4 @@ export const RolePolicyManagementPage: React.FC = () => {
     </div>
   );
 };
+

@@ -92,7 +92,7 @@ export const SupportTicketsPage: React.FC = () => {
       header: 'Mã Ticket & Tiêu đề',
       cell: (item) => (
         <div>
-          <span className="font-mono font-bold text-[#005da7] text-xs">{item.ticketCode}</span>
+          <span className="font-mono font-bold text-blue-600 text-xs">{item.ticketCode}</span>
           <h4 className="font-bold text-xs text-slate-900 dark:text-slate-100">{item.title}</h4>
           <span className="text-[10px] text-slate-400">Tạo bởi: {item.author.fullName} ({item.author.email})</span>
         </div>
@@ -139,12 +139,12 @@ export const SupportTicketsPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <LifeBuoy className="w-6 h-6 text-[#005da7]" />
+          <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2.5 tracking-tight">
+            <LifeBuoy className="w-6 h-6 text-blue-600" />
             <span>Support Tickets & Violation Reports</span>
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Gửi yêu cầu trợ giúp kỹ thuật, khiếu nại tài khoản và báo cáo vi phạm nội dung (Governance Service).
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+            Gửi yêu cầu trợ giúp kỹ thuật, khiếu nại tài khoản và báo cáo vi phạm nội dung.
           </p>
         </div>
 
@@ -152,7 +152,7 @@ export const SupportTicketsPage: React.FC = () => {
           <Button variant="outline" onClick={() => setIsReportModalOpen(true)} leftIcon={<ShieldAlert className="w-4 h-4 text-rose-500" />}>
             Báo cáo vi phạm (Report)
           </Button>
-          <Button variant="primary" onClick={() => setIsTicketModalOpen(true)} leftIcon={<Plus className="w-4 h-4" />}>
+          <Button variant="primary" onClick={() => setIsTicketModalOpen(true)} leftIcon={<Plus className="w-4 h-4" />} className="shadow-xs">
             Tạo Ticket hỗ trợ
           </Button>
         </div>

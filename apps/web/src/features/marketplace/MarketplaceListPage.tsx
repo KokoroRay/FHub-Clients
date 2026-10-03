@@ -37,19 +37,21 @@ export const MarketplaceListPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header (Figma 46:2) */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <span>FHub Student Marketplace</span>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
+              FHub Student Marketplace
+            </h1>
             <Badge variant="purple" size="md">{filteredListings.length} Đang bán</Badge>
-          </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+          </div>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
             Trao đổi, pass lại giáo trình, đồ án, thiết bị công nghệ uy tín giữa sinh viên các Campus.
           </p>
         </div>
 
-        <Button variant="primary" onClick={() => setIsCreateOpen(true)} leftIcon={<Plus className="w-4 h-4" />}>
+        <Button variant="primary" onClick={() => setIsCreateOpen(true)} leftIcon={<Plus className="w-4 h-4" />} className="shadow-xs">
           Đăng tin mới
         </Button>
       </div>
@@ -61,9 +63,9 @@ export const MarketplaceListPage: React.FC = () => {
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                 selectedCategory === cat
-                  ? 'bg-[#005da7] text-white shadow-xs'
+                  ? 'bg-blue-600 text-white shadow-xs'
                   : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:bg-slate-50'
               }`}
             >
@@ -72,14 +74,14 @@ export const MarketplaceListPage: React.FC = () => {
           ))}
         </div>
 
-        <div className="relative w-full sm:w-64">
+        <div className="relative w-full sm:w-72">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Tìm bàn phím, sách, tai nghe..."
-            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#005da7]"
+            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-9 pr-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
           />
         </div>
       </div>
@@ -111,7 +113,7 @@ export const MarketplaceListPage: React.FC = () => {
                 </div>
                 <Link
                   to={`/marketplace/${item.id}`}
-                  className="font-bold text-xs text-slate-900 dark:text-slate-100 hover:text-[#005da7] transition-colors line-clamp-2 mt-1 block leading-snug"
+                  className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100 hover:text-blue-600 transition-colors line-clamp-2 mt-1 block leading-snug"
                 >
                   {item.title}
                 </Link>

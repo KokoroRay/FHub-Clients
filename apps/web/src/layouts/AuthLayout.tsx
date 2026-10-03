@@ -3,15 +3,11 @@ import { Outlet, Link } from 'react-router-dom';
 
 export const AuthLayout: React.FC = () => {
   return (
-    <div className="min-h-screen bg-linear-to-b from-[#f0f3fd] to-[#faf9fd] dark:from-slate-950 dark:to-slate-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans">
+    <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
         <Link to="/" className="inline-flex flex-col items-center gap-2 mb-3 group">
-          <div className="w-16 h-16 rounded-2xl overflow-hidden bg-white shadow-lg border border-slate-100 dark:border-slate-800 flex items-center justify-center p-1 group-hover:scale-105 transition-transform">
-            <img
-              src="/fhub.jpg"
-              alt="FHub Logo"
-              className="w-full h-full object-contain rounded-xl"
-            />
+          <div className="w-14 h-14 rounded-2xl bg-blue-600 text-white shadow-md flex items-center justify-center font-black text-2xl group-hover:scale-105 transition-transform">
+            F
           </div>
           <span className="font-black text-2xl tracking-tight text-slate-900 dark:text-slate-100">
             FHub

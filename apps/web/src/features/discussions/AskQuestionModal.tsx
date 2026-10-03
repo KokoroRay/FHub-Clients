@@ -44,6 +44,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
           role: currentUser?.role || 'Student',
           karma: isAnonymous ? 0 : currentUser?.karma || 0,
           isAnonymous,
+          campus: currentUser?.campus || 'FU-HL',
         },
         tags: tagsInput.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean),
         upvotes: 1,
@@ -117,7 +118,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
         />
 
         {/* Anonymity Checkbox */}
-        <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+        <div className="p-3.5 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <EyeOff className="w-4 h-4 text-purple-600" />
             <div>
@@ -133,7 +134,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
             type="checkbox"
             checked={isAnonymous}
             onChange={(e) => setIsAnonymous(e.target.checked)}
-            className="w-4 h-4 rounded text-[#005da7] focus:ring-[#005da7] cursor-pointer"
+            className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
           />
         </div>
       </form>

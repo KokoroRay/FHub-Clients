@@ -40,25 +40,25 @@ export const WorkflowDetailPage: React.FC = () => {
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       {/* Back button */}
-      <Link to="/workflows" className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-[#005da7] transition-colors">
+      <Link to="/workflows" className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-blue-600 transition-colors">
         <ArrowLeft className="w-4 h-4" /> Quay lại danh sách Workflows
       </Link>
 
-      {/* Header Info (Figma 46:4058) */}
+      {/* Header Info */}
       <Card>
-        <CardBody className="p-6 space-y-4">
+        <CardBody className="p-6 sm:p-8 space-y-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <Badge variant="primary" size="md">{workflow.courseCode}</Badge>
-                <span className="text-xs font-bold text-purple-700 bg-purple-50 dark:bg-purple-950/50 dark:text-purple-300 px-2.5 py-1 rounded-lg">
+                <span className="text-xs font-bold text-purple-700 bg-purple-50 dark:bg-purple-950/50 dark:text-purple-300 px-2.5 py-1 rounded-lg border border-purple-200/60 dark:border-purple-800">
                   {workflow.technology}
                 </span>
               </div>
               <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100">
                 {workflow.title}
               </h1>
-              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed max-w-2xl">
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed max-w-2xl">
                 {workflow.description}
               </p>
             </div>
@@ -67,7 +67,7 @@ export const WorkflowDetailPage: React.FC = () => {
               <Button variant="primary" leftIcon={<Play className="w-4 h-4" />}>
                 Áp dụng Workflow
               </Button>
-              <Button variant="outline">
+              <Button variant="outline" className="p-2.5">
                 <Share2 className="w-4 h-4" />
               </Button>
             </div>
@@ -82,7 +82,7 @@ export const WorkflowDetailPage: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center gap-4 font-semibold">
-              <span className="text-[#005da7]">{workflow.usageCount} lượt áp dụng thành công</span>
+              <span className="text-blue-600">{workflow.usageCount} lượt áp dụng thành công</span>
               <span>{workflow.viewsCount} lượt xem</span>
             </div>
           </div>
@@ -93,10 +93,10 @@ export const WorkflowDetailPage: React.FC = () => {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-base font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <Terminal className="w-5 h-5 text-[#005da7]" />
+            <Terminal className="w-5 h-5 text-blue-600" />
             <span>Các bước thực hiện chi tiết ({workflow.steps.length} bước)</span>
           </h2>
-          <span className="text-xs text-slate-400">
+          <span className="text-xs text-slate-400 font-medium">
             Tiến độ: {completedSteps.length} / {workflow.steps.length} hoàn thành
           </span>
         </div>
@@ -106,59 +106,52 @@ export const WorkflowDetailPage: React.FC = () => {
           return (
             <Card
               key={step.stepNumber}
-              className={`transition-all ${isDone ? 'border-emerald-300 dark:border-emerald-800 bg-emerald-50/20' : ''}`}
+              className={`transition-all ${isDone ? 'border-emerald-500/50 bg-emerald-50/20 dark:bg-emerald-950/10' : ''}`}
             >
-              <CardBody className="p-6 space-y-3">
-                <div className="flex items-center justify-between">
+              <CardBody className="p-5 space-y-3">
+                <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() => toggleStepComplete(step.stepNumber)}
-                      className={`w-7 h-7 rounded-xl flex items-center justify-center font-bold text-xs cursor-pointer transition-colors ${
+                      className={`w-7 h-7 rounded-xl flex items-center justify-center font-bold text-xs transition-colors cursor-pointer ${
                         isDone
                           ? 'bg-emerald-600 text-white'
-                          : 'bg-[#cfe1fe] text-[#005da7] hover:bg-[#aecefe]'
+                          : 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800'
                       }`}
                     >
                       {isDone ? <Check className="w-4 h-4" /> : step.stepNumber}
                     </button>
-                    <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">
-                      {step.title}
-                    </h3>
+                    <div>
+                      <h3 className={`font-bold text-sm text-slate-900 dark:text-slate-100 ${isDone ? 'line-through text-slate-400' : ''}`}>
+                        {step.title}
+                      </h3>
+                    </div>
                   </div>
 
-                  <span className="text-xs text-slate-400 font-mono">
-                    Bước {step.stepNumber}
-                  </span>
+                  {step.codeSnippet && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleCopyCode(step.stepNumber, step.codeSnippet)}
+                      leftIcon={copiedStep === step.stepNumber ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                    >
+                      {copiedStep === step.stepNumber ? 'Đã copy' : 'Copy Code'}
+                    </Button>
+                  )}
                 </div>
 
-                <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed pl-10">
-                  {step.instruction}
+                <p className="text-xs text-slate-600 dark:text-slate-400 pl-10 leading-relaxed">
+                  {step.description}
                 </p>
 
                 {step.codeSnippet && (
-                  <div className="pl-10">
-                    <div className="relative bg-slate-900 text-slate-100 p-4 rounded-xl font-mono text-xs overflow-x-auto shadow-inner">
-                      <div className="flex items-center justify-between text-[11px] text-slate-400 pb-2 mb-2 border-b border-slate-800">
-                        <span>{step.language || 'code'}</span>
-                        <button
-                          onClick={() => handleCopyCode(step.stepNumber, step.codeSnippet)}
-                          className="flex items-center gap-1 text-slate-300 hover:text-white px-2 py-0.5 bg-slate-800 rounded hover:bg-slate-700 transition-colors cursor-pointer"
-                        >
-                          {copiedStep === step.stepNumber ? (
-                            <>
-                              <Check className="w-3.5 h-3.5 text-emerald-400" />
-                              <span className="text-emerald-400">Đã sao chép!</span>
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="w-3.5 h-3.5" />
-                              <span>Copy</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
-                      <pre className="whitespace-pre-wrap">{step.codeSnippet}</pre>
+                  <div className="ml-10 rounded-xl overflow-hidden bg-slate-900 text-slate-100 border border-slate-800 font-mono text-xs shadow-inner">
+                    <div className="px-3.5 py-1.5 bg-slate-950 border-b border-slate-800 text-[10px] text-slate-400 font-semibold">
+                      Bash / Terminal Command
                     </div>
+                    <pre className="p-3.5 overflow-x-auto text-slate-200">
+                      <code>{step.codeSnippet}</code>
+                    </pre>
                   </div>
                 )}
               </CardBody>

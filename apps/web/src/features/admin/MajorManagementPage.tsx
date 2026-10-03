@@ -89,7 +89,7 @@ export const MajorManagementPage: React.FC = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={() => openEdit(item)}
-            className="p-1.5 text-slate-500 hover:text-[#005da7] hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
+            className="p-1.5 text-slate-500 hover:text-[#2563eb] hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
           >
             <Edit2 className="w-4 h-4" />
           </button>
@@ -110,7 +110,7 @@ export const MajorManagementPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <GraduationCap className="w-6 h-6 text-[#005da7]" />
+            <GraduationCap className="w-6 h-6 text-[#2563eb]" />
             <span>Major Management</span>
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -165,3 +165,4 @@ export const MajorManagementPage: React.FC = () => {
     </div>
   );
 };
+
