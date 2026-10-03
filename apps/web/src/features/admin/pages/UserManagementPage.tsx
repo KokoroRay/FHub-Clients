@@ -38,9 +38,11 @@ export const UserManagementPage: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const navigate = useNavigate();
 
-  // Connect to Backend Governance Accounts
+  // Connect to Backend Users API
   const { data: accountsData, isLoading, refetch } = useGovernanceAccounts({
-    governanceRole: selectedRole !== 'ALL' ? selectedRole : undefined,
+    search: searchQuery || undefined,
+    role: selectedRole !== 'ALL' ? selectedRole : undefined,
+    campus: selectedCampus !== 'ALL' ? selectedCampus : undefined,
     isActive: selectedStatus === 'ALL' ? undefined : selectedStatus === 'ACTIVE',
   });
   const applyActionMutation = useApplyGovernanceAction();
@@ -51,17 +53,18 @@ export const UserManagementPage: React.FC = () => {
   React.useEffect(() => {
     if (accountsData?.items) {
       const apiUsers: AdminUser[] = accountsData.items.map((acc: any) => ({
-        id: String(acc.userId || acc.governanceAccountId),
-        fullName: acc.governanceRole === 'ADMIN' ? 'System Administrator' : (acc.fullName || acc.name || `User #${acc.userId}`),
-        email: acc.email || (acc.governanceRole === 'ADMIN' ? 'admin@fhub.com.vn' : `user.${acc.userId}@fhub.com.vn`),
-        role: (acc.governanceRole === 'ADMIN' ? 'Admin' : acc.governanceRole === 'COMMUNITYMODERATOR' ? 'Community Moderator' : acc.governanceRole === 'STAFF' ? 'Staff' : 'Student') as any,
-        campus: (acc.campusCode || acc.campus || 'HL') as any,
-        major: acc.major || acc.majorCode || '',
-        studentId: acc.studentId || '',
+        id: String(acc.userId),
+        fullName: acc.fullName || (acc.roles?.includes('Admin') ? 'System Administrator' : (acc.email?.split('@')[0] || `User #${acc.userId}`)),
+        email: acc.email,
+        role: (acc.role || acc.roles?.[0] || 'Student') as any,
+        campus: (acc.campus || 'HL') as any,
+        major: acc.major || 'Software Engineering',
+        studentId: acc.studentCode || acc.studentId || '',
+        avatarUrl: acc.avatarUrl || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
         karma: acc.karma || 0,
-        status: acc.isActive ? 'ACTIVE' : 'SUSPENDED',
+        status: acc.accountStatus || (acc.isActive ? 'ACTIVE' : 'SUSPENDED'),
         verifiedAt: acc.createdAt,
-        badges: acc.badges || [],
+        badges: [],
       }));
       setUsersList(apiUsers);
     }
