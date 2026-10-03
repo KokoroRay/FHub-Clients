@@ -129,12 +129,16 @@ export const Header: React.FC = () => {
         {/* Logo & Campus Switcher */}
         <div className="flex items-center gap-4">
           <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-9 h-9 rounded-xl overflow-hidden bg-blue-600 text-white flex items-center justify-center font-black text-lg shadow-xs group-hover:scale-105 transition-transform shrink-0">
-              F
+            <div className="w-9 h-9 rounded-xl overflow-hidden bg-white shadow-2xs border border-slate-200 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
+              <img
+                src="/fhub.jpg"
+                alt="FHub Logo"
+                className="w-full h-full object-cover"
+              />
             </div>
             <div className="flex flex-col">
-              <span className="font-extrabold text-base tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-1.5 leading-tight">
-                FHub <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300 rounded-md font-bold border border-blue-100 dark:border-blue-800">EDU</span>
+              <span className="font-extrabold text-base tracking-tight text-slate-900 flex items-center gap-1.5 leading-tight">
+                FHub <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded-md font-bold border border-blue-100">EDU</span>
               </span>
               <span className="text-[10px] text-slate-400 font-medium">Academic Network</span>
             </div>
