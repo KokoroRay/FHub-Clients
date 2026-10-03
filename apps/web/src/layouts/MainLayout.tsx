@@ -6,7 +6,7 @@ import { RightSidebar } from '../components/navigation/RightSidebar';
 
 export const MainLayout: React.FC = () => {
   return (
-    <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans selection:bg-blue-100 selection:text-blue-900">
+    <div className="min-h-screen bg-[#f8fafc] text-slate-900 flex flex-col font-sans selection:bg-blue-100 selection:text-blue-900">
       <Header />
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full flex gap-6 items-start">
         <LeftSidebar />
