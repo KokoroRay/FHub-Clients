@@ -63,20 +63,21 @@ export const UserDetailPage: React.FC = () => {
 
   const baseUser: AdminUser = React.useMemo(() => {
     if (beAccountData) {
+      const primaryRole = beAccountData.role || beAccountData.roles?.[0] || 'Student';
       return {
         id: String(beAccountData.userId || numericId),
-        fullName: beAccountData.governanceRole === 'ADMIN' ? 'System Administrator' : (beAccountData.fullName || beAccountData.name || `User #${beAccountData.userId}`),
-        email: beAccountData.email || (beAccountData.governanceRole === 'ADMIN' ? 'admin@fhub.com.vn' : `user.${beAccountData.userId}@fhub.com.vn`),
-        role: (beAccountData.governanceRole === 'ADMIN' ? 'Admin' : beAccountData.governanceRole === 'COMMUNITYMODERATOR' ? 'Community Moderator' : beAccountData.governanceRole === 'STAFF' ? 'Staff' : 'Student') as any,
-        campus: beAccountData.campusCode || beAccountData.campus || 'HL',
-        major: beAccountData.major || beAccountData.majorCode || '',
-        studentId: beAccountData.studentId || '',
+        fullName: beAccountData.fullName || (primaryRole.toLowerCase().includes('admin') ? 'System Administrator' : beAccountData.email?.split('@')[0] || `User #${beAccountData.userId}`),
+        email: beAccountData.email || `user.${numericId}@fhub.com.vn`,
+        role: (primaryRole.toLowerCase().includes('admin') ? 'Admin' : primaryRole.toLowerCase().includes('moderator') ? 'Community Moderator' : primaryRole.toLowerCase().includes('staff') ? 'Staff' : 'Student') as any,
+        campus: (beAccountData.campus || 'HL') as any,
+        major: beAccountData.major || 'Software Engineering',
+        studentId: beAccountData.studentCode || '',
         karma: beAccountData.karma || 0,
-        status: beAccountData.isActive ? 'ACTIVE' : 'SUSPENDED',
+        status: (beAccountData.accountStatus as any) || (beAccountData.isActive ? 'ACTIVE' : 'SUSPENDED'),
         verifiedAt: beAccountData.createdAt,
         activeSessions: [],
-        inlinePolicies: beAccountData.policies || [],
-        badges: beAccountData.badges || [],
+        inlinePolicies: beAccountData.roles || [],
+        badges: [],
       };
     }
     return {

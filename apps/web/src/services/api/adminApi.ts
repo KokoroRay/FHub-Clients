@@ -170,27 +170,36 @@ export const dashboardApi = {
   }
 };
 
-// ---------------------------------------------------------------------------
-// 3. User Governance Accounts API
-// ---------------------------------------------------------------------------
-export interface GovernanceAccountDto {
-  governanceAccountId: number;
+export interface AdminUserDto {
   userId: number;
-  governanceRole: string;
+  email: string;
+  fullName: string;
+  avatarUrl?: string;
+  studentCode?: string;
+  role: string;
+  roles: string[];
+  campus: string;
+  major: string;
+  accountStatus: string;
+  verificationStatus: string;
   isActive: boolean;
-  warningCount: number;
+  karma: number;
   createdAt: string;
+  lastLoginAt?: string;
 }
 
 export const userManagementApi = {
-  getAccounts: async (params?: { governanceRole?: string; isActive?: boolean; pageNumber?: number; pageSize?: number }) => {
+  getAccounts: async (params?: { search?: string; role?: string; campus?: string; governanceRole?: string; isActive?: boolean; pageNumber?: number; pageSize?: number }) => {
     const query = new URLSearchParams();
-    if (params?.governanceRole && params.governanceRole !== 'ALL') query.set('governanceRole', params.governanceRole);
+    if (params?.search) query.set('search', params.search);
+    const role = params?.role || params?.governanceRole;
+    if (role && role !== 'ALL') query.set('role', role);
+    if (params?.campus && params.campus !== 'ALL') query.set('campus', params.campus);
     if (params?.isActive !== undefined) query.set('isActive', String(params.isActive));
     if (params?.pageNumber) query.set('pageNumber', String(params.pageNumber));
     if (params?.pageSize) query.set('pageSize', String(params.pageSize));
 
-    const res = await apiClient.get<ApiResponse<PagedResult<GovernanceAccountDto>>>(`/api/governance-accounts?${query.toString()}`);
+    const res = await apiClient.get<ApiResponse<PagedResult<AdminUserDto>>>(`/api/users?${query.toString()}`);
     return res.data.data;
   },
 
@@ -200,7 +209,7 @@ export const userManagementApi = {
   },
 
   getAccountById: async (id: number | string) => {
-    const res = await apiClient.get<ApiResponse<any>>(`/api/governance-accounts/${id}`);
+    const res = await apiClient.get<ApiResponse<AdminUserDto>>(`/api/users/${id}`);
     return res.data.data;
   },
 
