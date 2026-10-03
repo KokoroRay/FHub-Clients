@@ -129,11 +129,11 @@ export const Header: React.FC = () => {
         {/* Logo & Campus Switcher */}
         <div className="flex items-center gap-4">
           <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-9 h-9 rounded-xl overflow-hidden bg-white shadow-2xs border border-slate-200 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
+            <div className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
               <img
-                src="/fhub.jpg"
+                src="/fhub-remove-background.png"
                 alt="FHub Logo"
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
               />
             </div>
             <div className="flex flex-col">

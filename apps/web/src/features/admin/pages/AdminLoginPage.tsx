@@ -132,11 +132,11 @@ export const AdminLoginPage: React.FC = () => {
       {/* Top Navbar */}
       <header className="w-full px-6 py-4 flex items-center justify-between relative z-10 border-b border-white/10 backdrop-blur-md bg-slate-950/30">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl overflow-hidden bg-white shadow-md border border-white/20 flex items-center justify-center p-0.5 shrink-0">
+          <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center p-0.5 shrink-0">
             <img
-              src="/fhub.jpg"
+              src="/fhub-remove-background.png"
               alt="FHub Logo"
-              className="w-full h-full object-contain rounded-lg"
+              className="w-full h-full object-contain"
             />
           </div>
           <div>

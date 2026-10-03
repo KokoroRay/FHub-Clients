@@ -79,11 +79,11 @@ export const Login: React.FC = () => {
           
           {/* Logo / Header */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl overflow-hidden bg-white mb-4 shadow-lg shadow-blue-500/20 p-1 border border-white/20">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl overflow-hidden mb-4 shadow-lg shadow-blue-500/20 p-1">
               <img
-                src="/fhub.jpg"
+                src="/fhub-remove-background.png"
                 alt="FHub Logo"
-                className="w-full h-full object-contain rounded-xl"
+                className="w-full h-full object-contain"
               />
             </div>
             <h2 className="text-3xl font-bold text-white tracking-wide">
