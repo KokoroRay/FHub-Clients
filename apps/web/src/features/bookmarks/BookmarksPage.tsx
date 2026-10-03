@@ -24,13 +24,13 @@ export const BookmarksPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <Bookmark className="w-6 h-6 text-[#005da7] fill-[#005da7]" />
+          <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2.5 tracking-tight">
+            <Bookmark className="w-6 h-6 text-blue-600 fill-blue-600" />
             <span>Mục đã lưu (Bookmarks)</span>
             <Badge variant="primary" size="md">{totalCount}</Badge>
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Danh sách bài viết công nghệ, workflows và câu hỏi bạn đã đánh dấu lưu để xem lại (Interaction Service).
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+            Danh sách bài viết công nghệ, workflows và câu hỏi bạn đã đánh dấu lưu để xem lại.
           </p>
         </div>
       </div>
@@ -46,7 +46,7 @@ export const BookmarksPage: React.FC = () => {
         onChange={(t) => setActiveTab(t as any)}
       />
 
-      <div className="space-y-4">
+      <div className="space-y-3.5">
         {(activeTab === 'all' || activeTab === 'articles') &&
           bookmarkedArticles.map((art) => (
             <Card key={art.id} hoverable>
@@ -56,7 +56,7 @@ export const BookmarksPage: React.FC = () => {
                     <Badge variant="purple" size="sm">{art.category}</Badge>
                     <span className="text-[11px] text-slate-400">• Tech Article</span>
                   </div>
-                  <Link to={`/articles/${art.id}`} className="font-bold text-sm hover:text-[#005da7] block">
+                  <Link to={`/articles/${art.id}`} className="font-bold text-sm text-slate-900 dark:text-slate-100 hover:text-blue-600 block">
                     {art.title}
                   </Link>
                   <p className="text-xs text-slate-500 line-clamp-1">{art.summary}</p>
@@ -77,7 +77,7 @@ export const BookmarksPage: React.FC = () => {
                     <Badge variant="primary" size="sm">{wf.courseCode}</Badge>
                     <span className="text-xs font-bold text-purple-600">{wf.technology}</span>
                   </div>
-                  <Link to={`/workflows/${wf.id}`} className="font-bold text-sm hover:text-[#005da7] block">
+                  <Link to={`/workflows/${wf.id}`} className="font-bold text-sm text-slate-900 dark:text-slate-100 hover:text-blue-600 block">
                     {wf.title}
                   </Link>
                   <p className="text-xs text-slate-500 line-clamp-1">{wf.description}</p>
@@ -98,7 +98,7 @@ export const BookmarksPage: React.FC = () => {
                     <Badge variant="primary" size="sm">{q.courseCode}</Badge>
                     <span className="text-[11px] text-slate-400">• Q&A Discussion</span>
                   </div>
-                  <Link to={`/discussions/${q.id}`} className="font-bold text-sm hover:text-[#005da7] block">
+                  <Link to={`/discussions/${q.id}`} className="font-bold text-sm text-slate-900 dark:text-slate-100 hover:text-blue-600 block">
                     {q.title}
                   </Link>
                   <p className="text-xs text-slate-500 line-clamp-1">{q.content}</p>

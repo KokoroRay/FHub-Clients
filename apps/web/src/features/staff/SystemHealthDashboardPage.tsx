@@ -31,7 +31,7 @@ export const SystemHealthDashboardPage: React.FC = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-          <Activity className="w-6 h-6 text-[#005da7]" />
+          <Activity className="w-6 h-6 text-[#2563eb]" />
           <span>System Health Dashboard & Alert Broadcasting</span>
         </h1>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -113,3 +113,4 @@ export const SystemHealthDashboardPage: React.FC = () => {
     </div>
   );
 };
+

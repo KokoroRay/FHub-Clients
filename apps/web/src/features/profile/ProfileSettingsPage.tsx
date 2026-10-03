@@ -56,11 +56,11 @@ export const ProfileSettingsPage: React.FC = () => {
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
       <div>
-        <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-          <Settings className="w-6 h-6 text-[#005da7]" />
+        <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2.5 tracking-tight">
+          <Settings className="w-6 h-6 text-blue-600" />
           <span>Account Preferences & Privacy</span>
         </h1>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
           Cập nhật thông tin học thuật, quản trị danh sách chặn và xuất dữ liệu cá nhân (Profile Service).
         </p>
       </div>
@@ -76,13 +76,13 @@ export const ProfileSettingsPage: React.FC = () => {
       <Card>
         <CardHeader>
           <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <User className="w-4 h-4 text-[#005da7]" />
+            <User className="w-4 h-4 text-blue-600" />
             <span>Thông tin cá nhân & Học thuật</span>
           </h3>
         </CardHeader>
         <CardBody className="p-6">
-          <form onSubmit={handleSaveInfo} className="space-y-4 text-xs">
-            <div className="grid grid-cols-2 gap-4">
+          <form onSubmit={handleSaveInfo} className="space-y-4 text-xs sm:text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Select
                 label="Cơ sở Campus"
                 value={currentCampus}
@@ -104,7 +104,7 @@ export const ProfileSettingsPage: React.FC = () => {
               onChange={(e) => setBio(e.target.value)}
             />
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input
                 label="Link GitHub profile"
                 placeholder="https://github.com/username"
@@ -136,14 +136,14 @@ export const ProfileSettingsPage: React.FC = () => {
         </CardHeader>
         <CardBody className="p-6 space-y-4 text-xs">
           <div>
-            <label className="font-bold block mb-1">Tags muốn ẩn khỏi bảng tin (Muted Tags):</label>
+            <label className="font-bold block mb-1.5 text-slate-700 dark:text-slate-300">Tags muốn ẩn khỏi bảng tin (Muted Tags):</label>
             <div className="flex gap-2 mb-2">
               <input
                 type="text"
                 placeholder="Nhập tên tag muốn ẩn..."
                 value={newMutedTag}
                 onChange={(e) => setNewMutedTag(e.target.value)}
-                className="flex-1 bg-slate-50 dark:bg-slate-800 border rounded-lg px-3 py-1.5 text-xs"
+                className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-600"
               />
               <Button variant="secondary" size="sm" onClick={handleAddMutedTag}>
                 Thêm Tag
@@ -153,21 +153,21 @@ export const ProfileSettingsPage: React.FC = () => {
               {mutedTags.map((t) => (
                 <Badge key={t} variant="neutral" size="md">
                   #{t}
-                  <button onClick={() => handleRemoveMutedTag(t)} className="ml-1 text-rose-500 font-bold">×</button>
+                  <button onClick={() => handleRemoveMutedTag(t)} className="ml-1 text-rose-500 font-bold cursor-pointer">×</button>
                 </Badge>
               ))}
             </div>
           </div>
 
           <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
-            <label className="font-bold block mb-1">Danh sách người dùng bị chặn (Blocked Users):</label>
+            <label className="font-bold block mb-1.5 text-slate-700 dark:text-slate-300">Danh sách người dùng bị chặn (Blocked Users):</label>
             <div className="flex gap-2 mb-2">
               <input
                 type="text"
                 placeholder="Nhập email người dùng muốn chặn..."
                 value={newBlockedUser}
                 onChange={(e) => setNewBlockedUser(e.target.value)}
-                className="flex-1 bg-slate-50 dark:bg-slate-800 border rounded-lg px-3 py-1.5 text-xs"
+                className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-600"
               />
               <Button variant="secondary" size="sm" onClick={handleAddBlockedUser}>
                 Chặn người dùng
@@ -175,9 +175,9 @@ export const ProfileSettingsPage: React.FC = () => {
             </div>
             <div className="space-y-1.5">
               {blockedUsers.map((u) => (
-                <div key={u} className="flex items-center justify-between p-2 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                <div key={u} className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-800">
                   <span className="font-mono text-slate-700 dark:text-slate-300">{u}</span>
-                  <button onClick={() => handleRemoveBlockedUser(u)} className="text-xs text-rose-500 hover:underline">
+                  <button onClick={() => handleRemoveBlockedUser(u)} className="text-xs text-rose-600 font-bold hover:underline cursor-pointer">
                     Bỏ chặn
                   </button>
                 </div>
@@ -188,8 +188,8 @@ export const ProfileSettingsPage: React.FC = () => {
       </Card>
 
       {/* Export Data Takeout */}
-      <Card className="border-sky-200 dark:border-sky-900 bg-sky-50/20">
-        <CardBody className="p-6 flex items-center justify-between gap-4">
+      <Card className="border-blue-200 dark:border-blue-900 bg-blue-50/20">
+        <CardBody className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h4 className="font-bold text-sm text-slate-900 dark:text-slate-100">Xuất toàn bộ dữ liệu cá nhân (Data Takeout)</h4>
             <p className="text-xs text-slate-500 mt-0.5">

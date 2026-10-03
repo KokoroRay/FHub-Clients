@@ -98,9 +98,9 @@ export const RegisterPage: React.FC = () => {
         </Button>
       </form>
 
-      <div className="text-center text-xs text-slate-500">
+      <div className="pt-4 border-t border-slate-100 dark:border-slate-800 text-center text-xs text-slate-500">
         Đã có tài khoản?{' '}
-        <Link to="/login" className="font-bold text-[#005da7] hover:underline">
+        <Link to="/login" className="font-bold text-blue-600 hover:underline">
           Đăng nhập ngay
         </Link>
       </div>

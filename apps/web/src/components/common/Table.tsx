@@ -46,7 +46,7 @@ export function Table<T>({
           {isLoading ? (
             <tr>
               <td colSpan={columns.length} className="py-12 text-center text-slate-400">
-                <div className="inline-block w-6 h-6 border-2 border-[#005da7] border-t-transparent rounded-full animate-spin"></div>
+                <div className="inline-block w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                 <p className="mt-2 text-xs">Đang tải dữ liệu...</p>
               </td>
             </tr>
@@ -98,35 +98,47 @@ export const Pagination: React.FC<PaginationProps> = ({
       <div>
         {totalItems !== undefined && pageSize !== undefined ? (
           <span>
-            Hiển thị {Math.min((currentPage - 1) * pageSize + 1, totalItems)} - {Math.min(currentPage * pageSize, totalItems)} trên {totalItems} kết quả
+            Hiển thị {(currentPage - 1) * pageSize + 1} -{' '}
+            {Math.min(currentPage * pageSize, totalItems)} trong số {totalItems} bản ghi
           </span>
-        ) : null}
+        ) : (
+          <span>
+            Trang {currentPage} / {totalPages}
+          </span>
+        )}
       </div>
-      <div className="flex items-center gap-1">
+
+      <div className="flex items-center gap-1.5">
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+          className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
-        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-          <button
-            key={page}
-            onClick={() => onPageChange(page)}
-            className={`w-7 h-7 rounded-lg font-medium cursor-pointer transition-colors ${
-              currentPage === page
-                ? 'bg-[#005da7] text-white'
-                : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
-            }`}
-          >
-            {page}
-          </button>
-        ))}
+
+        {Array.from({ length: totalPages }, (_, i) => i + 1)
+          .filter((p) => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+          .map((p, idx, arr) => (
+            <React.Fragment key={p}>
+              {idx > 0 && arr[idx - 1] !== p - 1 && <span className="px-1 text-slate-400">...</span>}
+              <button
+                onClick={() => onPageChange(p)}
+                className={`w-7 h-7 rounded-lg font-medium cursor-pointer transition-colors ${
+                  currentPage === p
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+                }`}
+              >
+                {p}
+              </button>
+            </React.Fragment>
+          ))}
+
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+          className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
         >
           <ChevronRight className="w-4 h-4" />
         </button>

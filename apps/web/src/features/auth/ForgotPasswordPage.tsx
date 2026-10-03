@@ -22,7 +22,7 @@ export const ForgotPasswordPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <Link to="/login" className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-[#005da7] transition-colors">
+      <Link to="/login" className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-blue-600 transition-colors">
         <ArrowLeft className="w-4 h-4" /> Quay lại đăng nhập
       </Link>
 

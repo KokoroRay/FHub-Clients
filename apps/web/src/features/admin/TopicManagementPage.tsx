@@ -79,7 +79,7 @@ export const TopicManagementPage: React.FC = () => {
       cell: (item) => (
         <div>
           <span className="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1">
-            <Hash className="w-3.5 h-3.5 text-[#005da7]" /> {item.name}
+            <Hash className="w-3.5 h-3.5 text-[#2563eb]" /> {item.name}
           </span>
           <span className="text-[11px] font-mono text-slate-400">/{item.slug}</span>
         </div>
@@ -100,7 +100,7 @@ export const TopicManagementPage: React.FC = () => {
       header: 'Hành động',
       cell: (item) => (
         <div className="flex items-center gap-2">
-          <button onClick={() => openEdit(item)} className="p-1.5 text-slate-500 hover:text-[#005da7] hover:bg-slate-100 rounded-lg cursor-pointer">
+          <button onClick={() => openEdit(item)} className="p-1.5 text-slate-500 hover:text-[#2563eb] hover:bg-slate-100 rounded-lg cursor-pointer">
             <Edit2 className="w-4 h-4" />
           </button>
           <button onClick={() => handleDelete(item.id)} className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg cursor-pointer">
@@ -117,7 +117,7 @@ export const TopicManagementPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <Hash className="w-6 h-6 text-[#005da7]" />
+            <Hash className="w-6 h-6 text-[#2563eb]" />
             <span>Topic Management</span>
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -162,3 +162,4 @@ export const TopicManagementPage: React.FC = () => {
     </div>
   );
 };
+

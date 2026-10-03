@@ -97,21 +97,27 @@ export const LoginPage: React.FC = () => {
             required
           />
           <div className="flex justify-end mt-1.5">
-            <Link to="/forgot-password" className="text-[11px] text-[#005da7] hover:underline">
+            <Link to="/forgot-password" className="text-[11px] text-blue-600 hover:underline">
               Quên mật khẩu?
             </Link>
           </div>
         </div>
 
-        <Button variant="primary" type="submit" className="w-full" isLoading={isLoading}>
+        <Button
+          variant="primary"
+          type="submit"
+          className="w-full"
+          isLoading={isLoading}
+          rightIcon={<ArrowRight className="w-4 h-4" />}
+        >
           Đăng nhập ngay
         </Button>
       </form>
 
-      <div className="text-center text-xs text-slate-500">
+      <div className="pt-4 border-t border-slate-100 dark:border-slate-800 text-center text-xs text-slate-500">
         Chưa có tài khoản?{' '}
-        <Link to="/register" className="font-bold text-[#005da7] hover:underline">
-          Đăng ký thành viên
+        <Link to="/register" className="font-bold text-blue-600 hover:underline">
+          Đăng ký sinh viên
         </Link>
       </div>
     </div>

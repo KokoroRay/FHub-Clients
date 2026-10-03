@@ -16,6 +16,7 @@ import {
   Award,
   Settings2,
   Activity,
+  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -52,8 +53,8 @@ export const LeftSidebar: React.FC = () => {
   const linkClass = ({ isActive }: { isActive: boolean }) =>
     `flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all group ${
       isActive
-        ? 'bg-[#005da7] text-white shadow-xs'
-        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/60'
+        ? 'bg-blue-600 text-white shadow-xs'
+        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100/80 dark:hover:bg-slate-800/60'
     }`;
 
   return (
@@ -98,7 +99,7 @@ export const LeftSidebar: React.FC = () => {
         {/* Admin / Staff Navigation if Role matched */}
         {(currentRole === 'Admin' || currentRole === 'Staff') && (
           <div>
-            <h4 className="px-3 text-[11px] font-bold text-sky-600 dark:text-sky-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <h4 className="px-3 text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
               <span>Management Portal</span>
             </h4>
             <nav className="space-y-1">
@@ -135,10 +136,10 @@ export const LeftSidebar: React.FC = () => {
 
         {/* Quick User Karma / Mini Stats */}
         {currentUser && (
-          <div className="p-3.5 bg-linear-to-br from-slate-50 to-slate-100 dark:from-slate-800/40 dark:to-slate-900/60 rounded-xl border border-slate-200/80 dark:border-slate-800">
+          <div className="p-3.5 bg-linear-to-br from-slate-50 to-slate-100/80 dark:from-slate-800/40 dark:to-slate-900/60 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-500 font-medium">Karma Score</span>
-              <span className="font-extrabold text-[#005da7]">{currentUser.karma.toLocaleString()} pts</span>
+              <span className="text-slate-500 font-medium">Điểm Karma</span>
+              <span className="font-extrabold text-blue-600 dark:text-blue-400">{currentUser.karma.toLocaleString()} pts</span>
             </div>
             <div className="mt-2 text-[11px] text-slate-400 flex items-center justify-between">
               <span>Huy hiệu: {currentUser.badges.length}</span>

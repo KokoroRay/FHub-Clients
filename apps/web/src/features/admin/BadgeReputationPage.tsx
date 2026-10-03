@@ -80,7 +80,7 @@ export const BadgeReputationPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <Award className="w-6 h-6 text-[#005da7]" />
+            <Award className="w-6 h-6 text-[#2563eb]" />
             <span>Badges & Reputation Rule Management</span>
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -123,3 +123,4 @@ export const BadgeReputationPage: React.FC = () => {
     </div>
   );
 };
+

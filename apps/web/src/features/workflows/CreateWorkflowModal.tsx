@@ -70,6 +70,7 @@ export const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
         fullName: currentUser?.fullName || 'Sinh viên FHub',
         avatarUrl: currentUser?.avatarUrl,
         role: currentUser?.role || 'Student',
+        campus: currentUser?.campus || 'FU-HL',
       },
       viewsCount: 1,
       usageCount: 0,
@@ -89,7 +90,7 @@ export const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
       footer={
         <>
           <Button variant="outline" onClick={onClose}>Hủy</Button>
-          <Button variant="primary" onClick={handleSubmit}>Xuất bản Workflow</Button>
+          <Button variant="primary" onClick={handleSubmit}>Xuất bản Workflow (+25 Karma)</Button>
         </>
       }
     >
@@ -136,9 +137,9 @@ export const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
           {steps.map((step, idx) => (
             <div key={idx} className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="font-bold text-xs text-[#005da7]">Bước {step.stepNumber}</span>
+                <span className="font-bold text-xs text-blue-600">Bước {step.stepNumber}</span>
                 {steps.length > 1 && (
-                  <button type="button" onClick={() => removeStep(idx)} className="text-rose-500 hover:text-rose-700">
+                  <button type="button" onClick={() => removeStep(idx)} className="text-rose-500 hover:text-rose-700 cursor-pointer">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 )}

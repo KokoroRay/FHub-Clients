@@ -69,16 +69,16 @@ export const OfficialBroadcastsPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <Megaphone className="w-6 h-6 text-[#005da7]" />
+          <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2.5 tracking-tight">
+            <Megaphone className="w-6 h-6 text-blue-600" />
             <span>Official School Broadcasts & Announcements</span>
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
             Kênh phát thông báo chính thức có định hướng đối tượng theo Campus và Ngành học (School Representative).
           </p>
         </div>
 
-        <Button variant="primary" onClick={() => setIsModalOpen(true)} leftIcon={<Plus className="w-4 h-4" />}>
+        <Button variant="primary" onClick={() => setIsModalOpen(true)} leftIcon={<Plus className="w-4 h-4" />} className="shadow-xs">
           Phát thông báo chính thức
         </Button>
       </div>
@@ -86,7 +86,7 @@ export const OfficialBroadcastsPage: React.FC = () => {
       {/* Broadcasts List */}
       <div className="space-y-4">
         {broadcasts.map((bc) => (
-          <Card key={bc.id} className="border-sky-200 dark:border-sky-900 bg-sky-50/20">
+          <Card key={bc.id} className="border-blue-200 dark:border-blue-900 bg-blue-50/20">
             <CardBody className="p-6 space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
@@ -100,11 +100,11 @@ export const OfficialBroadcastsPage: React.FC = () => {
                 </div>
               </div>
 
-              <h3 className="font-black text-base text-slate-900 dark:text-slate-100 leading-snug">
+              <h2 className="text-base font-extrabold text-slate-900 dark:text-slate-100">
                 {bc.title}
-              </h3>
+              </h2>
 
-              <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800">
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
                 {bc.content}
               </p>
             </CardBody>
@@ -112,16 +112,14 @@ export const OfficialBroadcastsPage: React.FC = () => {
         ))}
       </div>
 
-      {/* Create Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title="Tạo Thông báo chính thức toàn trường"
-        size="lg"
+        title="Soạn thông báo chính thức từ Nhà trường"
         footer={
           <>
             <Button variant="outline" onClick={() => setIsModalOpen(false)}>Hủy</Button>
-            <Button variant="primary" onClick={handleCreateBroadcast} leftIcon={<Send className="w-4 h-4" />}>
+            <Button variant="primary" onClick={handleCreateBroadcast} leftIcon={<Send className="w-3.5 h-3.5" />}>
               Phát thông báo
             </Button>
           </>
@@ -130,7 +128,7 @@ export const OfficialBroadcastsPage: React.FC = () => {
         <form onSubmit={handleCreateBroadcast} className="space-y-4 text-xs">
           <Input
             label="Tiêu đề thông báo"
-            placeholder="Ví dụ: Lịch thi Final Exam và nộp đồ án tốt nghiệp"
+            placeholder="Ví dụ: Thông báo về thời gian nộp đồ án tốt nghiệp Fall 2026"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
@@ -138,34 +136,30 @@ export const OfficialBroadcastsPage: React.FC = () => {
 
           <div className="grid grid-cols-2 gap-4">
             <Select
-              label="Cơ sở Campus nhận thông báo"
+              label="Cơ sở tiếp nhận"
               value={targetCampus}
               onChange={(e) => setTargetCampus(e.target.value)}
               options={[
-                { value: 'ALL', label: 'Tất cả 5 Campus (Toàn trường)' },
-                { value: 'HL', label: 'Hà Nội (Hòa Lạc)' },
-                { value: 'HCM', label: 'TP. Hồ Chí Minh' },
-                { value: 'DN', label: 'Đà Nẵng' },
-                { value: 'CT', label: 'Cần Thơ' },
-                { value: 'QN', label: 'Quy Nhơn' },
+                { value: 'ALL', label: 'Toàn bộ 5 Campus' },
+                ...mockCampuses.map((c) => ({ value: c.code, label: `${c.code} - ${c.name}` })),
               ]}
             />
             <Select
-              label="Chuyên ngành nhận thông báo"
+              label="Chuyên ngành tiếp nhận"
               value={targetMajor}
               onChange={(e) => setTargetMajor(e.target.value)}
               options={[
-                { value: 'ALL', label: 'Tất cả các ngành' },
+                { value: 'ALL', label: 'Tất cả chuyên ngành' },
                 { value: 'SE', label: 'Kỹ thuật phần mềm (SE)' },
                 { value: 'IA', label: 'An toàn thông tin (IA)' },
                 { value: 'AI', label: 'Trí tuệ nhân tạo (AI)' },
-                { value: 'BA', label: 'Quản trị kinh doanh (BA)' },
               ]}
             />
           </div>
 
           <Textarea
-            label="Nội dung chi tiết thông báo"
+            label="Nội dung thông báo chi tiết"
+            placeholder="Nhập nội dung đầy đủ..."
             rows={5}
             value={content}
             onChange={(e) => setContent(e.target.value)}

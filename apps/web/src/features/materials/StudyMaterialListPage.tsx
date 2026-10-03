@@ -88,19 +88,21 @@ export const StudyMaterialListPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header (Figma 47:6987) */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <span>Study Materials & Exam Bank</span>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
+              Study Materials & Exam Bank
+            </h1>
             <Badge variant="primary" size="md">{filteredMaterials.length} Tài liệu</Badge>
-          </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+          </div>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
             Đề thi thử Practical Exam (PE), bài tập Assignment mẫu và slide bài giảng tổng hợp.
           </p>
         </div>
 
-        <Button variant="primary" onClick={() => setIsUploadOpen(true)} leftIcon={<Plus className="w-4 h-4" />}>
+        <Button variant="primary" onClick={() => setIsUploadOpen(true)} leftIcon={<Plus className="w-4 h-4" />} className="shadow-xs">
           Tải lên tài liệu
         </Button>
       </div>
@@ -112,9 +114,9 @@ export const StudyMaterialListPage: React.FC = () => {
             <button
               key={t}
               onClick={() => setSelectedType(t)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                 selectedType === t
-                  ? 'bg-[#005da7] text-white shadow-xs'
+                  ? 'bg-blue-600 text-white shadow-xs'
                   : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:bg-slate-50'
               }`}
             >
@@ -123,14 +125,14 @@ export const StudyMaterialListPage: React.FC = () => {
           ))}
         </div>
 
-        <div className="relative w-full sm:w-64">
+        <div className="relative w-full sm:w-72">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Tìm theo môn (PRN211), tên file..."
-            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#005da7]"
+            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-9 pr-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
           />
         </div>
       </div>
@@ -139,7 +141,7 @@ export const StudyMaterialListPage: React.FC = () => {
       <div className="space-y-3">
         {filteredMaterials.map((mat) => (
           <Card key={mat.id} hoverable>
-            <CardBody className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <CardBody className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-start gap-3.5">
                 <div className="w-11 h-11 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700">
                   {getFileIcon(mat.fileType)}
@@ -181,7 +183,7 @@ export const StudyMaterialListPage: React.FC = () => {
         footer={
           <>
             <Button variant="outline" onClick={() => setIsUploadOpen(false)}>Hủy</Button>
-            <Button variant="primary" onClick={handleUpload}>Tải lên hệ thống</Button>
+            <Button variant="primary" onClick={handleUpload}>Tải lên hệ thống (+20 Karma)</Button>
           </>
         }
       >
@@ -224,7 +226,7 @@ export const StudyMaterialListPage: React.FC = () => {
           />
 
           <div className="p-6 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl text-center space-y-2 bg-slate-50 dark:bg-slate-900/40">
-            <Download className="w-8 h-8 mx-auto text-[#005da7]" />
+            <Download className="w-8 h-8 mx-auto text-blue-600" />
             <p className="font-bold text-xs">Kéo thả tệp vào đây hoặc nhấn để chọn tệp</p>
             <p className="text-[11px] text-slate-400">Dung lượng tối đa: 50MB (PDF, DOCX, ZIP, PPTX)</p>
           </div>

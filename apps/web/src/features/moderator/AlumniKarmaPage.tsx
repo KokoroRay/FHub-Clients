@@ -16,12 +16,12 @@ export const AlumniKarmaPage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-          <Award className="w-6 h-6 text-[#005da7]" />
+        <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2.5 tracking-tight">
+          <Award className="w-6 h-6 text-blue-600" />
           <span>Alumni Endorsement Desk & Karma Leaderboard</span>
         </h1>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-          Kênh vinh danh Cựu sinh viên FPT (Alumni) và gắn huy hiệu bảo chứng chuyên môn (Endorsement Badge) cho các bài viết xuất sắc.
+        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
+          Kênh vinh danh Cựu sinh viên FPT (Alumni) và gắn huy hiệu bảo chứng chuyên môn cho các bài viết xuất sắc.
         </p>
       </div>
 
@@ -34,7 +34,7 @@ export const AlumniKarmaPage: React.FC = () => {
               Quyền hạn Cựu sinh viên (Alumni Endorsement)
             </h3>
           </div>
-          <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl">
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed max-w-2xl">
             Là cựu sinh viên có nhiều năm kinh nghiệm trong ngành, bạn có quyền gắn huy hiệu <strong>"Alumni Endorsed"</strong> cho các bài viết, câu trả lời hoặc workflow có giá trị cao để tăng độ uy tín và nhân đôi điểm Karma cho tác giả.
           </p>
           <div className="pt-2 flex items-center gap-4 text-xs font-semibold">
@@ -50,7 +50,7 @@ export const AlumniKarmaPage: React.FC = () => {
       <Card>
         <CardHeader>
           <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-[#005da7]" />
+            <TrendingUp className="w-4 h-4 text-blue-600" />
             <span>Bảng xếp hạng Cựu sinh viên đóng góp tích cực (Alumni Hall of Fame)</span>
           </h3>
         </CardHeader>
@@ -74,7 +74,7 @@ export const AlumniKarmaPage: React.FC = () => {
               </div>
 
               <div className="text-right">
-                <span className="font-extrabold text-sm text-[#005da7] font-mono block">{item.karma.toLocaleString()} Karma</span>
+                <span className="font-extrabold text-sm text-blue-600 font-mono block">{item.karma.toLocaleString()} Karma</span>
                 <span className="text-[10px] text-slate-400">{item.endorsedPosts} bài bảo chứng</span>
               </div>
             </div>

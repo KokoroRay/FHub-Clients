@@ -22,7 +22,7 @@ export const AIModerationPage: React.FC = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-          <Cpu className="w-6 h-6 text-[#005da7]" />
+          <Cpu className="w-6 h-6 text-[#2563eb]" />
           <span>AI Content Processing & Moderation Control</span>
         </h1>
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -91,7 +91,7 @@ export const AIModerationPage: React.FC = () => {
         <Card>
           <CardHeader>
             <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              <Sliders className="w-4 h-4 text-[#005da7]" />
+              <Sliders className="w-4 h-4 text-[#2563eb]" />
               <span>Ngưỡng nhạy cảm kiểm duyệt (AI Moderation)</span>
             </h3>
           </CardHeader>
@@ -99,7 +99,7 @@ export const AIModerationPage: React.FC = () => {
             <div className="space-y-2">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-bold text-slate-800 dark:text-slate-200">Ngưỡng lọc ngôn từ độc hại (Toxicity):</span>
-                <span className="font-bold text-[#005da7]">{toxicityThreshold}%</span>
+                <span className="font-bold text-[#2563eb]">{toxicityThreshold}%</span>
               </div>
               <input
                 type="range"
@@ -107,7 +107,7 @@ export const AIModerationPage: React.FC = () => {
                 max="99"
                 value={toxicityThreshold}
                 onChange={(e) => setToxicityThreshold(Number(e.target.value))}
-                className="w-full accent-[#005da7] cursor-pointer"
+                className="w-full accent-[#2563eb] cursor-pointer"
               />
               <p className="text-[11px] text-slate-400">Bài viết vượt quá ngưỡng này sẽ tự động bị ẩn và chuyển sang hàng đợi kiểm duyệt.</p>
             </div>
@@ -149,3 +149,4 @@ export const AIModerationPage: React.FC = () => {
     </div>
   );
 };
+

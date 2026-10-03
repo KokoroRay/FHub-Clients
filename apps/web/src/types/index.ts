@@ -53,6 +53,7 @@ export interface BadgeItem {
   tier: 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM';
   category: 'CONTRIBUTOR' | 'EXPERT' | 'MODERATOR' | 'ALUMNI' | 'COMMUNITY';
   earnedAt?: string;
+  karmaReward?: number;
 }
 
 export interface CourseNode {
@@ -84,6 +85,7 @@ export interface QuestionPost {
     avatarUrl?: string;
     role: UserRole;
     karma: number;
+    campus?: string;
     isAnonymous?: boolean;
   };
   tags: string[];
@@ -109,6 +111,7 @@ export interface Answer {
     avatarUrl?: string;
     role: UserRole;
     karma: number;
+    campus?: string;
   };
   content: string;
   upvotes: number;
@@ -145,6 +148,7 @@ export interface TechArticle {
     fullName: string;
     avatarUrl?: string;
     role: UserRole;
+    campus?: string;
   };
   readTimeMinutes: number;
   viewsCount: number;
@@ -167,6 +171,7 @@ export interface SharedWorkflow {
     stepNumber: number;
     title: string;
     instruction: string;
+    description?: string;
     codeSnippet?: string;
     language?: string;
   }[];
@@ -175,6 +180,7 @@ export interface SharedWorkflow {
     fullName: string;
     avatarUrl?: string;
     role: UserRole;
+    campus?: string;
   };
   viewsCount: number;
   usageCount: number;

@@ -26,14 +26,14 @@ export const CreateArticlePage: React.FC = () => {
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto">
-      <Link to="/articles" className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-[#005da7] transition-colors">
+      <Link to="/articles" className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-blue-600 transition-colors">
         <ArrowLeft className="w-4 h-4" /> Quay lại danh sách bài viết
       </Link>
 
       <Card>
         <CardHeader>
           <h1 className="text-xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <FileText className="w-5 h-5 text-[#005da7]" />
+            <FileText className="w-5 h-5 text-blue-600" />
             <span>Viết bài viết công nghệ mới</span>
           </h1>
         </CardHeader>
@@ -100,7 +100,7 @@ export const CreateArticlePage: React.FC = () => {
                 Hủy
               </Button>
               <Button variant="primary" type="submit" isLoading={isSubmitting}>
-                Xuất bản bài viết
+                Đăng bài viết (+30 Karma)
               </Button>
             </div>
           </form>

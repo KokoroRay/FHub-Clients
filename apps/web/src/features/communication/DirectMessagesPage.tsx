@@ -68,11 +68,11 @@ export const DirectMessagesPage: React.FC = () => {
   return (
     <div className="space-y-4">
       <div>
-        <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-          <MessageSquare className="w-6 h-6 text-[#005da7]" />
+        <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2.5 tracking-tight">
+          <MessageSquare className="w-6 h-6 text-blue-600" />
           <span>Direct Messages & Chat Hub</span>
         </h1>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
           Nhắn tin trao đổi học tập và mua bán trao đổi tài liệu thời gian thực (Communication Service).
         </p>
       </div>
@@ -88,34 +88,29 @@ export const DirectMessagesPage: React.FC = () => {
                 placeholder="Tìm đoạn chat..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-50 dark:bg-slate-800 border-0 rounded-xl pl-9 pr-3 py-1.5 text-xs focus:ring-1 focus:ring-[#005da7]"
+                className="w-full bg-slate-50 dark:bg-slate-800 border-0 rounded-xl pl-9 pr-3 py-2 text-xs focus:ring-1 focus:ring-blue-600"
               />
             </div>
           </div>
 
-          <div className="overflow-y-auto flex-1 divide-y divide-slate-100 dark:divide-slate-800">
+          <div className="overflow-y-auto flex-1 divide-y divide-slate-100 dark:border-slate-800">
             {conversations.map((c) => {
               const isSelected = c.id === activeConvId;
               return (
                 <button
                   key={c.id}
                   onClick={() => setActiveConvId(c.id)}
-                  className={`w-full p-3.5 flex items-start gap-3 text-left transition-colors cursor-pointer ${
-                    isSelected ? 'bg-sky-50/70 dark:bg-sky-950/40' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                  className={`w-full text-left p-3.5 flex items-start gap-3 transition-colors cursor-pointer ${
+                    isSelected ? 'bg-blue-50/70 dark:bg-blue-950/40 border-l-4 border-blue-600' : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
                   }`}
                 >
-                  <div className="relative">
-                    <img src={c.participant.avatarUrl} alt={c.participant.fullName} className="w-10 h-10 rounded-full object-cover" />
-                    {c.participant.isOnline && (
-                      <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-white dark:ring-slate-900" />
-                    )}
-                  </div>
+                  <img src={c.participant.avatarUrl} alt={c.participant.fullName} className="w-10 h-10 rounded-full object-cover shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-xs text-slate-900 dark:text-slate-100 truncate">{c.participant.fullName}</span>
-                      <span className="text-[10px] text-slate-400">{c.lastMessageAt}</span>
+                      <h4 className="font-bold text-xs text-slate-900 dark:text-slate-100 truncate">{c.participant.fullName}</h4>
+                      <span className="text-[10px] text-slate-400 shrink-0">{c.lastMessageAt}</span>
                     </div>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">{c.lastMessage}</p>
+                    <p className="text-[11px] text-slate-500 truncate mt-0.5">{c.lastMessage}</p>
                   </div>
                 </button>
               );
@@ -123,47 +118,35 @@ export const DirectMessagesPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Chat Window */}
-        <div className="md:col-span-2 flex flex-col h-full bg-slate-50/30 dark:bg-slate-900/40">
-          {/* Chat Header */}
-          <div className="p-3.5 px-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900">
+        {/* Chat Main Area */}
+        <div className="md:col-span-2 flex flex-col h-full">
+          <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <img src={activeConv.participant.avatarUrl} alt={activeConv.participant.fullName} className="w-9 h-9 rounded-full object-cover" />
               <div>
-                <h4 className="font-bold text-xs text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                  <span>{activeConv.participant.fullName}</span>
-                  <Badge variant="purple" size="sm">{activeConv.participant.role}</Badge>
-                </h4>
-                <span className="text-[10px] text-emerald-600 font-semibold">Đang hoạt động</span>
+                <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">{activeConv.participant.fullName}</h3>
+                <span className="text-[11px] text-emerald-600 font-semibold flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" /> Trực tuyến
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Messages Stream */}
-          <div className="flex-1 p-5 overflow-y-auto space-y-3">
+          <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-slate-50/50 dark:bg-slate-950/50">
             {activeMessages.map((msg) => {
-              const isMine = msg.senderId === (currentUser?.id || 'usr-1');
+              const isMe = msg.senderId === (currentUser?.id || 'usr-1');
               return (
-                <div key={msg.id} className={`flex ${isMine ? 'justify-end' : 'justify-start'} group`}>
-                  <div className="max-w-[75%] space-y-1">
-                    <div
-                      className={`p-3 rounded-2xl text-xs leading-relaxed ${
-                        isMine
-                          ? 'bg-[#005da7] text-white rounded-br-xs'
-                          : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-bl-xs border border-slate-200/80 dark:border-slate-700 shadow-2xs'
-                      }`}
-                    >
-                      {msg.content}
-                    </div>
-                    <div className={`flex items-center gap-1.5 text-[10px] text-slate-400 ${isMine ? 'justify-end' : 'justify-start'}`}>
-                      <span>{msg.createdAt}</span>
-                      {isMine && <CheckCheck className="w-3 h-3 text-[#005da7]" />}
-                      <button
-                        onClick={() => handleDeleteMessage(msg.id)}
-                        className="opacity-0 group-hover:opacity-100 hover:text-rose-500 transition-opacity ml-1"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
+                <div key={msg.id} className={`flex items-end gap-2 ${isMe ? 'justify-end' : 'justify-start'}`}>
+                  <div
+                    className={`max-w-[75%] p-3 rounded-2xl text-xs leading-relaxed ${
+                      isMe
+                        ? 'bg-blue-600 text-white rounded-br-xs shadow-2xs'
+                        : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 rounded-bl-xs shadow-2xs'
+                    }`}
+                  >
+                    <p>{msg.content}</p>
+                    <div className={`text-[9px] mt-1 text-right ${isMe ? 'text-blue-200' : 'text-slate-400'}`}>
+                      {msg.createdAt}
                     </div>
                   </div>
                 </div>
@@ -171,17 +154,17 @@ export const DirectMessagesPage: React.FC = () => {
             })}
           </div>
 
-          {/* Chat Input */}
-          <form onSubmit={handleSendMessage} className="p-3.5 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex gap-2">
+          {/* Chat Composer */}
+          <form onSubmit={handleSendMessage} className="p-3 border-t border-slate-200 dark:border-slate-800 flex items-center gap-2 bg-white dark:bg-slate-900">
             <input
               type="text"
               placeholder="Nhập tin nhắn..."
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
-              className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#005da7]"
+              className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-600"
             />
-            <Button variant="primary" type="submit">
-              <Send className="w-4 h-4" />
+            <Button variant="primary" type="submit" size="sm" leftIcon={<Send className="w-3.5 h-3.5" />}>
+              Gửi
             </Button>
           </form>
         </div>
