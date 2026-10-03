@@ -23,7 +23,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { AdminUser } from '../../../services/adminMockData';
-import { useGovernanceAccounts, useApplyGovernanceAction, useWipeGovernanceAccount } from '../../../services/api';
+import { useGovernanceAccounts, useApplyGovernanceAction, useWipeGovernanceAccount, useCreateUser } from '../../../services/api';
 
 export const UserManagementPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -45,6 +45,7 @@ export const UserManagementPage: React.FC = () => {
   });
   const applyActionMutation = useApplyGovernanceAction();
   const wipeAccountMutation = useWipeGovernanceAccount();
+  const createUserMutation = useCreateUser();
 
   // Populate usersList when real BE data arrives
   React.useEffect(() => {
@@ -110,40 +111,33 @@ export const UserManagementPage: React.FC = () => {
     );
   };
 
-  const handleCreateUser = (e: React.FormEvent) => {
+  const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newFullName.trim() || !newEmail.trim()) return;
 
-    const created: AdminUser = {
-      id: `usr-${Date.now()}`,
-      email: newEmail.trim(),
-      fullName: newFullName.trim(),
-      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-      role: newRole,
-      campus: newCampus,
-      major: newMajor,
-      studentId: newStudentId.trim() || undefined,
-      karma: 0,
-      status: 'ACTIVE',
-      verifiedAt: new Date().toISOString(),
-      badges: [],
-      activeSessions: [
-        {
-          id: `sess-${Date.now()}`,
-          device: 'Chrome Browser',
-          browser: 'Chrome 122.0',
-          ipAddress: '14.225.244.11',
-          location: 'Hanoi, VN',
-          lastActive: 'Just now',
-          isCurrent: true,
-        },
-      ],
-    };
+    try {
+      await createUserMutation.mutateAsync({
+        email: newEmail.trim(),
+        fullName: newFullName.trim(),
+        studentId: newStudentId.trim() || undefined,
+        role: newRole.toUpperCase().replace(/\s+/g, ''),
+        campus: newCampus,
+        major: newMajor,
+        password: 'ChangeMe@123',
+      });
 
-    setUsersList((prev) => [created, ...prev]);
-    setShowCreateModal(false);
-    setActionSuccess(`Account created successfully for ${created.fullName} (${created.email})`);
-    setTimeout(() => setActionSuccess(null), 3500);
+      await refetch();
+      setShowCreateModal(false);
+      setActionSuccess(`Account created successfully for ${newFullName.trim()} (${newEmail.trim()})`);
+      setNewFullName('');
+      setNewEmail('');
+      setNewStudentId('');
+    } catch (err: any) {
+      console.error('Failed to create user:', err);
+      const errMsg = err?.response?.data?.message || err?.message || 'Failed to create user account';
+      setActionSuccess(`Error: ${errMsg}`);
+    }
+    setTimeout(() => setActionSuccess(null), 4000);
   };
 
   const filteredUsers = usersList.filter((user) => {
@@ -604,9 +598,11 @@ export const UserManagementPage: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-lg bg-blue-600 text-white text-xs font-semibold cursor-pointer hover:bg-blue-700"
+                  disabled={createUserMutation.isPending}
+                  className="px-4 py-2 rounded-lg bg-blue-600 text-white text-xs font-semibold cursor-pointer hover:bg-blue-700 disabled:opacity-50 flex items-center gap-1.5"
                 >
-                  Create Account
+                  {createUserMutation.isPending && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                  <span>{createUserMutation.isPending ? 'Creating...' : 'Create Account'}</span>
                 </button>
               </div>
             </form>

@@ -194,6 +194,11 @@ export const userManagementApi = {
     return res.data.data;
   },
 
+  createUser: async (payload: { email: string; fullName?: string; studentId?: string; role?: string; campus?: string; major?: string; password?: string }) => {
+    const res = await apiClient.post<ApiResponse<any>>('/api/users', payload);
+    return res.data.data;
+  },
+
   getAccountById: async (id: number | string) => {
     const res = await apiClient.get<ApiResponse<any>>(`/api/governance-accounts/${id}`);
     return res.data.data;
