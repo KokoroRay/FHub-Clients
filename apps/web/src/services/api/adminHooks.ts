@@ -44,6 +44,18 @@ export const useGovernanceAccountDetail = (id?: number | string) => {
   });
 };
 
+export const useCreateUser = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { email: string; fullName?: string; studentId?: string; role?: string; campus?: string; major?: string; password?: string }) =>
+      userManagementApi.createUser(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'governance-accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'dashboard'] });
+    }
+  });
+};
+
 export const useApplyGovernanceAction = () => {
   const queryClient = useQueryClient();
   return useMutation({
