@@ -96,8 +96,12 @@ export const AdminSubdomainLayout: React.FC = () => {
           {/* Brand Logo & Tag */}
           <div className="flex items-center gap-3 shrink-0">
             <Link to="/" className="flex items-center gap-2.5 group">
-              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-black text-base shadow-xs group-hover:scale-105 transition-transform">
-                F
+              <div className="w-9 h-9 rounded-lg overflow-hidden bg-white shadow-2xs border border-slate-200 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
+                <img
+                  src="/fhub.jpg"
+                  alt="FHub Logo"
+                  className="w-full h-full object-cover"
+                />
               </div>
               <div className="flex flex-col">
                 <span className="font-bold text-sm tracking-tight text-slate-900 flex items-center gap-1.5">
