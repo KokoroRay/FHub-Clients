@@ -219,6 +219,7 @@ const getMainPortalRoutes = () => [
     children: [
       { path: 'login', element: <LoginPage /> },
       { path: 'admin-login', element: <AdminLoginPage /> },
+      { path: 'admin/login', element: <AdminLoginPage /> },
       { path: 'register', element: <RegisterPage /> },
       { path: 'forgot-password', element: <ForgotPasswordPage /> },
     ],

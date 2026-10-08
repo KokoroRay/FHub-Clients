@@ -93,16 +93,31 @@ export const AdminLoginPage: React.FC = () => {
     if (result.accessToken) {
       localStorage.setItem('fhub_token', result.accessToken);
     }
+    const roles: string[] = result.user?.roles || [];
+    let mappedRole: User['role'] = 'Admin';
+    let defaultTitle = 'System Administrator';
+
+    if (roles.includes('CommunityModerator') || roles.includes('Moderator')) {
+      mappedRole = 'Community Moderator';
+      defaultTitle = 'Community Moderator';
+    } else if (roles.includes('SchoolRepresentative')) {
+      mappedRole = 'School Representative';
+      defaultTitle = 'School Representative';
+    } else if (roles.includes('Staff')) {
+      mappedRole = 'Staff';
+      defaultTitle = 'Staff Member';
+    }
+
     const userObj: User = {
       id: String(result.user?.userId || '1'),
-      fullName: 'System Administrator',
+      fullName: result.user?.fullName || defaultTitle,
       email: result.user?.email || email,
-      role: 'Admin',
+      role: mappedRole,
       campus: 'HL',
       avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
       karma: 9999,
       status: 'ACTIVE',
-      bio: 'FHub Central Operations Administrator',
+      bio: `FHub ${defaultTitle}`,
       badges: []
     };
     login(userObj, result.accessToken);

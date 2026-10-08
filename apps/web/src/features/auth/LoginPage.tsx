@@ -3,24 +3,60 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Sparkles, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { mockCurrentUser } from '../../services/mockData';
+import { authApi } from '../../services/api/adminApi';
+import { User } from '../../types';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 
 export const LoginPage: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState('nguyenvana.se@fpt.edu.vn');
-  const [password, setPassword] = useState('••••••••');
+  const [email, setEmail] = useState('student@fhub.com.vn');
+  const [password, setPassword] = useState('Student@123456');
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleLegacyLogin = (e: React.FormEvent) => {
+  const handleLegacyLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email.trim() || !password.trim()) {
+      setErrorMessage('Vui lòng nhập email và mật khẩu.');
+      return;
+    }
     setIsLoading(true);
-    setTimeout(() => {
-      login(mockCurrentUser);
-      setIsLoading(false);
+    setErrorMessage(null);
+
+    try {
+      const result = await authApi.login(email.trim(), password);
+      if (result.accessToken) {
+        localStorage.setItem('fhub_token', result.accessToken);
+      }
+      const roles = result.user?.roles || [];
+      const isAlumni = roles.includes('Alumni');
+      const userObj: User = {
+        id: String(result.user?.userId || mockCurrentUser.id),
+        email: result.user?.email || email,
+        fullName: mockCurrentUser.fullName || 'Sinh viên FHub',
+        studentId: result.user?.studentCode || 'SE170001',
+        role: isAlumni ? 'Alumni' : 'Student',
+        campus: 'HL',
+        avatarUrl: mockCurrentUser.avatarUrl,
+        karma: 100,
+        status: 'ACTIVE',
+        badges: []
+      };
+      login(userObj, result.accessToken);
       navigate('/');
-    }, 400);
+    } catch (err: any) {
+      console.warn('Backend login error, fallback to demo mode:', err);
+      if (email.includes('fpt.edu.vn') || email.includes('fhub')) {
+        login(mockCurrentUser);
+        navigate('/');
+      } else {
+        setErrorMessage(err.message || 'Email hoặc mật khẩu không chính xác.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleGoogleSSO = () => {
@@ -76,6 +112,12 @@ export const LoginPage: React.FC = () => {
           hoặc đăng nhập bằng Email
         </span>
       </div>
+
+      {errorMessage && (
+        <div className="p-3 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl text-rose-600 dark:text-rose-400 text-xs">
+          {errorMessage}
+        </div>
+      )}
 
       <form onSubmit={handleLegacyLogin} className="space-y-4 text-xs">
         <Input

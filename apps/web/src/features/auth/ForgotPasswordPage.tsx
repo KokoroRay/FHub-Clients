@@ -3,21 +3,30 @@ import { Link } from 'react-router-dom';
 import { Mail, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
+import { authApi } from '../../services/api/adminApi';
 
 export const ForgotPasswordPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [isSent, setIsSent] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
+    if (!email.trim()) return;
 
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
+    setErrorMessage(null);
+    try {
+      await authApi.requestPasswordRecovery(email.trim());
       setIsSent(true);
-    }, 500);
+    } catch (err: any) {
+      console.warn('Password recovery API call:', err);
+      // Always show sent message for anti-enumeration or if successful
+      setIsSent(true);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
