@@ -1,21 +1,17 @@
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  ShieldCheck,
   Lock,
   Mail,
   KeyRound,
   Eye,
   EyeOff,
-  Sparkles,
   ArrowRight,
-  Server,
-  Building2,
-  CheckCircle2,
-  AlertTriangle,
+  AlertCircle,
+  ArrowLeft,
   RefreshCw,
-  Globe,
-  SlidersHorizontal,
+  Shield,
+  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { authApi } from '../../../services/api/adminApi';
@@ -30,6 +26,7 @@ export const AdminLoginPage: React.FC = () => {
   const [email, setEmail] = useState('admin@fhub.com.vn');
   const [password, setPassword] = useState('Admin@123456');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -49,7 +46,6 @@ export const AdminLoginPage: React.FC = () => {
     setErrorMessage(null);
 
     try {
-      // Call actual Identity Service login API
       const result = await authApi.login(email.trim(), password);
 
       if (result.requiresTwoFactor && result.twoFactorToken) {
@@ -59,11 +55,10 @@ export const AdminLoginPage: React.FC = () => {
         return;
       }
 
-      // Successful login
       completeAdminLogin(result);
     } catch (err: any) {
       console.warn('API login failed:', err);
-      setErrorMessage(err.message || 'Email hoặc mật khẩu quản trị viên không chính xác. Vui lòng thử lại.');
+      setErrorMessage(err.message || 'Email hoặc mật khẩu quản trị viên không chính xác.');
     } finally {
       setIsLoading(false);
     }
@@ -72,7 +67,7 @@ export const AdminLoginPage: React.FC = () => {
   const handle2FaSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!twoFactorCode.trim()) {
-      setErrorMessage('Vui lòng nhập mã xác thực OTP 6 chữ số.');
+      setErrorMessage('Vui lòng nhập mã OTP 6 chữ số.');
       return;
     }
 
@@ -126,109 +121,71 @@ export const AdminLoginPage: React.FC = () => {
     navigate(redirectPath, { replace: true });
   };
 
-  const setPreset = (type: 'admin' | 'admin2fa') => {
-    if (type === 'admin') {
-      setEmail('admin@fhub.com.vn');
-      setPassword('Admin@123456');
-    } else {
-      setEmail('admin2fa@fhub.com.vn');
-      setPassword('Admin@123456');
-    }
+  const setPreset = (presetEmail: string) => {
+    setEmail(presetEmail);
+    setPassword('Admin@123456');
     setErrorMessage(null);
   };
 
   return (
-    <div className="min-h-screen w-full bg-linear-to-br from-slate-950 via-[#002347] to-[#004a87] text-white flex flex-col justify-between relative overflow-hidden font-sans">
-      {/* Decorative Grid & Glow Background */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(0,149,255,0.25),rgba(255,255,255,0))] pointer-events-none" />
-      <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-sky-500/20 rounded-full blur-3xl pointer-events-none" />
-
-      {/* Top Navbar */}
-      <header className="w-full px-6 py-4 flex items-center justify-between relative z-10 border-b border-white/10 backdrop-blur-md bg-slate-950/30">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center p-0.5 shrink-0">
+    <div className="min-h-screen w-full bg-[#f8fafc] text-slate-900 flex flex-col justify-between font-sans">
+      {/* Simple Top Bar */}
+      <header className="w-full px-6 py-4 flex items-center justify-between border-b border-slate-200/80 bg-white">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg overflow-hidden bg-white border border-slate-200 flex items-center justify-center p-0.5 shadow-2xs">
             <img
-              src="/fhub-remove-background.png"
+              src="/fhub.jpg"
               alt="FHub Logo"
-              className="w-full h-full object-contain"
+              className="w-full h-full object-cover"
             />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-black text-sm tracking-tight text-white">FHub Operations Console</span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-blue-500/20 text-blue-300 border border-blue-400/30">
-                ADMIN SUBDOMAIN
-              </span>
-            </div>
-            <p className="text-[11px] text-sky-200/70">5 Campus Partition Academic Governance</p>
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-sm text-slate-900 tracking-tight">FHub Portal</span>
+            <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-100">
+              Admin Center
+            </span>
           </div>
         </div>
 
         <button
           onClick={() => setSubdomainMode('main')}
-          className="text-xs font-semibold text-sky-200/80 hover:text-white flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 transition-all border border-white/10 cursor-pointer"
+          className="text-xs font-semibold text-slate-600 hover:text-blue-600 flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
         >
-          <Globe className="w-3.5 h-3.5 text-sky-400" />
+          <ArrowLeft className="w-3.5 h-3.5" />
           <span>Về Cổng Sinh Viên</span>
         </button>
       </header>
 
-      {/* Main Login Card Container */}
-      <main className="flex-1 flex items-center justify-center p-4 sm:p-6 relative z-10">
-        <div className="w-full max-w-md bg-slate-900/80 backdrop-blur-xl border border-white/15 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
-          {/* Header Info */}
+      {/* Main Login Form Container */}
+      <main className="flex-1 flex items-center justify-center p-4 sm:p-6 my-auto">
+        <div className="w-full max-w-md bg-white border border-slate-200/90 rounded-2xl p-7 sm:p-8 shadow-sm space-y-6">
+          {/* Header Title & Subtitle */}
           <div className="text-center space-y-2">
-            <div className="inline-flex p-3 rounded-2xl bg-blue-500/10 border border-blue-400/20 text-blue-400 mb-1">
-              <ShieldCheck className="w-8 h-8" />
+            <div className="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 mx-auto flex items-center justify-center shadow-2xs">
+              <Shield className="w-6 h-6" />
             </div>
-            <h1 className="text-2xl font-black tracking-tight text-white">
-              Đăng Nhập Quản Trị Viên
+            <h1 className="text-xl font-bold tracking-tight text-slate-900">
+              Đăng nhập Quản trị
             </h1>
-            <p className="text-xs text-sky-100/70 max-w-xs mx-auto">
-              Hệ thống xác thực tập trung SEP Core v2.4 bảo mật theo chuẩn ISO/IEC 27001
+            <p className="text-xs text-slate-500">
+              Dành riêng cho Quản trị viên & Cán bộ Nhà trường
             </p>
           </div>
 
-          {/* Error Banner */}
+          {/* Error Message */}
           {errorMessage && (
-            <div className="p-3 bg-rose-500/20 border border-rose-400/40 rounded-xl text-xs text-rose-200 flex items-start gap-2.5 animate-fadeIn">
-              <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 flex items-start gap-2.5 animate-fadeIn">
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
               <span>{errorMessage}</span>
             </div>
           )}
 
-          {/* Preset Buttons for Quick Testing */}
-          <div className="space-y-1.5">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-              Tài khoản mẫu Backend (Seed Data):
-            </span>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setPreset('admin')}
-                className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-[11px] font-semibold text-sky-200 text-left transition-all cursor-pointer"
-              >
-                <div className="font-bold text-white">Root Admin</div>
-                <div className="text-[10px] text-slate-400 truncate">admin@fhub.com.vn</div>
-              </button>
-              <button
-                type="button"
-                onClick={() => setPreset('admin2fa')}
-                className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-[11px] font-semibold text-sky-200 text-left transition-all cursor-pointer"
-              >
-                <div className="font-bold text-white">Admin + 2FA</div>
-                <div className="text-[10px] text-slate-400 truncate">admin2fa@fhub.com.vn</div>
-              </button>
-            </div>
-          </div>
-
-          {/* Form */}
+          {/* Login Form */}
           {!is2FaStep ? (
             <form onSubmit={handleLoginSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-sky-100 mb-1.5">
-                  Email Quản Trị
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  Email Quản trị
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -240,14 +197,14 @@ export const AdminLoginPage: React.FC = () => {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     placeholder="admin@fhub.com.vn"
-                    className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/15 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-hidden focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-all"
+                    className="w-full pl-10 pr-4 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-sky-100 mb-1.5">
-                  Mật Khẩu Hệ Thống
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  Mật khẩu
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -259,39 +216,44 @@ export const AdminLoginPage: React.FC = () => {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     placeholder="••••••••"
-                    className="w-full pl-10 pr-10 py-2.5 bg-white/5 border border-white/15 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-hidden focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-all font-mono"
+                    className="w-full pl-10 pr-10 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all font-mono"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-white cursor-pointer"
+                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 cursor-pointer"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between text-[11px] text-sky-200/70 pt-1">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" defaultChecked className="rounded border-white/20 bg-white/5 text-blue-600 focus:ring-0" />
-                  <span>Duy trì phiên đăng nhập</span>
+              <div className="flex items-center justify-between text-xs text-slate-600 pt-0.5">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span>Ghi nhớ đăng nhập</span>
                 </label>
-                <span className="text-slate-400">256-Bit TLS Encrypted</span>
+                <span className="text-[11px] text-slate-400">Bảo mật SSL 256-bit</span>
               </div>
 
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 text-white text-xs font-bold shadow-lg shadow-blue-900/30 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                className="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-semibold shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
               >
                 {isLoading ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>Đang xác thực với Identity Service...</span>
+                    <span>Đang đăng nhập...</span>
                   </>
                 ) : (
                   <>
-                    <span>Đăng Nhập Bảng Điều Hành</span>
+                    <span>Đăng nhập</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -300,13 +262,13 @@ export const AdminLoginPage: React.FC = () => {
           ) : (
             /* 2FA Step Form */
             <form onSubmit={handle2FaSubmit} className="space-y-4 animate-fadeIn">
-              <div className="p-3 bg-blue-500/10 border border-blue-400/20 rounded-xl text-xs text-sky-200">
-                Tài khoản này yêu cầu xác thực 2 lớp (2FA). Vui lòng nhập mã OTP 6 số từ Google Authenticator hoặc ứng dụng TOTP của bạn.
+              <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-800 leading-relaxed">
+                Tài khoản yêu cầu xác thực 2 lớp (2FA). Vui lòng nhập mã OTP 6 số từ ứng dụng Authenticator của bạn.
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-sky-100 mb-1.5">
-                  Mã Xác Thực 2FA (OTP)
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  Mã xác thực 2FA (OTP)
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -319,56 +281,76 @@ export const AdminLoginPage: React.FC = () => {
                     onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, ''))}
                     required
                     placeholder="123456"
-                    className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/15 rounded-xl text-center text-lg tracking-widest text-white placeholder-slate-500 focus:outline-hidden focus:border-blue-400 focus:ring-1 focus:ring-blue-400 font-mono"
+                    className="w-full pl-10 pr-4 py-2 bg-white border border-slate-300 rounded-xl text-center text-lg tracking-widest text-slate-900 placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 font-mono"
                     autoFocus
                   />
                 </div>
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex gap-2 pt-1">
                 <button
                   type="button"
                   onClick={() => setIs2FaStep(false)}
-                  className="flex-1 py-2.5 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-semibold transition-all cursor-pointer"
+                  className="flex-1 py-2.5 px-4 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-colors cursor-pointer"
                 >
                   Quay lại
                 </button>
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="flex-2 py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-lg shadow-blue-900/30 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+                  className="flex-2 py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs flex items-center justify-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
                 >
                   {isLoading ? (
                     <RefreshCw className="w-4 h-4 animate-spin" />
                   ) : (
-                    <span>Xác Nhận 2FA</span>
+                    <span>Xác nhận</span>
                   )}
                 </button>
               </div>
             </form>
           )}
 
-          {/* Footer Features */}
-          <div className="pt-4 border-t border-white/10 grid grid-cols-3 text-center text-[10px] text-slate-400">
-            <div className="flex flex-col items-center gap-1">
-              <Server className="w-3.5 h-3.5 text-emerald-400" />
-              <span>7 Microservices</span>
+          {/* Quick Preset Selector for Easy Testing */}
+          <div className="pt-4 border-t border-slate-100">
+            <div className="flex items-center justify-between text-[11px] text-slate-400 mb-2">
+              <span className="flex items-center gap-1 font-medium text-slate-500">
+                <Sparkles className="w-3 h-3 text-amber-500" />
+                Tài khoản mẫu:
+              </span>
             </div>
-            <div className="flex flex-col items-center gap-1">
-              <Building2 className="w-3.5 h-3.5 text-sky-400" />
-              <span>5 Campuses</span>
-            </div>
-            <div className="flex flex-col items-center gap-1">
-              <CheckCircle2 className="w-3.5 h-3.5 text-blue-400" />
-              <span>ISO 27001 Log</span>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setPreset('admin@fhub.com.vn')}
+                className={`p-2 rounded-lg border text-left transition-colors cursor-pointer text-[11px] ${
+                  email === 'admin@fhub.com.vn'
+                    ? 'border-blue-300 bg-blue-50/50 text-blue-700 font-semibold'
+                    : 'border-slate-200 hover:bg-slate-50 text-slate-600'
+                }`}
+              >
+                <div className="font-semibold text-slate-800">Admin Thường</div>
+                <div className="text-[10px] text-slate-400 truncate">admin@fhub.com.vn</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreset('admin2fa@fhub.com.vn')}
+                className={`p-2 rounded-lg border text-left transition-colors cursor-pointer text-[11px] ${
+                  email === 'admin2fa@fhub.com.vn'
+                    ? 'border-blue-300 bg-blue-50/50 text-blue-700 font-semibold'
+                    : 'border-slate-200 hover:bg-slate-50 text-slate-600'
+                }`}
+              >
+                <div className="font-semibold text-slate-800">Admin + 2FA</div>
+                <div className="text-[10px] text-slate-400 truncate">admin2fa@fhub.com.vn</div>
+              </button>
             </div>
           </div>
         </div>
       </main>
 
-      {/* Bottom Footer */}
-      <footer className="w-full px-6 py-3 text-center text-[11px] text-sky-200/50 border-t border-white/10 relative z-10 backdrop-blur-xs bg-slate-950/20">
-        © 2026 FHub Platform • FPT University Student Educational Ecosystem • SEP Core Version 2.4
+      {/* Simple Clean Footer */}
+      <footer className="w-full px-6 py-4 text-center text-xs text-slate-400 border-t border-slate-200/80 bg-white">
+        © 2026 FHub Platform • Đại học FPT
       </footer>
     </div>
   );
