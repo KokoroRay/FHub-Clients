@@ -21,6 +21,7 @@ export default defineConfig({
       '/api/governance-accounts': { target: 'http://localhost:5249', changeOrigin: true },
       '/api/support-tickets': { target: 'http://localhost:5249', changeOrigin: true },
       '/api/manual-verifications': { target: 'http://localhost:5249', changeOrigin: true },
+      '/api/governance': { target: 'http://localhost:5249', changeOrigin: true },
       '/api/audit-logs': { target: 'http://localhost:5249', changeOrigin: true },
       '/api/system-logs': { target: 'http://localhost:5249', changeOrigin: true },
       '/api/reputation': { target: 'http://localhost:8081', changeOrigin: true },

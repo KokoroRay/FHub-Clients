@@ -89,6 +89,21 @@ export const authApi = {
   revokeRole: async (userId: number | string, roleCode: string) => {
     const res = await apiClient.delete<ApiResponse<any>>(`/api/users/${userId}/roles/${roleCode}`);
     return res.data.data;
+  },
+
+  requestPasswordRecovery: async (email: string) => {
+    const res = await apiClient.post<ApiResponse<any>>('/api/auth/password-recovery/request', { email });
+    return res.data.data;
+  },
+
+  resetPassword: async (email: string, resetToken: string, newPassword: string) => {
+    const res = await apiClient.post<ApiResponse<any>>('/api/auth/password-recovery/reset', {
+      email,
+      resetToken,
+      newPassword,
+      confirmPassword: newPassword
+    });
+    return res.data.data;
   }
 };
 
@@ -693,4 +708,123 @@ export const healthApi = {
       return { name: services[i].name, status: 'OFFLINE' as const, latencyMs: 999, uptime: '0%' };
     });
   }
+};
+
+// ---------------------------------------------------------------------------
+// 12. Governance & Community Content Moderation API
+// ---------------------------------------------------------------------------
+export interface ContentReportItem {
+  contentReportId: number;
+  reporterUserId: number;
+  reporterName?: string;
+  targetType: string;
+  targetId: number;
+  reason: string;
+  details?: string;
+  status: 'PENDING' | 'RESOLVED' | 'DISMISSED';
+  resolutionNote?: string;
+  createdAt: string;
+  reviewedAt?: string;
+}
+
+export interface ProcessReportPayload {
+  status: 'RESOLVED' | 'DISMISSED';
+  resolutionNote?: string;
+  actionType?: string;
+  actionReason?: string;
+}
+
+export interface ModerationContentItem {
+  contentId: number;
+  contentType: string;
+  title: string;
+  authorId: number;
+  authorName?: string;
+  nodeId?: number;
+  status: string;
+  isPinned: boolean;
+  areCommentsLocked: boolean;
+  pendingReportsCount: number;
+  createdAt: string;
+}
+
+export interface ModerationActionResponse {
+  success: boolean;
+  message: string;
+  contentId: number;
+  contentType: string;
+  action: string;
+  performedByStaffId: number;
+  timestamp: string;
+}
+
+export interface IssueWarningPayload {
+  warningType: string;
+  warningMessage: string;
+  relatedEntityId?: number;
+  relatedEntityType?: string;
+}
+
+export const governanceModerationApi = {
+  // Reports Queue
+  getReports: async (params?: { status?: string; targetType?: string; pageNumber?: number; pageSize?: number }) => {
+    const res = await apiClient.get<ApiResponse<PagedResult<ContentReportItem>>>('/api/governance/reports', { params });
+    return res.data.data;
+  },
+
+  getReportById: async (id: number | string) => {
+    const res = await apiClient.get<ApiResponse<ContentReportItem>>(`/api/governance/reports/${id}`);
+    return res.data.data;
+  },
+
+  processReport: async (id: number | string, payload: ProcessReportPayload) => {
+    const res = await apiClient.post<ApiResponse<ContentReportItem>>(`/api/governance/reports/${id}/process`, payload);
+    return res.data.data;
+  },
+
+  // Community Content Moderation
+  getContentList: async (params?: { contentType?: string; status?: string; nodeId?: number; search?: string; pageNumber?: number; pageSize?: number }) => {
+    const res = await apiClient.get<ApiResponse<PagedResult<ModerationContentItem>>>('/api/governance/moderation/content', { params });
+    return res.data.data;
+  },
+
+  getContentDetail: async (contentType: string, contentId: number | string) => {
+    const res = await apiClient.get<ApiResponse<any>>(`/api/governance/moderation/content/${contentType}/${contentId}`);
+    return res.data.data;
+  },
+
+  lockDiscussion: async (discussionId: number | string, reason?: string) => {
+    const res = await apiClient.put<ApiResponse<ModerationActionResponse>>(`/api/governance/moderation/discussions/${discussionId}/lock`, { reason });
+    return res.data.data;
+  },
+
+  unlockDiscussion: async (discussionId: number | string, reason?: string) => {
+    const res = await apiClient.put<ApiResponse<ModerationActionResponse>>(`/api/governance/moderation/discussions/${discussionId}/unlock`, { reason });
+    return res.data.data;
+  },
+
+  hideContent: async (contentType: string, contentId: number | string, reason?: string) => {
+    const res = await apiClient.put<ApiResponse<ModerationActionResponse>>(`/api/governance/moderation/content/${contentType}/${contentId}/hide`, { reason });
+    return res.data.data;
+  },
+
+  unhideContent: async (contentType: string, contentId: number | string, reason?: string) => {
+    const res = await apiClient.put<ApiResponse<ModerationActionResponse>>(`/api/governance/moderation/content/${contentType}/${contentId}/unhide`, { reason });
+    return res.data.data;
+  },
+
+  pinDiscussion: async (nodeId: number | string, discussionId: number | string, reason?: string) => {
+    const res = await apiClient.put<ApiResponse<ModerationActionResponse>>(`/api/governance/moderation/nodes/${nodeId}/pin/${discussionId}`, { reason });
+    return res.data.data;
+  },
+
+  unpinDiscussion: async (nodeId: number | string, discussionId: number | string, reason?: string) => {
+    const res = await apiClient.put<ApiResponse<ModerationActionResponse>>(`/api/governance/moderation/nodes/${nodeId}/unpin/${discussionId}`, { reason });
+    return res.data.data;
+  },
+
+  issueWarning: async (userId: number | string, payload: IssueWarningPayload) => {
+    const res = await apiClient.post<ApiResponse<ModerationActionResponse>>(`/api/governance/moderation/users/${userId}/warn`, payload);
+    return res.data.data;
+  },
 };

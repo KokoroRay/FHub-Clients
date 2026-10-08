@@ -8,7 +8,7 @@ export const AuthLayout: React.FC = () => {
         <Link to="/" className="inline-flex flex-col items-center gap-2 mb-3 group">
           <div className="w-14 h-14 rounded-2xl bg-white shadow-md border border-slate-200 overflow-hidden flex items-center justify-center group-hover:scale-105 transition-transform p-1">
             <img
-              src="/fhub.jpg"
+              src="/fhub-remove-background.png"
               alt="FHub Logo"
               className="w-full h-full object-contain"
             />
