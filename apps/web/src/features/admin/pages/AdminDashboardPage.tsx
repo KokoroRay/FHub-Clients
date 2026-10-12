@@ -4,6 +4,7 @@ import {
   Users,
   LifeBuoy,
   Network,
+  BookOpen,
   ShieldCheck,
   Building2,
   GraduationCap,
@@ -137,11 +138,11 @@ export const AdminDashboardPage: React.FC = () => {
                   <span>Add Major Track</span>
                 </button>
                 <button
-                  onClick={() => { setShowQuickActions(false); navigate('/course-nodes?action=create'); }}
+                  onClick={() => { setShowQuickActions(false); navigate('/courses?action=create'); }}
                   className="w-full text-left px-3.5 py-2 hover:bg-slate-50 text-slate-700 flex items-center gap-2"
                 >
-                  <Network className="w-3.5 h-3.5 text-blue-600" />
-                  <span>Add Course Node</span>
+                  <BookOpen className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Add Course</span>
                 </button>
               </div>
             )}
@@ -192,13 +193,13 @@ export const AdminDashboardPage: React.FC = () => {
           <p className="text-[11px] text-slate-400 mt-1">{dashboardData?.topStats.urgentTicketsCount ?? 0} urgent priority</p>
         </Link>
 
-        {/* Card 3: COURSE NODES */}
+        {/* Card 3: COURSES */}
         <Link
-          to="/course-nodes"
+          to="/courses"
           className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs hover:border-blue-400 transition-all group"
         >
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">COURSE NODES</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">COURSES</span>
             <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200">
               {dashboardData?.academicOverview.discussionsCount ?? 0} active discussions
             </span>
@@ -489,7 +490,7 @@ export const AdminDashboardPage: React.FC = () => {
 
               <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 text-center">
                 <div className="text-lg font-bold text-slate-900">{dashboardData?.academicOverview.courseNodesCount ?? 0}</div>
-                <div className="text-[10px] font-bold text-slate-500 uppercase mt-0.5">COURSE NODES</div>
+                <div className="text-[10px] font-bold text-slate-500 uppercase mt-0.5">COURSES</div>
                 <div className="text-[9px] text-slate-400">Syllabus live</div>
               </div>
 

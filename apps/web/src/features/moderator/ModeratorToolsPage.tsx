@@ -412,7 +412,7 @@ export const ModeratorToolsPage: React.FC = () => {
 
               {targetType === 'QUESTION' && (
                 <Input
-                  label="Course Node ID (cho hành động Ghim)"
+                  label="Course ID (cho hành động Ghim)"
                   placeholder="Ví dụ: 1"
                   value={targetNodeId}
                   onChange={(e) => setTargetNodeId(e.target.value)}

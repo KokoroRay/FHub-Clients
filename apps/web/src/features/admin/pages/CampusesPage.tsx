@@ -213,7 +213,7 @@ export const CampusesPage: React.FC = () => {
                   <span className="font-bold text-blue-600">{campus.studentCount.toLocaleString()} SV</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Majors / Course Nodes:</span>
+                  <span className="text-slate-500">Majors / Courses:</span>
                   <span className="font-semibold text-slate-800">
                     {campus.totalMajors} Majors / {campus.activeCourseNodes} Courses
                   </span>
