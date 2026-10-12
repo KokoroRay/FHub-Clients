@@ -88,6 +88,9 @@ export const AdminLoginPage: React.FC = () => {
     if (result.accessToken) {
       localStorage.setItem('fhub_token', result.accessToken);
     }
+    if (result.refreshToken) {
+      localStorage.setItem('fhub_refresh_token', result.refreshToken);
+    }
     const roles: string[] = result.user?.roles || [];
     let mappedRole: User['role'] = 'Admin';
     let defaultTitle = 'System Administrator';
@@ -115,7 +118,7 @@ export const AdminLoginPage: React.FC = () => {
       bio: `FHub ${defaultTitle}`,
       badges: []
     };
-    login(userObj, result.accessToken);
+    login(userObj, result.accessToken, result.refreshToken);
 
     const redirectPath = searchParams.get('redirect') || '/';
     navigate(redirectPath, { replace: true });

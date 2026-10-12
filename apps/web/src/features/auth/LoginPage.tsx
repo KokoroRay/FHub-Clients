@@ -30,6 +30,9 @@ export const LoginPage: React.FC = () => {
       if (result.accessToken) {
         localStorage.setItem('fhub_token', result.accessToken);
       }
+      if (result.refreshToken) {
+        localStorage.setItem('fhub_refresh_token', result.refreshToken);
+      }
       const roles = result.user?.roles || [];
       const isAlumni = roles.includes('Alumni');
       const userObj: User = {
@@ -44,7 +47,7 @@ export const LoginPage: React.FC = () => {
         status: 'ACTIVE',
         badges: []
       };
-      login(userObj, result.accessToken);
+      login(userObj, result.accessToken, result.refreshToken);
       navigate('/');
     } catch (err: any) {
       console.warn('Backend login error, fallback to demo mode:', err);

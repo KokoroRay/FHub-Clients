@@ -7,7 +7,7 @@ interface AuthContextType {
   setCurrentCampus: (campus: CampusCode) => void;
   currentRole: UserRole;
   switchRole: (role: UserRole) => void;
-  login: (user: User, token?: string) => void;
+  login: (user: User, token?: string, refreshToken?: string) => void;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -62,9 +62,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('fhub_user', JSON.stringify(updatedUser));
   };
 
-  const login = (user: User, token?: string) => {
+  const login = (user: User, token?: string, refreshToken?: string) => {
     if (token) {
       localStorage.setItem('fhub_token', token);
+    }
+    if (refreshToken) {
+      localStorage.setItem('fhub_refresh_token', refreshToken);
     }
     localStorage.setItem('fhub_user', JSON.stringify(user));
     setCurrentUser(user);
@@ -75,8 +78,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     localStorage.removeItem('fhub_token');
+    localStorage.removeItem('fhub_refresh_token');
     localStorage.removeItem('fhub_user');
     sessionStorage.removeItem('fhub_token');
+    sessionStorage.removeItem('fhub_refresh_token');
     sessionStorage.removeItem('fhub_user');
     setCurrentUser(null);
   };

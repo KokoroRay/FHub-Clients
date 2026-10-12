@@ -73,7 +73,7 @@ export const RightSidebar: React.FC = () => {
         </CardBody>
       </Card>
 
-      {/* Trending Course Nodes */}
+      {/* Trending Courses */}
       <Card>
         <CardHeader className="p-3.5 pb-2.5">
           <div className="flex items-center justify-between">

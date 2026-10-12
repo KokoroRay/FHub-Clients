@@ -99,7 +99,7 @@ export const CourseNodesAdminPage: React.FC = () => {
       });
 
       setShowCreateModal(false);
-      setSuccessNotice(`Created Course Node in DB: ${newCode.toUpperCase()} - ${newTitle}`);
+      setSuccessNotice(`Created Course in DB: ${newCode.toUpperCase()} - ${newTitle}`);
       setTimeout(() => setSuccessNotice(null), 3500);
       refetch();
     } catch (err: any) {
@@ -128,23 +128,23 @@ export const CourseNodesAdminPage: React.FC = () => {
 
       setCourses((prev) => [...prev, created]);
       setShowCreateModal(false);
-      setSuccessNotice(`Created Course Node locally: ${created.code} - ${created.title}`);
+      setSuccessNotice(`Created Course locally: ${created.code} - ${created.title}`);
       setTimeout(() => setSuccessNotice(null), 3500);
     }
   };
 
   const handleDeleteCourse = async (courseId: string, code: string) => {
-    if (window.confirm(`Delete Course Node ${code}?`)) {
+    if (window.confirm(`Delete Course ${code}?`)) {
       try {
         const numericId = courseId.replace(/\D/g, '');
         if (numericId) {
           await deleteCourseMutation.mutateAsync(numericId);
         }
       } catch (e) {
-        console.warn('Delete course node fallback to local:', e);
+        console.warn('Delete course fallback to local:', e);
       }
       setCourses((prev) => prev.filter((c) => c.id !== courseId));
-      setSuccessNotice(`Deleted Course Node ${code}`);
+      setSuccessNotice(`Deleted Course ${code}`);
       setTimeout(() => setSuccessNotice(null), 3000);
     }
   };
@@ -157,10 +157,10 @@ export const CourseNodesAdminPage: React.FC = () => {
           <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
             <span>ACADEMIC TAXONOMY</span>
             <span>&gt;</span>
-            <span className="text-blue-600">COURSE NODES REGISTRY ({courses.length} NODES)</span>
+            <span className="text-blue-600">COURSES REGISTRY ({courses.length} COURSES)</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            Course Nodes Registry
+            Courses Registry
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
             Manage course syllabus, prerequisites, credit mappings, and campus offerings across all degrees.
@@ -172,7 +172,7 @@ export const CourseNodesAdminPage: React.FC = () => {
           className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
         >
           <Plus className="w-3.5 h-3.5" />
-          <span>Add Course Node</span>
+          <span>Add Course</span>
         </button>
       </div>
 
@@ -222,7 +222,7 @@ export const CourseNodesAdminPage: React.FC = () => {
         </select>
       </div>
 
-      {/* Course Nodes Data Table (Figma 61:10719) */}
+      {/* Courses Data Table (Figma 61:10719) */}
       <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
@@ -246,7 +246,7 @@ export const CourseNodesAdminPage: React.FC = () => {
                       </div>
                       <div>
                         <Link
-                          to={`/course-nodes/${c.code}`}
+                          to={`/courses/${c.code}`}
                           className="font-bold text-slate-900 hover:text-blue-600 flex items-center gap-1.5"
                         >
                           <span className="font-mono text-blue-600">{c.code}</span>
@@ -299,7 +299,7 @@ export const CourseNodesAdminPage: React.FC = () => {
 
                   <td className="py-3 px-4 text-right space-x-1.5">
                     <Link
-                      to={`/course-nodes/${c.code}`}
+                      to={`/courses/${c.code}`}
                       className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 transition-colors"
                     >
                       Syllabus
@@ -308,7 +308,7 @@ export const CourseNodesAdminPage: React.FC = () => {
                     <button
                       onClick={() => handleDeleteCourse(c.id, c.code)}
                       className="p-1 rounded text-slate-400 hover:text-rose-600 cursor-pointer"
-                      title="Delete course node"
+                      title="Delete course"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -320,12 +320,12 @@ export const CourseNodesAdminPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Modal: Create Course Node */}
+      {/* Modal: Create Course */}
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-fadeIn">
           <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full p-6 shadow-xl space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-slate-900">Add Course Node</h2>
+              <h2 className="text-base font-bold text-slate-900">Add Course</h2>
               <button
                 onClick={() => setShowCreateModal(false)}
                 className="text-slate-400 hover:text-slate-600 cursor-pointer"
@@ -432,7 +432,7 @@ export const CourseNodesAdminPage: React.FC = () => {
                   type="submit"
                   className="px-4 py-2 rounded-lg bg-blue-600 text-white text-xs font-semibold cursor-pointer hover:bg-blue-700"
                 >
-                  Add Course Node
+                  Add Course
                 </button>
               </div>
             </form>
