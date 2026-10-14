@@ -211,12 +211,13 @@ export interface AdminUserDto {
 }
 
 export const userManagementApi = {
-  getAccounts: async (params?: { search?: string; role?: string; campus?: string; governanceRole?: string; isActive?: boolean; pageNumber?: number; pageSize?: number }) => {
+  getAccounts: async (params?: { search?: string; role?: string; campus?: string; status?: string; governanceRole?: string; isActive?: boolean; pageNumber?: number; pageSize?: number }) => {
     const query = new URLSearchParams();
     if (params?.search) query.set('search', params.search);
     const role = params?.role || params?.governanceRole;
     if (role && role !== 'ALL') query.set('role', role);
     if (params?.campus && params.campus !== 'ALL') query.set('campus', params.campus);
+    if (params?.status && params.status !== 'ALL') query.set('status', params.status);
     if (params?.isActive !== undefined) query.set('isActive', String(params.isActive));
     if (params?.pageNumber) query.set('pageNumber', String(params.pageNumber));
     if (params?.pageSize) query.set('pageSize', String(params.pageSize));
@@ -232,6 +233,28 @@ export const userManagementApi = {
 
   getAccountById: async (id: number | string) => {
     const res = await apiClient.get<ApiResponse<AdminUserDto>>(`/api/users/${id}`);
+    return res.data.data;
+  },
+
+  updateAccountStatus: async (id: number | string, payload: { newStatus: 'ACTIVE' | 'SUSPENDED' | 'LOCKED' | 'PENDING_VERIFICATION'; reason?: string }) => {
+    const res = await apiClient.patch<ApiResponse<AdminUserDto>>(`/api/users/${id}/status`, payload);
+    return res.data.data;
+  },
+
+  deleteAccount: async (id: number | string, reason: string = 'Account deleted by Administrator') => {
+    const res = await apiClient.delete<ApiResponse<any>>(`/api/users/${id}`, {
+      data: { reason }
+    });
+    return res.data.data;
+  },
+
+  assignRole: async (id: number | string, roleCode: string) => {
+    const res = await apiClient.post<ApiResponse<any>>(`/api/users/${id}/roles`, { roleCode });
+    return res.data.data;
+  },
+
+  revokeRole: async (id: number | string, roleCode: string) => {
+    const res = await apiClient.delete<ApiResponse<any>>(`/api/users/${id}/roles/${roleCode}`);
     return res.data.data;
   },
 
@@ -497,27 +520,61 @@ export const courseNodesApi = {
     if (params?.pageNumber) query.set('pageNumber', String(params.pageNumber));
     if (params?.pageSize) query.set('pageSize', String(params.pageSize));
 
-    const res = await apiClient.get<any>(`/api/courses?${query.toString()}`);
-    return res.data?.data ?? res.data;
+    try {
+      const res = await apiClient.get<any>(`/api/courses?${query.toString()}`);
+      return res.data?.data ?? res.data;
+    } catch {
+      const res = await apiClient.get<any>(`/api/course-nodes?${query.toString()}`);
+      return res.data?.data ?? res.data;
+    }
   },
 
   getCourseNodeById: async (id: number | string) => {
-    const res = await apiClient.get<any>(`/api/courses/${id}`);
-    return res.data?.data ?? res.data;
+    try {
+      const res = await apiClient.get<any>(`/api/courses/${id}`);
+      return res.data?.data ?? res.data;
+    } catch {
+      const res = await apiClient.get<any>(`/api/course-nodes/${id}`);
+      return res.data?.data ?? res.data;
+    }
   },
 
   createCourseNode: async (payload: { courseCode: string; courseName: string; description?: string; creditCount?: number; isActive?: boolean }) => {
-    const res = await apiClient.post<any>('/api/courses', payload);
-    return res.data?.data ?? res.data;
+    try {
+      const res = await apiClient.post<any>('/api/courses', payload);
+      return res.data?.data ?? res.data;
+    } catch (e: any) {
+      if (e?.response?.status === 404) {
+        const res = await apiClient.post<any>('/api/course-nodes', payload);
+        return res.data?.data ?? res.data;
+      }
+      throw e;
+    }
   },
 
-  updateCourseNode: async (id: number | string, payload: { courseName: string; description?: string; creditCount?: number; isActive?: boolean }) => {
-    const res = await apiClient.put<ApiResponse<CourseNodeDto>>(`/api/courses/${id}`, payload);
-    return res.data.data;
+  updateCourseNode: async (id: number | string, payload: { courseCode?: string; courseName: string; description?: string; creditCount?: number; isActive?: boolean }) => {
+    const fullPayload = {
+      courseCode: payload.courseCode ?? '',
+      courseName: payload.courseName,
+      description: payload.description,
+      creditCount: payload.creditCount,
+      isActive: payload.isActive ?? true
+    };
+    try {
+      const res = await apiClient.put<any>(`/api/courses/${id}`, fullPayload);
+      return res.data?.data ?? res.data;
+    } catch {
+      const res = await apiClient.put<any>(`/api/course-nodes/${id}`, fullPayload);
+      return res.data?.data ?? res.data;
+    }
   },
 
   deleteCourseNode: async (id: number | string) => {
-    await apiClient.delete(`/api/courses/${id}`);
+    try {
+      await apiClient.delete(`/api/courses/${id}`);
+    } catch {
+      await apiClient.delete(`/api/course-nodes/${id}`);
+    }
   }
 };
 

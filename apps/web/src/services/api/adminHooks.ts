@@ -84,7 +84,9 @@ export const useAssignUserRole = () => {
   return useMutation({
     mutationFn: ({ userId, roleCode }: { userId: number | string; roleCode: string }) =>
       authApi.assignRole(userId, roleCode),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users-accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users-accounts', String(variables.userId)] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'governance-accounts'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'user-roles'] });
     }
@@ -96,9 +98,36 @@ export const useRevokeUserRole = () => {
   return useMutation({
     mutationFn: ({ userId, roleCode }: { userId: number | string; roleCode: string }) =>
       authApi.revokeRole(userId, roleCode),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users-accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users-accounts', String(variables.userId)] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'governance-accounts'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'user-roles'] });
+    }
+  });
+};
+
+export const useUpdateUserAccountStatus = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: number | string; payload: { newStatus: 'ACTIVE' | 'SUSPENDED' | 'LOCKED' | 'PENDING_VERIFICATION'; reason?: string } }) =>
+      userManagementApi.updateAccountStatus(id, payload),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users-accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users-accounts', String(variables.id)] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'governance-accounts'] });
+    }
+  });
+};
+
+export const useDeleteUserAccount = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: number | string; reason?: string }) =>
+      userManagementApi.deleteAccount(id, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users-accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'governance-accounts'] });
     }
   });
 };

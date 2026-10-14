@@ -15,13 +15,15 @@ import {
   FileText,
   MessageSquare,
   Loader2,
+  Pencil,
 } from 'lucide-react';
 import { DetailedCourseNode } from '../../../services/adminMockData';
-import { useCourseNodes, useCreateCourseNode, useDeleteCourseNode } from '../../../services/api';
+import { useCourseNodes, useCreateCourseNode, useUpdateCourseNode, useDeleteCourseNode } from '../../../services/api';
 
 export const CourseNodesAdminPage: React.FC = () => {
   const { data: courseNodesData, isLoading, refetch } = useCourseNodes();
   const createCourseMutation = useCreateCourseNode();
+  const updateCourseMutation = useUpdateCourseNode();
   const deleteCourseMutation = useDeleteCourseNode();
 
   const [courses, setCourses] = useState<DetailedCourseNode[]>([]);
@@ -29,21 +31,31 @@ export const CourseNodesAdminPage: React.FC = () => {
   const [selectedMajor, setSelectedMajor] = useState('ALL');
   const [selectedSemester, setSelectedSemester] = useState('ALL');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingCourse, setEditingCourse] = useState<DetailedCourseNode | null>(null);
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
 
-  // Form State
+  // Form State (Create)
   const [newCode, setNewCode] = useState('');
   const [newTitle, setNewTitle] = useState('');
   const [newVnTitle, setNewVnTitle] = useState('');
+  const [newDescription, setNewDescription] = useState('');
   const [newMajor, setNewMajor] = useState('SE');
-  const [newSemester, setNewSemester] = useState(5);
   const [newCredits, setNewCredits] = useState(3);
   const [newPrereqs, setNewPrereqs] = useState('');
+
+  // Form State (Edit)
+  const [editCode, setEditCode] = useState('');
+  const [editTitle, setEditTitle] = useState('');
+  const [editVnTitle, setEditVnTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editMajor, setEditMajor] = useState('SE');
+  const [editCredits, setEditCredits] = useState(3);
+  const [editPrereqs, setEditPrereqs] = useState('');
 
   useEffect(() => {
     if (courseNodesData?.items) {
       const mapped: DetailedCourseNode[] = courseNodesData.items.map((c: any) => ({
-        id: String(c.courseNodeId),
+        id: String(c.courseId ?? c.courseNodeId ?? ''),
         code: c.courseCode || '',
         title: c.courseName || '',
         vietnameseTitle: c.vietnameseTitle || c.courseName || '',
@@ -89,12 +101,14 @@ export const CourseNodesAdminPage: React.FC = () => {
       .map((p) => p.trim().toUpperCase())
       .filter(Boolean);
 
+    const desc = newDescription.trim() || `Môn học ${newTitle.trim()} thuộc chuyên ngành ${newMajor} tại FPT University.`;
+
     try {
       await createCourseMutation.mutateAsync({
         courseCode: newCode.trim().toUpperCase(),
         courseName: newTitle.trim(),
         creditCount: Number(newCredits) || 3,
-        description: `Môn học ${newTitle.trim()} thuộc chuyên ngành ${newMajor} tại FPT University.`,
+        description: desc,
         isActive: true,
       });
 
@@ -108,11 +122,11 @@ export const CourseNodesAdminPage: React.FC = () => {
         code: newCode.trim().toUpperCase(),
         title: newTitle.trim(),
         vietnameseTitle: newVnTitle.trim() || newTitle.trim(),
-        description: `Môn học ${newTitle} thuộc chuyên ngành ${newMajor} tại FPT University.`,
+        description: desc,
         majorCode: newMajor,
         department: 'Kỹ thuật phần mềm',
         syllabusVersion: 'v2026.1',
-        semester: Number(newSemester) || 0,
+        semester: 0,
         credits: Number(newCredits) || 0,
         followerCount: 0,
         discussionCount: 0,
@@ -129,6 +143,88 @@ export const CourseNodesAdminPage: React.FC = () => {
       setCourses((prev) => [...prev, created]);
       setShowCreateModal(false);
       setSuccessNotice(`Created Course locally: ${created.code} - ${created.title}`);
+      setTimeout(() => setSuccessNotice(null), 3500);
+    }
+  };
+
+  const handleOpenEditModal = (c: DetailedCourseNode) => {
+    setEditingCourse(c);
+    setEditCode(c.code);
+    setEditTitle(c.title);
+    setEditVnTitle(c.vietnameseTitle || c.title);
+    setEditDescription(c.description || '');
+    setEditMajor(c.majorCode || 'SE');
+    setEditCredits(c.credits || 3);
+    setEditPrereqs((c.prerequisites || []).join(', '));
+  };
+
+  const handleUpdateCourse = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCourse || !editCode.trim() || !editTitle.trim()) return;
+
+    const prereqList = editPrereqs
+      .split(',')
+      .map((p) => p.trim().toUpperCase())
+      .filter(Boolean);
+
+    const desc = editDescription.trim() || `Môn học ${editTitle.trim()} thuộc chuyên ngành ${editMajor} tại FPT University.`;
+    const numericId = editingCourse.id.replace(/\D/g, '');
+
+    try {
+      if (numericId) {
+        await updateCourseMutation.mutateAsync({
+          id: numericId,
+          payload: {
+            courseCode: editCode.trim().toUpperCase(),
+            courseName: editTitle.trim(),
+            creditCount: Number(editCredits) || 3,
+            description: desc,
+            isActive: true,
+          }
+        });
+      }
+
+      setCourses((prev) =>
+        prev.map((item) =>
+          item.id === editingCourse.id
+            ? {
+                ...item,
+                code: editCode.trim().toUpperCase(),
+                title: editTitle.trim(),
+                vietnameseTitle: editVnTitle.trim() || editTitle.trim(),
+                description: desc,
+                majorCode: editMajor,
+                credits: Number(editCredits) || 3,
+                prerequisites: prereqList,
+              }
+            : item
+        )
+      );
+
+      setEditingCourse(null);
+      setSuccessNotice(`Updated Course: ${editCode.toUpperCase()} - ${editTitle}`);
+      setTimeout(() => setSuccessNotice(null), 3500);
+      refetch();
+    } catch (err: any) {
+      // Fallback update in state
+      setCourses((prev) =>
+        prev.map((item) =>
+          item.id === editingCourse.id
+            ? {
+                ...item,
+                code: editCode.trim().toUpperCase(),
+                title: editTitle.trim(),
+                vietnameseTitle: editVnTitle.trim() || editTitle.trim(),
+                description: desc,
+                majorCode: editMajor,
+                credits: Number(editCredits) || 3,
+                prerequisites: prereqList,
+              }
+            : item
+        )
+      );
+      setEditingCourse(null);
+      setSuccessNotice(`Updated Course locally: ${editCode.toUpperCase()} - ${editTitle}`);
       setTimeout(() => setSuccessNotice(null), 3500);
     }
   };
@@ -306,6 +402,14 @@ export const CourseNodesAdminPage: React.FC = () => {
                     </Link>
 
                     <button
+                      onClick={() => handleOpenEditModal(c)}
+                      className="p-1 rounded text-slate-400 hover:text-blue-600 cursor-pointer"
+                      title="Edit course"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+
+                    <button
                       onClick={() => handleDeleteCourse(c.id, c.code)}
                       className="p-1 rounded text-slate-400 hover:text-rose-600 cursor-pointer"
                       title="Delete course"
@@ -371,7 +475,7 @@ export const CourseNodesAdminPage: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-slate-700">Major:</label>
                   <select
@@ -379,22 +483,11 @@ export const CourseNodesAdminPage: React.FC = () => {
                     onChange={(e) => setNewMajor(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-xs"
                   >
-                    <option value="SE">SE</option>
-                    <option value="IA">IA</option>
-                    <option value="AI">AI</option>
-                    <option value="GD">GD</option>
+                    <option value="SE">Software Engineering (SE)</option>
+                    <option value="IA">Information Assurance (IA)</option>
+                    <option value="AI">Artificial Intelligence (AI)</option>
+                    <option value="GD">Graphic Design (GD)</option>
                   </select>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700">Sem:</label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={9}
-                    value={newSemester}
-                    onChange={(e) => setNewSemester(Number(e.target.value))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs"
-                  />
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-slate-700">Credits:</label>
@@ -407,6 +500,17 @@ export const CourseNodesAdminPage: React.FC = () => {
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs"
                   />
                 </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-700">Description:</label>
+                <textarea
+                  rows={3}
+                  placeholder="Mô tả tóm tắt nội dung môn học, chuẩn đầu ra..."
+                  value={newDescription}
+                  onChange={(e) => setNewDescription(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                />
               </div>
 
               <div className="space-y-1">
@@ -424,7 +528,7 @@ export const CourseNodesAdminPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold cursor-pointer"
+                  className="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold cursor-pointer hover:bg-slate-200"
                 >
                   Cancel
                 </button>
@@ -433,6 +537,129 @@ export const CourseNodesAdminPage: React.FC = () => {
                   className="px-4 py-2 rounded-lg bg-blue-600 text-white text-xs font-semibold cursor-pointer hover:bg-blue-700"
                 >
                   Add Course
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Edit Course */}
+      {editingCourse && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-fadeIn">
+          <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full p-6 shadow-xl space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-bold text-slate-900">Edit Course</h2>
+                <p className="text-xs text-slate-500">Update course details and credit information</p>
+              </div>
+              <button
+                onClick={() => setEditingCourse(null)}
+                className="text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateCourse} className="space-y-3">
+              <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-700">Code:</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="PRN231"
+                    value={editCode}
+                    onChange={(e) => setEditCode(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono font-bold uppercase"
+                  />
+                </div>
+                <div className="col-span-2 space-y-1">
+                  <label className="text-xs font-semibold text-slate-700">English Title:</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Course title..."
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-700">Vietnamese Title:</label>
+                <input
+                  type="text"
+                  placeholder="Tên môn học tiếng Việt..."
+                  value={editVnTitle}
+                  onChange={(e) => setEditVnTitle(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-700">Major:</label>
+                  <select
+                    value={editMajor}
+                    onChange={(e) => setEditMajor(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-xs"
+                  >
+                    <option value="SE">Software Engineering (SE)</option>
+                    <option value="IA">Information Assurance (IA)</option>
+                    <option value="AI">Artificial Intelligence (AI)</option>
+                    <option value="GD">Graphic Design (GD)</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-700">Credits:</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={10}
+                    value={editCredits}
+                    onChange={(e) => setEditCredits(Number(e.target.value))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-700">Description:</label>
+                <textarea
+                  rows={3}
+                  placeholder="Mô tả tóm tắt nội dung môn học, chuẩn đầu ra..."
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-700">Prerequisites (comma-separated):</label>
+                <input
+                  type="text"
+                  placeholder="PRO192, CSD201"
+                  value={editPrereqs}
+                  onChange={(e) => setEditPrereqs(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono"
+                />
+              </div>
+
+              <div className="pt-3 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingCourse(null)}
+                  className="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold cursor-pointer hover:bg-slate-200"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-lg bg-blue-600 text-white text-xs font-semibold cursor-pointer hover:bg-blue-700"
+                >
+                  Save Changes
                 </button>
               </div>
             </form>
