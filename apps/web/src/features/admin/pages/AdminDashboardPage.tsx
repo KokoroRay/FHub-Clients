@@ -128,7 +128,7 @@ export const AdminDashboardPage: React.FC = () => {
                   className="w-full text-left px-3.5 py-2 hover:bg-slate-50 text-slate-700 flex items-center gap-2"
                 >
                   <Building2 className="w-3.5 h-3.5 text-blue-600" />
-                  <span>Add Campus Partition</span>
+                  <span>Add Campus Node</span>
                 </button>
                 <button
                   onClick={() => { setShowQuickActions(false); navigate('/majors?action=create'); }}

@@ -192,6 +192,15 @@ export const dashboardApi = {
   }
 };
 
+export interface AccountStatusHistoryDto {
+  statusHistoryId: number;
+  oldStatus?: string;
+  newStatus: string;
+  reason?: string;
+  changeSource: string;
+  changedAt: string;
+}
+
 export interface AdminUserDto {
   userId: number;
   email: string;
@@ -208,6 +217,18 @@ export interface AdminUserDto {
   karma: number;
   createdAt: string;
   lastLoginAt?: string;
+  // Security metadata & Detail fields
+  emailVerifiedAt?: string;
+  verificationMethod?: string;
+  verifiedAt?: string;
+  twoFactorEnabled?: boolean;
+  twoFactorMethod?: string;
+  failedLoginCount?: number;
+  lockedUntil?: string;
+  passwordChangedAt?: string;
+  deletedAt?: string;
+  updatedAt?: string;
+  statusHistory?: AccountStatusHistoryDto[];
 }
 
 export const userManagementApi = {
@@ -236,14 +257,19 @@ export const userManagementApi = {
     return res.data.data;
   },
 
-  updateAccountStatus: async (id: number | string, payload: { newStatus: 'ACTIVE' | 'SUSPENDED' | 'LOCKED' | 'PENDING_VERIFICATION'; reason?: string }) => {
-    const res = await apiClient.patch<ApiResponse<AdminUserDto>>(`/api/users/${id}/status`, payload);
+  updateAccountStatus: async (id: number | string, payload: { newStatus: 'ACTIVE' | 'SUSPENDED' | 'LOCKED' | 'PENDING' | 'PENDING_VERIFICATION' | 'DELETED'; reason?: string }) => {
+    const res = await apiClient.patch<ApiResponse<AdminUserDto>>(`/api/users/${id}/status`, {
+      newStatus: payload.newStatus === 'PENDING_VERIFICATION' ? 'PENDING' : payload.newStatus,
+      reason: payload.reason && payload.reason.trim().length >= 5
+        ? payload.reason.trim()
+        : `Status updated to ${payload.newStatus} by Administrator`
+    });
     return res.data.data;
   },
 
   deleteAccount: async (id: number | string, reason: string = 'Account deleted by Administrator') => {
     const res = await apiClient.delete<ApiResponse<any>>(`/api/users/${id}`, {
-      data: { reason }
+      data: { reason: reason && reason.trim().length >= 5 ? reason.trim() : 'Account deleted by Administrator' }
     });
     return res.data.data;
   },
@@ -298,6 +324,20 @@ export const userManagementApi = {
   processVerification: async (id: number | string, payload: { status: 'APPROVED' | 'REJECTED'; reviewNote?: string }) => {
     const res = await apiClient.put<ApiResponse<any>>(`/api/manual-verifications/${id}/process`, payload);
     return res.data?.data ?? res.data;
+  },
+
+  getVerificationByUserId: async (userId: number | string) => {
+    const res = await apiClient.get<ApiResponse<any>>(`/api/manual-verifications/user/${userId}`);
+    return res.data?.data ?? null;
+  },
+
+  getVerificationsList: async (status?: string, pageNumber: number = 1, pageSize: number = 50) => {
+    const params = new URLSearchParams();
+    if (status && status !== 'ALL') params.set('status', status);
+    params.set('pageNumber', String(pageNumber));
+    params.set('pageSize', String(pageSize));
+    const res = await apiClient.get<ApiResponse<any[]>>(`/api/manual-verifications?${params.toString()}`);
+    return res.data?.data ?? [];
   }
 };
 

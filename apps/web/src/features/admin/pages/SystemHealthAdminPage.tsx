@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Activity,
   Server,
@@ -7,29 +7,13 @@ import {
   CheckCircle2,
   AlertTriangle,
   RefreshCw,
-  Sparkles,
-  SlidersHorizontal,
-  Sliders,
   ShieldCheck,
   Loader2,
 } from 'lucide-react';
-import { AISensitivityConfig } from '../../../services/adminMockData';
 import { useSystemHealthStatus } from '../../../services/api';
-
-const defaultAiConfig: AISensitivityConfig = {
-  toxicityThreshold: 0.75,
-  hateSpeechThreshold: 0.65,
-  spamThreshold: 0.80,
-  sexualContentThreshold: 0.70,
-  academicDishonestyThreshold: 0.70,
-  autoQuarantineAction: 'FLAG_FOR_REVIEW',
-  realtimeScanEnabled: true,
-  aiSummarizerModel: 'Vertex AI Gemini 1.5 Pro',
-};
 
 export const SystemHealthAdminPage: React.FC = () => {
   const { data: healthData, isLoading, refetch } = useSystemHealthStatus();
-  const [aiConfig, setAiConfig] = useState<AISensitivityConfig>(defaultAiConfig);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
 
@@ -57,12 +41,6 @@ export const SystemHealthAdminPage: React.FC = () => {
     setTimeout(() => setSaveNotice(null), 3000);
   };
 
-  const handleSaveAiConfig = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaveNotice('Synchronized AI content moderation sensitivity thresholds with Vertex AI.');
-    setTimeout(() => setSaveNotice(null), 3500);
-  };
-
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
@@ -71,13 +49,13 @@ export const SystemHealthAdminPage: React.FC = () => {
           <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
             <span>DEVOPS & TELEMETRY</span>
             <span>&gt;</span>
-            <span className="text-blue-600">SLA & AI MODERATION HEALTH</span>
+            <span className="text-blue-600">SYSTEM HEALTH & SLA</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            Microservices SLA & AI Moderation
+            Microservices SLA & System Health
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Realtime SLA monitoring, p95 latencies across 7 core services, and AI sensitivity threshold configuration.
+            Realtime SLA monitoring, p95 latencies, and cluster telemetry across all 7 core microservices.
           </p>
         </div>
 
@@ -182,104 +160,6 @@ export const SystemHealthAdminPage: React.FC = () => {
             })
           )}
         </div>
-      </div>
-
-      {/* AI Moderation Engine Sensitivity Threshold Controls */}
-      <div className="bg-white rounded-xl border border-slate-200/90 p-5 shadow-2xs space-y-5">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-blue-600" />
-            <div>
-              <h2 className="font-bold text-xs text-slate-900 uppercase tracking-wider">AI Content Moderation Sensitivity Thresholds</h2>
-              <p className="text-[11px] text-slate-400">Configure Vertex AI Gemini 1.5 Pro automated scan limits</p>
-            </div>
-          </div>
-
-          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
-            Realtime Scan: ON
-          </span>
-        </div>
-
-        <form onSubmit={handleSaveAiConfig} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5 p-3.5 bg-slate-50 rounded-lg">
-              <div className="flex justify-between text-xs">
-                <label className="font-semibold text-slate-800">Toxicity Threshold:</label>
-                <span className="font-mono font-bold text-blue-600">{(aiConfig.toxicityThreshold * 100).toFixed(0)}%</span>
-              </div>
-              <input
-                type="range"
-                min="0.1"
-                max="0.99"
-                step="0.05"
-                value={aiConfig.toxicityThreshold}
-                onChange={(e) => setAiConfig({ ...aiConfig, toxicityThreshold: parseFloat(e.target.value) })}
-                className="w-full accent-blue-600"
-              />
-              <span className="text-[10px] text-slate-400 block">Flag content when toxic sentiment exceeds limit.</span>
-            </div>
-
-            <div className="space-y-1.5 p-3.5 bg-slate-50 rounded-lg">
-              <div className="flex justify-between text-xs">
-                <label className="font-semibold text-slate-800">Hate Speech Limit:</label>
-                <span className="font-mono font-bold text-blue-600">{(aiConfig.hateSpeechThreshold * 100).toFixed(0)}%</span>
-              </div>
-              <input
-                type="range"
-                min="0.1"
-                max="0.99"
-                step="0.05"
-                value={aiConfig.hateSpeechThreshold}
-                onChange={(e) => setAiConfig({ ...aiConfig, hateSpeechThreshold: parseFloat(e.target.value) })}
-                className="w-full accent-blue-600"
-              />
-              <span className="text-[10px] text-slate-400 block">Automated quarantine for targeted harassment.</span>
-            </div>
-
-            <div className="space-y-1.5 p-3.5 bg-slate-50 rounded-lg">
-              <div className="flex justify-between text-xs">
-                <label className="font-semibold text-slate-800">Spam & Commercial Bot Filter:</label>
-                <span className="font-mono font-bold text-blue-600">{(aiConfig.spamThreshold * 100).toFixed(0)}%</span>
-              </div>
-              <input
-                type="range"
-                min="0.1"
-                max="0.99"
-                step="0.05"
-                value={aiConfig.spamThreshold}
-                onChange={(e) => setAiConfig({ ...aiConfig, spamThreshold: parseFloat(e.target.value) })}
-                className="w-full accent-blue-600"
-              />
-              <span className="text-[10px] text-slate-400 block">Identifies unauthorized promotional links and scrapers.</span>
-            </div>
-
-            <div className="space-y-1.5 p-3.5 bg-slate-50 rounded-lg">
-              <div className="flex justify-between text-xs">
-                <label className="font-semibold text-slate-800">Academic Dishonesty Detection:</label>
-                <span className="font-mono font-bold text-blue-600">{(aiConfig.academicDishonestyThreshold * 100).toFixed(0)}%</span>
-              </div>
-              <input
-                type="range"
-                min="0.1"
-                max="0.99"
-                step="0.05"
-                value={aiConfig.academicDishonestyThreshold}
-                onChange={(e) => setAiConfig({ ...aiConfig, academicDishonestyThreshold: parseFloat(e.target.value) })}
-                className="w-full accent-blue-600"
-              />
-              <span className="text-[10px] text-slate-400 block">Immediate alert on exam leak or cheating keywords.</span>
-            </div>
-          </div>
-
-          <div className="flex justify-end pt-1">
-            <button
-              type="submit"
-              className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
-            >
-              Save AI Thresholds
-            </button>
-          </div>
-        </form>
       </div>
     </div>
   );

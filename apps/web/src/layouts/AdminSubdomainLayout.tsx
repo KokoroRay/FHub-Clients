@@ -31,6 +31,13 @@ import { useAuth } from '../context/AuthContext';
 import { mockCampuses } from '../services/mockData';
 import { Dropdown } from '../components/common/Dropdown';
 import { setSubdomainMode } from '../utils/subdomain';
+import {
+  useGovernanceAccounts,
+  useSupportTickets,
+  useCampuses,
+  useMajors,
+  useCourseNodes,
+} from '../services/api';
 
 export const AdminSubdomainLayout: React.FC = () => {
   const { currentUser, currentCampus, setCurrentCampus, logout } = useAuth();
@@ -38,13 +45,54 @@ export const AdminSubdomainLayout: React.FC = () => {
   const [selectedPartition, setSelectedPartition] = useState<string>('ALL');
   const navigate = useNavigate();
 
+  // Real backend queries for accurate navigation telemetry
+  const { data: accountsData } = useGovernanceAccounts({ pageSize: 1 });
+  const { data: ticketsData } = useSupportTickets({ pageSize: 1 });
+  const { data: campusesData } = useCampuses();
+  const { data: majorsData } = useMajors({ pageSize: 1 });
+  const { data: courseNodesData } = useCourseNodes({ pageSize: 1 });
+
+  const usersCount = accountsData?.totalCount !== undefined
+    ? accountsData.totalCount >= 1000
+      ? `${(accountsData.totalCount / 1000).toFixed(1)}k`
+      : `${accountsData.totalCount}`
+    : '...';
+
+  const ticketsCount = ticketsData?.totalCount !== undefined
+    ? `${ticketsData.totalCount}`
+    : '...';
+
+  const rawCampusesList = campusesData?.items
+    ? campusesData.items
+    : Array.isArray(campusesData)
+    ? campusesData
+    : [];
+  const campusesCount = campusesData?.totalCount !== undefined
+    ? `${campusesData.totalCount}`
+    : (rawCampusesList.length > 0 ? `${rawCampusesList.length}` : (campusesData ? '0' : '...'));
+
+  const majorsCount = majorsData?.totalCount !== undefined
+    ? `${majorsData.totalCount}`
+    : (majorsData?.items ? `${majorsData.items.length}` : (majorsData ? '0' : '...'));
+
+  const coursesCount = courseNodesData?.totalCount !== undefined
+    ? `${courseNodesData.totalCount}`
+    : (courseNodesData?.items ? `${courseNodesData.items.length}` : (courseNodesData ? '0' : '...'));
+
+  const campusOptions = rawCampusesList.length > 0
+    ? rawCampusesList.map((c: any) => ({
+        code: c.campusCode || c.code,
+        name: c.campusName || c.name || c.campusCode,
+      }))
+    : mockCampuses;
+
   const navGroups = [
     {
       title: 'MAIN NAVIGATION',
       items: [
         { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-        { name: 'Users', path: '/users', icon: Users, badge: '12.4k', badgeColor: 'bg-slate-100 text-slate-600' },
-        { name: 'Support Tickets', path: '/tickets', icon: LifeBuoy, badge: '24', badgeColor: 'bg-amber-100 text-amber-700' },
+        { name: 'Users', path: '/users', icon: Users, badge: usersCount, badgeColor: 'bg-slate-100 text-slate-600' },
+        { name: 'Support Tickets', path: '/tickets', icon: LifeBuoy, badge: ticketsCount, badgeColor: 'bg-amber-100 text-amber-700' },
         { name: 'Reputation Rules', path: '/reputation', icon: Zap },
         { name: 'Achievement Badges', path: '/badges', icon: Award },
       ],
@@ -59,9 +107,9 @@ export const AdminSubdomainLayout: React.FC = () => {
     {
       title: 'ACADEMIC TAXONOMY',
       items: [
-        { name: 'Campuses', path: '/campuses', icon: Building2, badge: '5', badgeColor: 'bg-slate-100 text-slate-600' },
-        { name: 'Majors', path: '/majors', icon: GraduationCap, badge: '32', badgeColor: 'bg-slate-100 text-slate-600' },
-        { name: 'Courses', path: '/courses', icon: BookOpen, badge: '186', badgeColor: 'bg-slate-100 text-slate-600' },
+        { name: 'Campuses', path: '/campuses', icon: Building2, badge: campusesCount, badgeColor: 'bg-slate-100 text-slate-600' },
+        { name: 'Majors', path: '/majors', icon: GraduationCap, badge: majorsCount, badgeColor: 'bg-slate-100 text-slate-600' },
+        { name: 'Courses', path: '/courses', icon: BookOpen, badge: coursesCount, badgeColor: 'bg-slate-100 text-slate-600' },
       ],
     },
     {
@@ -147,13 +195,13 @@ export const AdminSubdomainLayout: React.FC = () => {
               trigger={
                 <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200/70 transition-colors">
                   <MapPin className="w-3.5 h-3.5 text-blue-600" />
-                  <span>{selectedPartition === 'ALL' ? 'All Campuses (5 Nodes)' : `Campus: ${selectedPartition}`}</span>
+                  <span>{selectedPartition === 'ALL' ? `All Campuses (${campusOptions.length} Nodes)` : `Campus: ${selectedPartition}`}</span>
                   <ChevronDown className="w-3 h-3 text-slate-400" />
                 </button>
               }
               items={[
-                { id: 'ALL', label: 'All Campuses (5 Phân hiệu)', onClick: () => setSelectedPartition('ALL') },
-                ...mockCampuses.map((c) => ({
+                { id: 'ALL', label: `All Campuses (${campusOptions.length} Phân hiệu)`, onClick: () => setSelectedPartition('ALL') },
+                ...campusOptions.map((c: any) => ({
                   id: c.code,
                   label: `${c.code} - ${c.name}`,
                   onClick: () => {

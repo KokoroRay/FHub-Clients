@@ -11,7 +11,6 @@ import {
   CheckCircle2,
   AlertTriangle,
   ArrowUpRight,
-  RefreshCw,
   Sparkles,
   ChevronRight,
   SlidersHorizontal,
@@ -26,7 +25,6 @@ export const CampusesPage: React.FC = () => {
 
   const [campuses, setCampuses] = useState<DetailedCampus[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
   const [syncNotice, setSyncNotice] = useState<string | null>(null);
 
   // New Campus Form State
@@ -64,16 +62,6 @@ export const CampusesPage: React.FC = () => {
       setCampuses(mapped);
     }
   }, [campusesData]);
-
-  const handleSyncAll = async () => {
-    setIsSyncing(true);
-    await refetch();
-    setTimeout(() => {
-      setIsSyncing(false);
-      setSyncNotice('All 5 Campus Partition Nodes have been synchronized successfully with Taxonomy microservice!');
-      setTimeout(() => setSyncNotice(null), 3500);
-    }, 700);
-  };
 
   const handleCreateCampus = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -146,15 +134,6 @@ export const CampusesPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={handleSyncAll}
-            disabled={isSyncing}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${isSyncing ? 'animate-spin' : ''}`} />
-            <span>Sync All 5 Partitions</span>
-          </button>
-
           <button
             onClick={() => setShowCreateModal(true)}
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
