@@ -16,6 +16,8 @@ export default defineConfig({
       '/api/users': { target: 'http://localhost:5111', changeOrigin: true },
       '/api/campuses': { target: 'http://localhost:5255', changeOrigin: true },
       '/api/majors': { target: 'http://localhost:5255', changeOrigin: true },
+      '/api/courses': { target: 'http://localhost:5255', changeOrigin: true },
+      '/api/taxonomy': { target: 'http://localhost:5255', changeOrigin: true },
       '/api/course-nodes': { target: 'http://localhost:5255', changeOrigin: true },
       '/api/dashboard': { target: 'http://localhost:5249', changeOrigin: true },
       '/api/governance-accounts': { target: 'http://localhost:5249', changeOrigin: true },

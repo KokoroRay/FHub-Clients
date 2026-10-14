@@ -117,7 +117,7 @@ export const CourseNodeDetailPage: React.FC = () => {
             to="/course-nodes"
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700"
           >
-            <ArrowLeft className="w-4 h-4" /> Back to Course Nodes
+            <ArrowLeft className="w-4 h-4" /> Back to Courses
           </Link>
         </div>
         <div className="p-8 bg-white rounded-xl border border-slate-200 text-center space-y-3">
@@ -143,7 +143,7 @@ export const CourseNodeDetailPage: React.FC = () => {
           to="/course-nodes"
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700"
         >
-          <ArrowLeft className="w-4 h-4" /> Back to Course Nodes
+          <ArrowLeft className="w-4 h-4" /> Back to Courses
         </Link>
         <span className="text-[11px] font-mono text-slate-400">Syllabus: {course.syllabusVersion}</span>
       </div>

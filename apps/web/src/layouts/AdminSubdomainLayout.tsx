@@ -53,7 +53,7 @@ export const AdminSubdomainLayout: React.FC = () => {
       items: [
         { name: 'Campuses', path: '/campuses', icon: Building2, badge: '5', badgeColor: 'bg-slate-100 text-slate-600' },
         { name: 'Majors', path: '/majors', icon: GraduationCap, badge: '32', badgeColor: 'bg-slate-100 text-slate-600' },
-        { name: 'Course Nodes', path: '/course-nodes', icon: Network, badge: '186', badgeColor: 'bg-slate-100 text-slate-600' },
+        { name: 'Courses', path: '/course-nodes', icon: Network, badge: '186', badgeColor: 'bg-slate-100 text-slate-600' },
       ],
     },
     {
