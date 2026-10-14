@@ -7,6 +7,7 @@ import {
   Building2,
   GraduationCap,
   Network,
+  BookOpen,
   Award,
   Zap,
   FileSpreadsheet,
@@ -49,11 +50,18 @@ export const AdminSubdomainLayout: React.FC = () => {
       ],
     },
     {
+      title: 'MODERATION & GOVERNANCE',
+      items: [
+        { name: 'Content Moderation', path: '/moderation', icon: ShieldCheck, badge: 'Reports', badgeColor: 'bg-rose-100 text-rose-700' },
+        { name: 'Verification Queue', path: '/verifications', icon: CheckCircle2, badge: 'KYC', badgeColor: 'bg-blue-100 text-blue-700' },
+      ],
+    },
+    {
       title: 'ACADEMIC TAXONOMY',
       items: [
         { name: 'Campuses', path: '/campuses', icon: Building2, badge: '5', badgeColor: 'bg-slate-100 text-slate-600' },
         { name: 'Majors', path: '/majors', icon: GraduationCap, badge: '32', badgeColor: 'bg-slate-100 text-slate-600' },
-        { name: 'Courses', path: '/course-nodes', icon: Network, badge: '186', badgeColor: 'bg-slate-100 text-slate-600' },
+        { name: 'Courses', path: '/courses', icon: BookOpen, badge: '186', badgeColor: 'bg-slate-100 text-slate-600' },
       ],
     },
     {

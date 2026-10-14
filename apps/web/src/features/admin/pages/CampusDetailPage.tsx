@@ -189,7 +189,7 @@ export const CampusDetailPage: React.FC = () => {
             <p className="text-xl font-bold text-slate-900 mt-0.5">{campus.totalMajors} Majors</p>
           </div>
           <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase">Active Course Nodes</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase">Active Courses</span>
             <p className="text-xl font-bold text-emerald-600 mt-0.5">{campus.activeCourseNodes} Courses</p>
           </div>
         </div>

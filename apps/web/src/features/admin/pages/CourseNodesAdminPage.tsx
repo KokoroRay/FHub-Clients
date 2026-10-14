@@ -318,7 +318,7 @@ export const CourseNodesAdminPage: React.FC = () => {
         </select>
       </div>
 
-      {/* Course Nodes Data Table (Figma 61:10719) */}
+      {/* Courses Data Table (Figma 61:10719) */}
       <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
@@ -342,7 +342,7 @@ export const CourseNodesAdminPage: React.FC = () => {
                       </div>
                       <div>
                         <Link
-                          to={`/course-nodes/${c.code}`}
+                          to={`/courses/${c.code}`}
                           className="font-bold text-slate-900 hover:text-blue-600 flex items-center gap-1.5"
                         >
                           <span className="font-mono text-blue-600">{c.code}</span>
@@ -395,7 +395,7 @@ export const CourseNodesAdminPage: React.FC = () => {
 
                   <td className="py-3 px-4 text-right space-x-1.5">
                     <Link
-                      to={`/course-nodes/${c.code}`}
+                      to={`/courses/${c.code}`}
                       className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 transition-colors"
                     >
                       Syllabus

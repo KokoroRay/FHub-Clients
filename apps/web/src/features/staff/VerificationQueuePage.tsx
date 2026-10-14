@@ -5,6 +5,8 @@ import { Badge } from '../../components/common/Badge';
 import { Table, Column } from '../../components/common/Table';
 import { Modal } from '../../components/common/Modal';
 
+import { userManagementApi } from '../../services/api/adminApi';
+
 interface VerificationRequest {
   id: string;
   fullName: string;
@@ -42,12 +44,24 @@ export const VerificationQueuePage: React.FC = () => {
 
   const [selectedReq, setSelectedReq] = useState<VerificationRequest | null>(null);
 
-  const handleApprove = (id: string) => {
+  const handleApprove = async (id: string) => {
+    try {
+      const numId = id.replace(/\D/g, '') || id;
+      await userManagementApi.processVerification(numId, { status: 'APPROVED', reviewNote: 'Approved by Administrator' });
+    } catch (err) {
+      console.warn('API error during verification approve:', err);
+    }
     setRequests(requests.map((r) => (r.id === id ? { ...r, status: 'APPROVED' } : r)));
     setSelectedReq(null);
   };
 
-  const handleReject = (id: string) => {
+  const handleReject = async (id: string) => {
+    try {
+      const numId = id.replace(/\D/g, '') || id;
+      await userManagementApi.processVerification(numId, { status: 'REJECTED', reviewNote: 'Rejected by Administrator' });
+    } catch (err) {
+      console.warn('API error during verification reject:', err);
+    }
     setRequests(requests.map((r) => (r.id === id ? { ...r, status: 'REJECTED' } : r)));
     setSelectedReq(null);
   };

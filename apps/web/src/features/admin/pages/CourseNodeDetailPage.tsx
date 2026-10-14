@@ -104,7 +104,7 @@ export const CourseNodeDetailPage: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-slate-500">
         <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-2" />
-        <p className="text-xs font-semibold">Loading course node details from Taxonomy Service...</p>
+        <p className="text-xs font-semibold">Loading course details from Taxonomy Service...</p>
       </div>
     );
   }
@@ -114,7 +114,7 @@ export const CourseNodeDetailPage: React.FC = () => {
       <div className="space-y-6 max-w-7xl mx-auto">
         <div className="flex items-center justify-between">
           <Link
-            to="/course-nodes"
+            to="/courses"
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700"
           >
             <ArrowLeft className="w-4 h-4" /> Back to Courses
@@ -122,10 +122,10 @@ export const CourseNodeDetailPage: React.FC = () => {
         </div>
         <div className="p-8 bg-white rounded-xl border border-slate-200 text-center space-y-3">
           <BookOpen className="w-10 h-10 text-slate-400 mx-auto" />
-          <h2 className="text-base font-bold text-slate-800">Course Node Not Found</h2>
+          <h2 className="text-base font-bold text-slate-800">Course Not Found</h2>
           <p className="text-xs text-slate-500">The course code &quot;{code}&quot; does not exist or has not been synced yet.</p>
           <Link
-            to="/course-nodes"
+            to="/courses"
             className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-semibold"
           >
             Return to Registry
@@ -140,7 +140,7 @@ export const CourseNodeDetailPage: React.FC = () => {
       {/* Back Button */}
       <div className="flex items-center justify-between">
         <Link
-          to="/course-nodes"
+          to="/courses"
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Courses
@@ -211,7 +211,7 @@ export const CourseNodeDetailPage: React.FC = () => {
                 course.prerequisites.map((p) => (
                   <Link
                     key={p}
-                    to={`/course-nodes/${p}`}
+                    to={`/courses/${p}`}
                     className="px-2 py-0.5 rounded font-mono font-bold text-xs bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100"
                   >
                     {p}
@@ -276,7 +276,7 @@ export const CourseNodeDetailPage: React.FC = () => {
       {/* 5 Campus Offerings Matrix */}
       <div className="p-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-3.5">
         <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">
-          Campus Distribution & Offerings (5 Regional Nodes)
+          Campus Distribution & Offerings (5 Regional Campuses)
         </h3>
 
         {course.campusOfferings && course.campusOfferings.length > 0 ? (
@@ -302,7 +302,7 @@ export const CourseNodeDetailPage: React.FC = () => {
             ))}
           </div>
         ) : (
-          <p className="text-xs text-slate-400">0 campus nodes offering this course.</p>
+          <p className="text-xs text-slate-400">0 campuses offering this course.</p>
         )}
       </div>
 

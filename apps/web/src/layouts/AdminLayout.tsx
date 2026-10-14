@@ -3,6 +3,7 @@ import { NavLink, Outlet, Link } from 'react-router-dom';
 import {
   Building2,
   GraduationCap,
+  BookOpen,
   Network,
   Hash,
   KeyRound,
@@ -25,7 +26,7 @@ export const AdminLayout: React.FC = () => {
     { title: 'Academic Taxonomy', items: [
       { name: 'Quản lý Campus', path: '/admin/campus', icon: Building2 },
       { name: 'Quản lý Chuyên ngành', path: '/admin/majors', icon: GraduationCap },
-      { name: 'Quản lý Course Nodes', path: '/admin/course-nodes', icon: Network },
+      { name: 'Quản lý Khóa học (Courses)', path: '/admin/courses', icon: BookOpen },
       { name: 'Quản lý Topics', path: '/admin/topics', icon: Hash },
     ]},
     { title: 'Identity & Staff', items: [

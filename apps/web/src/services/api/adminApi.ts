@@ -67,6 +67,13 @@ export const authApi = {
     return res.data.data;
   },
 
+  refreshToken: async (refreshToken: string): Promise<LoginResponse> => {
+    const res = await apiClient.post<ApiResponse<LoginResponse>>('/api/auth/refresh', {
+      refreshToken
+    });
+    return res.data.data;
+  },
+
   logout: async (sessionId?: number): Promise<void> => {
     await apiClient.post('/api/auth/logout', { sessionId });
   },
@@ -252,25 +259,45 @@ export const userManagementApi = {
   },
 
   applyAction: async (id: number | string, payload: { actionType: 'SUSPEND' | 'MUTE' | 'WARN'; reason: string; expiresAt?: string }) => {
+    try {
+      if (payload.actionType === 'SUSPEND' || payload.actionType === 'MUTE') {
+        await apiClient.patch(`/api/users/${id}/status`, {
+          newStatus: payload.actionType === 'SUSPEND' ? 'SUSPENDED' : 'MUTED',
+          reason: payload.reason
+        });
+      }
+    } catch (e) {
+      console.warn('Identity status update fallback to governance:', e);
+    }
     const res = await apiClient.post<ApiResponse<any>>(`/api/governance-accounts/${id}/actions`, payload);
-    return res.data.data;
+    return res.data?.data ?? res.data;
   },
 
   updateRole: async (id: number | string, governanceRole: string) => {
+    try {
+      await apiClient.post(`/api/users/${id}/roles`, { roleCode: governanceRole });
+    } catch (e) {
+      console.warn('Identity role update fallback to governance:', e);
+    }
     const res = await apiClient.put<ApiResponse<any>>(`/api/governance-accounts/${id}/role`, { governanceRole });
-    return res.data.data;
+    return res.data?.data ?? res.data;
   },
 
   wipeAccount: async (id: number | string, reason: string = 'Wipe Data by Administrator') => {
+    try {
+      await apiClient.delete(`/api/users/${id}`, { data: { reason } });
+    } catch (e) {
+      console.warn('Identity delete fallback to governance wipe:', e);
+    }
     const res = await apiClient.delete<ApiResponse<any>>(`/api/governance-accounts/${id}/wipe`, {
       data: { reason }
     });
-    return res.data.data;
+    return res.data?.data ?? res.data;
   },
 
   processVerification: async (id: number | string, payload: { status: 'APPROVED' | 'REJECTED'; reviewNote?: string }) => {
     const res = await apiClient.put<ApiResponse<any>>(`/api/manual-verifications/${id}/process`, payload);
-    return res.data.data;
+    return res.data?.data ?? res.data;
   }
 };
 
@@ -550,6 +577,8 @@ export const courseNodesApi = {
     }
   }
 };
+
+export const coursesApi = courseNodesApi;
 
 // ---------------------------------------------------------------------------
 // 8. Reputation Rules API (Go Interaction Service)

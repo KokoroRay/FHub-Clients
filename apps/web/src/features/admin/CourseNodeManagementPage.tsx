@@ -43,7 +43,7 @@ export const CourseNodeManagementPage: React.FC = () => {
   };
 
   const handleDelete = (id: string) => {
-    if (confirm('Bạn có chắc chắn muốn xóa Course Node này?')) {
+    if (confirm('Bạn có chắc chắn muốn xóa môn học (Course) này?')) {
       setCourses(courses.filter((c) => c.id !== id));
     }
   };
@@ -149,16 +149,16 @@ export const CourseNodeManagementPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <Network className="w-6 h-6 text-[#2563eb]" />
-            <span>Course Node Management</span>
+            <BookOpen className="w-6 h-6 text-[#2563eb]" />
+            <span>Quản lý Khóa học (Courses)</span>
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Quản lý các nút môn học (Course Nodes), metadata và điều kiện tiên quyết.
+            Quản lý danh sách các khóa học (Courses), metadata và điều kiện tiên quyết.
           </p>
         </div>
 
         <Button variant="primary" onClick={openCreate} leftIcon={<Plus className="w-4 h-4" />}>
-          Thêm Course Node
+          Thêm Khóa học (Course)
         </Button>
       </div>
 
@@ -167,11 +167,11 @@ export const CourseNodeManagementPage: React.FC = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={editingCourse ? 'Cập nhật Course Node' : 'Tạo Course Node mới'}
+        title={editingCourse ? 'Cập nhật Khóa học (Course)' : 'Tạo Khóa học (Course) mới'}
         footer={
           <>
             <Button variant="outline" onClick={() => setIsModalOpen(false)}>Hủy</Button>
-            <Button variant="primary" onClick={handleSubmit}>Lưu Course Node</Button>
+            <Button variant="primary" onClick={handleSubmit}>Lưu Khóa học</Button>
           </>
         }
       >

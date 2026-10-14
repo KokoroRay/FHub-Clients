@@ -87,8 +87,8 @@ import { ForgotPasswordPage } from '../features/auth/ForgotPasswordPage';
  * - /campuses/:code -> CampusDetailPage (Figma 58:8220)
  * - /majors -> MajorsPage (Figma 59:9018)
  * - /majors/:code -> MajorDetailPage (Figma 59:9908)
- * - /course-nodes -> CourseNodesAdminPage (Figma 61:10719)
- * - /course-nodes/:code -> CourseNodeDetailPage (Figma 62:11573)
+ * - /courses -> CourseNodesAdminPage (Courses Registry)
+ * - /courses/:code -> CourseNodeDetailPage (Course Detail)
  * - /reputation -> ReputationRulesPage (Figma 56:5629)
  * - /badges -> AchievementBadgesPage (Figma 57:6275)
  * - /audit-logs -> AuditLogsPage (Figma 64:12427)
@@ -116,13 +116,17 @@ const getSubdomainRoutes = () => [
       { path: 'campuses/:code', element: <CampusDetailPage /> },
       { path: 'majors', element: <MajorsPage /> },
       { path: 'majors/:code', element: <MajorDetailPage /> },
-      { path: 'course-nodes', element: <CourseNodesAdminPage /> },
+      { path: 'courses', element: <CourseNodesAdminPage /> },
+      { path: 'courses/:code', element: <CourseNodeDetailPage /> },
+      { path: 'course-nodes', element: <Navigate to="/courses" replace /> },
       { path: 'course-nodes/:code', element: <CourseNodeDetailPage /> },
       { path: 'reputation', element: <ReputationRulesPage /> },
       { path: 'badges', element: <AchievementBadgesPage /> },
       { path: 'audit-logs', element: <AuditLogsPage /> },
       { path: 'audit-logs/:id', element: <AuditLogDetailPage /> },
       { path: 'health', element: <SystemHealthAdminPage /> },
+      { path: 'moderation', element: <ModeratorToolsPage /> },
+      { path: 'verifications', element: <VerificationQueuePage /> },
     ],
   },
   {
@@ -182,13 +186,17 @@ const getMainPortalRoutes = () => [
       { path: 'campuses/:code', element: <CampusDetailPage /> },
       { path: 'majors', element: <MajorsPage /> },
       { path: 'majors/:code', element: <MajorDetailPage /> },
-      { path: 'course-nodes', element: <CourseNodesAdminPage /> },
+      { path: 'courses', element: <CourseNodesAdminPage /> },
+      { path: 'courses/:code', element: <CourseNodeDetailPage /> },
+      { path: 'course-nodes', element: <Navigate to="/admin-console/courses" replace /> },
       { path: 'course-nodes/:code', element: <CourseNodeDetailPage /> },
       { path: 'reputation', element: <ReputationRulesPage /> },
       { path: 'badges', element: <AchievementBadgesPage /> },
       { path: 'audit-logs', element: <AuditLogsPage /> },
       { path: 'audit-logs/:id', element: <AuditLogDetailPage /> },
       { path: 'health', element: <SystemHealthAdminPage /> },
+      { path: 'moderation', element: <ModeratorToolsPage /> },
+      { path: 'verifications', element: <VerificationQueuePage /> },
     ],
   },
 
@@ -199,7 +207,8 @@ const getMainPortalRoutes = () => [
     children: [
       { path: 'admin/campus', element: <CampusManagementPage /> },
       { path: 'admin/majors', element: <MajorManagementPage /> },
-      { path: 'admin/course-nodes', element: <CourseNodeManagementPage /> },
+      { path: 'admin/courses', element: <CourseNodeManagementPage /> },
+      { path: 'admin/course-nodes', element: <Navigate to="/admin/courses" replace /> },
       { path: 'admin/topics', element: <TopicManagementPage /> },
       { path: 'admin/roles-policies', element: <RolePolicyManagementPage /> },
       { path: 'admin/staff-accounts', element: <StaffManagementPage /> },

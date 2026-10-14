@@ -271,10 +271,10 @@ export const MajorDetailPage: React.FC = () => {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
-              Course Nodes Matrix - Semester {selectedSemester}
+              Courses Matrix - Semester {selectedSemester}
             </h2>
             <p className="text-xs text-slate-400">
-              Mandatory and elective course nodes assigned to this semester.
+              Mandatory and elective courses assigned to this semester.
             </p>
           </div>
 
@@ -293,7 +293,7 @@ export const MajorDetailPage: React.FC = () => {
           if (courses.length === 0) {
             return (
               <div className="p-10 text-center text-slate-400 text-xs border border-dashed border-slate-200 rounded-xl">
-                No course nodes assigned to Semester {selectedSemester} yet. Click "+ Add Course" to map nodes.
+                No courses assigned to Semester {selectedSemester} yet. Click "+ Add Course" to map courses.
               </div>
             );
           }
@@ -308,7 +308,7 @@ export const MajorDetailPage: React.FC = () => {
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <Link to={`/course-nodes/${c.code}`} className="font-bold text-xs text-blue-600 hover:underline font-mono">
+                        <Link to={`/courses/${c.code}`} className="font-bold text-xs text-blue-600 hover:underline font-mono">
                           {c.code}
                         </Link>
                         <span className="font-semibold text-xs text-slate-800">{c.title}</span>
@@ -331,7 +331,7 @@ export const MajorDetailPage: React.FC = () => {
 
                   <div className="flex items-center gap-2">
                     <Link
-                      to={`/course-nodes/${c.code}`}
+                      to={`/courses/${c.code}`}
                       className="px-2.5 py-1 rounded-md text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100"
                     >
                       Syllabus
@@ -357,7 +357,7 @@ export const MajorDetailPage: React.FC = () => {
           <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full p-6 shadow-xl space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold text-slate-900">
-                Add Course Node to Semester {selectedSemester}
+                Add Course to Semester {selectedSemester}
               </h2>
               <button
                 onClick={() => setShowAddCourseModal(false)}

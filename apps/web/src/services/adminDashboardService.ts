@@ -128,7 +128,7 @@ export async function fetchAdminDashboardStats(timeframe: 'Today' | '7 Days' | '
       fetch(`${API_BASE_URL}/api/audit-logs?pageSize=5`, { headers }),
       fetch(`${API_BASE_URL}/api/campuses`, { headers }),
       fetch(`${API_BASE_URL}/api/majors`, { headers }),
-      fetch(`${API_BASE_URL}/api/course-nodes`, { headers }),
+      fetch(`${API_BASE_URL}/api/courses`, { headers }),
     ]);
 
     let totalUsers = 0;
@@ -248,7 +248,7 @@ export async function fetchAdminDashboardStats(timeframe: 'Today' | '7 Days' | '
       ],
       pendingTasks: [
         { title: `${totalTickets} Support Tickets`, description: `${urgentTicketsCount} urgent priority`, actionLabel: 'Review', targetUrl: '/tickets' },
-        { title: `${totalCourses} Course Nodes`, description: 'Synced with Taxonomy', actionLabel: 'Inspect', targetUrl: '/course-nodes' },
+        { title: `${totalCourses} Courses`, description: 'Synced with Taxonomy', actionLabel: 'Inspect', targetUrl: '/courses' },
         { title: `${totalMajors} Academic Majors`, description: 'Curriculum matrices active', actionLabel: 'Manage', targetUrl: '/majors' },
         { title: '7 Microservices SLA', description: 'Telemetry monitoring active', actionLabel: 'Details', targetUrl: '/health' },
       ],
