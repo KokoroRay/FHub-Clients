@@ -28,7 +28,7 @@ export const useAdminDashboardStats = (timeframe: string = 'Today') => {
 // ---------------------------------------------------------------------------
 // 2. User & Governance Accounts Hooks
 // ---------------------------------------------------------------------------
-export const useGovernanceAccounts = (params?: { search?: string; role?: string; campus?: string; governanceRole?: string; isActive?: boolean; pageNumber?: number; pageSize?: number }) => {
+export const useGovernanceAccounts = (params?: { search?: string; role?: string; campus?: string; status?: string; governanceRole?: string; isActive?: boolean; pageNumber?: number; pageSize?: number }) => {
   return useQuery({
     queryKey: ['admin', 'users-accounts', params],
     queryFn: () => userManagementApi.getAccounts(params),
