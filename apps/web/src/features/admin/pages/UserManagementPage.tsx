@@ -37,6 +37,8 @@ export const UserManagementPage: React.FC = () => {
   const [selectedCampus, setSelectedCampus] = useState<string>('ALL');
   const [selectedRole, setSelectedRole] = useState<string>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const pageSize = 20;
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [usersList, setUsersList] = useState<AdminUser[]>([]);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
@@ -49,6 +51,8 @@ export const UserManagementPage: React.FC = () => {
     role: selectedRole !== 'ALL' ? selectedRole : undefined,
     campus: selectedCampus !== 'ALL' ? selectedCampus : undefined,
     status: selectedStatus !== 'ALL' ? selectedStatus : undefined,
+    pageNumber: currentPage,
+    pageSize,
   });
   const updateStatusMutation = useUpdateUserAccountStatus();
   const deleteAccountMutation = useDeleteUserAccount();
@@ -508,28 +512,40 @@ export const UserManagementPage: React.FC = () => {
         </div>
 
         {/* Pagination Bar (Figma 55:4074) */}
-        <div className="p-3.5 bg-slate-50/80 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
-          <span>Showing 1 to {filteredUsers.length} of {accountsData?.totalCount ?? usersList.length} entries</span>
-          <div className="flex items-center gap-1 font-semibold">
-            <button className="px-2.5 py-1 rounded border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer text-slate-600">
-              &lt;
-            </button>
-            <button className="px-2.5 py-1 rounded bg-blue-600 text-white font-bold">1</button>
-            <button className="px-2.5 py-1 rounded border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer text-slate-600">
-              2
-            </button>
-            <button className="px-2.5 py-1 rounded border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer text-slate-600">
-              3
-            </button>
-            <span className="px-1 text-slate-400">...</span>
-            <button className="px-2.5 py-1 rounded border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer text-slate-600">
-              125
-            </button>
-            <button className="px-2.5 py-1 rounded border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer text-slate-600">
-              &gt;
-            </button>
-          </div>
-        </div>
+        {(() => {
+          const totalCount = accountsData?.totalCount ?? usersList.length;
+          const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+          const startIdx = (currentPage - 1) * pageSize + 1;
+          const endIdx = Math.min(currentPage * pageSize, totalCount);
+
+          return (
+            <div className="p-3.5 bg-slate-50/80 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
+              <span>
+                Showing {totalCount === 0 ? 0 : startIdx} to {endIdx} of {totalCount} entries
+              </span>
+              <div className="flex items-center gap-1 font-semibold">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage <= 1}
+                  className="px-2.5 py-1 rounded border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer text-slate-600"
+                >
+                  &lt;
+                </button>
+                <span className="px-3 py-1 rounded bg-blue-600 text-white font-bold">
+                  {currentPage}
+                </span>
+                <span className="text-slate-400 text-xs px-1">of {totalPages}</span>
+                <button
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage >= totalPages}
+                  className="px-2.5 py-1 rounded border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer text-slate-600"
+                >
+                  &gt;
+                </button>
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Modal: Create User Account */}

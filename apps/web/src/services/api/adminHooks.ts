@@ -110,7 +110,7 @@ export const useRevokeUserRole = () => {
 export const useUpdateUserAccountStatus = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, payload }: { id: number | string; payload: { newStatus: 'ACTIVE' | 'SUSPENDED' | 'LOCKED' | 'PENDING_VERIFICATION'; reason?: string } }) =>
+    mutationFn: ({ id, payload }: { id: number | string; payload: { newStatus: 'ACTIVE' | 'SUSPENDED' | 'LOCKED' | 'PENDING' | 'PENDING_VERIFICATION' | 'DELETED'; reason?: string } }) =>
       userManagementApi.updateAccountStatus(id, payload),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'users-accounts'] });
@@ -149,9 +149,28 @@ export const useProcessVerification = () => {
   return useMutation({
     mutationFn: ({ id, payload }: { id: number | string; payload: { status: 'APPROVED' | 'REJECTED'; reviewNote?: string } }) =>
       userManagementApi.processVerification(id, payload),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'manual-verifications'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'manual-verifications', 'user', String(variables.id)] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users-accounts'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'governance-accounts'] });
     }
+  });
+};
+
+export const useUserVerification = (userId?: number | string) => {
+  return useQuery({
+    queryKey: ['admin', 'manual-verifications', 'user', String(userId)],
+    queryFn: () => userManagementApi.getVerificationByUserId(userId!),
+    enabled: !!userId,
+  });
+};
+
+export const useManualVerificationsList = (status?: string) => {
+  return useQuery({
+    queryKey: ['admin', 'manual-verifications', status],
+    queryFn: () => userManagementApi.getVerificationsList(status),
+    staleTime: 30000,
   });
 };
 

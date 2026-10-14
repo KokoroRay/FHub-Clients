@@ -12,7 +12,6 @@ import {
   Activity,
   CheckCircle2,
   SlidersHorizontal,
-  RefreshCw,
   Sparkles,
   ShieldCheck,
   ChevronRight,
@@ -23,11 +22,10 @@ import { useCampuses, useMajors } from '../../../services/api';
 
 export const CampusDetailPage: React.FC = () => {
   const { code } = useParams<{ code: string }>();
-  const { data: campusesData, refetch } = useCampuses();
+  const { data: campusesData } = useCampuses();
   const { data: majorsData } = useMajors();
 
   const [campuses, setCampuses] = useState<DetailedCampus[]>([]);
-  const [isSyncing, setIsSyncing] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -95,16 +93,6 @@ export const CampusDetailPage: React.FC = () => {
       }))
     : [];
 
-  const handleSyncPartition = async () => {
-    setIsSyncing(true);
-    await refetch();
-    setTimeout(() => {
-      setIsSyncing(false);
-      setSuccessMessage(`Synchronized partition node ${campus.serverPartition.nodeId} with Taxonomy Microservice`);
-      setTimeout(() => setSuccessMessage(null), 3500);
-    }, 600);
-  };
-
   const handleToggleGlocalRouting = () => {
     const next = !glocalRouting;
     setGlocalRouting(next);
@@ -160,17 +148,6 @@ export const CampusDetailPage: React.FC = () => {
                 </span>
               </div>
             </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleSyncPartition}
-              disabled={isSyncing}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition-colors cursor-pointer shadow-xs"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-              <span>Sync Partition</span>
-            </button>
           </div>
         </div>
 

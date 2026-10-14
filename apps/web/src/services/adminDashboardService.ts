@@ -124,7 +124,7 @@ export async function fetchAdminDashboardStats(timeframe: 'Today' | '7 Days' | '
   try {
     const [ticketsRes, accountsRes, logsRes, campusesRes, majorsRes, coursesRes] = await Promise.allSettled([
       fetch(`${API_BASE_URL}/api/support-tickets?pageSize=10`, { headers }),
-      fetch(`${API_BASE_URL}/api/governance-accounts?pageSize=1`, { headers }),
+      fetch(`${API_BASE_URL}/api/users?pageSize=1`, { headers }),
       fetch(`${API_BASE_URL}/api/audit-logs?pageSize=5`, { headers }),
       fetch(`${API_BASE_URL}/api/campuses`, { headers }),
       fetch(`${API_BASE_URL}/api/majors`, { headers }),
@@ -133,7 +133,7 @@ export async function fetchAdminDashboardStats(timeframe: 'Today' | '7 Days' | '
 
     let totalUsers = 0;
     let totalTickets = 0;
-    let totalCampuses = 5;
+    let totalCampuses = 0;
     let totalMajors = 0;
     let totalCourses = 0;
     let recentTickets: any[] = [];

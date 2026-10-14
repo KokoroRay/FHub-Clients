@@ -36,6 +36,7 @@ import {
 import { AdminUser } from '../../../services/adminMockData';
 import {
   useGovernanceAccountDetail,
+  useUserVerification,
   useUpdateUserAccountStatus,
   useDeleteUserAccount,
   useAssignUserRole,
@@ -56,6 +57,7 @@ export const UserDetailPage: React.FC = () => {
 
   // Real backend queries & mutations
   const { data: beAccountData, refetch } = useGovernanceAccountDetail(numericId);
+  const { data: verificationData, refetch: refetchVerification } = useUserVerification(numericId);
   const updateStatusMutation = useUpdateUserAccountStatus();
   const deleteAccountMutation = useDeleteUserAccount();
   const assignRoleMutation = useAssignUserRole();
@@ -78,6 +80,7 @@ export const UserDetailPage: React.FC = () => {
         karma: beAccountData.karma || 0,
         status: (beAccountData.accountStatus as any) || (beAccountData.isActive ? 'ACTIVE' : 'SUSPENDED'),
         verifiedAt: beAccountData.createdAt,
+        twoFactorEnabled: beAccountData.twoFactorEnabled ?? false,
         activeSessions: [],
         inlinePolicies: beAccountData.roles || [primaryRole],
         badges: [],
@@ -93,6 +96,7 @@ export const UserDetailPage: React.FC = () => {
       studentId: '',
       karma: 0,
       status: 'ACTIVE',
+      twoFactorEnabled: false,
       activeSessions: [],
       inlinePolicies: ['Student'],
       badges: [],
@@ -181,18 +185,21 @@ export const UserDetailPage: React.FC = () => {
   // 5. Review Role Manual Verification (Approve / Reject)
   const handleProcessVerification = async (decision: 'APPROVED' | 'REJECTED') => {
     try {
+      const verificationTargetId = verificationData?.manualVerificationRequestId || numericId;
       await processVerificationMutation.mutateAsync({
-        id: numericId,
+        id: verificationTargetId,
         payload: {
           status: decision,
-          reviewNote: reviewNote.trim() || `Processed as ${decision} by Admin`,
+          reviewNote: reviewNote.trim() || `Processed as ${decision} by Administrator`,
         },
       });
       await refetch();
-      setActionSuccess(`Verification request ${decision.toLowerCase()} successfully.`);
+      await refetchVerification();
+      setReviewNote('');
+      setActionSuccess(`Verification request ${decision.toLowerCase()} successfully on Governance Service.`);
     } catch (e: any) {
       console.error('Verification error:', e);
-      setActionSuccess(`Verification error: ${e?.message || 'Failed'}`);
+      setActionSuccess(`Verification error: ${e?.response?.data?.message || e?.message || 'Failed'}`);
     }
     setTimeout(() => setActionSuccess(null), 3500);
   };
@@ -446,13 +453,36 @@ export const UserDetailPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Recent Activity Stream */}
+          {/* Recent Activity Timeline & Account Status History */}
           <div className="p-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-3">
-            <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Recent Activity Timeline</h3>
+            <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Account Status & Audit History</h3>
 
-            <div className="py-2 text-xs text-slate-400">
-              0 recent activities recorded for this user account.
-            </div>
+            {beAccountData?.statusHistory && beAccountData.statusHistory.length > 0 ? (
+              <div className="space-y-3">
+                {beAccountData.statusHistory.map((h) => (
+                  <div key={h.statusHistoryId} className="p-3 bg-slate-50 rounded-lg border border-slate-100 text-xs space-y-1">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 font-semibold text-slate-800">
+                        <span className="px-1.5 py-0.5 rounded text-[10px] bg-slate-200 text-slate-700">{h.oldStatus || 'NONE'}</span>
+                        <span>→</span>
+                        <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-100 text-blue-700 font-bold">{h.newStatus}</span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        {new Date(h.changedAt).toLocaleString()}
+                      </span>
+                    </div>
+                    {h.reason && (
+                      <p className="text-slate-600 text-[11px] italic">"{h.reason}"</p>
+                    )}
+                    <span className="text-[9px] text-slate-400 uppercase font-mono block">Source: {h.changeSource}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="py-2 text-xs text-slate-400">
+                0 status changes recorded for this user account.
+              </div>
+            )}
           </div>
         </div>
 
@@ -482,12 +512,67 @@ export const UserDetailPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Account Verification Card (Review Role Manual Verification) */}
+          {/* Account Verification Card (Review Role Manual Verification - Governance Service) */}
           <div className="p-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-3 text-xs">
-            <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Role Manual Verification</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Role Manual Verification</h3>
+              {verificationData ? (
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                  verificationData.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                  verificationData.status === 'REJECTED' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                  'bg-amber-50 text-amber-700 border-amber-200 animate-pulse'
+                }`}>
+                  {verificationData.status}
+                </span>
+              ) : (
+                <span className="text-[10px] font-medium text-slate-400 bg-slate-100 px-2 py-0.5 rounded">
+                  No Request
+                </span>
+              )}
+            </div>
+
             <p className="text-slate-500 text-[11px] leading-relaxed">
               Duyệt hoặc từ chối yêu cầu xác minh sinh viên / vai trò thông qua Governance Service.
             </p>
+
+            {verificationData && (
+              <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-100 space-y-1.5 text-[11px]">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Type:</span>
+                  <span className="font-semibold text-slate-800">{verificationData.verificationType}</span>
+                </div>
+                {verificationData.studentCode && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Student Code:</span>
+                    <span className="font-mono font-bold text-blue-600">{verificationData.studentCode}</span>
+                  </div>
+                )}
+                {verificationData.requestReason && (
+                  <div>
+                    <span className="text-slate-400 block">Student Note:</span>
+                    <span className="text-slate-700 italic">"{verificationData.requestReason}"</span>
+                  </div>
+                )}
+                {verificationData.evidenceUrl && (
+                  <div>
+                    <a
+                      href={verificationData.evidenceUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-blue-600 hover:underline flex items-center gap-1 mt-1 font-semibold"
+                    >
+                      <ExternalLink className="w-3 h-3" /> Xem tài liệu chứng minh
+                    </a>
+                  </div>
+                )}
+                {verificationData.reviewNote && (
+                  <div className="pt-1 border-t border-slate-200">
+                    <span className="text-slate-400 block">Ghi chú duyệt trước:</span>
+                    <span className="text-slate-700 italic">{verificationData.reviewNote}</span>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="space-y-2 pt-1">
               <input
