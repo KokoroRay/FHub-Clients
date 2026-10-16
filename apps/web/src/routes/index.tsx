@@ -17,16 +17,22 @@ import { QuestionDetailPage } from '../features/discussions/QuestionDetailPage';
 import { ArticleListPage } from '../features/articles/ArticleListPage';
 import { ArticleDetailPage } from '../features/articles/ArticleDetailPage';
 import { CreateArticlePage } from '../features/articles/CreateArticlePage';
+import { SeriesDetailPage } from '../features/articles/SeriesDetailPage';
 import { WorkflowListPage } from '../features/workflows/WorkflowListPage';
 import { WorkflowDetailPage } from '../features/workflows/WorkflowDetailPage';
 import { StudyMaterialListPage } from '../features/materials/StudyMaterialListPage';
+import { StudyMaterialDetailPage } from '../features/materials/StudyMaterialDetailPage';
+import { CourseEvaluationListPage } from '../features/evaluations/CourseEvaluationListPage';
+import { CourseEvaluationDetailPage } from '../features/evaluations/CourseEvaluationDetailPage';
 import { MarketplaceListPage } from '../features/marketplace/MarketplaceListPage';
 import { MarketplaceDetailPage } from '../features/marketplace/MarketplaceDetailPage';
 
 // Profile & Communication & Support
 import { ProfilePage } from '../features/profile/ProfilePage';
 import { ProfileSettingsPage } from '../features/profile/ProfileSettingsPage';
+import { StudentReputationRulesPage } from '../features/profile/StudentReputationRulesPage';
 import { DirectMessagesPage } from '../features/communication/DirectMessagesPage';
+import { NotificationsPage } from '../features/communication/NotificationsPage';
 import { MentorshipPage } from '../features/communication/MentorshipPage';
 import { SupportTicketsPage } from '../features/governance/SupportTicketsPage';
 import { BookmarksPage } from '../features/bookmarks/BookmarksPage';
@@ -54,6 +60,8 @@ import {
   AuditLogDetailPage,
   SystemHealthAdminPage,
   AdminLoginPage,
+  SpecializationsPage,
+  SpecializationDetailPage,
 } from '../features/admin/pages';
 
 // Admin & Staff Governance (Legacy / Domain Portal)
@@ -74,6 +82,7 @@ import { SystemHealthDashboardPage } from '../features/staff/SystemHealthDashboa
 import { LoginPage } from '../features/auth/LoginPage';
 import { RegisterPage } from '../features/auth/RegisterPage';
 import { ForgotPasswordPage } from '../features/auth/ForgotPasswordPage';
+import { NotFoundPage } from '../features/common/NotFoundPage';
 
 /**
  * Subdomain Routes Definition (admin.fhub.edu.vn / admin.localhost)
@@ -116,6 +125,8 @@ const getSubdomainRoutes = () => [
       { path: 'campuses/:code', element: <CampusDetailPage /> },
       { path: 'majors', element: <MajorsPage /> },
       { path: 'majors/:code', element: <MajorDetailPage /> },
+      { path: 'specializations', element: <SpecializationsPage /> },
+      { path: 'specializations/:id', element: <SpecializationDetailPage /> },
       { path: 'courses', element: <CourseNodesAdminPage /> },
       { path: 'courses/:code', element: <CourseNodeDetailPage /> },
       { path: 'course-nodes', element: <Navigate to="/courses" replace /> },
@@ -152,20 +163,29 @@ const getMainPortalRoutes = () => [
       { path: 'articles', element: <ArticleListPage /> },
       { path: 'articles/:id', element: <ArticleDetailPage /> },
       { path: 'articles/create', element: <CreateArticlePage /> },
+      { path: 'series/:id', element: <SeriesDetailPage /> },
       { path: 'workflows', element: <WorkflowListPage /> },
       { path: 'workflows/:id', element: <WorkflowDetailPage /> },
       { path: 'materials', element: <StudyMaterialListPage /> },
+      { path: 'materials/:id', element: <StudyMaterialDetailPage /> },
+      { path: 'course-evaluations', element: <CourseEvaluationListPage /> },
+      { path: 'course-evaluations/:id', element: <CourseEvaluationDetailPage /> },
       { path: 'marketplace', element: <MarketplaceListPage /> },
       { path: 'marketplace/:id', element: <MarketplaceDetailPage /> },
       { path: 'profile', element: <ProfilePage /> },
+      { path: 'profile/:id', element: <ProfilePage /> },
       { path: 'settings', element: <ProfileSettingsPage /> },
       { path: 'messages', element: <DirectMessagesPage /> },
+      { path: 'messages/:id', element: <DirectMessagesPage /> },
+      { path: 'notifications', element: <NotificationsPage /> },
       { path: 'mentorship', element: <MentorshipPage /> },
       { path: 'tickets', element: <SupportTicketsPage /> },
+      { path: 'tickets/:id', element: <SupportTicketsPage /> },
       { path: 'bookmarks', element: <BookmarksPage /> },
       { path: 'moderator', element: <ModeratorToolsPage /> },
       { path: 'broadcasts', element: <OfficialBroadcastsPage /> },
       { path: 'alumni', element: <AlumniKarmaPage /> },
+      { path: 'reputation-rules', element: <StudentReputationRulesPage /> },
     ],
   },
 
@@ -186,6 +206,8 @@ const getMainPortalRoutes = () => [
       { path: 'campuses/:code', element: <CampusDetailPage /> },
       { path: 'majors', element: <MajorsPage /> },
       { path: 'majors/:code', element: <MajorDetailPage /> },
+      { path: 'specializations', element: <SpecializationsPage /> },
+      { path: 'specializations/:id', element: <SpecializationDetailPage /> },
       { path: 'courses', element: <CourseNodesAdminPage /> },
       { path: 'courses/:code', element: <CourseNodeDetailPage /> },
       { path: 'course-nodes', element: <Navigate to="/admin-console/courses" replace /> },
@@ -235,10 +257,10 @@ const getMainPortalRoutes = () => [
 
   },
 
-  // Fallback redirect
+  // Fallback 404 page
   {
     path: '*',
-    element: <Navigate to="/" replace />,
+    element: <NotFoundPage />,
   },
 ];
 

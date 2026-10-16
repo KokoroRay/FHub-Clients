@@ -161,12 +161,15 @@ export interface TechArticle {
   createdAt: string;
 }
 
+export type Article = TechArticle;
+
 export interface SharedWorkflow {
   id: string;
   title: string;
   description: string;
   courseCode: string;
   technology: string;
+  category?: string;
   steps: {
     stepNumber: number;
     title: string;
@@ -319,3 +322,41 @@ export interface ServiceHealthStatus {
   latencyMs: number;
   lastChecked: string;
 }
+
+export interface Series {
+  id: string;
+  title: string;
+  description: string;
+  author: {
+    id: string;
+    fullName: string;
+    avatarUrl?: string;
+  };
+  itemCount: number;
+  items: {
+    id: string;
+    type: 'ARTICLE' | 'WORKFLOW' | 'QUESTION';
+    title: string;
+    orderIndex: number;
+    url: string;
+  }[];
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface VotingStats {
+  targetId: string;
+  upvotesCount: number;
+  downvotesCount: number;
+  score: number;
+  voters: {
+    userId: string;
+    fullName: string;
+    avatarUrl?: string;
+    role: string;
+    karma: number;
+    voteType: 'UP' | 'DOWN';
+    votedAt: string;
+  }[];
+}
+

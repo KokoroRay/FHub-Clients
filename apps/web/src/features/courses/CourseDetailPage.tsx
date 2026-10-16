@@ -74,68 +74,74 @@ export const CourseDetailPage: React.FC = () => {
         <ArrowLeft className="w-4 h-4" /> Quay lại Course Hub
       </Link>
 
-      {/* Hero Course Header (Figma Frame 3: Course Hub Details) */}
-      <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-blue-950 text-white rounded-2xl p-6 sm:p-8 shadow-sm space-y-5 border border-slate-700/60">
+      {/* Hero Course Header (Figma #93:5039 Course Node Detail) */}
+      <div className="bg-white text-slate-800 rounded-2xl p-6 sm:p-8 shadow-xs space-y-5 border border-slate-100">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-2xl font-black text-blue-400 tracking-tight">{course.code}</span>
-              <Badge variant="primary" size="sm" className="bg-blue-500/20 text-blue-200 border-blue-400/30">
+              <span className="text-2xl font-bold text-[#0076D1] tracking-tight">{course.code}</span>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-[#0076D1] border border-blue-100">
                 {course.majorCode} Department
-              </Badge>
-              <Badge variant="neutral" size="sm" className="bg-white/10 text-white border-0 font-medium">
+              </span>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
                 Học kỳ {course.semester}
-              </Badge>
-              <Badge variant="neutral" size="sm" className="bg-white/10 text-white border-0 font-medium">
+              </span>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
                 {course.credits} Tín chỉ
-              </Badge>
+              </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight">{course.title}</h1>
-            <p className="text-xs sm:text-sm text-slate-300 max-w-3xl leading-relaxed">
+            <h1 className="text-2xl sm:text-3xl font-bold text-[#181C22] tracking-tight leading-tight">{course.title}</h1>
+            <p className="text-xs sm:text-sm text-slate-600 max-w-3xl leading-relaxed">
               {course.description}
             </p>
           </div>
 
           <div className="flex items-center gap-3 shrink-0">
-            <Button
-              variant={isFollowed ? 'secondary' : 'primary'}
+            <button
               onClick={() => setIsFollowed(!isFollowed)}
-              leftIcon={isFollowed ? <Check className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-              className={isFollowed ? 'bg-white text-blue-700 hover:bg-slate-100' : ''}
+              className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-xs ${
+                isFollowed 
+                  ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200' 
+                  : 'bg-[#0076D1] hover:bg-blue-700 text-white'
+              }`}
             >
-              {isFollowed ? 'Đã theo dõi môn' : 'Theo dõi môn học'}
-            </Button>
-            <Button
-              variant="outline"
+              {isFollowed ? <Check className="w-4 h-4 text-emerald-600" /> : <Plus className="w-4 h-4" />}
+              <span>{isFollowed ? 'Đang theo dõi' : 'Theo dõi môn'}</span>
+            </button>
+            <button
               onClick={() => setShowReviewModal(true)}
-              className="border-white/20 text-white hover:bg-white/10"
-              leftIcon={<Star className="w-4 h-4 text-amber-400" />}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-colors shadow-xs"
             >
-              Đánh giá
-            </Button>
-            <Button variant="outline" className="border-white/20 text-white hover:bg-white/10 p-2.5">
+              <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+              <span>Đánh giá</span>
+            </button>
+            <button className="p-2 text-slate-500 hover:text-slate-800 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-colors shadow-xs">
               <Share2 className="w-4 h-4" />
-            </Button>
+            </button>
           </div>
         </div>
 
         {/* Prerequisites & Quick Stats Row */}
-        <div className="pt-4 border-t border-slate-700/80 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-300">
+        <div className="pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-600">
           <div className="flex items-center gap-2">
             <span className="text-slate-400">Môn tiên quyết:</span>
-            {course.prerequisites?.map((pre) => (
-              <Link key={pre} to={`/courses/${pre}`} className="font-bold text-blue-400 hover:underline bg-white/10 px-2 py-0.5 rounded-md">
-                {pre}
-              </Link>
-            ))}
+            {course.prerequisites && course.prerequisites.length > 0 ? (
+              course.prerequisites.map((pre) => (
+                <Link key={pre} to={`/courses/${pre}`} className="font-bold text-[#0076D1] hover:underline bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
+                  {pre}
+                </Link>
+              ))
+            ) : (
+              <span className="text-slate-400 italic">Không có</span>
+            )}
           </div>
 
           <div className="flex items-center gap-6">
-            <span className="flex items-center gap-1.5 font-bold text-amber-400">
-              <Star className="w-4 h-4 fill-amber-400" /> {course.averageRating} / 5.0 (240 đánh giá)
+            <span className="flex items-center gap-1.5 font-bold text-amber-600">
+              <Star className="w-4 h-4 fill-amber-400 text-amber-400" /> {course.averageRating} / 5.0 (240 đánh giá)
             </span>
-            <span className="flex items-center gap-1.5 text-slate-300">
-              <Users className="w-4 h-4 text-blue-400" /> {course.followerCount.toLocaleString()} Sinh viên theo dõi
+            <span className="flex items-center gap-1.5 text-slate-600">
+              <Users className="w-4 h-4 text-[#0076D1]" /> {course.followerCount.toLocaleString()} Sinh viên theo dõi
             </span>
           </div>
         </div>

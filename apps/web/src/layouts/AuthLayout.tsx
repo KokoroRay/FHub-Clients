@@ -1,32 +1,13 @@
 import React from 'react';
-import { Outlet, Link } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 
 export const AuthLayout: React.FC = () => {
   return (
-    <div className="min-h-screen bg-[#f8fafc] flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <Link to="/" className="inline-flex flex-col items-center gap-2 mb-3 group">
-          <div className="w-14 h-14 rounded-2xl bg-white shadow-md border border-slate-200 overflow-hidden flex items-center justify-center group-hover:scale-105 transition-transform p-1">
-            <img
-              src="/fhub-remove-background.png"
-              alt="FHub Logo"
-              className="w-full h-full object-contain"
-            />
-          </div>
-          <span className="font-black text-2xl tracking-tight text-slate-900">
-            FHub
-          </span>
-        </Link>
-        <p className="text-xs text-slate-500 font-medium">
-          Mạng lưới Học thuật & Chia sẻ Tri thức Sinh viên FPT University
-        </p>
-      </div>
-
-      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md px-4">
-        <div className="bg-white py-8 px-6 shadow-xl border border-slate-200/80 sm:rounded-2xl sm:px-10">
-          <Outlet />
-        </div>
+    <div className="min-h-screen bg-[#F8F9FF] flex flex-col justify-center items-center py-8 px-4 sm:px-6 lg:px-8 font-sans selection:bg-blue-100 selection:text-blue-900">
+      <div className="w-full max-w-5xl">
+        <Outlet />
       </div>
     </div>
   );
 };
+

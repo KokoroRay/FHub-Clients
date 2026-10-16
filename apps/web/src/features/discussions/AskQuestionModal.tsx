@@ -25,17 +25,26 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
   const [tagsInput, setTagsInput] = useState('dotnet, csharp, clean-architecture');
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !content.trim()) return;
+    if (title.trim().length < 10) {
+      setErrorMessage('Tiêu đề câu hỏi quá ngắn. Vui lòng nhập ít nhất 10 ký tự để người khác dễ hiểu vấn đề.');
+      return;
+    }
+    if (content.trim().length < 20) {
+      setErrorMessage('Nội dung chi tiết câu hỏi cần tối thiểu 20 ký tự.');
+      return;
+    }
 
+    setErrorMessage(null);
     setIsSubmitting(true);
     setTimeout(() => {
       const newQuestion: QuestionPost = {
         id: `q-${Date.now()}`,
-        title,
-        content,
+        title: title.trim(),
+        content: content.trim(),
         courseCode,
         author: {
           id: currentUser?.id || 'anon',
@@ -60,6 +69,8 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
       setIsSubmitting(false);
       setTitle('');
       setContent('');
+      setErrorMessage(null);
+      onClose();
     }, 400);
   };
 
@@ -81,6 +92,12 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4">
+        {errorMessage && (
+          <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold flex items-center gap-2">
+            <HelpCircle className="w-4 h-4 text-rose-500 shrink-0" />
+            <span>{errorMessage}</span>
+          </div>
+        )}
         <Input
           label="Tiêu đề câu hỏi (Ngắn gọn, trọng tâm vấn đề)"
           placeholder="Ví dụ: Làm sao để xử lý lỗi connection pool timeout trong EF Core?"

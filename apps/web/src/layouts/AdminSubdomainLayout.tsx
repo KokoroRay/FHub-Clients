@@ -30,12 +30,14 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { mockCampuses } from '../services/mockData';
 import { Dropdown } from '../components/common/Dropdown';
+import { ErrorBoundary } from '../components/common/ErrorBoundary';
 import { setSubdomainMode } from '../utils/subdomain';
 import {
   useGovernanceAccounts,
   useSupportTickets,
   useCampuses,
   useMajors,
+  useSpecializations,
   useCourseNodes,
 } from '../services/api';
 
@@ -50,6 +52,7 @@ export const AdminSubdomainLayout: React.FC = () => {
   const { data: ticketsData } = useSupportTickets({ pageSize: 1 });
   const { data: campusesData } = useCampuses();
   const { data: majorsData } = useMajors({ pageSize: 1 });
+  const { data: specializationsData } = useSpecializations({ pageSize: 1 });
   const { data: courseNodesData } = useCourseNodes({ pageSize: 1 });
 
   const usersCount = accountsData?.totalCount !== undefined
@@ -74,6 +77,10 @@ export const AdminSubdomainLayout: React.FC = () => {
   const majorsCount = majorsData?.totalCount !== undefined
     ? `${majorsData.totalCount}`
     : (majorsData?.items ? `${majorsData.items.length}` : (majorsData ? '0' : '...'));
+
+  const specializationsCount = specializationsData?.totalCount !== undefined
+    ? `${specializationsData.totalCount}`
+    : (specializationsData?.items ? `${specializationsData.items.length}` : (specializationsData ? '0' : '...'));
 
   const coursesCount = courseNodesData?.totalCount !== undefined
     ? `${courseNodesData.totalCount}`
@@ -109,6 +116,7 @@ export const AdminSubdomainLayout: React.FC = () => {
       items: [
         { name: 'Campuses', path: '/campuses', icon: Building2, badge: campusesCount, badgeColor: 'bg-slate-100 text-slate-600' },
         { name: 'Majors', path: '/majors', icon: GraduationCap, badge: majorsCount, badgeColor: 'bg-slate-100 text-slate-600' },
+        { name: 'Specializations', path: '/specializations', icon: Network, badge: specializationsCount, badgeColor: 'bg-slate-100 text-slate-600' },
         { name: 'Courses', path: '/courses', icon: BookOpen, badge: coursesCount, badgeColor: 'bg-slate-100 text-slate-600' },
       ],
     },
@@ -335,7 +343,9 @@ export const AdminSubdomainLayout: React.FC = () => {
 
         {/* Main Content Area */}
         <main className="flex-1 min-w-0 h-full overflow-y-auto p-6 lg:p-8">
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
     </div>

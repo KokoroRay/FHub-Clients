@@ -1,149 +1,623 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import {
-  User,
-  Award,
-  BookOpen,
-  ThumbsUp,
-  FileText,
-  Workflow,
-  Settings,
-  ShieldCheck,
-  Globe,
-  Link2,
+import { useParams, Link } from 'react-router-dom';
+import { 
+  User, 
+  Award, 
+  BookOpen, 
+  ThumbsUp, 
+  FileText, 
+  Settings, 
+  ShieldCheck, 
+  CheckCircle2, 
+  MessageSquare, 
+  Star, 
+  ArrowUpRight,
+  ExternalLink,
+  Tag,
+  Clock,
+  Sparkles
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { mockCurrentUser, mockQuestions, mockArticles, mockWorkflows } from '../../services/mockData';
-import { Card, CardBody, CardHeader } from '../../components/common/Card';
-import { Badge } from '../../components/common/Badge';
-import { Button } from '../../components/common/Button';
-import { Tabs } from '../../components/common/Tabs';
+import { EditProfileModal } from './EditProfileModal';
 
 export const ProfilePage: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
   const { currentUser } = useAuth();
-  const user = currentUser || mockCurrentUser;
-  const [activeTab, setActiveTab] = useState<'contributions' | 'votes' | 'badges'>('contributions');
 
-  const userQuestions = mockQuestions.filter((q) => q.author.id === user.id);
-  const userWorkflows = mockWorkflows.filter((w) => w.author.id === user.id);
+  const isOwnProfile = !id || id === currentUser?.id || id === 'me';
+
+  // Profile Data State
+  const [profileData, setProfileData] = useState({
+    fullName: (currentUser as any)?.fullName || (currentUser as any)?.name || 'Bao Nguyen',
+    studentId: 'SE172481',
+    email: currentUser?.email || 'bao.nguyen@example.edu',
+    campus: 'FPT University HCM · Active',
+    community: 'FHub Community',
+    major: 'Software Engineering',
+    role: 'Student',
+    status: 'Undergraduate · Year 3 (Term 5 SP25)',
+    memberSince: 'September 2026',
+    bio: 'Computer science student interested in software development and technology.',
+    detailedBio: 'Currently working with C#, ASP.NET Core, and distributed systems architecture in the Software Engineering curriculum.',
+    interests: ['Programming', 'Web Development', 'Software Engineering'],
+    avatarUrl: currentUser?.avatarUrl || '',
+    stats: {
+      articlesPublished: 12,
+      articlesSubtext: 'Top contributor',
+      studyMaterialsShared: 8,
+      materialsSubtext: '142 downloads',
+      courseReviewsWritten: 5,
+      reviewsSubtext: '98% helpful',
+      questionsCount: 12,
+      answersCount: 38,
+      helpfulVotes: 124,
+      badgesCount: 4,
+    }
+  });
+
+  const [activeTab, setActiveTab] = useState<'overview' | 'questions' | 'answers' | 'badges' | 'votes'>('overview');
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  // Mock Contributions Data
+  const questions = [
+    {
+      id: 'q-1',
+      title: 'How to handle async operations in WinForms?',
+      course: 'PRN211',
+      votes: 8,
+      answers: 3,
+      isSolved: true,
+      time: '2 hours ago',
+    },
+    {
+      id: 'q-2',
+      title: 'Best practices for Entity Framework Core queries',
+      course: 'PRN211',
+      votes: 12,
+      answers: 5,
+      isSolved: true,
+      time: 'Yesterday',
+    },
+    {
+      id: 'q-3',
+      title: 'How should I structure a .NET backend project?',
+      course: 'PRN221',
+      votes: 6,
+      answers: 2,
+      isSolved: false,
+      time: '3 days ago',
+    },
+  ];
+
+  const answers = [
+    {
+      id: 'a-1',
+      questionTitle: 'Resolving DbContext concurrency conflict in ASP.NET Core',
+      course: 'PRN211',
+      upvotes: 18,
+      isBestAnswer: true,
+      time: '3 days ago',
+      excerpt: 'You should avoid sharing a single scoped DbContext instance across concurrent async threads...',
+    },
+    {
+      id: 'a-2',
+      questionTitle: 'Difference between IEnumerable and IQueryable with LINQ',
+      course: 'PRN211',
+      upvotes: 9,
+      isBestAnswer: false,
+      time: '5 days ago',
+      excerpt: 'IQueryable compiles expression trees to SQL on the database engine, whereas IEnumerable filters in-memory...',
+    },
+  ];
+
+  const badges = [
+    {
+      id: 'b-1',
+      name: 'Helpful Contributor',
+      description: 'Received 100+ helpful votes on answers and reviews',
+      icon: '🌟',
+      color: 'bg-amber-50 text-amber-800 border-amber-200',
+      earnedDate: 'Oct 2026',
+    },
+    {
+      id: 'b-2',
+      name: 'Problem Solver',
+      description: 'Had 10+ answers marked as Best Accepted Answer',
+      icon: '💡',
+      color: 'bg-blue-50 text-blue-800 border-blue-200',
+      earnedDate: 'Oct 2026',
+    },
+    {
+      id: 'b-3',
+      name: 'Active Learner',
+      description: 'Participated in discussions across 3+ core syllabus courses',
+      icon: '📚',
+      color: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+      earnedDate: 'Sep 2026',
+    },
+    {
+      id: 'b-4',
+      name: 'Community Member',
+      description: 'Joined FHub and verified student identity via university SSO',
+      icon: '🛡️',
+      color: 'bg-purple-50 text-purple-800 border-purple-200',
+      earnedDate: 'Sep 2026',
+    },
+  ];
+
+  const voteHistory = [
+    {
+      id: 'v-1',
+      targetTitle: 'Clean Architecture in ASP.NET Core',
+      type: 'Article',
+      vote: 'Upvote (+1)',
+      date: 'Today, 10:15 AM',
+      author: 'Hoang Le',
+    },
+    {
+      id: 'v-2',
+      targetTitle: 'How to handle async operations in WinForms?',
+      type: 'Question',
+      vote: 'Upvote (+1)',
+      date: 'Yesterday',
+      author: 'Duc Anh Nguyen',
+    },
+    {
+      id: 'v-3',
+      targetTitle: 'PRN211 Midterm Practice Repository Template',
+      type: 'Workflow',
+      vote: 'Upvote (+1)',
+      date: '3 days ago',
+      author: 'Vu Minh',
+    },
+  ];
+
+  const handleSaveProfile = (updated: any) => {
+    setProfileData(prev => ({
+      ...prev,
+      fullName: updated.fullName,
+      campus: updated.campus,
+      major: updated.major,
+      bio: updated.bio,
+      interests: updated.interests,
+      avatarUrl: updated.avatarUrl,
+    }));
+  };
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
-      {/* Profile Hero Header */}
-      <Card className="overflow-hidden">
-        <div className="h-32 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-800" />
-        <CardBody className="p-6 pt-0 relative">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 -mt-12 mb-4">
-            <div className="flex items-end gap-4">
-              <img
-                src={user.avatarUrl}
-                alt={user.fullName}
-                className="w-24 h-24 rounded-2xl object-cover ring-4 ring-white dark:ring-slate-900 shadow-md"
-              />
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <h1 className="text-xl font-black text-slate-900 dark:text-slate-100">{user.fullName}</h1>
-                  <Badge variant="success" size="sm" icon={<ShieldCheck className="w-3 h-3" />}>
-                    Đã xác minh
-                  </Badge>
-                </div>
-                <p className="text-xs text-slate-500 font-mono">
-                  {user.studentId} • {user.major} • Campus {user.campus}
-                </p>
+    <div className="space-y-6 max-w-5xl mx-auto pb-16">
+      {/* Top Header & Actions Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-[#181C22]">
+            {isOwnProfile ? 'My Profile' : profileData.fullName}
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+            {isOwnProfile 
+              ? 'View your personal information and community activity.' 
+              : `${profileData.role} · ${profileData.major} · FPT University`}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          {isOwnProfile ? (
+            <>
+              <button
+                type="button"
+                onClick={() => setIsEditModalOpen(true)}
+                className="px-4 py-2 bg-[#0076D1] hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors"
+              >
+                Edit Profile
+              </button>
+              <Link
+                to="/settings"
+                className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 border border-slate-200 rounded-xl transition-colors"
+                title="Preferences & Settings"
+              >
+                <Settings className="w-4 h-4" />
+              </Link>
+            </>
+          ) : (
+            <Link
+              to="/messages"
+              className="px-4 py-2 bg-[#0076D1] hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors inline-flex items-center gap-1.5"
+            >
+              <MessageSquare className="w-4 h-4" />
+              <span>Message</span>
+            </Link>
+          )}
+        </div>
+      </div>
+
+      {/* Main Profile Info Card (Figma #106:7320 & #92:3384) */}
+      <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-5">
+          {/* Avatar Initials Circle */}
+          <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-[#0076D1] to-sky-400 flex items-center justify-center text-white font-bold text-2xl overflow-hidden shadow-xs shrink-0">
+            {profileData.avatarUrl ? (
+              <img src={profileData.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+            ) : (
+              profileData.fullName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() || 'BQ'
+            )}
+          </div>
+
+          <div className="space-y-1.5 flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h2 className="text-xl font-bold text-[#181C22]">
+                {profileData.fullName}
+              </h2>
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-semibold bg-amber-50 text-amber-800 border border-amber-200">
+                {profileData.role}
+              </span>
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono text-slate-600 bg-slate-100 border border-slate-200">
+                {profileData.studentId}
+              </span>
+            </div>
+            <p className="text-xs text-slate-600 leading-relaxed max-w-2xl">
+              {profileData.bio}
+            </p>
+          </div>
+        </div>
+
+        {/* 4-Item Meta Bar (Figma #106:7335) */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 rounded-xl bg-slate-50/70 border border-slate-100">
+          <div>
+            <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+              EMAIL
+            </span>
+            <span className="text-xs font-semibold text-slate-800 truncate block mt-0.5">
+              {profileData.email}
+            </span>
+          </div>
+
+          <div>
+            <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+              COMMUNITY
+            </span>
+            <span className="text-xs font-semibold text-slate-800 truncate block mt-0.5">
+              {profileData.community}
+            </span>
+          </div>
+
+          <div>
+            <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+              MAJOR
+            </span>
+            <span className="text-xs font-semibold text-slate-800 truncate block mt-0.5">
+              {profileData.major}
+            </span>
+          </div>
+
+          <div>
+            <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+              CAMPUS / STATUS
+            </span>
+            <span className="text-xs font-semibold text-slate-800 truncate block mt-0.5">
+              {profileData.campus}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* 3 Stats Highlights Cards (Figma #106:7369) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Card 1 */}
+        <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-xs">
+          <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+            ARTICLES PUBLISHED
+          </span>
+          <div className="flex items-baseline justify-between mt-2">
+            <span className="text-3xl font-extrabold text-[#181C22]">
+              {profileData.stats.articlesPublished}
+            </span>
+            <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
+              {profileData.stats.articlesSubtext}
+            </span>
+          </div>
+        </div>
+
+        {/* Card 2 */}
+        <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-xs">
+          <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+            STUDY MATERIALS SHARED
+          </span>
+          <div className="flex items-baseline justify-between mt-2">
+            <span className="text-3xl font-extrabold text-[#181C22]">
+              {profileData.stats.studyMaterialsShared}
+            </span>
+            <span className="text-xs font-semibold text-[#0076D1] bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
+              {profileData.stats.materialsSubtext}
+            </span>
+          </div>
+        </div>
+
+        {/* Card 3 */}
+        <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-xs">
+          <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+            COURSE REVIEWS WRITTEN
+          </span>
+          <div className="flex items-baseline justify-between mt-2">
+            <span className="text-3xl font-extrabold text-[#181C22]">
+              {profileData.stats.courseReviewsWritten}
+            </span>
+            <span className="text-xs font-semibold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100">
+              {profileData.stats.reviewsSubtext}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* About Me Section (Figma #106:7410) */}
+      <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div>
+            <h3 className="text-base font-bold text-[#181C22]">About Me</h3>
+            <p className="text-xs text-slate-400">Academic Profile Info</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+              MEMBER SINCE
+            </span>
+            <span className="text-xs font-semibold text-slate-800 block mt-0.5">
+              {profileData.memberSince}
+            </span>
+          </div>
+
+          <div>
+            <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+              STUDENT STATUS
+            </span>
+            <span className="text-xs font-semibold text-slate-800 block mt-0.5">
+              {profileData.status}
+            </span>
+          </div>
+        </div>
+
+        <div className="pt-2">
+          <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-2">
+            ACADEMIC & TECH INTERESTS
+          </span>
+          <div className="flex flex-wrap gap-2">
+            {profileData.interests.map((tag) => (
+              <span
+                key={tag}
+                className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <p className="text-xs text-slate-600 leading-relaxed pt-2 border-t border-slate-100">
+          {profileData.detailedBio}
+        </p>
+      </div>
+
+      {/* Interactive Activity & Contributions Tabs (Figma #92:3543) */}
+      <div className="space-y-4">
+        {/* Tab Buttons */}
+        <div className="flex items-center gap-2 border-b border-slate-200 pb-2 overflow-x-auto">
+          {[
+            { id: 'overview', label: 'Overview' },
+            { id: 'questions', label: `Questions (${questions.length})` },
+            { id: 'answers', label: `Answers (${answers.length})` },
+            { id: 'badges', label: `Badges (${badges.length})` },
+            { id: 'votes', label: 'Vote History' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                activeTab === tab.id
+                  ? 'bg-white text-[#0076D1] shadow-xs border border-slate-200'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab 1: Overview */}
+        {activeTab === 'overview' && (
+          <div className="space-y-4">
+            <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h4 className="text-sm font-bold text-slate-800">Recent Contributions</h4>
+                <button 
+                  onClick={() => setActiveTab('questions')}
+                  className="text-xs font-semibold text-[#0076D1] hover:underline"
+                >
+                  View All
+                </button>
+              </div>
+
+              <div className="divide-y divide-slate-100">
+                {questions.map((q) => (
+                  <div key={q.id} className="py-3 flex items-center justify-between gap-4">
+                    <div className="space-y-1">
+                      <Link to={`/discussions/${q.id}`} className="text-xs font-bold text-slate-800 hover:text-[#0076D1] line-clamp-1">
+                        {q.title}
+                      </Link>
+                      <div className="flex items-center gap-3 text-[11px] text-slate-400">
+                        <span className="font-mono text-slate-700 bg-slate-100 px-1.5 py-0.2 rounded font-semibold">
+                          {q.course}
+                        </span>
+                        <span>{q.votes} votes</span>
+                        <span>{q.answers} answers</span>
+                        {q.isSolved && (
+                          <span className="text-emerald-700 font-semibold bg-emerald-50 px-1.5 py-0.2 rounded">
+                            Accepted Solution
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <span className="text-xs text-slate-400 whitespace-nowrap">{q.time}</span>
+                  </div>
+                ))}
               </div>
             </div>
 
-            <Link to="/settings">
-              <Button variant="outline" size="sm" leftIcon={<Settings className="w-4 h-4" />}>
-                Thiết lập tài khoản
-              </Button>
-            </Link>
-          </div>
+            {/* Badges Preview */}
+            <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h4 className="text-sm font-bold text-slate-800">Earned Badges</h4>
+                <button 
+                  onClick={() => setActiveTab('badges')}
+                  className="text-xs font-semibold text-[#0076D1] hover:underline"
+                >
+                  View All ({badges.length})
+                </button>
+              </div>
 
-          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-2xl leading-relaxed">
-            {user.bio}
-          </p>
-
-          <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-500">
-            <div className="flex items-center gap-4">
-              <span className="font-bold text-blue-600 font-mono text-sm">{user.karma.toLocaleString()} Karma Points</span>
-              <span>• Tham gia từ: 09/2025</span>
-            </div>
-
-            <div className="flex items-center gap-3">
-              {user.githubUrl && (
-                <a href={user.githubUrl} target="_blank" rel="noreferrer" className="text-slate-500 hover:text-slate-900" title="GitHub">
-                  <Globe className="w-4 h-4" />
-                </a>
-              )}
-              {user.linkedinUrl && (
-                <a href={user.linkedinUrl} target="_blank" rel="noreferrer" className="text-slate-500 hover:text-sky-600" title="LinkedIn">
-                  <Link2 className="w-4 h-4" />
-                </a>
-              )}
-            </div>
-          </div>
-        </CardBody>
-      </Card>
-
-      {/* Tabs */}
-      <Tabs
-        tabs={[
-          { id: 'contributions', label: 'Đóng góp học thuật', count: userQuestions.length + userWorkflows.length, icon: <BookOpen className="w-4 h-4" /> },
-          { id: 'badges', label: 'Huy hiệu đã đạt', count: user.badges.length, icon: <Award className="w-4 h-4" /> },
-          { id: 'votes', label: 'Lịch sử Upvote', icon: <ThumbsUp className="w-4 h-4" /> },
-        ]}
-        activeTab={activeTab}
-        onChange={(t) => setActiveTab(t as any)}
-      />
-
-      {/* Tab Content */}
-      <div className="space-y-4">
-        {activeTab === 'contributions' && (
-          <div className="space-y-3">
-            {userQuestions.map((q) => (
-              <Card key={q.id} hoverable>
-                <CardBody className="p-4 space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="primary" size="sm">{q.courseCode}</Badge>
-                    <span className="text-xs text-slate-400">Câu hỏi Q&A</span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {badges.map((b) => (
+                  <div key={b.id} className={`p-3.5 rounded-xl border text-center space-y-1.5 ${b.color}`}>
+                    <span className="text-2xl">{b.icon}</span>
+                    <h5 className="text-xs font-bold">{b.name}</h5>
+                    <p className="text-[10px] opacity-75">{b.earnedDate}</p>
                   </div>
-                  <Link to={`/discussions/${q.id}`} className="font-bold text-sm text-slate-900 dark:text-slate-100 hover:text-blue-600 block">
-                    {q.title}
-                  </Link>
-                </CardBody>
-              </Card>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 2: Questions */}
+        {activeTab === 'questions' && (
+          <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs divide-y divide-slate-100">
+            {questions.map((q) => (
+              <div key={q.id} className="py-4 flex items-start justify-between gap-4">
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
+                      {q.course}
+                    </span>
+                    <Link to={`/discussions/${q.id}`} className="text-sm font-bold text-slate-800 hover:text-[#0076D1]">
+                      {q.title}
+                    </Link>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-slate-500">
+                    <span>{q.votes} upvotes</span>
+                    <span>•</span>
+                    <span>{q.answers} replies</span>
+                    {q.isSolved && (
+                      <>
+                        <span>•</span>
+                        <span className="text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
+                          Solved
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <span className="text-xs text-slate-400 whitespace-nowrap">{q.time}</span>
+              </div>
             ))}
           </div>
         )}
 
+        {/* Tab 3: Answers */}
+        {activeTab === 'answers' && (
+          <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs divide-y divide-slate-100">
+            {answers.map((a) => (
+              <div key={a.id} className="py-4 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
+                      {a.course}
+                    </span>
+                    <h5 className="text-xs font-bold text-slate-800">
+                      Answered on: <span className="hover:text-[#0076D1] cursor-pointer">{a.questionTitle}</span>
+                    </h5>
+                  </div>
+                  {a.isBestAnswer && (
+                    <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
+                      <Sparkles className="w-3 h-3 text-emerald-600" />
+                      Best Answer
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-600 bg-slate-50/70 p-3 rounded-xl border border-slate-100 italic leading-relaxed">
+                  "{a.excerpt}"
+                </p>
+                <div className="flex items-center gap-3 text-[11px] text-slate-400">
+                  <span className="font-semibold text-slate-600">{a.upvotes} helpful upvotes</span>
+                  <span>•</span>
+                  <span>{a.time}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Tab 4: Badges */}
         {activeTab === 'badges' && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {user.badges.map((b) => (
-              <Card key={b.id}>
-                <CardBody className="p-4 flex items-center gap-3.5">
-                  <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 flex items-center justify-center text-2xl shrink-0">
-                    {b.icon || '🏅'}
+            {badges.map((b) => (
+              <div key={b.id} className="bg-white rounded-2xl p-5 border border-slate-100 shadow-xs flex items-start gap-4">
+                <div className="text-3xl p-3 bg-slate-50 rounded-2xl border border-slate-100 shrink-0">
+                  {b.icon}
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-sm font-bold text-slate-800">{b.name}</h4>
+                    <span className="text-[10px] text-slate-400 font-mono">Earned {b.earnedDate}</span>
                   </div>
-                  <div>
-                    <h4 className="font-bold text-sm text-slate-900 dark:text-slate-100">{b.name}</h4>
-                    <p className="text-xs text-slate-500">{b.description}</p>
-                    <span className="text-[10px] text-amber-600 font-bold block mt-0.5">+{b.karmaReward} Karma</span>
-                  </div>
-                </CardBody>
-              </Card>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    {b.description}
+                  </p>
+                </div>
+              </div>
             ))}
           </div>
         )}
 
+        {/* Tab 5: Vote History */}
         {activeTab === 'votes' && (
-          <Card>
-            <CardBody className="p-6 text-center text-xs text-slate-400">
-              Bạn đã upvote cho 48 câu hỏi và 22 bài viết hữu ích trong học kỳ này.
-            </CardBody>
-          </Card>
+          <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs divide-y divide-slate-100">
+            {voteHistory.map((v) => (
+              <div key={v.id} className="py-3 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-50 text-[#0076D1] border border-blue-200">
+                    {v.type}
+                  </span>
+                  <div>
+                    <h5 className="text-xs font-bold text-slate-800 hover:text-[#0076D1] cursor-pointer">
+                      {v.targetTitle}
+                    </h5>
+                    <p className="text-[11px] text-slate-400">By {v.author}</p>
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="text-xs font-bold text-emerald-600">{v.vote}</span>
+                  <p className="text-[10px] text-slate-400">{v.date}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </div>
+
+      {/* Edit Profile Modal (Figma #106:7604) */}
+      <EditProfileModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onSaveSuccess={handleSaveProfile}
+        initialData={{
+          fullName: profileData.fullName,
+          email: profileData.email,
+          campus: profileData.campus,
+          major: profileData.major,
+          bio: profileData.bio,
+          interests: profileData.interests,
+          avatarUrl: profileData.avatarUrl,
+        }}
+      />
     </div>
   );
 };

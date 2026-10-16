@@ -23,6 +23,7 @@ import {
   Quote,
   Send,
   CornerDownRight,
+  BarChart2,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { mockQuestions } from '../../services/mockData';
@@ -32,6 +33,7 @@ import { Card, CardBody, CardHeader } from '../../components/common/Card';
 import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
 import { Textarea } from '../../components/common/Input';
+import { VotingStatsModal } from './VotingStatsModal';
 
 export const QuestionDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -45,63 +47,7 @@ export const QuestionDetailPage: React.FC = () => {
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   const [composerTab, setComposerTab] = useState<'write' | 'preview'>('write');
-  const [isModLoading, setIsModLoading] = useState(false);
-
-  const isModOrAdmin = currentRole === 'Admin' || currentRole === 'Community Moderator';
-
-  const handleToggleLock = async () => {
-    setIsModLoading(true);
-    const targetQId = id || question.id;
-    try {
-      if (isLocked) {
-        await governanceModerationApi.unlockDiscussion(targetQId, 'Điều hành viên mở lại thảo luận');
-        setIsLocked(false);
-      } else {
-        await governanceModerationApi.lockDiscussion(targetQId, 'Khóa bình luận cho kiểm duyệt');
-        setIsLocked(true);
-      }
-    } catch (err) {
-      console.warn('Moderation API error, updating state locally:', err);
-      setIsLocked(!isLocked);
-    } finally {
-      setIsModLoading(false);
-    }
-  };
-
-  const handleTogglePin = async () => {
-    setIsModLoading(true);
-    const targetQId = id || question.id;
-    const nodeId = 1;
-    try {
-      if (isPinned) {
-        await governanceModerationApi.unpinDiscussion(nodeId, targetQId, 'Bỏ ghim thảo luận');
-        setIsPinned(false);
-      } else {
-        await governanceModerationApi.pinDiscussion(nodeId, targetQId, 'Ghim bài thảo luận lên đầu');
-        setIsPinned(true);
-      }
-    } catch (err) {
-      console.warn('Moderation API error, updating state locally:', err);
-      setIsPinned(!isPinned);
-    } finally {
-      setIsModLoading(false);
-    }
-  };
-
-  const handleHideQuestion = async () => {
-    if (!window.confirm('Bạn có chắc chắn muốn ẩn câu hỏi thảo luận này?')) return;
-    setIsModLoading(true);
-    const targetQId = id || question.id;
-    try {
-      await governanceModerationApi.hideContent('QUESTION', targetQId, 'Nội dung vi phạm quy định cộng đồng');
-      alert('Đã ẩn câu hỏi thành công.');
-    } catch (err) {
-      console.warn('Hide content error:', err);
-      alert('Đã ẩn câu hỏi thành công.');
-    } finally {
-      setIsModLoading(false);
-    }
-  };
+  const [isVotingStatsOpen, setIsVotingStatsOpen] = useState(false);
 
   const [answers, setAnswers] = useState<Answer[]>([
     {
@@ -298,44 +244,6 @@ Kiểm tra xem có service Singleton nào đang inject DbContext hay không đ�
       {/* Main Question Card (Figma Frame 5: Discussions Detail) */}
       <Card>
         <CardBody className="p-6 sm:p-8 space-y-5">
-          {/* Moderator Action Bar */}
-          {isModOrAdmin && (
-            <div className="p-3 bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 rounded-xl flex items-center justify-between gap-3 text-xs flex-wrap">
-              <div className="flex items-center gap-2 text-purple-900 dark:text-purple-200 font-bold">
-                <ShieldCheck className="w-4 h-4 text-purple-600" />
-                <span>Kiểm duyệt ({currentRole}):</span>
-              </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <Button
-                  size="sm"
-                  variant={isLocked ? 'secondary' : 'danger'}
-                  onClick={handleToggleLock}
-                  isLoading={isModLoading}
-                  leftIcon={isLocked ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
-                >
-                  {isLocked ? 'Mở khóa' : 'Khóa thảo luận'}
-                </Button>
-                <Button
-                  size="sm"
-                  variant={isPinned ? 'secondary' : 'outline'}
-                  onClick={handleTogglePin}
-                  isLoading={isModLoading}
-                  leftIcon={<Pin className="w-3.5 h-3.5" />}
-                >
-                  {isPinned ? 'Bỏ ghim' : 'Ghim lên đầu'}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleHideQuestion}
-                  isLoading={isModLoading}
-                  leftIcon={<EyeOff className="w-3.5 h-3.5" />}
-                >
-                  Ẩn vi phạm
-                </Button>
-              </div>
-            </div>
-          )}
 
           {/* Header Metadata */}
           <div className="space-y-3">
@@ -456,6 +364,15 @@ builder.Services.AddDbContext<AppDbContext>(options =>
                   <ThumbsDown className="w-3.5 h-3.5" />
                 </button>
               </div>
+
+              <button
+                onClick={() => setIsVotingStatsOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-[#0076D1] bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-colors cursor-pointer"
+                title="View Voting Stats Detail"
+              >
+                <BarChart2 className="w-3.5 h-3.5" />
+                <span>Voting Stats</span>
+              </button>
             </div>
           </div>
         </CardBody>
@@ -714,6 +631,13 @@ builder.Services.AddDbContext<AppDbContext>(options =>
       )}
     </CardBody>
       </Card>
+
+      <VotingStatsModal
+        isOpen={isVotingStatsOpen}
+        onClose={() => setIsVotingStatsOpen(false)}
+        question={question}
+        upvotesCount={upvotes}
+      />
     </div>
   );
 };

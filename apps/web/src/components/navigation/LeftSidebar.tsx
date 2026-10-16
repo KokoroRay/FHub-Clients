@@ -21,113 +21,99 @@ import {
 import { useAuth } from '../../context/AuthContext';
 
 export const LeftSidebar: React.FC = () => {
-  const { currentRole, currentUser } = useAuth();
+  const { currentUser } = useAuth();
 
   const mainNav = [
     { name: 'Global Feed', path: '/', icon: Compass },
     { name: 'Course Hub', path: '/courses', icon: BookOpen },
-    { name: 'Discussions & Q&A', path: '/discussions', icon: HelpCircle },
-    { name: 'Tech Articles', path: '/articles', icon: FileText },
     { name: 'Shared Workflows', path: '/workflows', icon: Workflow },
+    { name: 'Articles', path: '/articles', icon: FileText },
+    { name: 'Course Evaluations', path: '/course-evaluations', icon: Sparkles },
     { name: 'Study Materials', path: '/materials', icon: Download },
-    { name: 'Marketplace', path: '/marketplace', icon: ShoppingBag },
+    { name: 'Questions', path: '/discussions', icon: HelpCircle },
   ];
 
-  const secondaryNav = [
-    { name: 'Mentorship Pairing', path: '/mentorship', icon: Users },
-    { name: 'Đã lưu (Bookmarks)', path: '/bookmarks', icon: Bookmark },
-    { name: 'Support & Tickets', path: '/tickets', icon: LifeBuoy },
+  const commNav = [
+    { name: 'Messages', path: '/messages', icon: Users, badge: 2 },
+    { name: 'Bookmarks', path: '/bookmarks', icon: Bookmark },
   ];
 
-  const adminNav = [
-    { name: 'Admin Control Center', path: '/admin/campus', icon: Settings2 },
-    { name: 'Staff Governance', path: '/staff/accounts', icon: Activity },
-  ];
-
-  const modNav = [
-    { name: 'Moderator Desk', path: '/moderator', icon: ShieldCheck },
-    { name: 'Official Broadcasts', path: '/broadcasts', icon: Megaphone },
-    { name: 'Alumni Karma & Endorse', path: '/alumni', icon: Award },
+  const personalNav = [
+    { name: 'My Profile', path: '/profile', icon: Award },
+    { name: 'Preferences & Privacy', path: '/settings', icon: Settings2 },
+    { name: 'Notifications', path: '/notifications', icon: Megaphone },
+    { name: 'Support Tickets', path: '/tickets', icon: LifeBuoy },
   ];
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all group ${
+    `flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all group ${
       isActive
-        ? 'bg-blue-600 text-white shadow-xs'
+        ? 'bg-[#0076D1] text-white shadow-xs'
         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100/80 dark:hover:bg-slate-800/60'
     }`;
 
   return (
-    <aside className="w-64 shrink-0 hidden lg:block sticky top-20 h-[calc(100vh-5.5rem)] overflow-y-auto pr-2">
+    <aside className="w-56 shrink-0 hidden lg:block sticky top-20 h-[calc(100vh-5.5rem)] overflow-y-auto pr-2">
       <div className="space-y-6">
-        {/* Main Navigation */}
+        {/* Section A: MAIN NAVIGATION */}
         <div>
           <h4 className="px-3 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
-            Academic Hub
+            MAIN NAVIGATION
           </h4>
           <nav className="space-y-1">
             {mainNav.map((item) => {
               const Icon = item.icon;
               return (
                 <NavLink key={item.path} to={item.path} end={item.path === '/'} className={linkClass}>
-                  <Icon className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110" />
-                  <span>{item.name}</span>
+                  <div className="flex items-center gap-2.5">
+                    <Icon className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110" />
+                    <span>{item.name}</span>
+                  </div>
                 </NavLink>
               );
             })}
           </nav>
         </div>
 
-        {/* Secondary Navigation */}
+        {/* Section B: COMMUNICATION */}
         <div>
           <h4 className="px-3 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
-            Community & Support
+            COMMUNICATION
           </h4>
           <nav className="space-y-1">
-            {secondaryNav.map((item) => {
+            {commNav.map((item) => {
               const Icon = item.icon;
               return (
                 <NavLink key={item.path} to={item.path} className={linkClass}>
-                  <Icon className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110" />
-                  <span>{item.name}</span>
+                  <div className="flex items-center gap-2.5">
+                    <Icon className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110" />
+                    <span>{item.name}</span>
+                  </div>
+                  {item.badge !== undefined && (
+                    <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-[#0076D1] text-white group-hover:bg-white group-hover:text-[#0076D1] transition-colors">
+                      {item.badge}
+                    </span>
+                  )}
                 </NavLink>
               );
             })}
           </nav>
         </div>
 
-        {/* Admin / Staff Navigation if Role matched */}
-        {(currentRole === 'Admin' || currentRole === 'Staff') && (
-          <div>
-            <h4 className="px-3 text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-              <span>Management Portal</span>
-            </h4>
-            <nav className="space-y-1">
-              {adminNav.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <NavLink key={item.path} to={item.path} className={linkClass}>
-                    <Icon className="w-4 h-4 shrink-0 text-amber-500" />
-                    <span>{item.name}</span>
-                  </NavLink>
-                );
-              })}
-            </nav>
-          </div>
-        )}
-
-        {/* Moderator / School Rep / Alumni Tools */}
-        <div className="pt-2 border-t border-slate-200/80 dark:border-slate-800">
-          <h4 className="px-3 text-[11px] font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider mb-2">
-            Special Roles Desk
+        {/* Section C: PERSONAL */}
+        <div>
+          <h4 className="px-3 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
+            PERSONAL
           </h4>
           <nav className="space-y-1">
-            {modNav.map((item) => {
+            {personalNav.map((item) => {
               const Icon = item.icon;
               return (
                 <NavLink key={item.path} to={item.path} className={linkClass}>
-                  <Icon className="w-4 h-4 shrink-0 text-purple-500" />
-                  <span>{item.name}</span>
+                  <div className="flex items-center gap-2.5">
+                    <Icon className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110" />
+                    <span>{item.name}</span>
+                  </div>
                 </NavLink>
               );
             })}
@@ -136,13 +122,13 @@ export const LeftSidebar: React.FC = () => {
 
         {/* Quick User Karma / Mini Stats */}
         {currentUser && (
-          <div className="p-3.5 bg-linear-to-br from-slate-50 to-slate-100/80 dark:from-slate-800/40 dark:to-slate-900/60 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs">
+          <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-500 font-medium">Điểm Karma</span>
-              <span className="font-extrabold text-blue-600 dark:text-blue-400">{currentUser.karma.toLocaleString()} pts</span>
+              <span className="text-slate-500 font-medium">Karma Points</span>
+              <span className="font-extrabold text-[#0076D1]">{currentUser.karma.toLocaleString()} pts</span>
             </div>
-            <div className="mt-2 text-[11px] text-slate-400 flex items-center justify-between">
-              <span>Huy hiệu: {currentUser.badges.length}</span>
+            <div className="mt-1.5 text-[11px] text-slate-400 flex items-center justify-between">
+              <span>Huy hiệu: {currentUser.badges?.length || 0}</span>
               <span className="text-emerald-600 font-semibold">{currentUser.campus} Campus</span>
             </div>
           </div>

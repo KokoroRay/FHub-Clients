@@ -10,7 +10,8 @@ import {
   badgesApi,
   auditLogsApi,
   healthApi,
-  authApi
+  authApi,
+  specializationsApi
 } from './adminApi';
 
 // ---------------------------------------------------------------------------
@@ -345,6 +346,64 @@ export const useRemoveCourseFromSemester = () => {
       majorsApi.removeCourseFromSemester(majorId, courseCode, semester),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'majors', variables.majorId] });
+    }
+  });
+};
+
+// ---------------------------------------------------------------------------
+// 5.5 Specializations Hooks
+// ---------------------------------------------------------------------------
+export const useSpecializations = (params?: { search?: string; majorId?: number | string; isActive?: boolean; pageNumber?: number; pageSize?: number }) => {
+  return useQuery({
+    queryKey: ['admin', 'specializations', params],
+    queryFn: () => specializationsApi.getSpecializations(params),
+    staleTime: 60000
+  });
+};
+
+export const useSpecializationDetail = (id?: string | number) => {
+  return useQuery({
+    queryKey: ['admin', 'specializations', id],
+    queryFn: () => {
+      if (!id) return null;
+      return specializationsApi.getSpecializationById(id);
+    },
+    enabled: !!id
+  });
+};
+
+export const useCreateSpecialization = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: specializationsApi.createSpecialization,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'specializations'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'majors'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'dashboard'] });
+    }
+  });
+};
+
+export const useUpdateSpecialization = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: specializationsApi.updateSpecialization,
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'specializations'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'specializations', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'majors'] });
+    }
+  });
+};
+
+export const useDeleteSpecialization = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: specializationsApi.deleteSpecialization,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'specializations'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'majors'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'dashboard'] });
     }
   });
 };

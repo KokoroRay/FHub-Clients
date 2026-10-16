@@ -41,6 +41,9 @@ export interface LoginResponse {
     studentCode?: string;
     roles: string[];
     isTwoFactorEnabled?: boolean;
+    fullName?: string;
+    campusCode?: string;
+    avatarUrl?: string;
   };
 }
 
@@ -520,6 +523,69 @@ export const majorsApi = {
 
   removeCourseFromSemester: async (majorId: number | string, courseCode: string, semester: number = 1) => {
     const res = await apiClient.delete<any>(`/api/majors/${majorId}/curriculum-courses/${courseCode}?semester=${semester}`);
+    return res.data?.data ?? res.data;
+  }
+};
+
+// ---------------------------------------------------------------------------
+// 6.5 Specializations API
+// ---------------------------------------------------------------------------
+export interface SpecializationItemDto {
+  specializationId: number;
+  majorId: number;
+  majorCode: string;
+  majorName: string;
+  specializationCode: string;
+  specializationName: string;
+  description?: string;
+  isActive: boolean;
+  curriculaCount: number;
+  createdByStaffId?: number;
+  updatedByStaffId?: number;
+  createdAt: string;
+  updatedAt: string;
+  curricula?: Array<{
+    curriculumId: number;
+    curriculumCode: string;
+    curriculumName: string;
+    description?: string;
+    effectiveFromYear: number;
+    effectiveToYear?: number;
+    isActive: boolean;
+    totalCourses: number;
+  }>;
+}
+
+export const specializationsApi = {
+  getSpecializations: async (params?: { search?: string; majorId?: number | string; isActive?: boolean; pageNumber?: number; pageSize?: number }) => {
+    const query = new URLSearchParams();
+    if (params?.search) query.set('search', params.search);
+    if (params?.majorId) query.set('majorId', String(params.majorId));
+    if (params?.isActive !== undefined) query.set('isActive', String(params.isActive));
+    if (params?.pageNumber) query.set('pageNumber', String(params.pageNumber));
+    if (params?.pageSize) query.set('pageSize', String(params.pageSize));
+
+    const res = await apiClient.get<any>(`/api/specializations?${query.toString()}`);
+    return res.data?.data ?? res.data;
+  },
+
+  getSpecializationById: async (id: number | string) => {
+    const res = await apiClient.get<any>(`/api/specializations/${id}`);
+    return res.data?.data ?? res.data;
+  },
+
+  createSpecialization: async (payload: { majorId: number | string; specializationCode: string; specializationName: string; description?: string; isActive?: boolean }) => {
+    const res = await apiClient.post<any>('/api/specializations', payload);
+    return res.data?.data ?? res.data;
+  },
+
+  updateSpecialization: async ({ id, payload }: { id: number | string; payload: { specializationName: string; description?: string; isActive?: boolean } }) => {
+    const res = await apiClient.put<any>(`/api/specializations/${id}`, payload);
+    return res.data?.data ?? res.data;
+  },
+
+  deleteSpecialization: async (id: number | string) => {
+    const res = await apiClient.delete<any>(`/api/specializations/${id}`);
     return res.data?.data ?? res.data;
   }
 };

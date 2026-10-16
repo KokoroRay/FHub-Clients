@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { FileText, ArrowLeft, Image as ImageIcon } from 'lucide-react';
+import { FileText, ArrowLeft, Image as ImageIcon, AlertCircle } from 'lucide-react';
 import { Card, CardBody, CardHeader } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Input, Textarea, Select } from '../../components/common/Input';
@@ -14,9 +14,24 @@ export const CreateArticlePage: React.FC = () => {
   const [tags, setTags] = useState('dotnet, architecture, clean-code');
   const [coverUrl, setCoverUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (title.trim().length < 10) {
+      setErrorMessage('Tiêu đề bài viết cần ít nhất 10 ký tự.');
+      return;
+    }
+    if (summary.trim().length < 15) {
+      setErrorMessage('Tóm tắt ngắn bài viết cần ít nhất 15 ký tự.');
+      return;
+    }
+    if (content.trim().length < 30) {
+      setErrorMessage('Nội dung bài viết quá ngắn. Cần tối thiểu 30 ký tự.');
+      return;
+    }
+
+    setErrorMessage(null);
     setIsSubmitting(true);
     setTimeout(() => {
       setIsSubmitting(false);
@@ -32,12 +47,18 @@ export const CreateArticlePage: React.FC = () => {
 
       <Card>
         <CardHeader>
-          <h1 className="text-xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <FileText className="w-5 h-5 text-blue-600" />
+          <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
+            <FileText className="w-5 h-5 text-[#0076D1]" />
             <span>Viết bài viết công nghệ mới</span>
           </h1>
         </CardHeader>
         <CardBody className="p-6">
+          {errorMessage && (
+            <div className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
               label="Tiêu đề bài viết"
