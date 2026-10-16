@@ -28,7 +28,7 @@ export const useAdminDashboardStats = (timeframe: string = 'Today') => {
 // ---------------------------------------------------------------------------
 // 2. User & Governance Accounts Hooks
 // ---------------------------------------------------------------------------
-export const useGovernanceAccounts = (params?: { search?: string; role?: string; campus?: string; governanceRole?: string; isActive?: boolean; pageNumber?: number; pageSize?: number }) => {
+export const useGovernanceAccounts = (params?: { search?: string; role?: string; campus?: string; status?: string; governanceRole?: string; isActive?: boolean; pageNumber?: number; pageSize?: number }) => {
   return useQuery({
     queryKey: ['admin', 'users-accounts', params],
     queryFn: () => userManagementApi.getAccounts(params),
@@ -84,7 +84,9 @@ export const useAssignUserRole = () => {
   return useMutation({
     mutationFn: ({ userId, roleCode }: { userId: number | string; roleCode: string }) =>
       authApi.assignRole(userId, roleCode),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users-accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users-accounts', String(variables.userId)] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'governance-accounts'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'user-roles'] });
     }
@@ -96,9 +98,36 @@ export const useRevokeUserRole = () => {
   return useMutation({
     mutationFn: ({ userId, roleCode }: { userId: number | string; roleCode: string }) =>
       authApi.revokeRole(userId, roleCode),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users-accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users-accounts', String(variables.userId)] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'governance-accounts'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'user-roles'] });
+    }
+  });
+};
+
+export const useUpdateUserAccountStatus = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: number | string; payload: { newStatus: 'ACTIVE' | 'SUSPENDED' | 'LOCKED' | 'PENDING' | 'PENDING_VERIFICATION' | 'DELETED'; reason?: string } }) =>
+      userManagementApi.updateAccountStatus(id, payload),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users-accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users-accounts', String(variables.id)] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'governance-accounts'] });
+    }
+  });
+};
+
+export const useDeleteUserAccount = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: number | string; reason?: string }) =>
+      userManagementApi.deleteAccount(id, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users-accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'governance-accounts'] });
     }
   });
 };
@@ -120,9 +149,28 @@ export const useProcessVerification = () => {
   return useMutation({
     mutationFn: ({ id, payload }: { id: number | string; payload: { status: 'APPROVED' | 'REJECTED'; reviewNote?: string } }) =>
       userManagementApi.processVerification(id, payload),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'manual-verifications'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'manual-verifications', 'user', String(variables.id)] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users-accounts'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'governance-accounts'] });
     }
+  });
+};
+
+export const useUserVerification = (userId?: number | string) => {
+  return useQuery({
+    queryKey: ['admin', 'manual-verifications', 'user', String(userId)],
+    queryFn: () => userManagementApi.getVerificationByUserId(userId!),
+    enabled: !!userId,
+  });
+};
+
+export const useManualVerificationsList = (status?: string) => {
+  return useQuery({
+    queryKey: ['admin', 'manual-verifications', status],
+    queryFn: () => userManagementApi.getVerificationsList(status),
+    staleTime: 30000,
   });
 };
 

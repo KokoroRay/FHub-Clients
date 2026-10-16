@@ -36,10 +36,12 @@ import {
 import { AdminUser } from '../../../services/adminMockData';
 import {
   useGovernanceAccountDetail,
-  useApplyGovernanceAction,
+  useUserVerification,
+  useUpdateUserAccountStatus,
+  useDeleteUserAccount,
   useAssignUserRole,
   useRevokeUserRole,
-  useWipeGovernanceAccount,
+  useProcessVerification,
   authApi,
 } from '../../../services/api';
 
@@ -49,15 +51,18 @@ export const UserDetailPage: React.FC = () => {
   const numericId = id?.replace(/\D/g, '') || '1';
 
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
-  const [showAddPolicy, setShowAddPolicy] = useState(false);
-  const [newPolicyInput, setNewPolicyInput] = useState('');
+  const [selectedNewRole, setSelectedNewRole] = useState('CommunityModerator');
+  const [showRoleModal, setShowRoleModal] = useState(false);
+  const [reviewNote, setReviewNote] = useState('');
 
   // Real backend queries & mutations
   const { data: beAccountData, refetch } = useGovernanceAccountDetail(numericId);
-  const applyActionMutation = useApplyGovernanceAction();
+  const { data: verificationData, refetch: refetchVerification } = useUserVerification(numericId);
+  const updateStatusMutation = useUpdateUserAccountStatus();
+  const deleteAccountMutation = useDeleteUserAccount();
   const assignRoleMutation = useAssignUserRole();
   const revokeRoleMutation = useRevokeUserRole();
-  const wipeAccountMutation = useWipeGovernanceAccount();
+  const processVerificationMutation = useProcessVerification();
 
   const [overrides, setOverrides] = useState<Partial<AdminUser>>({});
 
@@ -75,8 +80,9 @@ export const UserDetailPage: React.FC = () => {
         karma: beAccountData.karma || 0,
         status: (beAccountData.accountStatus as any) || (beAccountData.isActive ? 'ACTIVE' : 'SUSPENDED'),
         verifiedAt: beAccountData.createdAt,
+        twoFactorEnabled: beAccountData.twoFactorEnabled ?? false,
         activeSessions: [],
-        inlinePolicies: beAccountData.roles || [],
+        inlinePolicies: beAccountData.roles || [primaryRole],
         badges: [],
       };
     }
@@ -90,30 +96,112 @@ export const UserDetailPage: React.FC = () => {
       studentId: '',
       karma: 0,
       status: 'ACTIVE',
+      twoFactorEnabled: false,
       activeSessions: [],
-      inlinePolicies: [],
+      inlinePolicies: ['Student'],
       badges: [],
     };
   }, [beAccountData, numericId]);
 
   const user: AdminUser = { ...baseUser, ...overrides };
 
-  const handleStatusToggle = async (newStatus: 'ACTIVE' | 'MUTED' | 'SUSPENDED') => {
+  // 1. Update User Account Status
+  const handleStatusToggle = async (newStatus: 'ACTIVE' | 'SUSPENDED' | 'LOCKED') => {
     try {
-      await applyActionMutation.mutateAsync({
+      await updateStatusMutation.mutateAsync({
         id: numericId,
         payload: {
-          actionType: newStatus === 'SUSPENDED' ? 'SUSPEND' : newStatus === 'MUTED' ? 'MUTE' : 'WARN',
-          reason: `Admin updated status to ${newStatus}`,
+          newStatus,
+          reason: `Admin updated status to ${newStatus} from User Detail`,
         },
       });
-      refetch();
-    } catch (e) {
+      await refetch();
+      setActionSuccess(`Account status updated to ${newStatus} on Backend.`);
+    } catch (e: any) {
       console.warn('API status toggle error, falling back locally', e);
+      setOverrides((prev) => ({ ...prev, status: newStatus }));
+      setActionSuccess(`Account status updated locally (${e?.message || 'Error'})`);
     }
-    setOverrides((prev) => ({ ...prev, status: newStatus }));
-    setActionSuccess(`Account status updated to ${newStatus}`);
     setTimeout(() => setActionSuccess(null), 3000);
+  };
+
+  // 2. Delete User Account (Soft Delete)
+  const handleDeleteAccount = async () => {
+    if (!window.confirm(`Are you sure you want to soft delete account #${numericId}?`)) return;
+    try {
+      await deleteAccountMutation.mutateAsync({
+        id: numericId,
+        reason: 'Account soft deleted by Administrator',
+      });
+      setActionSuccess(`Account #${numericId} deleted successfully.`);
+      setTimeout(() => navigate('/users'), 1500);
+    } catch (e: any) {
+      console.error('Delete user error:', e);
+      setActionSuccess(`Error deleting user: ${e?.message || 'Failed'}`);
+      setTimeout(() => setActionSuccess(null), 3500);
+    }
+  };
+
+  // 3. Assign Role
+  const handleAssignRole = async (roleCode: string) => {
+    try {
+      await assignRoleMutation.mutateAsync({
+        userId: numericId,
+        roleCode: roleCode.trim(),
+      });
+      await refetch();
+      setShowRoleModal(false);
+      setActionSuccess(`Role '${roleCode}' assigned successfully to user.`);
+    } catch (e: any) {
+      console.error('Assign role error:', e);
+      const current = user.inlinePolicies || [];
+      if (!current.includes(roleCode)) {
+        setOverrides((prev) => ({ ...prev, inlinePolicies: [...current, roleCode] }));
+      }
+      setActionSuccess(`Role assigned locally (${e?.message || 'Backend error'})`);
+    }
+    setTimeout(() => setActionSuccess(null), 3000);
+  };
+
+  // 4. Revoke Role
+  const handleRevokeRole = async (roleCode: string) => {
+    if (!window.confirm(`Revoke role '${roleCode}' from this user?`)) return;
+    try {
+      await revokeRoleMutation.mutateAsync({
+        userId: numericId,
+        roleCode,
+      });
+      await refetch();
+      setActionSuccess(`Role '${roleCode}' revoked successfully.`);
+    } catch (e: any) {
+      console.error('Revoke role error:', e);
+      const current = user.inlinePolicies || [];
+      setOverrides((prev) => ({ ...prev, inlinePolicies: current.filter((r) => r !== roleCode) }));
+      setActionSuccess(`Role revoked locally (${e?.message || 'Backend error'})`);
+    }
+    setTimeout(() => setActionSuccess(null), 3000);
+  };
+
+  // 5. Review Role Manual Verification (Approve / Reject)
+  const handleProcessVerification = async (decision: 'APPROVED' | 'REJECTED') => {
+    try {
+      const verificationTargetId = verificationData?.manualVerificationRequestId || numericId;
+      await processVerificationMutation.mutateAsync({
+        id: verificationTargetId,
+        payload: {
+          status: decision,
+          reviewNote: reviewNote.trim() || `Processed as ${decision} by Administrator`,
+        },
+      });
+      await refetch();
+      await refetchVerification();
+      setReviewNote('');
+      setActionSuccess(`Verification request ${decision.toLowerCase()} successfully on Governance Service.`);
+    } catch (e: any) {
+      console.error('Verification error:', e);
+      setActionSuccess(`Verification error: ${e?.response?.data?.message || e?.message || 'Failed'}`);
+    }
+    setTimeout(() => setActionSuccess(null), 3500);
   };
 
   const handleRevokeSession = async (sessionId: string) => {
@@ -128,26 +216,6 @@ export const UserDetailPage: React.FC = () => {
       setActionSuccess('Device session revoked successfully.');
       setTimeout(() => setActionSuccess(null), 3000);
     }
-  };
-
-  const handleAddPolicy = () => {
-    if (newPolicyInput.trim()) {
-      const currentPolicies = user.inlinePolicies || [];
-      const updated = [...currentPolicies, newPolicyInput.trim().toUpperCase()];
-      setOverrides((prev) => ({ ...prev, inlinePolicies: updated }));
-      setNewPolicyInput('');
-      setShowAddPolicy(false);
-      setActionSuccess(`Policy ${newPolicyInput.toUpperCase()} attached to user.`);
-      setTimeout(() => setActionSuccess(null), 3000);
-    }
-  };
-
-  const handleRemovePolicy = (policy: string) => {
-    const currentPolicies = user.inlinePolicies || [];
-    const updated = currentPolicies.filter((p) => p !== policy);
-    setOverrides((prev) => ({ ...prev, inlinePolicies: updated }));
-    setActionSuccess(`Policy ${policy} detached.`);
-    setTimeout(() => setActionSuccess(null), 3000);
   };
 
   return (
@@ -196,6 +264,15 @@ export const UserDetailPage: React.FC = () => {
               <span>Restore Active</span>
             </button>
           )}
+
+          <button
+            onClick={handleDeleteAccount}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-600 transition-colors cursor-pointer"
+            title="Soft Delete User Account"
+          >
+            <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+            <span>Delete User</span>
+          </button>
         </div>
       </div>
 
@@ -299,48 +376,50 @@ export const UserDetailPage: React.FC = () => {
           {/* Roles & Permissions Card */}
           <div className="p-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-3.5">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Roles & Permissions</h3>
+              <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Roles & Permissions (Identity IAM)</h3>
               <button
-                onClick={() => setShowAddPolicy(!showAddPolicy)}
+                onClick={() => setShowRoleModal(!showRoleModal)}
                 className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 cursor-pointer"
               >
-                <Plus className="w-3.5 h-3.5" /> Attach Policy
+                <Plus className="w-3.5 h-3.5" /> Gán Role mới
               </button>
             </div>
 
-            {showAddPolicy && (
-              <div className="flex gap-2 p-3 bg-slate-50 rounded-lg border border-slate-200 animate-fadeIn">
-                <input
-                  type="text"
-                  value={newPolicyInput}
-                  onChange={(e) => setNewPolicyInput(e.target.value)}
-                  placeholder="e.g. CAN_MANAGE_COURSE_NODES"
-                  className="flex-1 bg-white border border-slate-200 rounded px-2.5 py-1 text-xs uppercase font-mono"
-                />
-                <button
-                  onClick={handleAddPolicy}
-                  className="px-3 py-1 bg-blue-600 text-white rounded text-xs font-semibold hover:bg-blue-700 cursor-pointer"
+            {showRoleModal && (
+              <div className="flex flex-col sm:flex-row gap-2 p-3 bg-slate-50 rounded-lg border border-slate-200 animate-fadeIn">
+                <select
+                  value={selectedNewRole}
+                  onChange={(e) => setSelectedNewRole(e.target.value)}
+                  className="flex-1 bg-white border border-slate-200 rounded px-2.5 py-1.5 text-xs font-semibold text-slate-800"
                 >
-                  Attach
+                  <option value="CommunityModerator">Community Moderator (Kiểm duyệt viên)</option>
+                  <option value="Staff">Staff (Cán bộ nhà trường)</option>
+                  <option value="Admin">Admin (Quản trị viên hệ thống)</option>
+                  <option value="Student">Student (Sinh viên)</option>
+                </select>
+                <button
+                  onClick={() => handleAssignRole(selectedNewRole)}
+                  className="px-3.5 py-1.5 bg-blue-600 text-white rounded text-xs font-semibold hover:bg-blue-700 cursor-pointer"
+                >
+                  Gán Role
                 </button>
               </div>
             )}
 
             <div className="flex flex-wrap gap-2">
-              <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                Role: {user.role} (Default)
-              </span>
-              {user.inlinePolicies && user.inlinePolicies.map((pol) => (
-                <span key={pol} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono font-medium bg-slate-100 text-slate-700 border border-slate-200">
-                  <Lock className="w-3 h-3 text-slate-400" />
-                  <span>{pol}</span>
-                  <button
-                    onClick={() => handleRemovePolicy(pol)}
-                    className="text-slate-400 hover:text-rose-600 cursor-pointer ml-1"
-                    title="Remove policy"
-                  >
-                    ×
-                  </button>
+              {user.inlinePolicies && user.inlinePolicies.map((roleItem) => (
+                <span key={roleItem} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-800 border border-blue-200">
+                  <Shield className="w-3 h-3 text-blue-600" />
+                  <span>{roleItem}</span>
+                  {roleItem !== 'Student' && (
+                    <button
+                      onClick={() => handleRevokeRole(roleItem)}
+                      className="text-blue-400 hover:text-rose-600 cursor-pointer ml-1 font-bold text-sm"
+                      title={`Revoke role ${roleItem}`}
+                    >
+                      ×
+                    </button>
+                  )}
                 </span>
               ))}
             </div>
@@ -374,13 +453,36 @@ export const UserDetailPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Recent Activity Stream */}
+          {/* Recent Activity Timeline & Account Status History */}
           <div className="p-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-3">
-            <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Recent Activity Timeline</h3>
+            <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Account Status & Audit History</h3>
 
-            <div className="py-2 text-xs text-slate-400">
-              0 recent activities recorded for this user account.
-            </div>
+            {beAccountData?.statusHistory && beAccountData.statusHistory.length > 0 ? (
+              <div className="space-y-3">
+                {beAccountData.statusHistory.map((h) => (
+                  <div key={h.statusHistoryId} className="p-3 bg-slate-50 rounded-lg border border-slate-100 text-xs space-y-1">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 font-semibold text-slate-800">
+                        <span className="px-1.5 py-0.5 rounded text-[10px] bg-slate-200 text-slate-700">{h.oldStatus || 'NONE'}</span>
+                        <span>→</span>
+                        <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-100 text-blue-700 font-bold">{h.newStatus}</span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        {new Date(h.changedAt).toLocaleString()}
+                      </span>
+                    </div>
+                    {h.reason && (
+                      <p className="text-slate-600 text-[11px] italic">"{h.reason}"</p>
+                    )}
+                    <span className="text-[9px] text-slate-400 uppercase font-mono block">Source: {h.changeSource}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="py-2 text-xs text-slate-400">
+                0 status changes recorded for this user account.
+              </div>
+            )}
           </div>
         </div>
 
@@ -410,15 +512,90 @@ export const UserDetailPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Account Verification Card */}
-          <div className="p-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-2.5 text-xs">
-            <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Institutional Verification</h3>
+          {/* Account Verification Card (Review Role Manual Verification - Governance Service) */}
+          <div className="p-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-3 text-xs">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Role Manual Verification</h3>
+              {verificationData ? (
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                  verificationData.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                  verificationData.status === 'REJECTED' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                  'bg-amber-50 text-amber-700 border-amber-200 animate-pulse'
+                }`}>
+                  {verificationData.status}
+                </span>
+              ) : (
+                <span className="text-[10px] font-medium text-slate-400 bg-slate-100 px-2 py-0.5 rounded">
+                  No Request
+                </span>
+              )}
+            </div>
+
             <p className="text-slate-500 text-[11px] leading-relaxed">
-              {user.verifiedAt ? `Account registered and verified in Governance Service on ${new Date(user.verifiedAt).toLocaleDateString()}.` : 'Standard account registration in Governance Service.'}
+              Duyệt hoặc từ chối yêu cầu xác minh sinh viên / vai trò thông qua Governance Service.
             </p>
-            <div className="pt-1 flex items-center gap-1.5 text-emerald-600 font-semibold text-[11px]">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Academic Trust Verified</span>
+
+            {verificationData && (
+              <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-100 space-y-1.5 text-[11px]">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Type:</span>
+                  <span className="font-semibold text-slate-800">{verificationData.verificationType}</span>
+                </div>
+                {verificationData.studentCode && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Student Code:</span>
+                    <span className="font-mono font-bold text-blue-600">{verificationData.studentCode}</span>
+                  </div>
+                )}
+                {verificationData.requestReason && (
+                  <div>
+                    <span className="text-slate-400 block">Student Note:</span>
+                    <span className="text-slate-700 italic">"{verificationData.requestReason}"</span>
+                  </div>
+                )}
+                {verificationData.evidenceUrl && (
+                  <div>
+                    <a
+                      href={verificationData.evidenceUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-blue-600 hover:underline flex items-center gap-1 mt-1 font-semibold"
+                    >
+                      <ExternalLink className="w-3 h-3" /> Xem tài liệu chứng minh
+                    </a>
+                  </div>
+                )}
+                {verificationData.reviewNote && (
+                  <div className="pt-1 border-t border-slate-200">
+                    <span className="text-slate-400 block">Ghi chú duyệt trước:</span>
+                    <span className="text-slate-700 italic">{verificationData.reviewNote}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="space-y-2 pt-1">
+              <input
+                type="text"
+                placeholder="Ghi chú duyệt (Review Note)..."
+                value={reviewNote}
+                onChange={(e) => setReviewNote(e.target.value)}
+                className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleProcessVerification('APPROVED')}
+                  className="flex-1 py-1.5 px-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold text-xs transition-colors cursor-pointer flex items-center justify-center gap-1"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Duyệt (Approve)
+                </button>
+                <button
+                  onClick={() => handleProcessVerification('REJECTED')}
+                  className="flex-1 py-1.5 px-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg font-semibold text-xs transition-colors cursor-pointer flex items-center justify-center gap-1"
+                >
+                  <XCircle className="w-3.5 h-3.5" /> Từ chối
+                </button>
+              </div>
             </div>
           </div>
 

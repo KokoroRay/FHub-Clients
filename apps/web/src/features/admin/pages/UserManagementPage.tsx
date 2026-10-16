@@ -23,7 +23,12 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { AdminUser } from '../../../services/adminMockData';
-import { useGovernanceAccounts, useApplyGovernanceAction, useWipeGovernanceAccount, useCreateUser } from '../../../services/api';
+import { 
+  useGovernanceAccounts, 
+  useUpdateUserAccountStatus, 
+  useDeleteUserAccount, 
+  useCreateUser 
+} from '../../../services/api';
 
 export const UserManagementPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -32,21 +37,25 @@ export const UserManagementPage: React.FC = () => {
   const [selectedCampus, setSelectedCampus] = useState<string>('ALL');
   const [selectedRole, setSelectedRole] = useState<string>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const pageSize = 20;
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [usersList, setUsersList] = useState<AdminUser[]>([]);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const navigate = useNavigate();
 
-  // Connect to Backend Users API
+  // Connect to Backend Users API (Identity Service: GET /api/users)
   const { data: accountsData, isLoading, refetch } = useGovernanceAccounts({
     search: searchQuery || undefined,
     role: selectedRole !== 'ALL' ? selectedRole : undefined,
     campus: selectedCampus !== 'ALL' ? selectedCampus : undefined,
-    isActive: selectedStatus === 'ALL' ? undefined : selectedStatus === 'ACTIVE',
+    status: selectedStatus !== 'ALL' ? selectedStatus : undefined,
+    pageNumber: currentPage,
+    pageSize,
   });
-  const applyActionMutation = useApplyGovernanceAction();
-  const wipeAccountMutation = useWipeGovernanceAccount();
+  const updateStatusMutation = useUpdateUserAccountStatus();
+  const deleteAccountMutation = useDeleteUserAccount();
   const createUserMutation = useCreateUser();
 
   // Populate usersList when real BE data arrives
@@ -81,21 +90,39 @@ export const UserManagementPage: React.FC = () => {
   const handleStatusChange = async (userId: string, newStatus: 'ACTIVE' | 'MUTED' | 'SUSPENDED') => {
     const numericId = userId.replace(/\D/g, '') || '1';
     try {
-      await applyActionMutation.mutateAsync({
+      await updateStatusMutation.mutateAsync({
         id: numericId,
         payload: {
-          actionType: newStatus === 'SUSPENDED' ? 'SUSPEND' : newStatus === 'MUTED' ? 'MUTE' : 'WARN',
+          newStatus: newStatus === 'MUTED' ? 'SUSPENDED' : newStatus,
           reason: `Admin updated status to ${newStatus}`,
         },
       });
-    } catch (e) {
-      console.warn('API error, falling back locally:', e);
+      await refetch();
+      setActionSuccess(`User status updated to ${newStatus} on Backend.`);
+    } catch (e: any) {
+      console.warn('API error, fallback locally:', e);
+      setUsersList((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, status: newStatus } : u))
+      );
+      setActionSuccess(`User status updated locally (Backend: ${e?.message || 'Error'})`);
     }
+    setTimeout(() => setActionSuccess(null), 3500);
+  };
 
-    setUsersList((prev) =>
-      prev.map((u) => (u.id === userId ? { ...u, status: newStatus } : u))
-    );
-    setActionSuccess(`User status updated to ${newStatus}`);
+  const handleDeleteUser = async (userId: string) => {
+    const numericId = userId.replace(/\D/g, '') || '1';
+    if (!window.confirm(`Are you sure you want to soft delete user #${numericId}?`)) return;
+    try {
+      await deleteAccountMutation.mutateAsync({
+        id: numericId,
+        reason: 'Soft deleted by Administrator from User Directory',
+      });
+      await refetch();
+      setActionSuccess(`User #${numericId} deleted successfully.`);
+    } catch (e: any) {
+      console.error('Delete user error:', e);
+      setActionSuccess(`Delete error: ${e?.message || 'Failed'}`);
+    }
     setTimeout(() => setActionSuccess(null), 3500);
   };
 
@@ -453,19 +480,29 @@ export const UserManagementPage: React.FC = () => {
 
                       {user.status === 'ACTIVE' ? (
                         <button
-                          onClick={() => handleStatusChange(user.id, 'MUTED')}
+                          onClick={() => handleStatusChange(user.id, 'SUSPENDED')}
                           className="inline-flex items-center px-2 py-1 rounded-md text-[11px] font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 cursor-pointer"
+                          title="Suspend User Account"
                         >
-                          Mute
+                          Suspend
                         </button>
                       ) : (
                         <button
                           onClick={() => handleStatusChange(user.id, 'ACTIVE')}
                           className="inline-flex items-center px-2 py-1 rounded-md text-[11px] font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 cursor-pointer"
+                          title="Activate User Account"
                         >
                           Active
                         </button>
                       )}
+
+                      <button
+                        onClick={() => handleDeleteUser(user.id)}
+                        className="inline-flex items-center p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                        title="Delete User Account"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </td>
                   </tr>
                 );
@@ -475,28 +512,40 @@ export const UserManagementPage: React.FC = () => {
         </div>
 
         {/* Pagination Bar (Figma 55:4074) */}
-        <div className="p-3.5 bg-slate-50/80 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
-          <span>Showing 1 to {filteredUsers.length} of {accountsData?.totalCount ?? usersList.length} entries</span>
-          <div className="flex items-center gap-1 font-semibold">
-            <button className="px-2.5 py-1 rounded border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer text-slate-600">
-              &lt;
-            </button>
-            <button className="px-2.5 py-1 rounded bg-blue-600 text-white font-bold">1</button>
-            <button className="px-2.5 py-1 rounded border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer text-slate-600">
-              2
-            </button>
-            <button className="px-2.5 py-1 rounded border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer text-slate-600">
-              3
-            </button>
-            <span className="px-1 text-slate-400">...</span>
-            <button className="px-2.5 py-1 rounded border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer text-slate-600">
-              125
-            </button>
-            <button className="px-2.5 py-1 rounded border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer text-slate-600">
-              &gt;
-            </button>
-          </div>
-        </div>
+        {(() => {
+          const totalCount = accountsData?.totalCount ?? usersList.length;
+          const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+          const startIdx = (currentPage - 1) * pageSize + 1;
+          const endIdx = Math.min(currentPage * pageSize, totalCount);
+
+          return (
+            <div className="p-3.5 bg-slate-50/80 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
+              <span>
+                Showing {totalCount === 0 ? 0 : startIdx} to {endIdx} of {totalCount} entries
+              </span>
+              <div className="flex items-center gap-1 font-semibold">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage <= 1}
+                  className="px-2.5 py-1 rounded border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer text-slate-600"
+                >
+                  &lt;
+                </button>
+                <span className="px-3 py-1 rounded bg-blue-600 text-white font-bold">
+                  {currentPage}
+                </span>
+                <span className="text-slate-400 text-xs px-1">of {totalPages}</span>
+                <button
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage >= totalPages}
+                  className="px-2.5 py-1 rounded border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer text-slate-600"
+                >
+                  &gt;
+                </button>
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Modal: Create User Account */}
