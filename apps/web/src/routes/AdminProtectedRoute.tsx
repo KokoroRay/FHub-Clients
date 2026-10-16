@@ -12,9 +12,13 @@ export const AdminProtectedRoute: React.FC<AdminProtectedRouteProps> = ({ childr
   const location = useLocation();
 
   const token = localStorage.getItem('fhub_token') || sessionStorage.getItem('fhub_token');
-  const hasValidAuth = Boolean(token && isAuthenticated && currentUser);
+  const hasValidAuth = isAuthenticated || !!token;
+  const isOperationalRole =
+    currentUser?.role === 'Admin' ||
+    currentUser?.role === 'Community Moderator' ||
+    currentUser?.role === 'Staff';
 
-  if (!hasValidAuth) {
+  if (!hasValidAuth || !isOperationalRole) {
     const redirectUrl = location.pathname !== '/login' ? `${location.pathname}${location.search}` : '/';
     const loginTarget = isAdminSubdomain()
       ? `/login?redirect=${encodeURIComponent(redirectUrl)}`

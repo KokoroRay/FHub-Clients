@@ -85,25 +85,37 @@ export const AdminLoginPage: React.FC = () => {
   };
 
   const completeAdminLogin = (result: any) => {
+    const roles: string[] = result.user?.roles || [];
+    const isOps = roles.some((r) =>
+      ['Admin', 'CommunityModerator', 'Moderator', 'Staff'].includes(r)
+    );
+
+    if (!isOps) {
+      setErrorMessage(
+        'Tài khoản không thuộc ban vận hành hệ thống (Admin / Community Moderator / Staff). Vui lòng đăng nhập tại Cổng Sinh Viên.'
+      );
+      return;
+    }
+
     if (result.accessToken) {
       localStorage.setItem('fhub_token', result.accessToken);
     }
     if (result.refreshToken) {
       localStorage.setItem('fhub_refresh_token', result.refreshToken);
     }
-    const roles: string[] = result.user?.roles || [];
+
     let mappedRole: User['role'] = 'Admin';
     let defaultTitle = 'System Administrator';
 
     if (roles.includes('CommunityModerator') || roles.includes('Moderator')) {
       mappedRole = 'Community Moderator';
       defaultTitle = 'Community Moderator';
-    } else if (roles.includes('SchoolRepresentative')) {
-      mappedRole = 'School Representative';
-      defaultTitle = 'School Representative';
     } else if (roles.includes('Staff')) {
       mappedRole = 'Staff';
       defaultTitle = 'Staff Member';
+    } else if (roles.includes('SchoolRepresentative')) {
+      mappedRole = 'School Representative';
+      defaultTitle = 'School Representative';
     }
 
     const userObj: User = {
@@ -116,12 +128,18 @@ export const AdminLoginPage: React.FC = () => {
       karma: 9999,
       status: 'ACTIVE',
       bio: `FHub ${defaultTitle}`,
-      badges: []
+      badges: [],
     };
     login(userObj, result.accessToken, result.refreshToken);
 
-    const redirectPath = searchParams.get('redirect') || '/';
-    navigate(redirectPath, { replace: true });
+    const redirectPath = searchParams.get('redirect');
+    if (mappedRole === 'Community Moderator') {
+      const target = redirectPath && redirectPath !== '/' ? redirectPath : '/moderation';
+      navigate(target, { replace: true });
+    } else {
+      const target = redirectPath || '/';
+      navigate(target, { replace: true });
+    }
   };
 
   const setPreset = (presetEmail: string) => {
@@ -143,9 +161,9 @@ export const AdminLoginPage: React.FC = () => {
             />
           </div>
           <div className="flex items-center gap-2">
-            <span className="font-bold text-sm text-slate-900 tracking-tight">FHub Portal</span>
+            <span className="font-bold text-sm text-slate-900 tracking-tight">FHub Operations</span>
             <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-100">
-              Admin Center
+              Ops Portal
             </span>
           </div>
         </div>
@@ -168,10 +186,10 @@ export const AdminLoginPage: React.FC = () => {
               <Shield className="w-6 h-6" />
             </div>
             <h1 className="text-xl font-bold tracking-tight text-slate-900">
-              Đăng nhập Quản trị
+              Đăng nhập Vận hành
             </h1>
             <p className="text-xs text-slate-500">
-              Dành riêng cho Quản trị viên & Cán bộ Nhà trường
+              Dành riêng cho Quản trị viên (Admin) & Kiểm duyệt viên (Moderator)
             </p>
           </div>
 
@@ -188,7 +206,7 @@ export const AdminLoginPage: React.FC = () => {
             <form onSubmit={handleLoginSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Email Quản trị
+                  Email Vận hành (Admin / Mod)
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">

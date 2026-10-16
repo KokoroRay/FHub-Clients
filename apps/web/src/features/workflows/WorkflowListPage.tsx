@@ -16,6 +16,7 @@ import {
 import { mockWorkflows, mockCourses } from '../../services/mockData';
 import { SharedWorkflow } from '../../types';
 import { CreateWorkflowModal } from './CreateWorkflowModal';
+import { workflowApi } from '../../services/api/contentApi';
 
 export const WorkflowListPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -28,6 +29,42 @@ export const WorkflowListPage: React.FC = () => {
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
   const [isCreateOpen, setIsCreateOpen] = useState(shouldOpenCreate);
   const [workflows, setWorkflows] = useState<SharedWorkflow[]>(mockWorkflows);
+  const [apiWorkflows, setApiWorkflows] = useState<SharedWorkflow[]>([]);
+
+  React.useEffect(() => {
+    const fetchWfs = async () => {
+      try {
+        const res = await workflowApi.getWorkflows({ search: searchQuery.trim() || undefined });
+        if (res && res.items && res.items.length > 0) {
+          const mapped: SharedWorkflow[] = res.items.map((item) => ({
+            id: String(item.workflowId),
+            title: item.title,
+            description: item.summary || item.title,
+            courseCode: 'PRN211',
+            technology: '.NET / C#',
+            steps: [
+              { stepNumber: 1, title: 'Bước 1: Khởi tạo', instruction: 'Thực hiện các bước quy trình', codeSnippet: 'dotnet build', language: 'bash' }
+            ],
+            author: {
+              id: String(item.authorUserId),
+              fullName: 'Sinh viên FPT',
+              role: 'Student',
+              campus: 'FU-HL',
+            },
+            viewsCount: 24,
+            usageCount: 8,
+            tags: ['dotnet', 'workflow'],
+            createdAt: item.createdAt || new Date().toISOString(),
+          }));
+          setApiWorkflows(mapped);
+          setWorkflows([...mapped, ...mockWorkflows]);
+        }
+      } catch (err) {
+        console.warn('Backend workflows fetch notice:', err);
+      }
+    };
+    fetchWfs();
+  }, [searchQuery]);
 
   const toggleBookmark = (id: string, e: React.MouseEvent) => {
     e.preventDefault();

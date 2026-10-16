@@ -1,9 +1,9 @@
 /**
- * Subdomain helper for FHub platform
- * Supports admin.fhub.edu.vn, admin.localhost:5173, ?subdomain=admin query, and localStorage override
+ * Operational Subdomain helper for FHub platform
+ * Supports ops.fhub.com.vn, ops.localhost:5173, ?subdomain=ops query, and localStorage override
  */
 
-export const isAdminSubdomain = (): boolean => {
+export const isOpsSubdomain = (): boolean => {
   if (typeof window === 'undefined') return false;
 
   const hostname = window.location.hostname;
@@ -12,19 +12,22 @@ export const isAdminSubdomain = (): boolean => {
   const storedSubdomain = localStorage.getItem('fhub_active_subdomain');
 
   // Check URL query param first (for easy local testing)
-  if (subdomainParam === 'admin') return true;
+  if (subdomainParam === 'ops' || subdomainParam === 'admin') return true;
   if (subdomainParam === 'main') return false;
 
   // Check localStorage override
-  if (storedSubdomain === 'admin') return true;
+  if (storedSubdomain === 'ops' || storedSubdomain === 'admin') return true;
 
-  // Check actual hostname (admin.fhub.edu.vn or admin.localhost)
-  if (hostname.startsWith('admin.')) return true;
+  // Check actual hostname (ops.fhub.com.vn or ops.localhost or admin.*)
+  if (hostname.startsWith('ops.') || hostname.startsWith('admin.')) return true;
 
   return false;
 };
 
-export const setSubdomainMode = (mode: 'admin' | 'main'): void => {
+// Backward compatibility alias
+export const isAdminSubdomain = isOpsSubdomain;
+
+export const setSubdomainMode = (mode: 'ops' | 'admin' | 'main'): void => {
   if (typeof window === 'undefined') return;
   localStorage.setItem('fhub_active_subdomain', mode);
 
@@ -33,3 +36,4 @@ export const setSubdomainMode = (mode: 'admin' | 'main'): void => {
   url.searchParams.delete('subdomain');
   window.location.href = url.pathname === '/admin' || url.pathname.startsWith('/admin') ? '/' : url.toString();
 };
+

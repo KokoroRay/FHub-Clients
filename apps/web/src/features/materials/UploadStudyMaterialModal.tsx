@@ -24,6 +24,7 @@ export const UploadStudyMaterialModal: React.FC<UploadStudyMaterialModalProps> =
   const [courseCode, setCourseCode] = useState('PRN211');
   const [fileType, setFileType] = useState<'PDF' | 'DOCX' | 'ZIP' | 'PPTX' | 'CODE'>('PDF');
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileSizeMb, setFileSizeMb] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -37,6 +38,7 @@ export const UploadStudyMaterialModal: React.FC<UploadStudyMaterialModalProps> =
         return;
       }
       setErrorMessage(null);
+      setSelectedFile(file);
       setSelectedFileName(file.name);
       setFileSizeMb(mb);
       if (!title) {
@@ -62,32 +64,45 @@ export const UploadStudyMaterialModal: React.FC<UploadStudyMaterialModalProps> =
 
     setErrorMessage(null);
     setIsSubmitting(true);
-    setTimeout(() => {
-      const newMat: StudyMaterial = {
-        id: `mat-${Date.now()}`,
-        title: title.trim(),
-        description: description.trim() || 'Tài liệu học tập do sinh viên FHub chia sẻ.',
-        courseCode,
-        fileType,
-        fileSizeMb: fileSizeMb || 1.2,
-        downloadUrl: '#',
-        downloadsCount: 0,
-        author: {
-          id: currentUser?.id || 'u-self',
-          fullName: currentUser?.fullName || 'Sinh viên FHub',
-          avatarUrl: currentUser?.avatarUrl,
-        },
-        semesterUploaded: 'Spring 2025',
-        createdAt: new Date().toISOString(),
-      };
-      onUploaded(newMat);
-      setIsSubmitting(false);
-      setTitle('');
-      setDescription('');
-      setSelectedFileName(null);
-      setErrorMessage(null);
-      onClose();
-    }, 400);
+
+    if (selectedFile) {
+      const formData = new FormData();
+      formData.append('File', selectedFile);
+      formData.append('CourseId', '1');
+      formData.append('Title', title.trim());
+      if (description.trim()) {
+        formData.append('Description', description.trim());
+      }
+      import('../../services/api/contentApi').then(({ studyMaterialApi }) => {
+        studyMaterialApi.uploadFile(formData).catch((err) => console.warn('Backend material upload notice:', err));
+      });
+    }
+
+    const newMat: StudyMaterial = {
+      id: `mat-${Date.now()}`,
+      title: title.trim(),
+      description: description.trim() || 'Tài liệu học tập do sinh viên FHub chia sẻ.',
+      courseCode,
+      fileType,
+      fileSizeMb: fileSizeMb || 1.2,
+      downloadUrl: '#',
+      downloadsCount: 0,
+      author: {
+        id: currentUser?.id || 'u-self',
+        fullName: currentUser?.fullName || 'Sinh viên FHub',
+        avatarUrl: currentUser?.avatarUrl,
+      },
+      semesterUploaded: 'Spring 2025',
+      createdAt: new Date().toISOString(),
+    };
+    onUploaded(newMat);
+    setIsSubmitting(false);
+    setTitle('');
+    setDescription('');
+    setSelectedFileName(null);
+    setSelectedFile(null);
+    setErrorMessage(null);
+    onClose();
   };
 
   return (

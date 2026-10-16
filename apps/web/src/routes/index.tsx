@@ -6,7 +6,7 @@ import { AdminSubdomainLayout } from '../layouts/AdminSubdomainLayout';
 import { AuthLayout } from '../layouts/AuthLayout';
 import { ProtectedRoute } from './ProtectedRoute';
 import { AdminProtectedRoute } from './AdminProtectedRoute';
-import { isAdminSubdomain } from '../utils/subdomain';
+import { isOpsSubdomain } from '../utils/subdomain';
 
 // Feed & Academic Pages
 import { FeedPage } from '../features/feed/FeedPage';
@@ -62,6 +62,8 @@ import {
   AdminLoginPage,
   SpecializationsPage,
   SpecializationDetailPage,
+  SemanticTagsPage,
+  StaffAccountsAdminPage,
 } from '../features/admin/pages';
 
 // Admin & Staff Governance (Legacy / Domain Portal)
@@ -85,7 +87,7 @@ import { ForgotPasswordPage } from '../features/auth/ForgotPasswordPage';
 import { NotFoundPage } from '../features/common/NotFoundPage';
 
 /**
- * Subdomain Routes Definition (admin.fhub.edu.vn / admin.localhost)
+ * Subdomain Routes Definition (ops.fhub.com.vn / ops.localhost)
  * Clean URLs mapped directly to root:
  * - / -> AdminDashboardPage (Figma 55:2)
  * - /login -> AdminLoginPage
@@ -138,6 +140,8 @@ const getSubdomainRoutes = () => [
       { path: 'health', element: <SystemHealthAdminPage /> },
       { path: 'moderation', element: <ModeratorToolsPage /> },
       { path: 'verifications', element: <VerificationQueuePage /> },
+      { path: 'tags', element: <SemanticTagsPage /> },
+      { path: 'staff', element: <StaffAccountsAdminPage /> },
     ],
   },
   {
@@ -219,6 +223,8 @@ const getMainPortalRoutes = () => [
       { path: 'health', element: <SystemHealthAdminPage /> },
       { path: 'moderation', element: <ModeratorToolsPage /> },
       { path: 'verifications', element: <VerificationQueuePage /> },
+      { path: 'tags', element: <SemanticTagsPage /> },
+      { path: 'staff', element: <StaffAccountsAdminPage /> },
     ],
   },
 
@@ -251,6 +257,8 @@ const getMainPortalRoutes = () => [
       { path: 'login', element: <LoginPage /> },
       { path: 'admin-login', element: <AdminLoginPage /> },
       { path: 'admin/login', element: <AdminLoginPage /> },
+      { path: 'ops-login', element: <AdminLoginPage /> },
+      { path: 'ops/login', element: <AdminLoginPage /> },
       { path: 'register', element: <RegisterPage /> },
       { path: 'forgot-password', element: <ForgotPasswordPage /> },
     ],
@@ -265,5 +273,6 @@ const getMainPortalRoutes = () => [
 ];
 
 export const router = createBrowserRouter(
-  isAdminSubdomain() ? getSubdomainRoutes() : getMainPortalRoutes()
+  isOpsSubdomain() ? getSubdomainRoutes() : getMainPortalRoutes()
 );
+

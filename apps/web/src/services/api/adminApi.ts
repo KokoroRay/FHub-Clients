@@ -1020,3 +1020,124 @@ export const governanceModerationApi = {
     return res.data.data;
   },
 };
+
+// ---------------------------------------------------------------------------
+// 13. Semantic Tags API (Taxonomy Service)
+// ---------------------------------------------------------------------------
+export interface SemanticTagItemDto {
+  semanticTagId: number;
+  tagName: string;
+  description?: string;
+  isAiGenerated: boolean;
+  status: 'ACTIVE' | 'MERGED' | 'DEPRECATED' | 'INACTIVE';
+  usageCount: number;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CreateSemanticTagPayload {
+  tagName: string;
+  description?: string;
+  isAiGenerated?: boolean;
+  status?: string;
+}
+
+export interface UpdateSemanticTagPayload {
+  tagName: string;
+  description?: string;
+  status?: string;
+}
+
+export interface MergeSemanticTagsPayload {
+  destinationTagId: number;
+  sourceTagIds: number[];
+}
+
+export const semanticTagsApi = {
+  getTags: async (params?: { search?: string; status?: string; isAiGenerated?: boolean; sortBy?: string; sortDir?: string; pageNumber?: number; pageSize?: number }) => {
+    const res = await apiClient.get<ApiResponse<PagedResult<SemanticTagItemDto>>>('/api/semantic-tags', { params });
+    return res.data.data;
+  },
+  getTagById: async (id: number | string) => {
+    const res = await apiClient.get<ApiResponse<SemanticTagItemDto>>(`/api/semantic-tags/${id}`);
+    return res.data.data;
+  },
+  createTag: async (payload: CreateSemanticTagPayload) => {
+    const res = await apiClient.post<ApiResponse<SemanticTagItemDto>>('/api/semantic-tags', payload);
+    return res.data.data;
+  },
+  updateTag: async (id: number | string, payload: UpdateSemanticTagPayload) => {
+    const res = await apiClient.put<ApiResponse<SemanticTagItemDto>>(`/api/semantic-tags/${id}`, payload);
+    return res.data.data;
+  },
+  mergeTags: async (payload: MergeSemanticTagsPayload) => {
+    const res = await apiClient.post<ApiResponse<{ destinationTagId: number; affectedEntitiesCount: number; message: string }>>('/api/semantic-tags/merge', payload);
+    return res.data.data;
+  },
+  deleteTag: async (id: number | string) => {
+    const res = await apiClient.delete<ApiResponse<any>>(`/api/semantic-tags/${id}`);
+    return res.data.data;
+  },
+};
+
+// ---------------------------------------------------------------------------
+// 14. Staff Account Management API (Identity Service)
+// ---------------------------------------------------------------------------
+export interface StaffSummaryDto {
+  staffId: number;
+  email: string;
+  fullName: string;
+  staffCode: string;
+  role: string;
+  department: string;
+  campus: string;
+  status: 'ACTIVE' | 'SUSPENDED' | 'LOCKED';
+  isActive: boolean;
+  createdAt: string;
+  lastLoginAt?: string;
+}
+
+export interface CreateStaffPayload {
+  email: string;
+  fullName: string;
+  staffCode: string;
+  role: string;
+  department: string;
+  campus: string;
+  password?: string;
+}
+
+export interface UpdateStaffPayload {
+  fullName?: string;
+  department?: string;
+  campus?: string;
+  role?: string;
+}
+
+export const staffApi = {
+  getStaffList: async (params?: { search?: string; role?: string; campus?: string; status?: string; isActive?: boolean; pageNumber?: number; pageSize?: number }) => {
+    const res = await apiClient.get<ApiResponse<PagedResult<StaffSummaryDto>>>('/api/staff', { params });
+    return res.data.data;
+  },
+  getStaffById: async (id: number | string) => {
+    const res = await apiClient.get<ApiResponse<StaffSummaryDto>>(`/api/staff/${id}`);
+    return res.data.data;
+  },
+  createStaff: async (payload: CreateStaffPayload) => {
+    const res = await apiClient.post<ApiResponse<StaffSummaryDto>>('/api/staff', payload);
+    return res.data.data;
+  },
+  updateStaff: async (id: number | string, payload: UpdateStaffPayload) => {
+    const res = await apiClient.put<ApiResponse<StaffSummaryDto>>(`/api/staff/${id}`, payload);
+    return res.data.data;
+  },
+  updateStatus: async (id: number | string, newStatus: string, reason?: string) => {
+    const res = await apiClient.patch<ApiResponse<StaffSummaryDto>>(`/api/staff/${id}/status`, { newStatus, reason });
+    return res.data.data;
+  },
+  deleteStaff: async (id: number | string) => {
+    const res = await apiClient.delete<ApiResponse<any>>(`/api/staff/${id}`);
+    return res.data.data;
+  },
+};
+

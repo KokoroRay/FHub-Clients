@@ -110,11 +110,39 @@ const INITIAL_BOOKMARKS: BookmarkItem[] = [
   },
 ];
 
+import { bookmarkApi } from '../../services/api/studentApi';
+
 export const BookmarksPage: React.FC = () => {
   const [bookmarks, setBookmarks] = useState<BookmarkItem[]>(INITIAL_BOOKMARKS);
   const [activeTab, setActiveTab] = useState<'all' | 'question' | 'article' | 'material' | 'workflow'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'recent' | 'votes'>('recent');
+
+  React.useEffect(() => {
+    const fetchBookmarks = async () => {
+      try {
+        const typeParam = activeTab !== 'all' ? activeTab.toUpperCase() : undefined;
+        const res = await bookmarkApi.getBookmarks(typeParam);
+        if (res && res.length > 0) {
+          const mapped: BookmarkItem[] = res.map((b) => ({
+            id: String(b.id),
+            type: (b.targetType.toLowerCase() as any) || 'article',
+            typeLabel: b.targetType || 'ARTICLE',
+            typeColor: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+            title: b.title || `Bookmark #${b.id}`,
+            summary: b.summary || 'Nội dung đã lưu vào dấu trang cá nhân.',
+            savedTime: new Date(b.createdAt).toLocaleDateString('vi-VN'),
+            url: b.targetType === 'ARTICLE' ? `/articles/${b.targetId}` : b.targetType === 'WORKFLOW' ? `/workflows/${b.targetId}` : `/discussions/${b.targetId}`,
+            tags: ['saved'],
+          }));
+          setBookmarks([...mapped, ...INITIAL_BOOKMARKS]);
+        }
+      } catch (err) {
+        console.warn('Backend bookmarks notice:', err);
+      }
+    };
+    fetchBookmarks();
+  }, [activeTab]);
 
   const counts = {
     all: bookmarks.length,
@@ -127,6 +155,7 @@ export const BookmarksPage: React.FC = () => {
   const handleRemoveBookmark = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setBookmarks(prev => prev.filter(b => b.id !== id));
+    bookmarkApi.removeBookmark(id).catch(err => console.warn('Remove bookmark notice:', err));
   };
 
   const filteredBookmarks = bookmarks.filter(b => {

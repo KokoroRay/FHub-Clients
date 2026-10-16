@@ -20,6 +20,7 @@ import { mockMaterials, mockCourses } from '../../services/mockData';
 import { StudyMaterial } from '../../types';
 import { UploadStudyMaterialModal } from './UploadStudyMaterialModal';
 import { AddExternalLinkModal } from './AddExternalLinkModal';
+import { studyMaterialApi } from '../../services/api/contentApi';
 
 export const StudyMaterialListPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -34,6 +35,39 @@ export const StudyMaterialListPage: React.FC = () => {
   const [isAddLinkOpen, setIsAddLinkOpen] = useState(shouldOpenAddLink);
   const [materials, setMaterials] = useState<StudyMaterial[]>(mockMaterials);
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
+
+  React.useEffect(() => {
+    const fetchMaterials = async () => {
+      try {
+        const res = await studyMaterialApi.getMaterials({
+          search: searchQuery.trim() || undefined,
+          pageSize: 20,
+        });
+        if (res && res.items && res.items.length > 0) {
+          const mapped: StudyMaterial[] = res.items.map((item) => ({
+            id: String(item.studyMaterialId),
+            title: item.title,
+            description: item.description || 'Tài liệu học tập FHub',
+            courseCode: 'PRN211',
+            fileType: (item.materialType === 'LINK' ? 'ZIP' : 'PDF') as any,
+            fileSizeMb: item.fileSizeBytes ? Number((item.fileSizeBytes / (1024 * 1024)).toFixed(1)) : 1.5,
+            downloadUrl: item.externalUrl || `/api/content/study-materials/${item.studyMaterialId}/download`,
+            downloadsCount: item.downloadCount || 0,
+            author: {
+              id: String(item.uploaderUserId),
+              fullName: 'Sinh viên FHub',
+            },
+            semesterUploaded: 'Spring 2025',
+            createdAt: item.createdAt || new Date().toISOString(),
+          }));
+          setMaterials([...mapped, ...mockMaterials]);
+        }
+      } catch (err) {
+        console.warn('Backend materials fetch notice:', err);
+      }
+    };
+    fetchMaterials();
+  }, [searchQuery]);
 
   const toggleBookmark = (id: string, e: React.MouseEvent) => {
     e.preventDefault();

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { 
   User, 
@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { EditProfileModal } from './EditProfileModal';
+import { profileApi } from '../../services/api/studentApi';
 
 export const ProfilePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -54,6 +55,31 @@ export const ProfilePage: React.FC = () => {
       badgesCount: 4,
     }
   });
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const targetUserId = id && id !== 'me' ? id : (currentUser?.id || 1);
+      try {
+        const live = await profileApi.getProfile(targetUserId);
+        if (live) {
+          setProfileData(prev => ({
+            ...prev,
+            fullName: live.fullName || prev.fullName,
+            email: live.email || prev.email,
+            bio: live.bio || prev.bio,
+            avatarUrl: live.avatarUrl || prev.avatarUrl,
+            studentId: live.studentCode || prev.studentId,
+            major: live.majorCode || prev.major,
+            campus: live.campusCode ? `FPT University ${live.campusCode}` : prev.campus,
+          }));
+        }
+      } catch (err) {
+        console.warn('Could not fetch user profile from Profile service, using fallback:', err);
+      }
+    };
+
+    fetchProfile();
+  }, [id, currentUser?.id]);
 
   const [activeTab, setActiveTab] = useState<'overview' | 'questions' | 'answers' | 'badges' | 'votes'>('overview');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   Bell, 
@@ -13,8 +13,10 @@ import {
   Star, 
   Users, 
   ExternalLink,
-  RotateCcw
+  RotateCcw,
+  Loader2
 } from 'lucide-react';
+import { notificationApi, NotificationItem as ApiNotificationItem } from '../../services/api/studentApi';
 
 interface NotificationItem {
   id: string;
@@ -99,6 +101,66 @@ export const NotificationsPage: React.FC = () => {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
   const [activeTab, setActiveTab] = useState<'all' | 'unread' | 'read'>('all');
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchLiveNotifications = async () => {
+      try {
+        setLoading(true);
+        const liveItems = await notificationApi.getNotifications({ pageSize: 50 });
+        if (liveItems && liveItems.length > 0) {
+          const mapped: NotificationItem[] = liveItems.map(item => {
+            const rawType = (item.type || '').toLowerCase();
+            let mappedType: NotificationItem['type'] = 'community';
+            let label = 'Community Update';
+            let color = 'bg-sky-50 text-sky-800 border-sky-100';
+
+            if (rawType.includes('message')) {
+              mappedType = 'message';
+              label = 'New Message';
+              color = 'bg-indigo-50 text-indigo-700 border-indigo-100';
+            } else if (rawType.includes('article')) {
+              mappedType = 'article';
+              label = 'Article Interaction';
+              color = 'bg-emerald-50 text-emerald-700 border-emerald-100';
+            } else if (rawType.includes('material')) {
+              mappedType = 'material';
+              label = 'Study Material';
+              color = 'bg-blue-50 text-blue-700 border-blue-100';
+            } else if (rawType.includes('evaluation') || rawType.includes('review')) {
+              mappedType = 'evaluation';
+              label = 'Course Review';
+              color = 'bg-purple-50 text-purple-700 border-purple-100';
+            }
+
+            return {
+              id: String(item.id),
+              type: mappedType,
+              typeLabel: label,
+              typeColor: color,
+              time: item.createdAt ? new Date(item.createdAt).toLocaleDateString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'Vừa xong',
+              title: item.title,
+              description: item.message,
+              actionText: 'Chi tiết thông báo',
+              actionUrl: item.actionUrl || '/notifications',
+              isRead: item.isRead,
+            };
+          });
+
+          // Merge live items with initial fallback items avoiding duplicates
+          const liveIds = new Set(mapped.map(m => m.id));
+          const remainingFallback = INITIAL_NOTIFICATIONS.filter(f => !liveIds.has(f.id));
+          setNotifications([...mapped, ...remainingFallback]);
+        }
+      } catch (err) {
+        console.warn('Failed to load live notifications from Communication service, using fallback feed:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLiveNotifications();
+  }, []);
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
   const readCount = notifications.filter(n => n.isRead).length;
@@ -109,22 +171,51 @@ export const NotificationsPage: React.FC = () => {
     return true;
   });
 
-  const handleMarkAsRead = (id: string, e: React.MouseEvent) => {
+  const handleMarkAsRead = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    try {
+      if (!id.startsWith('notif-')) {
+        await notificationApi.markAsRead(id);
+      }
+    } catch (err) {
+      console.warn('Could not mark notification as read on API:', err);
+    }
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
   };
 
-  const handleToggleRead = (id: string, e: React.MouseEvent) => {
+  const handleToggleRead = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    const target = notifications.find(n => n.id === id);
+    if (!target) return;
+    
+    if (!target.isRead && !id.startsWith('notif-')) {
+      try {
+        await notificationApi.markAsRead(id);
+      } catch (err) {
+        console.warn('Could not mark notification on API:', err);
+      }
+    }
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: !n.isRead } : n));
   };
 
-  const handleDelete = (id: string, e: React.MouseEvent) => {
+  const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    try {
+      if (!id.startsWith('notif-')) {
+        await notificationApi.deleteNotification(id);
+      }
+    } catch (err) {
+      console.warn('Could not delete notification on API:', err);
+    }
     setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
-  const handleMarkAllAsRead = () => {
+  const handleMarkAllAsRead = async () => {
+    try {
+      await notificationApi.markAllAsRead();
+    } catch (err) {
+      console.warn('Could not mark all notifications as read on API:', err);
+    }
     setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
   };
 
@@ -248,6 +339,12 @@ export const NotificationsPage: React.FC = () => {
             <span className="text-xs text-slate-500">
               Displaying latest interactions
             </span>
+            {loading && (
+              <span className="inline-flex items-center gap-1 text-xs text-[#0076D1]">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                <span>Đang đồng bộ...</span>
+              </span>
+            )}
           </div>
           <button
             onClick={handleResetFeed}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { 
   LifeBuoy, 
@@ -15,9 +15,27 @@ import {
   Shield, 
   MessageSquare,
   FileText,
-  RotateCcw
+  RotateCcw,
+  Loader2
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { studentSupportTicketApi, StudentTicketItem as ApiTicketItem } from '../../services/api/studentApi';
+
+const mapApiStatus = (status?: string): SupportTicketItem['status'] => {
+  const s = (status || '').toUpperCase();
+  if (s === 'IN_PROGRESS' || s === 'IN PROGRESS') return 'In Progress';
+  if (s === 'RESOLVED') return 'Resolved';
+  if (s === 'CLOSED') return 'Closed';
+  return 'Open';
+};
+
+const mapApiPriority = (p?: string): SupportTicketItem['priority'] => {
+  const val = (p || '').toUpperCase();
+  if (val === 'LOW') return 'Low';
+  if (val === 'HIGH') return 'High';
+  if (val === 'URGENT') return 'Urgent';
+  return 'Medium';
+};
 
 interface TicketReply {
   id: string;
@@ -134,6 +152,82 @@ export const SupportTicketsPage: React.FC = () => {
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(id || null);
   const [activeStatusFilter, setActiveStatusFilter] = useState<'All' | 'Open' | 'In Progress' | 'Resolved' | 'Closed'>('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Fetch live tickets from Governance Service
+  useEffect(() => {
+    const fetchLiveTickets = async () => {
+      try {
+        setLoading(true);
+        const result = await studentSupportTicketApi.getMyTickets({ pageSize: 50 });
+        const items = result?.items || (result as any)?.data || [];
+        if (Array.isArray(items) && items.length > 0) {
+          const mapped: SupportTicketItem[] = items.map((t: any) => {
+            const ticketIdNum = t.supportTicketId || t.ticketId || t.id;
+            return {
+              id: String(ticketIdNum),
+              ticketId: t.ticketNumber || `#TK-${ticketIdNum}`,
+              title: t.subject || t.title || 'Support Request',
+              category: t.category || 'General',
+              priority: mapApiPriority(t.priority),
+              status: mapApiStatus(t.status),
+              courseCode: t.courseCode || undefined,
+              createdDate: t.createdAt ? new Date(t.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recent',
+              updatedDate: t.updatedAt ? new Date(t.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recent',
+              reporterName: (currentUser as any)?.fullName || (currentUser as any)?.name || 'Nguyen Hoang Minh',
+              reporterId: currentUser?.studentId || 'SE172481',
+              reporterInitials: ((currentUser as any)?.fullName || 'MH').split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase(),
+              description: t.description || '',
+              replies: [],
+            };
+          });
+
+          const liveIdSet = new Set(mapped.map(m => m.id));
+          const remainingFallback = INITIAL_TICKETS.filter(init => !liveIdSet.has(init.id));
+          const combined = [...mapped, ...remainingFallback];
+          setTickets(combined);
+          if (!selectedTicketId && combined.length > 0) {
+            setSelectedTicketId(combined[0].id);
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load tickets from Governance API, using fallback tickets:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLiveTickets();
+  }, []);
+
+  // Fetch ticket details & messages when selecting a ticket
+  useEffect(() => {
+    if (!selectedTicketId || selectedTicketId.startsWith('t-')) return;
+
+    const fetchDetail = async () => {
+      try {
+        const detail = await studentSupportTicketApi.getTicketById(selectedTicketId);
+        if (detail && Array.isArray((detail as any).messages)) {
+          const apiReplies: TicketReply[] = (detail as any).messages.map((m: any) => ({
+            id: String(m.supportTicketMessageId || m.messageId || m.id || Date.now()),
+            senderName: m.senderType === 'STAFF' || m.senderRole === 'STAFF' ? 'FHub Academic Support' : 'You',
+            senderInitials: m.senderType === 'STAFF' ? 'AT' : 'MH',
+            senderRole: m.senderType === 'STAFF' ? 'Staff / Helpdesk' : 'Student',
+            isStaff: m.senderType === 'STAFF' || m.senderRole === 'STAFF',
+            time: m.sentAt ? new Date(m.sentAt).toLocaleString('en-US') : 'Just now',
+            content: m.body || m.content || '',
+          }));
+
+          setTickets(prev => prev.map(t => t.id === selectedTicketId ? { ...t, replies: apiReplies } : t));
+        }
+      } catch (err) {
+        console.warn('Failed to fetch full ticket messages from API:', err);
+      }
+    };
+
+    fetchDetail();
+  }, [selectedTicketId]);
 
   // Create Ticket Modal State (Figma #107:9045)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -163,7 +257,7 @@ export const SupportTicketsPage: React.FC = () => {
     return true;
   });
 
-  const handleCreateTicketSubmit = (e: React.FormEvent) => {
+  const handleCreateTicketSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newTitle.trim().length < 8) {
       setCreateErrorMessage('Tiêu đề yêu cầu hỗ trợ cần tối thiểu 8 ký tự.');
@@ -175,33 +269,75 @@ export const SupportTicketsPage: React.FC = () => {
     }
 
     setCreateErrorMessage(null);
-    const newTicket: SupportTicketItem = {
-      id: `t-${Date.now()}`,
-      ticketId: `#TK-${Math.floor(1000 + Math.random() * 9000)}`,
-      title: newTitle.trim(),
-      category: newCategory,
-      priority: newPriority,
-      status: 'Open',
-      courseCode: newCourseCode.trim() || undefined,
-      createdDate: 'Just now',
-      updatedDate: 'Just now',
-      reporterName: (currentUser as any)?.fullName || (currentUser as any)?.name || 'Sinh viên FHub',
-      reporterId: currentUser?.studentId || 'SE172481',
-      reporterInitials: (currentUser?.fullName || 'SV').split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase(),
-      description: newDescription.trim(),
-      replies: [],
-    };
+    setIsSubmitting(true);
 
-    setTickets([newTicket, ...tickets]);
-    setIsCreateModalOpen(false);
-    setNewTitle('');
-    setNewDescription('');
-    setCreateErrorMessage(null);
-    setSelectedTicketId(newTicket.id);
+    try {
+      const createdRes = await studentSupportTicketApi.createTicket({
+        title: newTitle.trim(),
+        category: newCategory,
+        description: newDescription.trim(),
+        priority: newPriority.toUpperCase(),
+      });
+
+      const newId = String((createdRes as any)?.supportTicketId || (createdRes as any)?.ticketId || Date.now());
+      const newTicketNumber = (createdRes as any)?.ticketNumber || `#TK-${Math.floor(1000 + Math.random() * 9000)}`;
+
+      const newTicket: SupportTicketItem = {
+        id: newId,
+        ticketId: newTicketNumber,
+        title: newTitle.trim(),
+        category: newCategory,
+        priority: newPriority,
+        status: 'Open',
+        courseCode: newCourseCode.trim() || undefined,
+        createdDate: 'Just now',
+        updatedDate: 'Just now',
+        reporterName: (currentUser as any)?.fullName || (currentUser as any)?.name || 'Sinh viên FHub',
+        reporterId: currentUser?.studentId || 'SE172481',
+        reporterInitials: ((currentUser as any)?.fullName || 'SV').split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase(),
+        description: newDescription.trim(),
+        replies: [],
+      };
+
+      setTickets([newTicket, ...tickets]);
+      setIsCreateModalOpen(false);
+      setNewTitle('');
+      setNewDescription('');
+      setSelectedTicketId(newTicket.id);
+    } catch (err: any) {
+      console.warn('API ticket creation failed, falling back to local state:', err);
+      const newTicket: SupportTicketItem = {
+        id: `t-${Date.now()}`,
+        ticketId: `#TK-${Math.floor(1000 + Math.random() * 9000)}`,
+        title: newTitle.trim(),
+        category: newCategory,
+        priority: newPriority,
+        status: 'Open',
+        courseCode: newCourseCode.trim() || undefined,
+        createdDate: 'Just now',
+        updatedDate: 'Just now',
+        reporterName: (currentUser as any)?.fullName || (currentUser as any)?.name || 'Sinh viên FHub',
+        reporterId: currentUser?.studentId || 'SE172481',
+        reporterInitials: ((currentUser as any)?.fullName || 'SV').split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase(),
+        description: newDescription.trim(),
+        replies: [],
+      };
+
+      setTickets([newTicket, ...tickets]);
+      setIsCreateModalOpen(false);
+      setNewTitle('');
+      setNewDescription('');
+      setSelectedTicketId(newTicket.id);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleSendReply = () => {
+  const handleSendReply = async () => {
     if (!replyText.trim() || !selectedTicket) return;
+
+    const messageContent = replyText.trim();
+    setReplyText('');
 
     const newReply: TicketReply = {
       id: `r-${Date.now()}`,
@@ -210,7 +346,7 @@ export const SupportTicketsPage: React.FC = () => {
       senderRole: 'Student',
       isStaff: false,
       time: 'Just now',
-      content: replyText.trim(),
+      content: messageContent,
     };
 
     setTickets(prev => prev.map(t => {
@@ -224,14 +360,29 @@ export const SupportTicketsPage: React.FC = () => {
       return t;
     }));
 
-    setReplyText('');
+    if (!selectedTicket.id.startsWith('t-')) {
+      try {
+        await studentSupportTicketApi.addReply(selectedTicket.id, messageContent);
+      } catch (err) {
+        console.warn('Could not post reply to API:', err);
+      }
+    }
   };
 
-  const handleUpdateStatus = (newStatus: SupportTicketItem['status']) => {
+  const handleUpdateStatus = async (newStatus: SupportTicketItem['status']) => {
     if (!selectedTicket) return;
+
     setTickets(prev => prev.map(t => 
       t.id === selectedTicket.id ? { ...t, status: newStatus, updatedDate: 'Just now' } : t
     ));
+
+    if (!selectedTicket.id.startsWith('t-')) {
+      try {
+        await studentSupportTicketApi.updateStatus(selectedTicket.id, newStatus);
+      } catch (err) {
+        console.warn('Could not update status on API:', err);
+      }
+    }
   };
 
   const getStatusBadge = (status: SupportTicketItem['status']) => {

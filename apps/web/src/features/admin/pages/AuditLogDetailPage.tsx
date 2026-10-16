@@ -76,7 +76,7 @@ export const AuditLogDetailPage: React.FC = () => {
     timestamp: logDetailData.createdAt ? logDetailData.createdAt.replace('T', ' ').substring(0, 19) : new Date().toISOString().replace('T', ' ').substring(0, 19),
     service: logDetailData.entityType || 'Governance Ledger',
     action: logDetailData.actionType || 'MUTATION',
-    actorEmail: logDetailData.actorRole ? `${logDetailData.actorRole.toLowerCase()}@fhub.edu.vn` : (logDetailData.actorAccountId ? `admin.${logDetailData.actorAccountId}@fpt.edu.vn` : 'system.daemon@fhub.edu.vn'),
+    actorEmail: logDetailData.actorRole ? `${logDetailData.actorRole.toLowerCase()}@fhub.com.vn` : (logDetailData.actorAccountId ? `admin.${logDetailData.actorAccountId}@fpt.edu.vn` : 'system.daemon@fhub.com.vn'),
     actorRole: (logDetailData.actorRole || 'Admin') as any,
     actorId: String(logDetailData.actorAccountId || '1'),
     ipAddress: logDetailData.ipAddress || '127.0.0.1',

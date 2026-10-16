@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Search,
@@ -14,6 +14,7 @@ import {
 import { SeriesModal } from './SeriesModal';
 import { Article, Series } from '../../types';
 import { mockArticles } from '../../services/mockData';
+import { articleApi } from '../../services/api/contentApi';
 
 export const ArticleListPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'articles' | 'series'>('articles');
@@ -23,6 +24,52 @@ export const ArticleListPage: React.FC = () => {
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
   const [isSeriesModalOpen, setIsSeriesModalOpen] = useState(false);
+  const [apiArticles, setApiArticles] = useState<Article[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchArticles = async () => {
+      setIsLoading(true);
+      try {
+        const res = await articleApi.getArticles({
+          search: searchQuery.trim() || undefined,
+          pageSize: 20,
+        });
+        if (res && res.items && res.items.length > 0) {
+          const mapped: Article[] = res.items.map((item) => ({
+            id: String(item.articleId),
+            title: item.title,
+            summary: item.summary || item.title,
+            content: '',
+            coverImage: item.coverImageUrl || 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600&auto=format&fit=crop&q=80',
+            category: 'Backend Development',
+            tags: ['dotnet', 'csharp', 'architecture'],
+            author: {
+              id: String(item.authorUserId || item.authorStaffId || 1),
+              fullName: item.authorStaffId ? 'FPT Faculty Staff' : 'Student Author',
+              role: item.authorStaffId ? 'Staff' : 'Student',
+              avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+            },
+            likesCount: 15,
+            bookmarksCount: 3,
+            viewsCount: 180,
+            readTimeMinutes: 4,
+            createdAt: item.createdAt || new Date().toISOString(),
+          }));
+          setApiArticles(mapped);
+        }
+      } catch (err) {
+        console.warn('Backend articles fetch notice:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchArticles();
+  }, [searchQuery]);
+
+  const allArticles = [...apiArticles, ...mockArticles];
+
 
   const [seriesList, setSeriesList] = useState<Series[]>([
     {
@@ -85,7 +132,7 @@ export const ArticleListPage: React.FC = () => {
     'Software Architecture',
   ];
 
-  const filteredArticles = mockArticles
+  const filteredArticles = allArticles
     .filter((art: Article) => {
       const matchCat =
         selectedCategory === 'ALL' ||

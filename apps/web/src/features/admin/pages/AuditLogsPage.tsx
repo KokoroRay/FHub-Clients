@@ -35,7 +35,7 @@ export const AuditLogsPage: React.FC = () => {
         service: l.entityType || 'Governance',
         action: l.actionType || 'MUTATION',
         actorId: String(l.actorAccountId || '1'),
-        actorEmail: l.actorRole ? `${l.actorRole.toLowerCase()}@fhub.edu.vn` : (l.actorAccountId ? `admin.${l.actorAccountId}@fpt.edu.vn` : 'system.daemon@fhub.edu.vn'),
+        actorEmail: l.actorRole ? `${l.actorRole.toLowerCase()}@fhub.com.vn` : (l.actorAccountId ? `admin.${l.actorAccountId}@fpt.edu.vn` : 'system.daemon@fhub.com.vn'),
         actorRole: (['Admin', 'Staff', 'System Daemon', 'Moderator'].includes(l.actorRole) ? l.actorRole : 'Admin') as any,
         ipAddress: l.ipAddress || '127.0.0.1',
         status: 'SUCCESS',

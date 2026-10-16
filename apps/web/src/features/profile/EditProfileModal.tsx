@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Upload, CheckCircle2, Shield } from 'lucide-react';
+import { profileApi } from '../../services/api/studentApi';
 
 interface EditProfileModalProps {
   isOpen: boolean;
@@ -63,13 +64,23 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     setPhotoPreview('');
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName.trim()) {
       setErrorMessage('Họ và tên không được để trống.');
       return;
     }
     setErrorMessage(null);
+    try {
+      await profileApi.updatePersonalInfo({
+        fullName: fullName.trim(),
+        bio: bio.trim(),
+        avatarUrl: photoPreview || undefined,
+      });
+    } catch (err) {
+      console.warn('API update personal info failed or offline, saving locally:', err);
+    }
+
     setShowSuccessToast(true);
     setTimeout(() => {
       onSaveSuccess({
@@ -82,7 +93,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
       });
       setShowSuccessToast(false);
       onClose();
-    }, 1000);
+    }, 800);
   };
 
   return (

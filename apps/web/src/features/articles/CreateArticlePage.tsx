@@ -4,6 +4,7 @@ import { FileText, ArrowLeft, Image as ImageIcon, AlertCircle } from 'lucide-rea
 import { Card, CardBody, CardHeader } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Input, Textarea, Select } from '../../components/common/Input';
+import { articleApi } from '../../services/api/contentApi';
 
 export const CreateArticlePage: React.FC = () => {
   const navigate = useNavigate();
@@ -16,7 +17,7 @@ export const CreateArticlePage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (title.trim().length < 10) {
       setErrorMessage('Tiêu đề bài viết cần ít nhất 10 ký tự.');
@@ -33,11 +34,25 @@ export const CreateArticlePage: React.FC = () => {
 
     setErrorMessage(null);
     setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      await articleApi.createArticle({
+        title: title.trim(),
+        content: content.trim(),
+        summary: summary.trim(),
+        coverImageUrl: coverUrl.trim() || undefined,
+        status: 'PUBLISHED',
+      });
       navigate('/articles');
-    }, 500);
+    } catch (err: any) {
+      console.warn('Backend article create notice:', err);
+      // If backend throws an error or requires specific role, show feedback
+      const msg = err.response?.data?.message || err.message || 'Lỗi khi tạo bài viết.';
+      setErrorMessage(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
+
 
   return (
     <div className="space-y-6 max-w-3xl mx-auto">

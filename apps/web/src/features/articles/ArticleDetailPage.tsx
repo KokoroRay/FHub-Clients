@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   FileText,
@@ -23,10 +23,35 @@ import { Card, CardBody, CardHeader } from '../../components/common/Card';
 import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
 import { Textarea } from '../../components/common/Input';
+import { articleApi } from '../../services/api/contentApi';
 
 export const ArticleDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const article = mockArticles.find((a) => a.id === id) || mockArticles[0];
+  const initialArticle = mockArticles.find((a) => a.id === id) || mockArticles[0];
+  const [article, setArticle] = useState(initialArticle);
+
+  useEffect(() => {
+    if (!id) return;
+    const loadDetail = async () => {
+      try {
+        const data = await articleApi.getArticleById(id);
+        if (data) {
+          setArticle((prev) => ({
+            ...prev,
+            id: String(data.articleId),
+            title: data.title,
+            summary: data.summary || prev.summary,
+            content: data.content || prev.content,
+            coverImage: data.coverImageUrl || prev.coverImage,
+            createdAt: data.createdAt || prev.createdAt,
+          }));
+        }
+      } catch (err) {
+        console.warn('Backend article detail notice:', err);
+      }
+    };
+    loadDetail();
+  }, [id]);
 
   const [isLiked, setIsLiked] = useState(article.isLiked || false);
   const [likesCount, setLikesCount] = useState(article.likesCount);

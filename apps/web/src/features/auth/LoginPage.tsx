@@ -50,13 +50,25 @@ export const LoginPage: React.FC = () => {
         }
       }
       const roles = result.user?.roles || [];
-      const isAlumni = roles.includes('Alumni');
+      let mappedRole: User['role'] = 'Student';
+      if (roles.includes('Admin')) {
+        mappedRole = 'Admin';
+      } else if (roles.includes('CommunityModerator') || roles.includes('Moderator')) {
+        mappedRole = 'Community Moderator';
+      } else if (roles.includes('Staff')) {
+        mappedRole = 'Staff';
+      } else if (roles.includes('SchoolRepresentative')) {
+        mappedRole = 'School Representative';
+      } else if (roles.includes('Alumni')) {
+        mappedRole = 'Alumni';
+      }
+
       const userObj: User = {
         id: String(result.user?.userId || `u-${Date.now()}`),
         email: result.user?.email || email,
         fullName: result.user?.fullName || email.split('@')[0],
         studentId: result.user?.studentCode || 'SE170001',
-        role: isAlumni ? 'Alumni' : 'Student',
+        role: mappedRole,
         campus: (result.user?.campusCode as any) || 'HL',
         avatarUrl: result.user?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
         karma: 100,
@@ -64,7 +76,14 @@ export const LoginPage: React.FC = () => {
         badges: [],
       };
       login(userObj, result.accessToken, result.refreshToken);
-      navigate('/');
+
+      if (mappedRole === 'Admin') {
+        navigate('/admin-console');
+      } else if (mappedRole === 'Community Moderator') {
+        navigate('/admin-console/moderation');
+      } else {
+        navigate('/');
+      }
     } catch (err: any) {
       const msg = err.response?.data?.message || err.message || 'Đăng nhập không thành công. Vui lòng kiểm tra lại thông tin xác thực.';
       setErrorMessage(msg);

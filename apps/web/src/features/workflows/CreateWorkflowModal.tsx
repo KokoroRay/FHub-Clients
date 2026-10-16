@@ -88,6 +88,19 @@ export const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
       createdAt: new Date().toISOString(),
     };
 
+    // Asynchronously persist to backend WorkflowsController
+    import('../../services/api/contentApi').then(({ workflowApi }) => {
+      workflowApi.createWorkflow({
+        title: title.trim(),
+        summary: description.trim(),
+        steps: steps.map((s, idx) => ({
+          stepNumber: idx + 1,
+          title: s.title,
+          content: `${s.instruction}\n\`\`\`${s.language || 'bash'}\n${s.codeSnippet || ''}\n\`\`\``,
+        })),
+      }).catch((err) => console.warn('Backend workflow save notice:', err));
+    });
+
     onCreated(newWf);
     setErrorMessage(null);
   };
