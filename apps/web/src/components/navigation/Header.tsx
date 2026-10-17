@@ -104,23 +104,20 @@ export const Header: React.FC = () => {
 
   return (
     <header className="sticky top-0 z-50 w-full bg-white dark:bg-slate-900 border-b border-slate-200/90 dark:border-slate-800 transition-colors shrink-0 shadow-2xs">
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-        {/* Logo & Campus Switcher */}
+      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+        {/* Logo & Branding (Figma #86:837) */}
         <div className="flex items-center gap-4">
-          <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-9 h-9 rounded-xl overflow-hidden flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
+          <Link to="/" className="flex items-center gap-2.5 group">
+            <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
               <img
                 src="/fhub-remove-background.png"
                 alt="FHub Logo"
                 className="w-full h-full object-contain"
               />
             </div>
-            <div className="flex flex-col">
-              <span className="font-extrabold text-base tracking-tight text-slate-900 flex items-center gap-1.5 leading-tight">
-                FHub <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded-md font-bold border border-blue-100">EDU</span>
-              </span>
-              <span className="text-[10px] text-slate-400 font-medium">Academic Network</span>
-            </div>
+            <span className="font-extrabold text-base tracking-tight text-slate-900 dark:text-white">
+              FHub Community
+            </span>
           </Link>
 
           {/* Campus Selector */}
@@ -128,7 +125,7 @@ export const Header: React.FC = () => {
             <Dropdown
               trigger={
                 <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 hover:bg-slate-100 transition-colors cursor-pointer">
-                  <MapPin className="w-3.5 h-3.5 text-blue-600" />
+                  <MapPin className="w-3.5 h-3.5 text-[#0076D1]" />
                   <span>{currentCampusObj.code}</span>
                   <ChevronDown className="w-3 h-3 text-slate-400" />
                 </button>
@@ -147,16 +144,16 @@ export const Header: React.FC = () => {
           </div>
         </div>
 
-        {/* Global Search Bar */}
-        <form onSubmit={handleSearch} className="flex-1 max-w-lg hidden md:block">
+        {/* Global Search Bar (Figma #86:837) */}
+        <form onSubmit={handleSearch} className="flex-1 max-w-[420px] hidden md:block">
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tìm kiếm môn học (PRN211...), câu hỏi, workflow, tài liệu..."
-              className="w-full bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-14 py-2 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all"
+              placeholder="Search questions, courses, articles, materials..."
+              className="w-full bg-slate-50 dark:bg-slate-800/60 border border-slate-200/90 dark:border-slate-700 rounded-xl pl-9 pr-14 py-2 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#0076D1] transition-all"
             />
             <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-400 bg-white dark:bg-slate-700 px-1.5 py-0.5 rounded-md border border-slate-200 dark:border-slate-600 shadow-2xs">
               Ctrl K
@@ -165,33 +162,14 @@ export const Header: React.FC = () => {
         </form>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-3">
           {currentUser ? (
             <>
-              {/* Quick Create Dropdown */}
-              <Dropdown
-                trigger={
-                  <Button variant="primary" size="sm" leftIcon={<Plus className="w-4 h-4" />}>
-                    <span className="hidden sm:inline">Tạo mới</span>
-                  </Button>
-                }
-                items={createMenu}
-              />
-
-              {/* Messages Link */}
-              <Link
-                to="/messages"
-                className="p-2 text-slate-500 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors relative"
-                title="Tin nhắn"
-              >
-                <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
-              </Link>
-
               {/* Notifications Link */}
               <button
                 onClick={() => setShowNotifDrawer(!showNotifDrawer)}
-                className="p-2 text-slate-500 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors relative cursor-pointer"
-                title="Thông báo"
+                className="p-2 text-slate-500 hover:text-[#0076D1] hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors relative cursor-pointer"
+                title="Notifications"
               >
                 <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white dark:ring-slate-900" />
@@ -204,14 +182,15 @@ export const Header: React.FC = () => {
                     <img
                       src={currentUser.avatarUrl}
                       alt={currentUser.fullName}
-                      className="w-8 h-8 rounded-xl object-cover ring-1 ring-slate-200 dark:ring-slate-700"
+                      className="w-8 h-8 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700"
                     />
-                    <div className="hidden xl:flex flex-col text-left">
+                    <div className="hidden sm:flex flex-col text-left">
                       <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate max-w-[120px]">
                         {currentUser.fullName}
                       </span>
                       <span className="text-[10px] text-slate-400 font-medium">{currentUser.studentId || 'SE172481'}</span>
                     </div>
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden sm:block" />
                   </div>
                 }
                 items={userMenu}
@@ -221,12 +200,12 @@ export const Header: React.FC = () => {
             <div className="flex items-center gap-2">
               <Link to="/login">
                 <Button variant="outline" size="sm">
-                  Đăng nhập
+                  Sign In
                 </Button>
               </Link>
               <Link to="/register">
                 <Button variant="primary" size="sm">
-                  Đăng ký
+                  Sign Up
                 </Button>
               </Link>
             </div>

@@ -252,7 +252,7 @@ export const DirectMessagesPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4 max-w-6xl mx-auto pb-12">
+    <div className="space-y-4 w-full pb-12">
       {/* Page Title & Intro */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>

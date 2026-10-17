@@ -38,7 +38,7 @@ export const WorkflowDetailPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-6 w-full">
       {/* Back button */}
       <Link to="/workflows" className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-blue-600 transition-colors">
         <ArrowLeft className="w-4 h-4" /> Quay lại danh sách Workflows

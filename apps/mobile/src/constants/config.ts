@@ -17,10 +17,10 @@ export const Config = {
   // Mode: 'gateway' | 'direct'
   mode: 'gateway' as 'gateway' | 'direct',
 
-  // Gateway URL (used when mode === 'gateway')
-  gatewayUrl: `http://${DEFAULT_DEV_HOST}:8080`,
+  // Gateway URL: Production backend domain matching current web FE (fhub.com.vn)
+  gatewayUrl: 'https://api.fhub.com.vn',
 
-  // Production domain when deployed
+  // Production domain
   prodGatewayUrl: 'https://api.fhub.com.vn',
 
   // Direct microservices port map (used when mode === 'direct' in local dev)

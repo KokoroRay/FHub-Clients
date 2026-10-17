@@ -414,7 +414,7 @@ export const SupportTicketsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto pb-16">
+    <div className="space-y-6 w-full pb-16">
       {/* View 1: Ticket Detail View (Figma #108:9539) */}
       {selectedTicket ? (
         <div className="space-y-6 animate-in fade-in">
