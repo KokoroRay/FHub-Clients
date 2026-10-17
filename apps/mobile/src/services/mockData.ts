@@ -205,6 +205,25 @@ export const mockQuestions: QuestionPost[] = [
     isSolved: true,
     isModVerified: false,
     createdAt: '5 giờ trước',
+    answers: [
+      {
+        id: 'a-2',
+        questionId: 'q-2',
+        author: {
+          id: 'usr-3',
+          fullName: 'Vũ Đức Duy',
+          role: 'Alumni',
+          karma: 2450,
+          avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80',
+        },
+        content: 'Nên chia 4 project: Core/Domain (Entities, Interfaces) -> Application (CQRS, MediatR, DTOs) -> Infrastructure (EF Core, DbContext) -> WebAPI. Chia Git branch theo feature/sprint để tránh conflict.',
+        upvotes: 46,
+        downvotes: 0,
+        userVote: null,
+        isAccepted: true,
+        createdAt: '3 giờ trước',
+      },
+    ],
   },
   {
     id: 'q-3',
@@ -227,6 +246,24 @@ export const mockQuestions: QuestionPost[] = [
     isSolved: false,
     isModVerified: false,
     createdAt: '1 ngày trước',
+    answers: [
+      {
+        id: 'a-3',
+        questionId: 'q-3',
+        author: {
+          id: 'usr-1',
+          fullName: 'Hoàng Văn Thái',
+          role: 'Staff',
+          karma: 3200,
+        },
+        content: 'BackgroundService là Singleton, nếu inject DbContext trực tiếp sẽ bị captive dependency. Bạn cần inject IServiceScopeFactory và tạo scope riêng trong mỗi lần lặp: `using var scope = _scopeFactory.CreateScope();`.',
+        upvotes: 28,
+        downvotes: 0,
+        userVote: null,
+        isAccepted: true,
+        createdAt: '18 giờ trước',
+      },
+    ],
   },
 ];
 

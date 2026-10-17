@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,19 +7,24 @@ import {
   StyleSheet,
   RefreshControl,
   Image,
+  Share,
+  Animated,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import { RootStackParamList } from '../../navigation/types';
 import { HeaderBar } from '../../components/common/HeaderBar';
 import { Card } from '../../components/common/Card';
 import { Badge } from '../../components/common/Badge';
 import { VoteControl } from '../../components/common/VoteControl';
+import { ScalePressable } from '../../components/common/ScalePressable';
+import { PeekableCard } from '../../components/common/PeekableCard';
+import { useQuickPeek, QuickPeekItem } from '../../context/QuickPeekContext';
 import { Colors } from '../../constants/colors';
 import { BorderRadius, FontSize, Spacing } from '../../constants/theme';
 import { useAuth } from '../../hooks/useAuth';
-import { mockQuestions, mockWorkflows, mockArticles, mockMaterials, mockCampuses } from '../../services/mockData';
+import { mockQuestions, mockWorkflows, mockArticles, mockCampuses } from '../../services/mockData';
 import { QuestionPost } from '../../types';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -27,18 +32,99 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 export const FeedScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const { currentUser, currentCampus } = useAuth();
+  const { isPeeking } = useQuickPeek();
   const [refreshing, setRefreshing] = useState(false);
+  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
+
+  const dotPulse = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(dotPulse, { toValue: 1.35, duration: 750, useNativeDriver: true }),
+        Animated.timing(dotPulse, { toValue: 1, duration: 750, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
 
   const campusObj = mockCampuses.find((c) => c.code === currentCampus) || mockCampuses[0];
 
   // Live vote state for questions in feed
   const [questions, setQuestions] = useState<QuestionPost[]>(mockQuestions);
 
+  const getQuestionPeekItem = (q: QuestionPost): QuickPeekItem => {
+    const featured =
+      q.answers?.find((a) => a.isAccepted) ||
+      (q.answers && q.answers.length > 0 ? q.answers[0] : null);
+
+    return {
+      id: q.id,
+      title: q.title,
+      content: q.content,
+      authorName: q.author.fullName,
+      authorAvatar: q.author.avatarUrl,
+      authorCampus: q.author.campus || campusObj.code,
+      authorRole: q.author.role,
+      createdAt: q.createdAt,
+      courseCode: q.courseCode,
+      score: q.upvotes,
+      tags: q.tags,
+      type: 'question',
+      isSolved: q.isSolved,
+      isModVerified: q.isModVerified,
+      featuredComments: featured
+        ? [
+            {
+              id: featured.id,
+              authorName: featured.author.fullName,
+              authorAvatar: featured.author.avatarUrl,
+              authorRole: featured.author.role,
+              content: featured.content,
+              upvotes: featured.upvotes,
+              isAccepted: featured.isAccepted,
+              createdAt: featured.createdAt,
+            },
+          ]
+        : undefined,
+    };
+  };
+
+  const getArticlePeekItem = (art: any): QuickPeekItem => {
+    return {
+      id: art.id,
+      title: art.title,
+      content:
+        art.summary ||
+        art.content ||
+        'Bài viết chia sẻ kiến thức chuyên sâu và kinh nghiệm thực chiến từ cộng đồng FHub.',
+      authorName: art.author?.fullName || 'FHub Community',
+      authorAvatar: art.author?.avatarUrl,
+      authorCampus: campusObj.code,
+      createdAt: `${art.readTimeMinutes || 5} phút đọc`,
+      courseCode: art.category,
+      score: art.likesCount,
+      tags: art.tags || [art.category],
+      type: 'article',
+      featuredComments: [
+        {
+          id: `comm-${art.id}`,
+          authorName: 'Đặng Tuấn Kiệt',
+          authorRole: 'Student',
+          content:
+            'Bài viết đúc kết rất thực tế! Phần cấu hình distroless container đã giúp giảm dung lượng image và tăng tốc CI/CD đáng kể.',
+          upvotes: 42,
+          isAccepted: true,
+          createdAt: '1 ngày trước',
+        },
+      ],
+    };
+  };
+
   const onRefresh = () => {
     setRefreshing(true);
     setTimeout(() => {
       setRefreshing(false);
-    }, 800);
+    }, 700);
   };
 
   const handleVote = (id: string, dir: 'UP' | 'DOWN') => {
@@ -63,53 +149,80 @@ export const FeedScreen: React.FC = () => {
     );
   };
 
-  // 8 Quick Actions (matching Web Figma #86:137)
-  const quickActions = [
+  const toggleBookmark = (id: string) => {
+    setBookmarkedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleShare = async (title: string) => {
+    try {
+      await Share.share({
+        message: `Xem thảo luận FHub: "${title}" trên ứng dụng FHub Sinh Viên!`,
+      });
+    } catch (e) {
+      // Ignore
+    }
+  };
+
+  // Modern Social Action Highlights (Story / Feature Hub)
+  const socialActions = [
     {
       id: 'ask',
-      title: 'Đặt câu hỏi',
-      icon: 'help-circle',
-      color: '#3B82F6',
-      bg: '#EFF6FF',
+      title: 'Hỏi đáp',
+      icon: 'message-circle',
+      color: '#0284C7',
+      bg: '#E0F2FE',
       onPress: () => navigation.navigate('AskQuestion'),
     },
     {
+      id: 'courses',
+      title: 'Môn học',
+      icon: 'book-open',
+      color: '#2563EB',
+      bg: '#EFF6FF',
+      onPress: () => navigation.navigate('Main', { screen: 'CoursesTab' }),
+    },
+    {
       id: 'workflow',
-      title: 'Workflow mới',
-      icon: 'code',
-      color: '#8B5CF6',
+      title: 'Workflow',
+      icon: 'git-pull-request',
+      color: '#7C3AED',
       bg: '#F5F3FF',
       onPress: () => navigation.navigate('Main', { screen: 'ResourcesTab' }),
     },
     {
       id: 'article',
-      title: 'Viết bài viết',
-      icon: 'file-text',
-      color: '#10B981',
+      title: 'Bài viết',
+      icon: 'edit-3',
+      color: '#059669',
       bg: '#ECFDF5',
       onPress: () => navigation.navigate('Main', { screen: 'ResourcesTab' }),
     },
     {
       id: 'eval',
-      title: 'Đánh giá môn',
+      title: 'Đánh giá',
       icon: 'star',
-      color: '#F59E0B',
+      color: '#D97706',
       bg: '#FFFBEB',
       onPress: () => navigation.navigate('Main', { screen: 'CoursesTab' }),
     },
     {
       id: 'material',
-      title: 'Tải tài liệu',
-      icon: 'upload',
-      color: '#06B6D4',
+      title: 'Tài liệu',
+      icon: 'folder',
+      color: '#0891B2',
       bg: '#ECFEFF',
       onPress: () => navigation.navigate('Main', { screen: 'ResourcesTab' }),
     },
     {
       id: 'tickets',
-      title: 'Tạo vé hỗ trợ',
+      title: 'Vé hỗ trợ',
       icon: 'life-buoy',
-      color: '#EC4899',
+      color: '#DB2777',
       bg: '#FDF2F8',
       onPress: () => navigation.navigate('CreateTicket'),
     },
@@ -117,17 +230,9 @@ export const FeedScreen: React.FC = () => {
       id: 'bookmarks',
       title: 'Đã lưu',
       icon: 'bookmark',
-      color: '#6366F1',
+      color: '#4F46E5',
       bg: '#EEF2FF',
       onPress: () => navigation.navigate('Bookmarks'),
-    },
-    {
-      id: 'courses',
-      title: 'Course Hub',
-      icon: 'book-open',
-      color: Colors.primary,
-      bg: Colors.primaryLight,
-      onPress: () => navigation.navigate('Main', { screen: 'CoursesTab' }),
     },
   ];
 
@@ -139,146 +244,255 @@ export const FeedScreen: React.FC = () => {
       />
 
       <ScrollView
+        scrollEnabled={!isPeeking}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {/* 3.A Welcome Card (Figma #86:118) */}
-        <View style={styles.welcomeCard}>
-          <View style={styles.welcomeHeader}>
-            <View style={styles.termBadge}>
-              <View style={styles.termDot} />
-              <Text style={styles.termText}>Spring 2025 • {campusObj.name}</Text>
-            </View>
-            <TouchableOpacity
-              onPress={() => navigation.navigate('Main', { screen: 'ProfileTab' })}
-              style={styles.karmaBadge}
-            >
-              <Feather name="award" size={13} color={Colors.primary} />
-              <Text style={styles.karmaText}>{currentUser?.karma.toLocaleString()} pts</Text>
-            </TouchableOpacity>
+        {/* 1. Modern Social Greeting & Status Pill */}
+        <View style={styles.greetingHeader}>
+          <View style={styles.greetingLeft}>
+            <Text style={styles.greetingTime}>Học kỳ Spring 2025</Text>
+            <Text style={styles.greetingName}>
+              Chào {currentUser?.fullName?.split(' ').pop() || 'bạn'} 👋
+            </Text>
           </View>
-
-          <Text style={styles.welcomeTitle}>
-            Chào mừng trở lại, {currentUser?.fullName || 'Sinh viên FPT'}!
-          </Text>
-          <Text style={styles.welcomeSubtitle}>
-            Học tập, chia sẻ kiến thức và thảo luận cùng cộng đồng FHub.
-          </Text>
+          <View style={styles.campusPill}>
+            <Animated.View style={[styles.onlineDot, { transform: [{ scale: dotPulse }] }]} />
+            <Text style={styles.campusPillText}>{campusObj.code}</Text>
+          </View>
         </View>
 
-        {/* 3.B Quick Actions Grid (Figma #86:137) */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Tác vụ nhanh</Text>
-          <Text style={styles.sectionHint}>8 hành động phổ biến</Text>
-        </View>
-
-        <View style={styles.quickGrid}>
-          {quickActions.map((action) => (
-            <TouchableOpacity
-              key={action.id}
-              activeOpacity={0.7}
-              onPress={action.onPress}
-              style={styles.quickActionItem}
-            >
-              <View style={[styles.quickIconCircle, { backgroundColor: action.bg }]}>
-                <Feather name={action.icon as any} size={20} color={action.color} />
-              </View>
-              <Text style={styles.quickActionText} numberOfLines={1}>
-                {action.title}
+        {/* 2. Social Composer Card ("What's on your mind?") */}
+        <ScalePressable
+          scaleTo={0.97}
+          onPress={() => navigation.navigate('AskQuestion')}
+          style={styles.composerCard}
+        >
+          <View style={styles.composerHeader}>
+            <View style={styles.composerAvatar}>
+              <Text style={styles.composerAvatarText}>
+                {(currentUser?.fullName || 'ME').slice(0, 2).toUpperCase()}
               </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* 3.C Top Discussions (Primary Feed Section - Figma #86:196) */}
-        <View style={styles.sectionHeaderWithAction}>
-          <View>
-            <Text style={styles.sectionTitle}>Hỏi đáp & Thảo luận sôi nổi</Text>
-            <Text style={styles.sectionSubtitle}>Các câu hỏi được sinh viên quan tâm nhất</Text>
+            </View>
+            <View style={styles.composerInputBox}>
+              <Text style={styles.composerPlaceholder}>
+                Bạn có thắc mắc môn học hôm nay?...
+              </Text>
+            </View>
           </View>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('Main', { screen: 'DiscussionsTab' })}
+
+          <View style={styles.composerActionsRow}>
+            <View style={styles.composerQuickBtn}>
+              <Feather name="help-circle" size={14} color={Colors.primary} />
+              <Text style={styles.composerQuickText}>Đặt câu hỏi</Text>
+            </View>
+            <View style={styles.composerDivider} />
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Main', { screen: 'ResourcesTab' })}
+              style={styles.composerQuickBtn}
+            >
+              <Feather name="code" size={14} color={Colors.purple} />
+              <Text style={styles.composerQuickText}>Chia sẻ Lab</Text>
+            </TouchableOpacity>
+            <View style={styles.composerDivider} />
+            <TouchableOpacity
+              onPress={() => navigation.navigate('CreateTicket')}
+              style={styles.composerQuickBtn}
+            >
+              <Feather name="life-buoy" size={14} color="#DB2777" />
+              <Text style={styles.composerQuickText}>Trợ giúp</Text>
+            </TouchableOpacity>
+          </View>
+        </ScalePressable>
+
+        {/* 3. Modern Horizontal Quick Action Stories / Highlights */}
+        <View style={styles.storiesContainer}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.storiesScroll}
           >
-            <Text style={styles.seeAllText}>Xem tất cả</Text>
-          </TouchableOpacity>
+            {socialActions.map((action) => (
+              <ScalePressable
+                key={action.id}
+                scaleTo={0.92}
+                onPress={action.onPress}
+                style={styles.storyItem}
+              >
+                <View style={[styles.storyRing, { backgroundColor: action.bg }]}>
+                  <Feather name={action.icon as any} size={18} color={action.color} />
+                </View>
+                <Text style={styles.storyTitle} numberOfLines={1}>
+                  {action.title}
+                </Text>
+              </ScalePressable>
+            ))}
+          </ScrollView>
         </View>
 
-        {questions.slice(0, 3).map((q) => (
-          <Card
-            key={q.id}
-            onPress={() => navigation.navigate('QuestionDetail', { id: q.id })}
-            style={styles.questionCard}
+        {/* 4. Social Feed Header: Community Q&A Discussions */}
+        <View style={styles.sectionHeaderRow}>
+          <View>
+            <Text style={styles.sectionHeaderTitle}>Thảo luận mới nhất</Text>
+            <Text style={styles.sectionHeaderSub}>Từ cộng đồng sinh viên FPT</Text>
+          </View>
+          <ScalePressable
+            scaleTo={0.95}
+            onPress={() => navigation.navigate('Main', { screen: 'DiscussionsTab' })}
+            style={styles.seeAllPill}
           >
-            <View style={styles.questionRow}>
-              {/* Vote Controller */}
-              <View style={styles.voteCol}>
-                <VoteControl
-                  score={q.upvotes}
-                  userVote={q.userVote}
-                  onVote={(dir) => handleVote(q.id, dir)}
-                />
-              </View>
+            <Text style={styles.seeAllPillText}>Xem tất cả</Text>
+            <Feather name="chevron-right" size={14} color={Colors.primary} />
+          </ScalePressable>
+        </View>
 
-              {/* Question Body */}
-              <View style={styles.questionBody}>
-                <View style={styles.metaRow}>
-                  {q.courseCode && <Badge label={q.courseCode} variant="primary" size="sm" />}
-                  {q.isSolved && (
-                    <Badge label="Đã giải quyết" variant="success" size="sm" />
-                  )}
-                  {q.isModVerified && (
-                    <Badge label="Verified" variant="purple" size="sm" />
-                  )}
-                </View>
+        {/* 5. Modern Social Posts */}
+        {questions.slice(0, 3).map((q) => {
+          const isSaved = bookmarkedIds.has(q.id);
+          const authorInitials = q.author.fullName.slice(0, 2).toUpperCase();
 
-                <Text style={styles.questionTitle} numberOfLines={2}>
-                  {q.title}
-                </Text>
-
-                <Text style={styles.questionSnippet} numberOfLines={2}>
-                  {q.content}
-                </Text>
-
-                {/* Author & Stats footer */}
-                <View style={styles.questionFooter}>
-                  <View style={styles.authorRow}>
-                    <View style={styles.authorAvatar}>
-                      <Text style={styles.authorInitials}>
-                        {q.author.fullName.slice(0, 2).toUpperCase()}
+          return (
+            <PeekableCard
+              key={q.id}
+              item={getQuestionPeekItem(q)}
+              onPress={() => navigation.navigate('QuestionDetail', { id: q.id })}
+              onVote={(id, dir) => handleVote(id, dir)}
+              onOpenDetail={(item) => navigation.navigate('QuestionDetail', { id: item.id })}
+              style={styles.socialPostCard}
+            >
+              {/* Post Header: Avatar, Author, Badge, Save */}
+              <View style={styles.postHeader}>
+                <View style={styles.postAuthorGroup}>
+                  <View style={styles.postAvatar}>
+                    <Text style={styles.postAvatarText}>{authorInitials}</Text>
+                  </View>
+                  <View style={styles.postAuthorMeta}>
+                    <View style={styles.authorNameRow}>
+                      <Text style={styles.postAuthorName} numberOfLines={1}>
+                        {q.author.fullName}
                       </Text>
+                      {q.isModVerified && (
+                        <Ionicons name="checkmark-circle" size={14} color={Colors.primary} />
+                      )}
                     </View>
-                    <Text style={styles.authorName} numberOfLines={1}>
-                      {q.author.fullName}
+                    <Text style={styles.postTimeText}>
+                      {q.author.campus || campusObj.code} • {q.createdAt}
                     </Text>
                   </View>
+                </View>
 
-                  <View style={styles.statsRow}>
-                    <View style={styles.statItem}>
-                      <Feather name="message-square" size={13} color={Colors.textMuted} />
-                      <Text style={styles.statText}>{q.answersCount}</Text>
+                <View style={styles.postHeaderRight}>
+                  {q.courseCode && (
+                    <View style={styles.courseTagPill}>
+                      <Text style={styles.courseTagText}>{q.courseCode}</Text>
                     </View>
-                    <View style={styles.statItem}>
-                      <Feather name="eye" size={13} color={Colors.textMuted} />
-                      <Text style={styles.statText}>{q.viewsCount}</Text>
-                    </View>
-                  </View>
+                  )}
+                  <ScalePressable
+                    scaleTo={0.85}
+                    onPress={() => toggleBookmark(q.id)}
+                    style={styles.saveIconButton}
+                  >
+                    <Ionicons
+                      name={isSaved ? 'bookmark' : 'bookmark-outline'}
+                      size={18}
+                      color={isSaved ? Colors.primary : Colors.textMuted}
+                    />
+                  </ScalePressable>
                 </View>
               </View>
-            </View>
-          </Card>
-        ))}
 
-        {/* 3.D Mid-Feed: Workflows & Articles Teaser */}
-        <View style={styles.sectionHeaderWithAction}>
+              {/* Post Body: Title & Content */}
+              <Text style={styles.postTitle} numberOfLines={2}>
+                {q.title}
+              </Text>
+              <Text style={styles.postContent} numberOfLines={3}>
+                {q.content}
+              </Text>
+
+              {/* Hashtags / Badges */}
+              <View style={styles.postTagsRow}>
+                {q.tags.slice(0, 3).map((t) => (
+                  <View key={t} style={styles.socialHashTag}>
+                    <Text style={styles.socialHashTagText}>#{t}</Text>
+                  </View>
+                ))}
+                {q.isSolved && (
+                  <View style={styles.solvedPill}>
+                    <Feather name="check" size={11} color={Colors.success} />
+                    <Text style={styles.solvedPillText}>Đã giải quyết</Text>
+                  </View>
+                )}
+              </View>
+
+              {/* Social Interaction Bar */}
+              <View style={styles.socialActionFooter}>
+                {/* Horizontal Vote Pill */}
+                <View style={styles.votePill}>
+                  <TouchableOpacity
+                    onPress={() => handleVote(q.id, 'UP')}
+                    style={[styles.voteArrowBtn, q.userVote === 'UP' && styles.voteArrowUpActive]}
+                  >
+                    <Feather
+                      name="arrow-up"
+                      size={15}
+                      color={q.userVote === 'UP' ? Colors.primary : Colors.textMuted}
+                    />
+                  </TouchableOpacity>
+                  <Text
+                    style={[
+                      styles.voteScoreNumber,
+                      q.userVote === 'UP' && { color: Colors.primary },
+                      q.userVote === 'DOWN' && { color: Colors.danger },
+                    ]}
+                  >
+                    {q.upvotes}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => handleVote(q.id, 'DOWN')}
+                    style={[styles.voteArrowBtn, q.userVote === 'DOWN' && styles.voteArrowDownActive]}
+                  >
+                    <Feather
+                      name="arrow-down"
+                      size={15}
+                      color={q.userVote === 'DOWN' ? Colors.danger : Colors.textMuted}
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Comments Counter */}
+                <TouchableOpacity
+                  onPress={() => navigation.navigate('QuestionDetail', { id: q.id })}
+                  style={styles.socialMetaBtn}
+                >
+                  <Feather name="message-circle" size={15} color={Colors.textSecondary} />
+                  <Text style={styles.socialMetaText}>{q.answersCount} trả lời</Text>
+                </TouchableOpacity>
+
+                {/* Share Button */}
+                <TouchableOpacity
+                  onPress={() => handleShare(q.title)}
+                  style={styles.socialMetaBtn}
+                >
+                  <Feather name="share-2" size={14} color={Colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+            </PeekableCard>
+          );
+        })}
+
+        {/* 6. Shared Workflows Teaser */}
+        <View style={styles.sectionHeaderRow}>
           <View>
-            <Text style={styles.sectionTitle}>Shared Workflows nổi bật</Text>
-            <Text style={styles.sectionSubtitle}>Quy trình thực hành đồ án & lab môn học</Text>
+            <Text style={styles.sectionHeaderTitle}>Quy trình & Đồ án mẫu</Text>
+            <Text style={styles.sectionHeaderSub}>Các bước thực hành lab & project môn học</Text>
           </View>
           <TouchableOpacity
             onPress={() => navigation.navigate('Main', { screen: 'ResourcesTab' })}
+            style={styles.seeAllPill}
           >
-            <Text style={styles.seeAllText}>Xem thêm</Text>
+            <Text style={styles.seeAllPillText}>Xem thêm</Text>
+            <Feather name="chevron-right" size={14} color={Colors.primary} />
           </TouchableOpacity>
         </View>
 
@@ -288,13 +502,15 @@ export const FeedScreen: React.FC = () => {
             onPress={() => navigation.navigate('WorkflowDetail', { id: wf.id })}
             style={styles.workflowCard}
           >
-            <View style={styles.wfHeader}>
-              <View style={styles.wfMetaRow}>
-                <Badge label={wf.courseCode} variant="purple" size="sm" />
+            <View style={styles.wfHeaderRow}>
+              <View style={styles.wfBadgeRow}>
+                <View style={styles.wfCourseTag}>
+                  <Text style={styles.wfCourseText}>{wf.courseCode}</Text>
+                </View>
                 <Badge label={wf.technology} variant="neutral" size="sm" />
               </View>
               <View style={styles.wfStepsCount}>
-                <Feather name="layers" size={13} color={Colors.purple} />
+                <Feather name="layers" size={12} color={Colors.purple} />
                 <Text style={styles.wfStepsText}>{wf.steps.length} bước</Text>
               </View>
             </View>
@@ -306,33 +522,37 @@ export const FeedScreen: React.FC = () => {
               {wf.description}
             </Text>
 
-            <View style={styles.wfFooter}>
-              <Text style={styles.wfAuthor}>Bởi {wf.author.fullName}</Text>
-              <View style={styles.wfStats}>
-                <Feather name="check-circle" size={13} color={Colors.success} />
+            <View style={styles.wfFooterRow}>
+              <Text style={styles.wfAuthorText}>Đăng bởi {wf.author.fullName}</Text>
+              <View style={styles.wfUsageBadge}>
+                <Feather name="check-circle" size={12} color={Colors.success} />
                 <Text style={styles.wfUsageText}>{wf.usageCount} áp dụng</Text>
               </View>
             </View>
           </Card>
         ))}
 
-        {/* 3.E Recent Tech Articles */}
-        <View style={styles.sectionHeaderWithAction}>
+        {/* 7. Tech Articles Teaser */}
+        <View style={styles.sectionHeaderRow}>
           <View>
-            <Text style={styles.sectionTitle}>Bài viết công nghệ</Text>
-            <Text style={styles.sectionSubtitle}>Kiến thức chuyên sâu từ giảng viên & sinh viên</Text>
+            <Text style={styles.sectionHeaderTitle}>Bài viết công nghệ</Text>
+            <Text style={styles.sectionHeaderSub}>Kinh nghiệm thực chiến & kiến thức IT</Text>
           </View>
           <TouchableOpacity
             onPress={() => navigation.navigate('Main', { screen: 'ResourcesTab' })}
+            style={styles.seeAllPill}
           >
-            <Text style={styles.seeAllText}>Xem tất cả</Text>
+            <Text style={styles.seeAllPillText}>Xem tất cả</Text>
+            <Feather name="chevron-right" size={14} color={Colors.primary} />
           </TouchableOpacity>
         </View>
 
         {mockArticles.slice(0, 2).map((art) => (
-          <Card
+          <PeekableCard
             key={art.id}
+            item={getArticlePeekItem(art)}
             onPress={() => navigation.navigate('ArticleDetail', { id: art.id })}
+            onOpenDetail={(item) => navigation.navigate('ArticleDetail', { id: item.id })}
             style={styles.articleCard}
           >
             <View style={styles.articleRow}>
@@ -353,24 +573,24 @@ export const FeedScreen: React.FC = () => {
                 </View>
               </View>
             </View>
-          </Card>
+          </PeekableCard>
         ))}
 
-        {/* Support Helpdesk Shortcut */}
-        <TouchableOpacity
-          activeOpacity={0.8}
+        {/* 8. Helpdesk Support Banner */}
+        <ScalePressable
+          scaleTo={0.96}
           onPress={() => navigation.navigate('SupportTickets')}
           style={styles.supportBanner}
         >
-          <View style={styles.supportIconCircle}>
-            <Feather name="life-buoy" size={24} color="#FFF" />
+          <View style={styles.supportIconWrap}>
+            <Feather name="life-buoy" size={20} color={Colors.primary} />
           </View>
-          <View style={styles.supportTextCol}>
-            <Text style={styles.supportTitle}>Cần hỗ trợ học vụ hoặc kỹ thuật?</Text>
-            <Text style={styles.supportSub}>Gửi vé yêu cầu để cán bộ nhà trường hỗ trợ bạn nhanh chóng.</Text>
+          <View style={styles.supportTextWrap}>
+            <Text style={styles.supportTitle}>Cần hỗ trợ học vụ hoặc đồ án?</Text>
+            <Text style={styles.supportSub}>Gửi vé yêu cầu để ban học vụ giải đáp nhanh nhất.</Text>
           </View>
-          <Feather name="arrow-right" size={20} color={Colors.primary} />
-        </TouchableOpacity>
+          <Feather name="arrow-right" size={18} color={Colors.primary} />
+        </ScalePressable>
       </ScrollView>
     </View>
   );
@@ -382,227 +602,388 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   scrollContent: {
-    padding: Spacing.md,
-    paddingBottom: 40,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.sm,
+    paddingBottom: 90,
   },
-  welcomeCard: {
-    backgroundColor: '#FFF',
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.lg,
-    borderWidth: 1,
-    borderColor: '#DCE8F6',
-    marginBottom: Spacing.lg,
-  },
-  welcomeHeader: {
+  greetingHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.md,
+    paddingHorizontal: 2,
   },
-  termBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#EFF6FF',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.round,
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
-    gap: 6,
+  greetingLeft: {
+    flex: 1,
   },
-  termDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: Colors.primary,
-  },
-  termText: {
+  greetingTime: {
     fontSize: FontSize.caption,
+    color: Colors.textMuted,
     fontWeight: '700',
-    color: Colors.primary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  karmaBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.primaryLight,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.round,
-    gap: 4,
-  },
-  karmaText: {
-    fontSize: FontSize.caption,
-    fontWeight: '800',
-    color: Colors.primary,
-  },
-  welcomeTitle: {
+  greetingName: {
     fontSize: FontSize.titleLg,
     fontWeight: '900',
     color: Colors.text,
-    letterSpacing: -0.5,
-    marginBottom: 4,
+    letterSpacing: -0.4,
   },
-  welcomeSubtitle: {
-    fontSize: FontSize.bodySm,
-    color: Colors.textSecondary,
-    lineHeight: 18,
-  },
-  sectionHeader: {
-    marginBottom: Spacing.sm,
-  },
-  sectionHeaderWithAction: {
+  campusPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: Spacing.md,
-    marginBottom: Spacing.sm,
-  },
-  sectionTitle: {
-    fontSize: FontSize.titleSm,
-    fontWeight: '800',
-    color: Colors.text,
-  },
-  sectionHint: {
-    fontSize: FontSize.caption,
-    color: Colors.textMuted,
-  },
-  sectionSubtitle: {
-    fontSize: FontSize.caption,
-    color: Colors.textSecondary,
-    marginTop: 1,
-  },
-  seeAllText: {
-    fontSize: FontSize.bodySm,
-    fontWeight: '700',
-    color: Colors.primary,
-  },
-  quickGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    backgroundColor: '#FFF',
-    padding: Spacing.md,
-    borderRadius: BorderRadius.xl,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: BorderRadius.pill,
     borderWidth: 1,
-    borderColor: Colors.border,
-    marginBottom: Spacing.md,
+    borderColor: 'rgba(226, 232, 240, 0.9)',
+    gap: 6,
   },
-  quickActionItem: {
-    width: '23%',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
+  onlineDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.success,
   },
-  quickIconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 6,
-  },
-  quickActionText: {
+  campusPillText: {
     fontSize: FontSize.caption,
-    fontWeight: '700',
+    fontWeight: '800',
     color: Colors.textSecondary,
-    textAlign: 'center',
   },
-  questionCard: {
+  // Social Composer
+  composerCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: BorderRadius.xxl,
     padding: Spacing.md,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderColor: 'rgba(226, 232, 240, 0.85)',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  questionRow: {
-    flexDirection: 'row',
-  },
-  voteCol: {
-    marginRight: Spacing.md,
-  },
-  questionBody: {
-    flex: 1,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginBottom: 6,
-  },
-  questionTitle: {
-    fontSize: FontSize.bodyLg,
-    fontWeight: '800',
-    color: Colors.text,
-    lineHeight: 20,
-    marginBottom: 4,
-  },
-  questionSnippet: {
-    fontSize: FontSize.bodySm,
-    color: Colors.textSecondary,
-    lineHeight: 18,
-    marginBottom: 8,
-  },
-  questionFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderTopWidth: 1,
-    borderTopColor: Colors.borderLight,
-    paddingTop: 8,
-  },
-  authorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  authorAvatar: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  authorInitials: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#FFF',
-  },
-  authorName: {
-    fontSize: FontSize.caption,
-    color: Colors.textSecondary,
-    fontWeight: '600',
-    maxWidth: 120,
-  },
-  statsRow: {
+  composerHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
   },
-  statItem: {
+  composerAvatar: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  composerAvatarText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  composerInputBox: {
+    flex: 1,
+    backgroundColor: '#F1F5F9',
+    borderRadius: BorderRadius.pill,
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+  },
+  composerPlaceholder: {
+    fontSize: FontSize.bodySm,
+    color: Colors.textMuted,
+    fontWeight: '500',
+  },
+  composerActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    marginTop: Spacing.sm,
+    paddingTop: Spacing.sm,
+  },
+  composerQuickBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+  },
+  composerQuickText: {
+    fontSize: FontSize.caption,
+    fontWeight: '700',
+    color: Colors.textSecondary,
+  },
+  composerDivider: {
+    width: 1,
+    height: 14,
+    backgroundColor: '#E2E8F0',
+  },
+  // Modern Horizontal Stories
+  storiesContainer: {
+    marginBottom: Spacing.md,
+    marginHorizontal: -Spacing.md,
+  },
+  storiesScroll: {
+    paddingHorizontal: Spacing.md,
+    gap: 12,
+  },
+  storyItem: {
+    alignItems: 'center',
+    width: 62,
+  },
+  storyRing: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 5,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.9)',
+  },
+  storyTitle: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  // Section Headers
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: Spacing.xs,
+    marginBottom: Spacing.sm,
+  },
+  sectionHeaderTitle: {
+    fontSize: FontSize.titleSm,
+    fontWeight: '900',
+    color: Colors.text,
+    letterSpacing: -0.3,
+  },
+  sectionHeaderSub: {
+    fontSize: FontSize.caption,
+    color: Colors.textMuted,
+    marginTop: 1,
+  },
+  seeAllPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.primaryLight,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: BorderRadius.pill,
+    gap: 2,
+  },
+  seeAllPillText: {
+    fontSize: FontSize.caption,
+    fontWeight: '800',
+    color: Colors.primary,
+  },
+  // Social Post Card
+  socialPostCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: BorderRadius.xxl,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(226, 232, 240, 0.85)',
+  },
+  postHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  postAuthorGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+    flex: 1,
+  },
+  postAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#3B82F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  postAvatarText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#FFF',
+  },
+  postAuthorMeta: {
+    flex: 1,
+  },
+  authorNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
-  statText: {
-    fontSize: FontSize.caption,
+  postAuthorName: {
+    fontSize: FontSize.bodySm,
+    fontWeight: '800',
+    color: Colors.text,
+  },
+  postTimeText: {
+    fontSize: FontSize.micro,
     color: Colors.textMuted,
+    marginTop: 1,
+  },
+  postHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  courseTagPill: {
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.pill,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  courseTagText: {
+    fontSize: FontSize.micro,
+    fontWeight: '800',
+    color: Colors.primary,
+  },
+  saveIconButton: {
+    padding: 3,
+  },
+  postTitle: {
+    fontSize: FontSize.bodyLg,
+    fontWeight: '800',
+    color: Colors.text,
+    lineHeight: 21,
+    marginBottom: 4,
+  },
+  postContent: {
+    fontSize: FontSize.bodySm,
+    color: Colors.textSecondary,
+    lineHeight: 19,
+    marginBottom: 8,
+  },
+  postTagsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 10,
+  },
+  socialHashTag: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.pill,
+  },
+  socialHashTagText: {
+    fontSize: FontSize.micro,
+    color: '#475569',
     fontWeight: '600',
   },
+  solvedPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.pill,
+    gap: 3,
+  },
+  solvedPillText: {
+    fontSize: FontSize.micro,
+    color: Colors.success,
+    fontWeight: '700',
+  },
+  // Social Action Footer
+  socialActionFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderTopWidth: 1,
+    borderTopColor: '#F8FAFC',
+    paddingTop: 8,
+  },
+  votePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    borderRadius: BorderRadius.pill,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    gap: 6,
+  },
+  voteArrowBtn: {
+    padding: 2,
+    borderRadius: BorderRadius.pill,
+  },
+  voteArrowUpActive: {
+    backgroundColor: Colors.primaryLight,
+  },
+  voteArrowDownActive: {
+    backgroundColor: Colors.dangerLight,
+  },
+  voteScoreNumber: {
+    fontSize: FontSize.bodySm,
+    fontWeight: '800',
+    color: Colors.text,
+    minWidth: 16,
+    textAlign: 'center',
+  },
+  socialMetaBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  socialMetaText: {
+    fontSize: FontSize.caption,
+    color: Colors.textSecondary,
+    fontWeight: '600',
+  },
+  // Workflows
   workflowCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: BorderRadius.xxl,
     padding: Spacing.md,
     marginBottom: Spacing.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(226, 232, 240, 0.85)',
   },
-  wfHeader: {
+  wfHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 6,
   },
-  wfMetaRow: {
+  wfBadgeRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
+  },
+  wfCourseTag: {
+    backgroundColor: '#F5F3FF',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.pill,
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+  },
+  wfCourseText: {
+    fontSize: FontSize.micro,
+    fontWeight: '800',
+    color: Colors.purple,
   },
   wfStepsCount: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 3,
   },
   wfStepsText: {
     fontSize: FontSize.caption,
@@ -620,19 +1001,19 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginBottom: 8,
   },
-  wfFooter: {
+  wfFooterRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: Colors.borderLight,
+    borderTopColor: '#F8FAFC',
     paddingTop: 8,
   },
-  wfAuthor: {
+  wfAuthorText: {
     fontSize: FontSize.caption,
     color: Colors.textMuted,
   },
-  wfStats: {
+  wfUsageBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
@@ -642,18 +1023,23 @@ const styles = StyleSheet.create({
     color: Colors.success,
     fontWeight: '700',
   },
+  // Articles
   articleCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: BorderRadius.xxl,
     padding: Spacing.sm,
     marginBottom: Spacing.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(226, 232, 240, 0.85)',
   },
   articleRow: {
     flexDirection: 'row',
     gap: Spacing.md,
   },
   articleThumb: {
-    width: 80,
-    height: 80,
-    borderRadius: BorderRadius.md,
+    width: 78,
+    height: 78,
+    borderRadius: BorderRadius.lg,
     backgroundColor: '#E2E8F0',
   },
   articleBody: {
@@ -685,37 +1071,38 @@ const styles = StyleSheet.create({
     color: Colors.danger,
     fontWeight: '700',
   },
+  // Support Banner
   supportBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF',
-    borderRadius: BorderRadius.xl,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: BorderRadius.xxl,
     padding: Spacing.md,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    marginTop: Spacing.sm,
+    borderColor: '#D8E6F8',
+    marginTop: Spacing.xs,
     gap: Spacing.md,
   },
-  supportIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: Colors.primary,
+  supportIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  supportTextCol: {
+  supportTextWrap: {
     flex: 1,
   },
   supportTitle: {
-    fontSize: FontSize.body,
+    fontSize: FontSize.bodySm,
     fontWeight: '800',
     color: Colors.text,
   },
   supportSub: {
-    fontSize: FontSize.caption,
+    fontSize: FontSize.micro,
     color: Colors.textSecondary,
     marginTop: 2,
-    lineHeight: 16,
+    lineHeight: 14,
   },
 });

@@ -5,12 +5,19 @@ export const Colors = {
   primarySoft: '#F0F7FF',
 
   // Secondary & Neutral
-  background: '#F8F9FF',
+  background: '#F6F8FC',
   surface: '#FFFFFF',
-  surfaceSubtle: '#F1F5F9',
+  surfaceSubtle: '#F8FAFC',
   card: '#FFFFFF',
   border: '#E2E8F0',
   borderLight: '#EDF2F7',
+
+  // Modern Glassmorphism & Translucent Accents
+  glassBg: 'rgba(255, 255, 255, 0.92)',
+  glassCard: 'rgba(255, 255, 255, 0.95)',
+  glassBorder: 'rgba(255, 255, 255, 0.8)',
+  glassBlur: 'rgba(248, 250, 252, 0.85)',
+  overlayTranslucent: 'rgba(15, 23, 42, 0.45)',
 
   // Text
   text: '#181C22',

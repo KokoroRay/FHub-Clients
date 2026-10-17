@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: FontSize.caption,
-    fontWeight: '700',
+    fontWeight: '800',
     color: Colors.textSecondary,
     marginBottom: Spacing.xs,
     textTransform: 'uppercase',
@@ -64,10 +64,10 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surfaceSubtle,
-    borderRadius: BorderRadius.md,
+    backgroundColor: 'rgba(241, 245, 249, 0.75)',
+    borderRadius: BorderRadius.lg,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: '#E2E8F0',
     paddingHorizontal: Spacing.md,
   },
   inputError: {
@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    paddingVertical: Spacing.md,
+    paddingVertical: 12,
     fontSize: FontSize.body,
     color: Colors.text,
   },

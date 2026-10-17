@@ -1,12 +1,13 @@
-import React from 'react';
-import { View, StyleSheet, ViewStyle, TouchableOpacity } from 'react-native';
+import React, { useRef } from 'react';
+import { View, StyleSheet, StyleProp, ViewStyle, TouchableOpacity, Animated, GestureResponderEvent } from 'react-native';
 import { Colors } from '../../constants/colors';
 import { BorderRadius, CommonStyles, Spacing } from '../../constants/theme';
 
 interface CardProps {
   children: React.ReactNode;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   onPress?: () => void;
+  onLongPress?: () => void;
   subtle?: boolean;
 }
 
@@ -14,21 +15,48 @@ export const Card: React.FC<CardProps> = ({
   children,
   style,
   onPress,
+  onLongPress,
   subtle = false,
 }) => {
-  if (onPress) {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  if (onPress || onLongPress) {
+    const handlePressIn = (e: GestureResponderEvent) => {
+      Animated.spring(scaleAnim, {
+        toValue: 0.98,
+        useNativeDriver: true,
+        speed: 50,
+        bounciness: 4,
+      }).start();
+    };
+
+    const handlePressOut = (e: GestureResponderEvent) => {
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        friction: 4,
+        tension: 50,
+      }).start();
+    };
+
     return (
-      <TouchableOpacity
-        activeOpacity={0.7}
-        onPress={onPress}
-        style={[
-          styles.card,
-          subtle ? CommonStyles.cardShadowSubtle : CommonStyles.cardShadow,
-          style,
-        ]}
-      >
-        {children}
-      </TouchableOpacity>
+      <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+        <TouchableOpacity
+          activeOpacity={0.88}
+          onPress={onPress}
+          onLongPress={onLongPress}
+          delayLongPress={320}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+          style={[
+            styles.card,
+            subtle ? CommonStyles.cardShadowSubtle : CommonStyles.cardShadow,
+            style,
+          ]}
+        >
+          {children}
+        </TouchableOpacity>
+      </Animated.View>
     );
   }
 
@@ -47,11 +75,11 @@ export const Card: React.FC<CardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.glassCard,
+    borderRadius: BorderRadius.xl,
     borderWidth: 1,
-    borderColor: Colors.border,
-    padding: Spacing.lg,
+    borderColor: 'rgba(230, 236, 245, 0.85)',
+    padding: Spacing.md,
     marginBottom: Spacing.md,
   },
 });

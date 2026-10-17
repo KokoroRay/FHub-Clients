@@ -226,28 +226,34 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.md,
+    paddingTop: Spacing.sm,
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF',
-    borderRadius: BorderRadius.lg,
+    backgroundColor: '#FFFFFF',
+    borderRadius: BorderRadius.pill,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: 'rgba(226, 232, 240, 0.9)',
     paddingHorizontal: Spacing.md,
-    paddingVertical: 10,
+    paddingVertical: 8,
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 5,
+    elevation: 2,
   },
   searchIcon: {
     marginRight: Spacing.sm,
   },
   searchInput: {
     flex: 1,
-    fontSize: FontSize.body,
+    fontSize: FontSize.bodySm,
     color: Colors.text,
   },
   filterSection: {
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    marginTop: 2,
   },
   filterList: {
     paddingHorizontal: Spacing.md,
@@ -255,11 +261,11 @@ const styles = StyleSheet.create({
   },
   filterChip: {
     paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: BorderRadius.round,
-    backgroundColor: '#FFF',
+    paddingVertical: 5,
+    borderRadius: BorderRadius.pill,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: 'rgba(226, 232, 240, 0.9)',
   },
   filterChipActive: {
     backgroundColor: Colors.primary,
@@ -274,12 +280,17 @@ const styles = StyleSheet.create({
     color: '#FFF',
   },
   listContent: {
-    padding: Spacing.md,
-    paddingBottom: 30,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.xs,
+    paddingBottom: 90,
   },
   courseCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: BorderRadius.xxl,
     padding: Spacing.md,
     marginBottom: Spacing.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(226, 232, 240, 0.85)',
   },
   cardHeader: {
     flexDirection: 'row',
@@ -294,18 +305,18 @@ const styles = StyleSheet.create({
   },
   codeBadge: {
     backgroundColor: '#1E293B',
-    paddingHorizontal: 8,
+    paddingHorizontal: 9,
     paddingVertical: 3,
-    borderRadius: BorderRadius.sm,
+    borderRadius: BorderRadius.pill,
   },
   codeText: {
     color: '#FFF',
     fontWeight: '800',
-    fontSize: FontSize.caption,
+    fontSize: FontSize.micro,
     letterSpacing: 0.5,
   },
   bookmarkButton: {
-    padding: 4,
+    padding: 2,
   },
   courseTitle: {
     fontSize: FontSize.bodyLg,
@@ -317,7 +328,7 @@ const styles = StyleSheet.create({
   courseDescription: {
     fontSize: FontSize.bodySm,
     color: Colors.textSecondary,
-    marginBottom: 10,
+    marginBottom: 8,
     lineHeight: 18,
   },
   cardFooter: {
@@ -325,7 +336,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderTopWidth: 1,
-    borderTopColor: Colors.borderLight,
+    borderTopColor: '#F8FAFC',
     paddingTop: 8,
   },
   ratingBadge: {

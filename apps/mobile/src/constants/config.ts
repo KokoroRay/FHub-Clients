@@ -75,5 +75,5 @@ export function resolveApiUrl(path: string): string {
   }
 
   // Default fallback
-  return `http://${host}:${Config.services.gatewayUrl}${cleanPath}`;
+  return `${Config.gatewayUrl}${cleanPath}`;
 }

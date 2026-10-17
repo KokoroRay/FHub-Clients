@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,8 +6,11 @@ import {
   StyleSheet,
   Modal,
   FlatList,
+  Image,
+  Animated,
 } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/colors';
 import { BorderRadius, FontSize, Spacing, CommonStyles } from '../../constants/theme';
 import { useAuth } from '../../hooks/useAuth';
@@ -31,24 +34,40 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
   onBackPress,
   unreadCount = 2,
 }) => {
+  const insets = useSafeAreaInsets();
   const { currentCampus, setCurrentCampus } = useAuth();
   const [isCampusModalOpen, setIsCampusModalOpen] = useState(false);
+
+  const badgeScale = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (unreadCount > 0) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(badgeScale, { toValue: 1.18, duration: 600, useNativeDriver: true }),
+          Animated.timing(badgeScale, { toValue: 1, duration: 600, useNativeDriver: true }),
+          Animated.delay(2400),
+        ])
+      ).start();
+    }
+  }, [unreadCount]);
 
   const selectedCampusObj = mockCampuses.find((c) => c.code === currentCampus) || mockCampuses[0];
 
   return (
-    <View style={[styles.header, CommonStyles.headerShadow]}>
+    <View style={[styles.header, { paddingTop: insets.top, height: 54 + insets.top }, CommonStyles.headerShadow]}>
       <View style={styles.leftContainer}>
         {showBack ? (
           <TouchableOpacity onPress={onBackPress} style={styles.iconButton}>
-            <Ionicons name="arrow-back" size={22} color={Colors.text} />
+            <Ionicons name="arrow-back" size={20} color={Colors.text} />
           </TouchableOpacity>
         ) : (
           <View style={styles.brandRow}>
-            {/* Logo Avatar */}
-            <View style={styles.logoBadge}>
-              <Text style={styles.logoInitial}>F</Text>
-            </View>
+            <Image
+              source={require('../../../assets/fhub-remove-background.png')}
+              style={styles.logoImage}
+              resizeMode="contain"
+            />
             <View style={styles.brandTextCol}>
               <View style={styles.logoTitleRow}>
                 <Text style={styles.logoText}>FHub</Text>
@@ -85,7 +104,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
             onPress={onSearchPress}
             style={styles.iconButton}
           >
-            <Feather name="search" size={20} color={Colors.textSecondary} />
+            <Feather name="search" size={19} color={Colors.textSecondary} />
           </TouchableOpacity>
         )}
 
@@ -95,11 +114,11 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
             onPress={onNotificationsPress}
             style={styles.iconButton}
           >
-            <Feather name="bell" size={20} color={Colors.textSecondary} />
+            <Feather name="bell" size={19} color={Colors.textSecondary} />
             {unreadCount > 0 && (
-              <View style={styles.badgeDot}>
+              <Animated.View style={[styles.badgeDot, { transform: [{ scale: badgeScale }] }]}>
                 <Text style={styles.badgeText}>{unreadCount}</Text>
-              </View>
+              </Animated.View>
             )}
           </TouchableOpacity>
         )}
@@ -159,14 +178,14 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
 
 const styles = StyleSheet.create({
   header: {
-    height: 56,
-    backgroundColor: Colors.surface,
+    height: 60,
+    backgroundColor: Colors.glassBg,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'between',
+    justifyContent: 'space-between',
     paddingHorizontal: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: 'rgba(226, 232, 240, 0.7)',
   },
   leftContainer: {
     flex: 1,
@@ -178,19 +197,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: Spacing.sm,
   },
-  logoBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 8,
-  },
-  logoInitial: {
-    color: '#FFF',
-    fontWeight: '900',
-    fontSize: 16,
+  logoImage: {
+    width: 34,
+    height: 34,
+    marginRight: 6,
   },
   brandTextCol: {
     marginRight: 8,
@@ -200,16 +210,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logoText: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: '900',
     color: Colors.text,
     letterSpacing: -0.5,
   },
   eduTag: {
-    backgroundColor: '#EFF6FF',
-    paddingHorizontal: 4,
+    backgroundColor: 'rgba(239, 246, 255, 0.9)',
+    paddingHorizontal: 5,
     paddingVertical: 1,
-    borderRadius: 4,
+    borderRadius: BorderRadius.round,
     borderWidth: 1,
     borderColor: '#BFDBFE',
     marginLeft: 4,
@@ -222,42 +232,45 @@ const styles = StyleSheet.create({
   campusButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F1F5F9',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: BorderRadius.round,
+    backgroundColor: 'rgba(241, 245, 249, 0.85)',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: BorderRadius.pill,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: 'rgba(226, 232, 240, 0.8)',
     gap: 4,
   },
   campusText: {
     fontSize: FontSize.caption,
-    fontWeight: '700',
+    fontWeight: '800',
     color: Colors.text,
   },
   pageTitle: {
     fontSize: FontSize.titleSm,
-    fontWeight: '800',
+    fontWeight: '900',
     color: Colors.text,
     marginLeft: Spacing.sm,
   },
   rightContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
   },
   iconButton: {
-    width: 36,
-    height: 36,
-    borderRadius: BorderRadius.round,
+    width: 38,
+    height: 38,
+    borderRadius: BorderRadius.pill,
+    backgroundColor: 'rgba(241, 245, 249, 0.8)',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
+    borderWidth: 1,
+    borderColor: 'rgba(226, 232, 240, 0.7)',
   },
   badgeDot: {
     position: 'absolute',
-    top: 4,
-    right: 4,
+    top: 2,
+    right: 2,
     backgroundColor: Colors.danger,
     borderRadius: 10,
     minWidth: 16,
@@ -265,6 +278,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 3,
+    borderWidth: 1.5,
+    borderColor: '#FFF',
   },
   badgeText: {
     color: '#FFF',
@@ -273,7 +288,7 @@ const styles = StyleSheet.create({
   },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: Colors.overlayTranslucent,
     justifyContent: 'center',
     alignItems: 'center',
     padding: Spacing.lg,
@@ -282,12 +297,14 @@ const styles = StyleSheet.create({
     width: '100%',
     maxHeight: '70%',
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.xl,
+    borderRadius: BorderRadius.xxl,
     padding: Spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   modalTitle: {
     fontSize: FontSize.titleSm,
-    fontWeight: '800',
+    fontWeight: '900',
     color: Colors.text,
     marginBottom: Spacing.md,
   },
@@ -301,8 +318,8 @@ const styles = StyleSheet.create({
   },
   campusItemActive: {
     backgroundColor: Colors.primarySoft,
-    paddingHorizontal: Spacing.sm,
-    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.lg,
   },
   campusInfo: {
     flex: 1,
