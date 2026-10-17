@@ -343,6 +343,90 @@ export async function revokeUserRole(userId: number | string, roleCode: string) 
 }
 
 /**
+ * Fetch staff accounts with search, role, and campus filtering
+ */
+export async function fetchStaffList(params?: {
+  search?: string;
+  role?: string;
+  campus?: string;
+  status?: string;
+  isActive?: boolean;
+  pageNumber?: number;
+  pageSize?: number;
+}) {
+  const query = new URLSearchParams();
+  if (params?.search) query.append('search', params.search);
+  if (params?.role) query.append('role', params.role);
+  if (params?.campus) query.append('campus', params.campus);
+  if (params?.status) query.append('status', params.status);
+  if (params?.isActive !== undefined) query.append('isActive', String(params.isActive));
+  if (params?.pageNumber) query.append('pageNumber', String(params.pageNumber));
+  if (params?.pageSize) query.append('pageSize', String(params.pageSize));
+
+  const url = `${API_BASE_URL}/api/staff?${query.toString()}`;
+  const res = await fetch(url, {
+    headers: getAdminHeaders(),
+  });
+
+  return res.ok ? await res.json() : null;
+}
+
+/**
+ * Create a new staff account (SchoolRepresentative, CommunityModerator, Admin)
+ */
+export async function createStaff(payload: {
+  email: string;
+  fullName?: string;
+  staffCode?: string;
+  role?: string;
+  department?: string;
+  campus?: string;
+  password?: string;
+}) {
+  const url = `${API_BASE_URL}/api/staff`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: getAdminHeaders(),
+    body: JSON.stringify(payload),
+  });
+
+  return res.ok ? await res.json() : null;
+}
+
+/**
+ * Update staff profile, department, campus, or role
+ */
+export async function updateStaff(staffId: number | string, payload: {
+  fullName?: string;
+  department?: string;
+  campus?: string;
+  role?: string;
+}) {
+  const url = `${API_BASE_URL}/api/staff/${staffId}`;
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: getAdminHeaders(),
+    body: JSON.stringify(payload),
+  });
+
+  return res.ok ? await res.json() : null;
+}
+
+/**
+ * Soft delete a staff account
+ */
+export async function deleteStaff(staffId: number | string, reason = 'Deleted by administrator') {
+  const url = `${API_BASE_URL}/api/staff/${staffId}`;
+  const res = await fetch(url, {
+    method: 'DELETE',
+    headers: getAdminHeaders(),
+    body: JSON.stringify({ reason }),
+  });
+
+  return res.ok ? await res.json() : null;
+}
+
+/**
  * Baseline executive dashboard metrics fallback
  */
 function getBaselineDashboardData(timeframe: 'Today' | '7 Days' | '30 Days', users = 0, tickets = 0): AdminDashboardData {

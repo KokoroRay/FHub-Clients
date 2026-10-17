@@ -26,16 +26,19 @@ import {
   HelpCircle,
   Shield,
   CheckCircle2,
+  Tag,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { mockCampuses } from '../services/mockData';
 import { Dropdown } from '../components/common/Dropdown';
+import { ErrorBoundary } from '../components/common/ErrorBoundary';
 import { setSubdomainMode } from '../utils/subdomain';
 import {
   useGovernanceAccounts,
   useSupportTickets,
   useCampuses,
   useMajors,
+  useSpecializations,
   useCourseNodes,
 } from '../services/api';
 
@@ -50,6 +53,7 @@ export const AdminSubdomainLayout: React.FC = () => {
   const { data: ticketsData } = useSupportTickets({ pageSize: 1 });
   const { data: campusesData } = useCampuses();
   const { data: majorsData } = useMajors({ pageSize: 1 });
+  const { data: specializationsData } = useSpecializations({ pageSize: 1 });
   const { data: courseNodesData } = useCourseNodes({ pageSize: 1 });
 
   const usersCount = accountsData?.totalCount !== undefined
@@ -75,6 +79,10 @@ export const AdminSubdomainLayout: React.FC = () => {
     ? `${majorsData.totalCount}`
     : (majorsData?.items ? `${majorsData.items.length}` : (majorsData ? '0' : '...'));
 
+  const specializationsCount = specializationsData?.totalCount !== undefined
+    ? `${specializationsData.totalCount}`
+    : (specializationsData?.items ? `${specializationsData.items.length}` : (specializationsData ? '0' : '...'));
+
   const coursesCount = courseNodesData?.totalCount !== undefined
     ? `${courseNodesData.totalCount}`
     : (courseNodesData?.items ? `${courseNodesData.items.length}` : (courseNodesData ? '0' : '...'));
@@ -86,40 +94,72 @@ export const AdminSubdomainLayout: React.FC = () => {
       }))
     : mockCampuses;
 
-  const navGroups = [
-    {
-      title: 'MAIN NAVIGATION',
-      items: [
-        { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-        { name: 'Users', path: '/users', icon: Users, badge: usersCount, badgeColor: 'bg-slate-100 text-slate-600' },
-        { name: 'Support Tickets', path: '/tickets', icon: LifeBuoy, badge: ticketsCount, badgeColor: 'bg-amber-100 text-amber-700' },
-        { name: 'Reputation Rules', path: '/reputation', icon: Zap },
-        { name: 'Achievement Badges', path: '/badges', icon: Award },
-      ],
-    },
-    {
-      title: 'MODERATION & GOVERNANCE',
-      items: [
-        { name: 'Content Moderation', path: '/moderation', icon: ShieldCheck, badge: 'Reports', badgeColor: 'bg-rose-100 text-rose-700' },
-        { name: 'Verification Queue', path: '/verifications', icon: CheckCircle2, badge: 'KYC', badgeColor: 'bg-blue-100 text-blue-700' },
-      ],
-    },
-    {
-      title: 'ACADEMIC TAXONOMY',
-      items: [
-        { name: 'Campuses', path: '/campuses', icon: Building2, badge: campusesCount, badgeColor: 'bg-slate-100 text-slate-600' },
-        { name: 'Majors', path: '/majors', icon: GraduationCap, badge: majorsCount, badgeColor: 'bg-slate-100 text-slate-600' },
-        { name: 'Courses', path: '/courses', icon: BookOpen, badge: coursesCount, badgeColor: 'bg-slate-100 text-slate-600' },
-      ],
-    },
-    {
-      title: 'SYSTEM',
-      items: [
-        { name: 'Audit Logs', path: '/audit-logs', icon: FileSpreadsheet, badge: 'Live', badgeColor: 'bg-emerald-100 text-emerald-700' },
-        { name: 'System Health', path: '/health', icon: Activity },
-      ],
-    },
-  ];
+  const isMod = currentUser?.role === 'Community Moderator';
+
+  const navGroups = isMod
+    ? [
+        {
+          title: 'MODERATION DESK',
+          items: [
+            { name: 'Content Moderation', path: '/moderation', icon: ShieldCheck, badge: 'Reports', badgeColor: 'bg-rose-100 text-rose-700' },
+            { name: 'Support Tickets', path: '/tickets', icon: LifeBuoy, badge: ticketsCount, badgeColor: 'bg-amber-100 text-amber-700' },
+            { name: 'Verification Queue', path: '/verifications', icon: CheckCircle2, badge: 'KYC', badgeColor: 'bg-blue-100 text-blue-700' },
+            { name: 'Semantic Tags', path: '/tags', icon: Tag },
+          ],
+        },
+        {
+          title: 'ACADEMIC REPOSITORY (READ ONLY)',
+          items: [
+            { name: 'Campuses', path: '/campuses', icon: Building2, badge: campusesCount, badgeColor: 'bg-slate-100 text-slate-600' },
+            { name: 'Majors', path: '/majors', icon: GraduationCap, badge: majorsCount, badgeColor: 'bg-slate-100 text-slate-600' },
+            { name: 'Specializations', path: '/specializations', icon: Network, badge: specializationsCount, badgeColor: 'bg-slate-100 text-slate-600' },
+            { name: 'Courses', path: '/courses', icon: BookOpen, badge: coursesCount, badgeColor: 'bg-slate-100 text-slate-600' },
+          ],
+        },
+        {
+          title: 'DIRECTORY',
+          items: [
+            { name: 'User Directory', path: '/users', icon: Users, badge: usersCount, badgeColor: 'bg-slate-100 text-slate-600' },
+          ],
+        },
+      ]
+    : [
+        {
+          title: 'MAIN NAVIGATION',
+          items: [
+            { name: 'Dashboard', path: '/', icon: LayoutDashboard },
+            { name: 'Users', path: '/users', icon: Users, badge: usersCount, badgeColor: 'bg-slate-100 text-slate-600' },
+            { name: 'Support Tickets', path: '/tickets', icon: LifeBuoy, badge: ticketsCount, badgeColor: 'bg-amber-100 text-amber-700' },
+            { name: 'Reputation Rules', path: '/reputation', icon: Zap },
+            { name: 'Achievement Badges', path: '/badges', icon: Award },
+          ],
+        },
+        {
+          title: 'MODERATION & GOVERNANCE',
+          items: [
+            { name: 'Content Moderation', path: '/moderation', icon: ShieldCheck, badge: 'Reports', badgeColor: 'bg-rose-100 text-rose-700' },
+            { name: 'Verification Queue', path: '/verifications', icon: CheckCircle2, badge: 'KYC', badgeColor: 'bg-blue-100 text-blue-700' },
+            { name: 'Semantic Tags', path: '/tags', icon: Tag },
+          ],
+        },
+        {
+          title: 'ACADEMIC TAXONOMY',
+          items: [
+            { name: 'Campuses', path: '/campuses', icon: Building2, badge: campusesCount, badgeColor: 'bg-slate-100 text-slate-600' },
+            { name: 'Majors', path: '/majors', icon: GraduationCap, badge: majorsCount, badgeColor: 'bg-slate-100 text-slate-600' },
+            { name: 'Specializations', path: '/specializations', icon: Network, badge: specializationsCount, badgeColor: 'bg-slate-100 text-slate-600' },
+            { name: 'Courses', path: '/courses', icon: BookOpen, badge: coursesCount, badgeColor: 'bg-slate-100 text-slate-600' },
+          ],
+        },
+        {
+          title: 'SYSTEM & PERSONNEL',
+          items: [
+            { name: 'Staff Management', path: '/staff', icon: Users, badge: 'Admin', badgeColor: 'bg-amber-100 text-amber-800' },
+            { name: 'Audit Logs', path: '/audit-logs', icon: FileSpreadsheet, badge: 'Live', badgeColor: 'bg-emerald-100 text-emerald-700' },
+            { name: 'System Health', path: '/health', icon: Activity },
+          ],
+        },
+      ];
 
   const bottomNavItems = [
     { name: 'Settings', path: '/settings', icon: Settings },
@@ -151,7 +191,7 @@ export const AdminSubdomainLayout: React.FC = () => {
         <div className="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
           {/* Brand Logo & Tag */}
           <div className="flex items-center gap-3 shrink-0">
-            <Link to="/" className="flex items-center gap-2.5 group">
+            <Link to={isMod ? '/moderation' : '/'} className="flex items-center gap-2.5 group">
               <div className="w-9 h-9 rounded-lg overflow-hidden flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
                 <img
                   src="/fhub-remove-background.png"
@@ -161,12 +201,20 @@ export const AdminSubdomainLayout: React.FC = () => {
               </div>
               <div className="flex flex-col">
                 <span className="font-bold text-sm tracking-tight text-slate-900 flex items-center gap-1.5">
-                  FHub Community
-                  <span className="text-[10px] px-1.5 py-0.2 bg-blue-50 text-blue-600 rounded font-semibold border border-blue-200">
-                    Admin
+                  FHub Operations
+                  <span
+                    className={`text-[10px] px-1.5 py-0.2 rounded font-semibold border ${
+                      isMod
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-blue-50 text-blue-600 border-blue-200'
+                    }`}
+                  >
+                    {isMod ? 'Moderator Desk' : 'Admin Console'}
                   </span>
                 </span>
-                <span className="text-[10px] text-slate-400 font-normal">Academic Platform Control</span>
+                <span className="text-[10px] text-slate-400 font-normal">
+                  {isMod ? 'Content & Governance Desk' : 'Academic Platform Control'}
+                </span>
               </div>
             </Link>
           </div>
@@ -335,7 +383,9 @@ export const AdminSubdomainLayout: React.FC = () => {
 
         {/* Main Content Area */}
         <main className="flex-1 min-w-0 h-full overflow-y-auto p-6 lg:p-8">
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
     </div>

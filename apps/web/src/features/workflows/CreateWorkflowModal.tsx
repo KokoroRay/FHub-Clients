@@ -54,14 +54,24 @@ export const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
     setSteps(newSteps);
   };
 
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || steps.length === 0) return;
+    if (title.trim().length < 8) {
+      setErrorMessage('Tên workflow cần tối thiểu 8 ký tự.');
+      return;
+    }
+    if (steps.length === 0 || !steps.some((s) => s.title.trim() || s.instruction.trim())) {
+      setErrorMessage('Workflow cần ít nhất 1 bước với tiêu đề hoặc hướng dẫn cụ thể.');
+      return;
+    }
 
+    setErrorMessage(null);
     const newWf: SharedWorkflow = {
       id: `wf-${Date.now()}`,
-      title,
-      description,
+      title: title.trim(),
+      description: description.trim(),
       courseCode,
       technology,
       steps,
@@ -78,7 +88,21 @@ export const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
       createdAt: new Date().toISOString(),
     };
 
+    // Asynchronously persist to backend WorkflowsController
+    import('../../services/api/contentApi').then(({ workflowApi }) => {
+      workflowApi.createWorkflow({
+        title: title.trim(),
+        summary: description.trim(),
+        steps: steps.map((s, idx) => ({
+          stepNumber: idx + 1,
+          title: s.title,
+          content: `${s.instruction}\n\`\`\`${s.language || 'bash'}\n${s.codeSnippet || ''}\n\`\`\``,
+        })),
+      }).catch((err) => console.warn('Backend workflow save notice:', err));
+    });
+
     onCreated(newWf);
+    setErrorMessage(null);
   };
 
   return (
@@ -95,6 +119,11 @@ export const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+        {errorMessage && (
+          <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold">
+            {errorMessage}
+          </div>
+        )}
         <Input
           label="Tên Workflow"
           placeholder="Ví dụ: Quy trình Setup Clean Architecture với EF Core & JWT Auth"

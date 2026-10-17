@@ -41,6 +41,9 @@ export interface LoginResponse {
     studentCode?: string;
     roles: string[];
     isTwoFactorEnabled?: boolean;
+    fullName?: string;
+    campusCode?: string;
+    avatarUrl?: string;
   };
 }
 
@@ -525,6 +528,69 @@ export const majorsApi = {
 };
 
 // ---------------------------------------------------------------------------
+// 6.5 Specializations API
+// ---------------------------------------------------------------------------
+export interface SpecializationItemDto {
+  specializationId: number;
+  majorId: number;
+  majorCode: string;
+  majorName: string;
+  specializationCode: string;
+  specializationName: string;
+  description?: string;
+  isActive: boolean;
+  curriculaCount: number;
+  createdByStaffId?: number;
+  updatedByStaffId?: number;
+  createdAt: string;
+  updatedAt: string;
+  curricula?: Array<{
+    curriculumId: number;
+    curriculumCode: string;
+    curriculumName: string;
+    description?: string;
+    effectiveFromYear: number;
+    effectiveToYear?: number;
+    isActive: boolean;
+    totalCourses: number;
+  }>;
+}
+
+export const specializationsApi = {
+  getSpecializations: async (params?: { search?: string; majorId?: number | string; isActive?: boolean; pageNumber?: number; pageSize?: number }) => {
+    const query = new URLSearchParams();
+    if (params?.search) query.set('search', params.search);
+    if (params?.majorId) query.set('majorId', String(params.majorId));
+    if (params?.isActive !== undefined) query.set('isActive', String(params.isActive));
+    if (params?.pageNumber) query.set('pageNumber', String(params.pageNumber));
+    if (params?.pageSize) query.set('pageSize', String(params.pageSize));
+
+    const res = await apiClient.get<any>(`/api/specializations?${query.toString()}`);
+    return res.data?.data ?? res.data;
+  },
+
+  getSpecializationById: async (id: number | string) => {
+    const res = await apiClient.get<any>(`/api/specializations/${id}`);
+    return res.data?.data ?? res.data;
+  },
+
+  createSpecialization: async (payload: { majorId: number | string; specializationCode: string; specializationName: string; description?: string; isActive?: boolean }) => {
+    const res = await apiClient.post<any>('/api/specializations', payload);
+    return res.data?.data ?? res.data;
+  },
+
+  updateSpecialization: async ({ id, payload }: { id: number | string; payload: { specializationName: string; description?: string; isActive?: boolean } }) => {
+    const res = await apiClient.put<any>(`/api/specializations/${id}`, payload);
+    return res.data?.data ?? res.data;
+  },
+
+  deleteSpecialization: async (id: number | string) => {
+    const res = await apiClient.delete<any>(`/api/specializations/${id}`);
+    return res.data?.data ?? res.data;
+  }
+};
+
+// ---------------------------------------------------------------------------
 // 7. Course Nodes API
 // ---------------------------------------------------------------------------
 export interface CourseNodeDto {
@@ -954,3 +1020,124 @@ export const governanceModerationApi = {
     return res.data.data;
   },
 };
+
+// ---------------------------------------------------------------------------
+// 13. Semantic Tags API (Taxonomy Service)
+// ---------------------------------------------------------------------------
+export interface SemanticTagItemDto {
+  semanticTagId: number;
+  tagName: string;
+  description?: string;
+  isAiGenerated: boolean;
+  status: 'ACTIVE' | 'MERGED' | 'DEPRECATED' | 'INACTIVE';
+  usageCount: number;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CreateSemanticTagPayload {
+  tagName: string;
+  description?: string;
+  isAiGenerated?: boolean;
+  status?: string;
+}
+
+export interface UpdateSemanticTagPayload {
+  tagName: string;
+  description?: string;
+  status?: string;
+}
+
+export interface MergeSemanticTagsPayload {
+  destinationTagId: number;
+  sourceTagIds: number[];
+}
+
+export const semanticTagsApi = {
+  getTags: async (params?: { search?: string; status?: string; isAiGenerated?: boolean; sortBy?: string; sortDir?: string; pageNumber?: number; pageSize?: number }) => {
+    const res = await apiClient.get<ApiResponse<PagedResult<SemanticTagItemDto>>>('/api/semantic-tags', { params });
+    return res.data.data;
+  },
+  getTagById: async (id: number | string) => {
+    const res = await apiClient.get<ApiResponse<SemanticTagItemDto>>(`/api/semantic-tags/${id}`);
+    return res.data.data;
+  },
+  createTag: async (payload: CreateSemanticTagPayload) => {
+    const res = await apiClient.post<ApiResponse<SemanticTagItemDto>>('/api/semantic-tags', payload);
+    return res.data.data;
+  },
+  updateTag: async (id: number | string, payload: UpdateSemanticTagPayload) => {
+    const res = await apiClient.put<ApiResponse<SemanticTagItemDto>>(`/api/semantic-tags/${id}`, payload);
+    return res.data.data;
+  },
+  mergeTags: async (payload: MergeSemanticTagsPayload) => {
+    const res = await apiClient.post<ApiResponse<{ destinationTagId: number; affectedEntitiesCount: number; message: string }>>('/api/semantic-tags/merge', payload);
+    return res.data.data;
+  },
+  deleteTag: async (id: number | string) => {
+    const res = await apiClient.delete<ApiResponse<any>>(`/api/semantic-tags/${id}`);
+    return res.data.data;
+  },
+};
+
+// ---------------------------------------------------------------------------
+// 14. Staff Account Management API (Identity Service)
+// ---------------------------------------------------------------------------
+export interface StaffSummaryDto {
+  staffId: number;
+  email: string;
+  fullName: string;
+  staffCode: string;
+  role: string;
+  department: string;
+  campus: string;
+  status: 'ACTIVE' | 'SUSPENDED' | 'LOCKED';
+  isActive: boolean;
+  createdAt: string;
+  lastLoginAt?: string;
+}
+
+export interface CreateStaffPayload {
+  email: string;
+  fullName: string;
+  staffCode: string;
+  role: string;
+  department: string;
+  campus: string;
+  password?: string;
+}
+
+export interface UpdateStaffPayload {
+  fullName?: string;
+  department?: string;
+  campus?: string;
+  role?: string;
+}
+
+export const staffApi = {
+  getStaffList: async (params?: { search?: string; role?: string; campus?: string; status?: string; isActive?: boolean; pageNumber?: number; pageSize?: number }) => {
+    const res = await apiClient.get<ApiResponse<PagedResult<StaffSummaryDto>>>('/api/staff', { params });
+    return res.data.data;
+  },
+  getStaffById: async (id: number | string) => {
+    const res = await apiClient.get<ApiResponse<StaffSummaryDto>>(`/api/staff/${id}`);
+    return res.data.data;
+  },
+  createStaff: async (payload: CreateStaffPayload) => {
+    const res = await apiClient.post<ApiResponse<StaffSummaryDto>>('/api/staff', payload);
+    return res.data.data;
+  },
+  updateStaff: async (id: number | string, payload: UpdateStaffPayload) => {
+    const res = await apiClient.put<ApiResponse<StaffSummaryDto>>(`/api/staff/${id}`, payload);
+    return res.data.data;
+  },
+  updateStatus: async (id: number | string, newStatus: string, reason?: string) => {
+    const res = await apiClient.patch<ApiResponse<StaffSummaryDto>>(`/api/staff/${id}/status`, { newStatus, reason });
+    return res.data.data;
+  },
+  deleteStaff: async (id: number | string) => {
+    const res = await apiClient.delete<ApiResponse<any>>(`/api/staff/${id}`);
+    return res.data.data;
+  },
+};
+

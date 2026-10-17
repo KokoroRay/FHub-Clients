@@ -24,10 +24,9 @@ import { mockCampuses, mockNotifications } from '../../services/mockData';
 import { Dropdown } from '../common/Dropdown';
 import { Button } from '../common/Button';
 import { Badge } from '../common/Badge';
-import { setSubdomainMode } from '../../utils/subdomain';
 
 export const Header: React.FC = () => {
-  const { currentUser, currentCampus, setCurrentCampus, currentRole, switchRole, logout } = useAuth();
+  const { currentUser, currentCampus, setCurrentCampus, logout } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotifDrawer, setShowNotifDrawer] = useState(false);
   const navigate = useNavigate();
@@ -77,50 +76,30 @@ export const Header: React.FC = () => {
   const userMenu = [
     {
       id: 'profile',
-      label: 'Trang cá nhân',
+      label: 'My Profile',
       icon: <UserIcon className="w-4 h-4 text-blue-600" />,
       onClick: () => navigate('/profile'),
     },
     {
       id: 'settings',
-      label: 'Cài đặt tài khoản',
-      icon: <Settings className="w-4 h-4" />,
+      label: 'Preferences & Privacy',
+      icon: <Settings className="w-4 h-4 text-slate-600" />,
       onClick: () => navigate('/settings'),
     },
     {
-      id: 'admin-subdomain',
-      label: 'Admin Console (Subdomain)',
-      icon: <Shield className="w-4 h-4 text-blue-600" />,
-      onClick: () => setSubdomainMode('admin'),
+      id: 'tickets',
+      label: 'Support Tickets',
+      icon: <HelpCircle className="w-4 h-4 text-amber-600" />,
+      onClick: () => navigate('/tickets'),
     },
-    ...(currentRole === 'Admin' || currentRole === 'Staff'
-      ? [
-          {
-            id: 'admin-portal',
-            label: currentRole === 'Admin' ? 'Admin Control Center' : 'Staff Governance',
-            icon: <Shield className="w-4 h-4 text-blue-600" />,
-            onClick: () => navigate(currentRole === 'Admin' ? '/admin/campus' : '/staff/accounts'),
-          },
-        ]
-      : []),
     {
       id: 'logout',
-      label: 'Đăng xuất',
+      label: 'Sign Out',
       icon: <LogOut className="w-4 h-4 text-rose-500" />,
       danger: true,
       divider: true,
       onClick: logout,
     },
-  ];
-
-  const roleList: Array<typeof currentRole> = [
-    'Student',
-    'Admin',
-    'Staff',
-    'Community Moderator',
-    'School Representative',
-    'Alumni',
-    'Guest',
   ];
 
   return (
@@ -185,39 +164,8 @@ export const Header: React.FC = () => {
           </div>
         </form>
 
-        {/* Action Controls & Role Switcher */}
+        {/* Action Controls */}
         <div className="flex items-center gap-2.5">
-          {/* Quick Role Switcher for Test & Evaluation */}
-          <Dropdown
-            trigger={
-              <button className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-300/80 dark:border-amber-800 hover:bg-amber-100 transition-colors cursor-pointer">
-                <Sparkles className="w-3 h-3 text-amber-600" />
-                <span>Role: {currentRole}</span>
-                <ChevronDown className="w-2.5 h-2.5" />
-              </button>
-            }
-            items={roleList.map((r) => ({
-              id: r,
-              label: (
-                <div className="flex items-center justify-between w-full">
-                  <span>{r}</span>
-                  {r === currentRole && <span className="text-xs text-blue-600 font-bold">✓</span>}
-                </div>
-              ),
-              onClick: () => switchRole(r),
-            }))}
-          />
-
-          {/* Admin Subdomain Console Pill */}
-          <button
-            onClick={() => setSubdomainMode('admin')}
-            className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-extrabold rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 transition-all cursor-pointer shadow-2xs"
-            title="Mở Admin Subdomain Console (admin.fhub.edu.vn)"
-          >
-            <Shield className="w-3 h-3 text-blue-600" />
-            <span>Admin Console</span>
-          </button>
-
           {currentUser ? (
             <>
               {/* Quick Create Dropdown */}
@@ -262,7 +210,7 @@ export const Header: React.FC = () => {
                       <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate max-w-[120px]">
                         {currentUser.fullName}
                       </span>
-                      <span className="text-[10px] text-slate-400 font-medium">{currentUser.studentId || currentRole}</span>
+                      <span className="text-[10px] text-slate-400 font-medium">{currentUser.studentId || 'SE172481'}</span>
                     </div>
                   </div>
                 }

@@ -1,214 +1,225 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   BookOpen,
   Search,
   Users,
-  MessageSquare,
-  FileText,
-  Workflow,
+  Bookmark,
   Star,
-  Check,
-  Plus,
-  Filter,
-  Download,
   ArrowRight,
+  Sparkles,
+  Layers,
 } from 'lucide-react';
 import { mockCourses, mockMajors } from '../../services/mockData';
-import { Card, CardBody, CardHeader } from '../../components/common/Card';
-import { Badge } from '../../components/common/Badge';
-import { Button } from '../../components/common/Button';
 
 export const CourseListPage: React.FC = () => {
   const [selectedMajor, setSelectedMajor] = useState<string>('ALL');
-  const [selectedSemester, setSelectedSemester] = useState<number | 'ALL'>('ALL');
+  const [selectedSemester, setSelectedSemester] = useState<string>('ALL');
+  const [sortBy, setSortBy] = useState<'code' | 'rating' | 'popular'>('code');
   const [searchQuery, setSearchQuery] = useState('');
   const [courses, setCourses] = useState(mockCourses);
+  const [bookmarkedCodes, setBookmarkedCodes] = useState<Set<string>>(new Set());
 
-  const toggleFollow = (courseId: string) => {
-    setCourses((prev) =>
-      prev.map((c) =>
-        c.id === courseId
-          ? {
-              ...c,
-              isFollowed: !c.isFollowed,
-              followerCount: c.isFollowed ? c.followerCount - 1 : c.followerCount + 1,
-            }
-          : c
-      )
-    );
+  const toggleBookmark = (code: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setBookmarkedCodes((prev) => {
+      const next = new Set(prev);
+      if (next.has(code)) next.delete(code);
+      else next.add(code);
+      return next;
+    });
   };
 
-  const filteredCourses = courses.filter((c) => {
-    const matchMajor = selectedMajor === 'ALL' || c.majorCode === selectedMajor;
-    const matchSemester = selectedSemester === 'ALL' || c.semester === selectedSemester;
-    const matchSearch =
-      c.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.title.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchMajor && matchSemester && matchSearch;
-  });
+  const filteredCourses = useMemo(() => {
+    return courses
+      .filter((c) => {
+        const matchMajor = selectedMajor === 'ALL' || c.majorCode === selectedMajor;
+        const matchSemester = selectedSemester === 'ALL' || String(c.semester) === selectedSemester;
+        const matchSearch =
+          c.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          c.description.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchMajor && matchSemester && matchSearch;
+      })
+      .sort((a, b) => {
+        if (sortBy === 'rating') return b.averageRating - a.averageRating;
+        if (sortBy === 'popular') return b.followerCount - a.followerCount;
+        return a.code.localeCompare(b.code);
+      });
+  }, [courses, selectedMajor, selectedSemester, sortBy, searchQuery]);
 
   return (
     <div className="space-y-6">
-      {/* Page Header (Figma Frame 2: Course Hub) */}
+      {/* Breadcrumb & Header (Figma #93:4640) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-black text-[#181C22] tracking-tight">
               Course Hub
             </h1>
-            <Badge variant="primary" size="md">
-              {filteredCourses.length} Môn học
-            </Badge>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#D3E3FF] text-[#001C39]">
+              <BookOpen className="w-3.5 h-3.5 text-[#0076D1]" />
+              <span>{filteredCourses.length} of {courses.length} Courses</span>
+            </span>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Hệ thống tri thức, ngân hàng đề thi & cẩm nang học tập chuẩn CTĐT Đại học FPT.
+          <p className="text-xs sm:text-sm text-[#404753] mt-1">
+            Explore courses, connect with classmates, and find course resources.
           </p>
         </div>
+      </div>
 
-        {/* Search */}
-        <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+      {/* Search & Filter Toolbar (Figma #93:4660) */}
+      <div className="bg-white rounded-xl p-3.5 border border-slate-200/90 shadow-2xs grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+        {/* Left: Search input (5 cols) */}
+        <div className="relative md:col-span-5">
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Tìm theo mã môn (PRN211, SWP391...)"
-            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-9 pr-4 py-2.5 text-xs sm:text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all shadow-2xs"
+            placeholder="Search courses by name or code..."
+            className="w-full bg-[#F0F3FD] border border-slate-200 rounded-lg pl-10 pr-4 py-2 text-xs text-slate-800 placeholder-[#707785] focus:outline-none focus:ring-2 focus:ring-[#0076D1]/20 focus:border-[#0076D1] transition-all"
           />
         </div>
-      </div>
 
-      {/* Major Filter Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1">
-        <button
-          onClick={() => setSelectedMajor('ALL')}
-          className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
-            selectedMajor === 'ALL'
-              ? 'bg-blue-600 text-white shadow-xs'
-              : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:bg-slate-50'
-          }`}
-        >
-          Tất cả chuyên ngành
-        </button>
-        {mockMajors.map((m) => (
-          <button
-            key={m.code}
-            onClick={() => setSelectedMajor(m.code)}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
-              selectedMajor === m.code
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:bg-slate-50'
-            }`}
+        {/* Major / Department filter (3 cols) */}
+        <div className="md:col-span-3">
+          <select
+            value={selectedMajor}
+            onChange={(e) => setSelectedMajor(e.target.value)}
+            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-[#0076D1] cursor-pointer"
           >
-            {m.code} - {m.name}
-          </button>
-        ))}
-      </div>
-
-      {/* Semester Filter */}
-      <div className="flex items-center gap-2 text-xs text-slate-500 flex-wrap">
-        <div className="flex items-center gap-1 font-bold text-slate-700 dark:text-slate-300 mr-1">
-          <Filter className="w-3.5 h-3.5 text-blue-600" />
-          <span>Học kỳ:</span>
+            <option value="ALL">All Departments</option>
+            {mockMajors.map((m) => (
+              <option key={m.code} value={m.code}>
+                {m.code} - {m.name}
+              </option>
+            ))}
+          </select>
         </div>
-        <button
-          onClick={() => setSelectedSemester('ALL')}
-          className={`px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
-            selectedSemester === 'ALL' ? 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300 font-bold border border-blue-200 dark:border-blue-800' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 hover:bg-slate-200'
-          }`}
-        >
-          Tất cả
-        </button>
-        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((sem) => (
-          <button
-            key={sem}
-            onClick={() => setSelectedSemester(sem)}
-            className={`px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
-              selectedSemester === sem ? 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300 font-bold border border-blue-200 dark:border-blue-800' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 hover:bg-slate-200'
-            }`}
+
+        {/* Semester filter (2 cols) */}
+        <div className="md:col-span-2">
+          <select
+            value={selectedSemester}
+            onChange={(e) => setSelectedSemester(e.target.value)}
+            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-[#0076D1] cursor-pointer"
           >
-            HK {sem}
-          </button>
-        ))}
+            <option value="ALL">All Semesters</option>
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((s) => (
+              <option key={s} value={String(s)}>
+                Term {s}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Sort by dropdown (2 cols) */}
+        <div className="md:col-span-2">
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as any)}
+            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-[#0076D1] cursor-pointer"
+          >
+            <option value="code">Sort: Course Code</option>
+            <option value="rating">Sort: Highest Rating</option>
+            <option value="popular">Sort: Most Enrolled</option>
+          </select>
+        </div>
       </div>
 
-      {/* Course Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {filteredCourses.map((c) => (
-          <Card key={c.id} hoverable className="flex flex-col justify-between">
-            <CardBody className="p-5 space-y-3.5">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Link
-                      to={`/courses/${c.code}`}
-                      className="text-lg font-black text-blue-600 dark:text-blue-400 hover:underline tracking-tight"
-                    >
+      {/* Course Cards Grid: 3-column desktop layout (Figma #93:4702) */}
+      {filteredCourses.length === 0 ? (
+        <div className="p-12 text-center text-slate-400 text-xs bg-white rounded-2xl border border-slate-200">
+          Không tìm thấy môn học nào khớp với bộ lọc tìm kiếm.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {filteredCourses.map((c) => {
+            const isBookmarked = bookmarkedCodes.has(c.code);
+            return (
+              <div
+                key={c.id}
+                className="bg-white rounded-xl border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-[#0076D1]/40 transition-all p-5 flex flex-col justify-between group"
+              >
+                <div className="space-y-3">
+                  {/* Top row: Code Pill & Bookmark button (Figma #93:4706) */}
+                  <div className="flex items-center justify-between">
+                    <span className="px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-[#D3E3FF] text-[#0076D1]">
                       {c.code}
-                    </Link>
-                    <Badge variant="neutral" size="sm">
-                      {c.credits} Tín chỉ
-                    </Badge>
-                    <Badge variant="purple" size="sm">
-                      HK {c.semester}
-                    </Badge>
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={(e) => toggleBookmark(c.code, e)}
+                      className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                        isBookmarked
+                          ? 'bg-blue-50 border-blue-200 text-[#0076D1]'
+                          : 'border-transparent text-slate-400 hover:bg-slate-100 hover:text-slate-600'
+                      }`}
+                      title="Bookmark Course"
+                    >
+                      <Bookmark className={`w-4 h-4 ${isBookmarked ? 'fill-[#0076D1]' : ''}`} />
+                    </button>
                   </div>
+
+                  {/* Course Title (Figma #93:4712) */}
                   <Link
                     to={`/courses/${c.code}`}
-                    className="font-bold text-sm text-slate-900 dark:text-slate-100 hover:text-blue-600 transition-colors line-clamp-1 leading-snug"
+                    className="font-bold text-sm sm:text-base text-[#181C22] group-hover:text-[#0076D1] transition-colors line-clamp-1 block leading-snug"
                   >
                     {c.title}
                   </Link>
+
+                  {/* Description (Figma #93:4714) */}
+                  <p className="text-xs text-[#404753] line-clamp-2 leading-relaxed">
+                    {c.description}
+                  </p>
+
+                  {/* Metadata Row: Term, Credits, Rating (Figma #93:4716) */}
+                  <div className="flex items-center gap-2 text-[11px] text-slate-500 font-medium pt-1">
+                    <span>Term {c.semester}</span>
+                    <span>•</span>
+                    <span>{c.credits} Credits</span>
+                    <span>•</span>
+                    <span className="flex items-center gap-1 text-amber-500 font-bold">
+                      <Star className="w-3.5 h-3.5 fill-amber-400" />
+                      <span>{c.averageRating}</span>
+                    </span>
+                  </div>
+
+                  {/* Topic / Department Chips (Figma #93:4723) */}
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-[#404753]">
+                      {c.majorCode}
+                    </span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-[#404753]">
+                      {c.credits >= 4 ? 'Core Discipline' : 'Major Required'}
+                    </span>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-1 text-amber-500 font-black text-xs shrink-0 bg-amber-50 dark:bg-amber-950/60 px-2 py-1 rounded-lg border border-amber-200/60 dark:border-amber-800">
-                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
-                  <span>{c.averageRating}</span>
+                {/* View Course Action Button (Figma #93:4728) */}
+                <div className="pt-4 mt-3 border-t border-slate-100 flex items-center justify-between">
+                  <span className="text-[11px] text-slate-400 flex items-center gap-1">
+                    <Users className="w-3.5 h-3.5" />
+                    <span>{c.followerCount.toLocaleString()} enrolled</span>
+                  </span>
+
+                  <Link
+                    to={`/courses/${c.code}`}
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-[#0076D1] group-hover:underline"
+                  >
+                    <span>View Course</span>
+                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                  </Link>
                 </div>
               </div>
-
-              <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">
-                {c.description}
-              </p>
-
-              {/* Stats Counters */}
-              <div className="grid grid-cols-3 gap-2 py-2.5 px-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl text-center text-xs">
-                <div>
-                  <div className="font-extrabold text-slate-800 dark:text-slate-200">{c.followerCount.toLocaleString()}</div>
-                  <div className="text-[10px] text-slate-400">Sinh viên theo dõi</div>
-                </div>
-                <div className="border-x border-slate-200 dark:border-slate-700">
-                  <div className="font-extrabold text-blue-600 dark:text-blue-400">48</div>
-                  <div className="text-[10px] text-slate-400">Thảo luận Q&A</div>
-                </div>
-                <div>
-                  <div className="font-extrabold text-emerald-600 dark:text-emerald-400">32</div>
-                  <div className="text-[10px] text-slate-400">Tài liệu học</div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
-                <Button
-                  size="sm"
-                  variant={c.isFollowed ? 'secondary' : 'outline'}
-                  onClick={() => toggleFollow(c.id)}
-                  leftIcon={c.isFollowed ? <Check className="w-3.5 h-3.5 text-blue-600" /> : <Plus className="w-3.5 h-3.5" />}
-                >
-                  {c.isFollowed ? 'Đã theo dõi' : 'Theo dõi môn'}
-                </Button>
-
-                <Link to={`/courses/${c.code}`}>
-                  <Button size="sm" variant="primary" rightIcon={<ArrowRight className="w-3.5 h-3.5" />}>
-                    Xem chi tiết
-                  </Button>
-                </Link>
-              </div>
-            </CardBody>
-          </Card>
-        ))}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

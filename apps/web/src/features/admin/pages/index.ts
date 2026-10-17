@@ -14,3 +14,8 @@ export * from './AuditLogsPage';
 export * from './AuditLogDetailPage';
 export * from './SystemHealthAdminPage';
 export * from './AdminLoginPage';
+export * from './SpecializationsPage';
+export * from './SpecializationDetailPage';
+export * from './SemanticTagsPage';
+export * from './StaffAccountsAdminPage';
+

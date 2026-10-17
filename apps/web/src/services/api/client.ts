@@ -75,8 +75,8 @@ const clearAuthAndRedirect = () => {
   sessionStorage.removeItem('fhub_user');
 
   const currentPath = window.location.pathname;
-  const isSubdomain = window.location.hostname.startsWith('admin.');
-  if ((isSubdomain || currentPath.startsWith('/admin')) && !currentPath.includes('/login')) {
+  const isSubdomain = window.location.hostname.startsWith('ops.') || window.location.hostname.startsWith('admin.');
+  if ((isSubdomain || currentPath.startsWith('/admin') || currentPath.startsWith('/ops')) && !currentPath.includes('/login')) {
     const redirectParam = encodeURIComponent(currentPath + window.location.search);
     const loginUrl = isSubdomain ? `/login?redirect=${redirectParam}` : `/admin/login?redirect=${redirectParam}`;
     window.location.href = loginUrl;

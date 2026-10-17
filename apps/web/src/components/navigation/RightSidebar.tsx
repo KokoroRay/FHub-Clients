@@ -15,144 +15,162 @@ import { Card, CardHeader, CardBody } from '../common/Card';
 import { Badge } from '../common/Badge';
 
 export const RightSidebar: React.FC = () => {
-  const { currentCampus } = useAuth();
+  const { currentUser, currentCampus } = useAuth();
   const campusObj = mockCampuses.find((c) => c.code === currentCampus) || mockCampuses[0];
 
-  const popularTags = [
-    { name: 'dotnet', count: 420 },
-    { name: 'efcore', count: 310 },
-    { name: 'clean-architecture', count: 280 },
-    { name: 'react', count: 250 },
-    { name: 'swp391', count: 195 },
-    { name: 'sql-server', count: 160 },
+  const studentName = currentUser?.fullName || 'Nguyen Van A';
+  const studentId = currentUser?.studentId || 'SE172481';
+  const avatarInitials = studentName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'NA';
+
+  const activities = [
+    {
+      id: 'act-1',
+      author: '@duc_anh_swe',
+      action: 'posted a question in',
+      target: '[PRN211]',
+      targetColor: 'text-[#0076D1]',
+      dotColor: 'bg-[#0076D1]',
+      time: '10m ago',
+      link: '/discussions',
+    },
+    {
+      id: 'act-2',
+      author: '@linh_lecturer',
+      action: 'published an article on',
+      target: 'LINQ Best Practices',
+      targetColor: 'text-slate-900 font-semibold',
+      dotColor: 'bg-emerald-500',
+      time: '45m ago',
+      link: '/articles',
+    },
+    {
+      id: 'act-3',
+      author: '@dev_master',
+      action: 'shared workflow',
+      target: 'ASP.NET Core Setup',
+      targetColor: 'text-slate-900 font-semibold',
+      dotColor: 'bg-indigo-500',
+      time: '2h ago',
+      link: '/workflows',
+    },
+    {
+      id: 'act-4',
+      author: '@tuan_db',
+      action: 'evaluated course',
+      target: '[DBI202]',
+      targetColor: 'text-purple-600',
+      dotColor: 'bg-amber-500',
+      time: '4h ago',
+      link: '/course-evaluations',
+    },
   ];
 
-  const topContributors = [
-    { name: 'Nguyễn Văn A', karma: '1,250', badge: 'Gold', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80' },
-    { name: 'Lê Hoàng Long', karma: '2,890', badge: 'Alumni', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80' },
-    { name: 'Trần Thị B', karma: '890', badge: 'Silver', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80' },
+  const shortcuts = [
+    { name: 'Bookmarks List', path: '/bookmarks', icon: Tag },
+    { name: 'Preferences & Privacy', path: '/settings', icon: Sparkles },
+    { name: 'Notifications Center', path: '/notifications', icon: Award },
+    { name: 'Support Tickets', path: '/tickets', icon: Flame },
   ];
 
   return (
-    <aside className="w-80 shrink-0 hidden xl:block sticky top-20 h-[calc(100vh-5.5rem)] overflow-y-auto pl-2 space-y-4">
-      {/* Current Academic Context Card (Figma Style) */}
-      <Card className="bg-gradient-to-br from-blue-600 to-indigo-700 text-white border-0 shadow-md">
-        <CardBody className="p-4 space-y-2.5">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold tracking-wider text-blue-100 uppercase flex items-center gap-1">
-              <MapPin className="w-3.5 h-3.5 text-blue-200" />
-              Academic Partition
+    <aside className="w-64 shrink-0 hidden xl:block sticky top-20 h-[calc(100vh-5.5rem)] overflow-y-auto pl-1 space-y-4">
+      {/* CARD 1: My Academic Profile (Figma #86:684) */}
+      <div className="bg-white rounded-xl border border-slate-200/90 p-4 shadow-2xs space-y-3">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-full bg-[#0076D1] text-white flex items-center justify-center font-bold text-sm ring-2 ring-blue-100 shrink-0">
+            {currentUser?.avatarUrl ? (
+              <img src={currentUser.avatarUrl} alt={studentName} className="w-full h-full rounded-full object-cover" />
+            ) : (
+              <span>{avatarInitials}</span>
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <h4 className="font-bold text-sm text-slate-900 truncate leading-tight">{studentName}</h4>
+            <span className="inline-block mt-0.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-50 text-[#0076D1] border border-blue-100">
+              {studentId}
             </span>
-            <Badge variant="neutral" size="sm" className="bg-white/20 text-white border-0 font-bold">
-              {campusObj.code}
-            </Badge>
           </div>
-          <div>
-            <h4 className="font-extrabold text-sm text-white">{campusObj.name}</h4>
-            <p className="text-[11px] text-blue-100/80 mt-0.5 line-clamp-1">{campusObj.location}</p>
-          </div>
-          <div className="pt-2 border-t border-white/15 flex items-center justify-between text-xs text-blue-100">
-            <span>Sinh viên hoạt động:</span>
-            <span className="font-bold text-white">{campusObj.studentCount.toLocaleString()}</span>
-          </div>
-        </CardBody>
-      </Card>
+        </div>
 
-      {/* AI Academic Assistant Promo */}
-      <Card className="border-purple-200/80 dark:border-purple-900 bg-purple-50/40 dark:bg-purple-950/20">
-        <CardBody className="p-4 flex items-start gap-3">
-          <div className="p-2.5 rounded-xl bg-purple-600 text-white shrink-0 shadow-xs">
-            <Sparkles className="w-4 h-4" />
-          </div>
-          <div className="space-y-1">
-            <h5 className="font-bold text-xs text-purple-950 dark:text-purple-200">FHub AI Assistant</h5>
-            <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">
-              Hỏi đáp RAG môn học, giải thích lỗi code & gợi ý đề cương ôn thi.
-            </p>
-          </div>
-        </CardBody>
-      </Card>
-
-      {/* Trending Courses */}
-      <Card>
-        <CardHeader className="p-3.5 pb-2.5">
+        <div className="pt-2.5 border-t border-slate-100 space-y-1.5 text-xs">
           <div className="flex items-center justify-between">
-            <h4 className="font-bold text-xs text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-              <TrendingUp className="w-3.5 h-3.5 text-blue-600" />
-              <span>Môn học sôi nổi</span>
-            </h4>
-            <Link to="/courses" className="text-[11px] text-blue-600 hover:underline flex items-center gap-0.5 font-semibold">
-              Tất cả <ArrowRight className="w-3 h-3" />
-            </Link>
+            <span className="text-slate-400">Campus:</span>
+            <span className="font-medium text-slate-700">{campusObj.name}</span>
           </div>
-        </CardHeader>
-        <CardBody className="p-3.5 pt-0 space-y-2">
-          {mockCourses.slice(0, 3).map((c) => (
-            <Link
-              key={c.id}
-              to={`/courses/${c.code}`}
-              className="flex items-start justify-between p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors group border border-transparent hover:border-slate-100 dark:hover:border-slate-800"
-            >
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <span className="font-bold text-xs text-blue-600 dark:text-blue-400 group-hover:underline">{c.code}</span>
-                  <span className="text-[10px] text-slate-400 font-medium">HK {c.semester}</span>
-                </div>
-                <p className="text-[11px] text-slate-600 dark:text-slate-400 line-clamp-1 mt-0.5">{c.title}</p>
+          <div className="flex items-center justify-between">
+            <span className="text-slate-400">Major:</span>
+            <span className="font-medium text-slate-700">Software Eng.</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-slate-400">Semester:</span>
+            <span className="font-mono font-semibold text-slate-700">Term 5 (SP25)</span>
+          </div>
+        </div>
+
+        <div className="pt-2 border-t border-slate-100">
+          <Link
+            to="/profile"
+            className="flex items-center justify-between text-xs font-semibold text-[#0076D1] hover:underline"
+          >
+            <span>View Profile</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      </div>
+
+      {/* CARD 2: Recent Community Activity (Figma #86:714) */}
+      <div className="bg-white rounded-xl border border-slate-200/90 p-4 shadow-2xs space-y-3">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-3.5 h-3.5 text-slate-400" />
+          <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+            COMMUNITY ACTIVITY
+          </h4>
+        </div>
+
+        <div className="space-y-3">
+          {activities.map((act) => (
+            <Link key={act.id} to={act.link} className="flex items-start gap-2.5 text-xs group block">
+              <span className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${act.dotColor}`} />
+              <div className="flex-1 min-w-0">
+                <p className="text-slate-700 leading-snug group-hover:text-blue-600 transition-colors">
+                  <span className="font-bold text-slate-800">{act.author}</span> {act.action}{' '}
+                  <span className={act.targetColor}>{act.target}</span>
+                </p>
+                <span className="text-[10px] text-slate-400 font-mono mt-0.5 block">{act.time}</span>
               </div>
-              <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-md">
-                {c.followerCount}
-              </span>
             </Link>
           ))}
-        </CardBody>
-      </Card>
+        </div>
+      </div>
 
-      {/* Popular Semantic Tags */}
-      <Card>
-        <CardHeader className="p-3.5 pb-2">
-          <h4 className="font-bold text-xs text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-            <Tag className="w-3.5 h-3.5 text-purple-600" />
-            <span>Tags phổ biến</span>
+      {/* CARD 3: Personal Shortcuts (Figma #86:755) */}
+      <div className="bg-white rounded-xl border border-slate-200/90 p-4 shadow-2xs space-y-2.5">
+        <div className="flex items-center gap-2">
+          <Tag className="w-3.5 h-3.5 text-slate-400" />
+          <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+            PERSONAL SHORTCUTS
           </h4>
-        </CardHeader>
-        <CardBody className="p-3.5 pt-0 flex flex-wrap gap-1.5">
-          {popularTags.map((t) => (
-            <Link
-              key={t.name}
-              to={`/discussions?tag=${t.name}`}
-              className="text-[11px] font-semibold px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors border border-transparent hover:border-blue-200/50"
-            >
-              #{t.name} <span className="text-slate-400 text-[10px]">({t.count})</span>
-            </Link>
-          ))}
-        </CardBody>
-      </Card>
+        </div>
 
-      {/* Top Karma Contributors */}
-      <Card>
-        <CardHeader className="p-3.5 pb-2">
-          <h4 className="font-bold text-xs text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-            <Award className="w-3.5 h-3.5 text-amber-500" />
-            <span>Top Đóng góp (Karma)</span>
-          </h4>
-        </CardHeader>
-        <CardBody className="p-3.5 pt-0 space-y-2">
-          {topContributors.map((user, idx) => (
-            <div key={user.name} className="flex items-center justify-between text-xs py-1.5 border-b border-slate-50 dark:border-slate-800/50 last:border-0">
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold text-[11px] text-slate-400 w-3.5">{idx + 1}</span>
-                <img src={user.avatar} alt={user.name} className="w-7 h-7 rounded-full object-cover" />
-                <div className="flex flex-col">
-                  <span className="font-bold text-slate-800 dark:text-slate-200 leading-tight">{user.name}</span>
-                  <span className="text-[10px] text-slate-400">{user.badge}</span>
+        <div className="space-y-1">
+          {shortcuts.map((sc) => {
+            const Icon = sc.icon;
+            return (
+              <Link
+                key={sc.path}
+                to={sc.path}
+                className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 text-xs font-medium text-slate-700 transition-colors group"
+              >
+                <div className="flex items-center gap-2.5">
+                  <Icon className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#0076D1] transition-colors" />
+                  <span>{sc.name}</span>
                 </div>
-              </div>
-              <span className="font-extrabold text-blue-600 dark:text-blue-400">{user.karma} pts</span>
-            </div>
-          ))}
-        </CardBody>
-      </Card>
+                <ArrowRight className="w-3 h-3 text-slate-300 group-hover:text-[#0076D1] group-hover:translate-x-0.5 transition-all" />
+              </Link>
+            );
+          })}
+        </div>
+      </div>
     </aside>
   );
 };

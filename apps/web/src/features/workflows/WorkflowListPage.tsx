@@ -1,133 +1,339 @@
 import React, { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
-  Workflow,
   Search,
   Plus,
-  Play,
-  Copy,
+  Bookmark,
   Eye,
-  CheckCircle2,
-  Layers,
-  Terminal,
   ArrowRight,
+  Code2,
+  Palette,
+  CheckCircle,
+  Clock,
+  Layers,
+  ChevronDown,
 } from 'lucide-react';
 import { mockWorkflows, mockCourses } from '../../services/mockData';
-import { Card, CardBody } from '../../components/common/Card';
-import { Badge } from '../../components/common/Badge';
-import { Button } from '../../components/common/Button';
+import { SharedWorkflow } from '../../types';
 import { CreateWorkflowModal } from './CreateWorkflowModal';
+import { workflowApi } from '../../services/api/contentApi';
 
 export const WorkflowListPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const shouldOpenCreate = searchParams.get('action') === 'create';
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTech, setSelectedTech] = useState('ALL');
+  const [selectedCategory, setSelectedCategory] = useState('ALL');
+  const [selectedCourse, setSelectedCourse] = useState('ALL');
+  const [sortBy, setSortBy] = useState<'newest' | 'most_used' | 'most_viewed'>('newest');
+  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
   const [isCreateOpen, setIsCreateOpen] = useState(shouldOpenCreate);
-  const [workflows, setWorkflows] = useState(mockWorkflows);
+  const [workflows, setWorkflows] = useState<SharedWorkflow[]>(mockWorkflows);
+  const [apiWorkflows, setApiWorkflows] = useState<SharedWorkflow[]>([]);
 
-  const techs = ['ALL', '.NET 8 / C#', 'React / TypeScript', 'Java / Spring Boot', 'Node.js', 'Python'];
+  React.useEffect(() => {
+    const fetchWfs = async () => {
+      try {
+        const res = await workflowApi.getWorkflows({ search: searchQuery.trim() || undefined });
+        if (res && res.items && res.items.length > 0) {
+          const mapped: SharedWorkflow[] = res.items.map((item) => ({
+            id: String(item.workflowId),
+            title: item.title,
+            description: item.summary || item.title,
+            courseCode: 'PRN211',
+            technology: '.NET / C#',
+            steps: [
+              { stepNumber: 1, title: 'Bước 1: Khởi tạo', instruction: 'Thực hiện các bước quy trình', codeSnippet: 'dotnet build', language: 'bash' }
+            ],
+            author: {
+              id: String(item.authorUserId),
+              fullName: 'Sinh viên FPT',
+              role: 'Student',
+              campus: 'FU-HL',
+            },
+            viewsCount: 24,
+            usageCount: 8,
+            tags: ['dotnet', 'workflow'],
+            createdAt: item.createdAt || new Date().toISOString(),
+          }));
+          setApiWorkflows(mapped);
+          setWorkflows([...mapped, ...mockWorkflows]);
+        }
+      } catch (err) {
+        console.warn('Backend workflows fetch notice:', err);
+      }
+    };
+    fetchWfs();
+  }, [searchQuery]);
 
-  const filteredWorkflows = workflows.filter((wf) => {
-    const matchTech = selectedTech === 'ALL' || wf.technology.includes(selectedTech);
-    const matchSearch =
-      wf.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      wf.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      wf.courseCode.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchTech && matchSearch;
-  });
+  const toggleBookmark = (id: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setBookmarkedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const getCategoryTheme = (category?: string) => {
+    switch (category?.toLowerCase()) {
+      case 'ui/ux':
+        return {
+          bg: 'bg-purple-50 text-purple-700 border-purple-200',
+          icon: <Palette className="w-3 h-3 text-purple-600" />,
+        };
+      case 'testing':
+        return {
+          bg: 'bg-amber-50 text-amber-700 border-amber-200',
+          icon: <CheckCircle className="w-3 h-3 text-amber-600" />,
+        };
+      case 'productivity':
+        return {
+          bg: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+          icon: <Clock className="w-3 h-3 text-emerald-600" />,
+        };
+      default:
+        return {
+          bg: 'bg-blue-50 text-[#0076D1] border-blue-200',
+          icon: <Code2 className="w-3 h-3 text-[#0076D1]" />,
+        };
+    }
+  };
+
+  const filteredWorkflows = workflows
+    .filter((wf) => {
+      const matchCat =
+        selectedCategory === 'ALL' ||
+        (wf.category && wf.category.toLowerCase() === selectedCategory.toLowerCase());
+      const matchCourse =
+        selectedCourse === 'ALL' ||
+        wf.courseCode.toLowerCase() === selectedCourse.toLowerCase();
+      const matchSearch =
+        wf.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        wf.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        wf.technology.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        wf.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()));
+      return matchCat && matchCourse && matchSearch;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'most_used') return b.usageCount - a.usageCount;
+      if (sortBy === 'most_viewed') return b.viewsCount - a.viewsCount;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* 1. Header Section (Figma #94:5625) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
-              Shared Workflows & Starter Kits
+            <h1 className="text-2xl font-black text-[#181C22] tracking-tight">
+              Shared Workflows
             </h1>
-            <Badge variant="purple" size="md">{filteredWorkflows.length} Workflows</Badge>
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-[#0076D1] border border-blue-100">
+              {filteredWorkflows.length} Workflows
+            </span>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Quy trình thực hành từng bước, boilerplate code mẫu và hướng dẫn đồ án chuẩn hóa.
+          <p className="text-xs sm:text-sm text-[#404753] mt-1">
+            Discover, review, and reuse structured academic workflows shared by the FHub Community.
           </p>
         </div>
 
-        <Button variant="primary" onClick={() => setIsCreateOpen(true)} leftIcon={<Plus className="w-4 h-4" />} className="shadow-xs">
-          Chia sẻ Workflow
-        </Button>
+        <button
+          onClick={() => setIsCreateOpen(true)}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-[#0076D1] hover:bg-[#005DA7] transition-all shadow-xs cursor-pointer shrink-0"
+        >
+          <Plus className="w-4 h-4" />
+          <span>New Workflow</span>
+        </button>
       </div>
 
-      {/* Tech Filter & Search */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
-          {techs.map((t) => (
-            <button
-              key={t}
-              onClick={() => setSelectedTech(t)}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
-                selectedTech === t
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:bg-slate-50'
-              }`}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
-
-        <div className="relative w-full sm:w-72">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+      {/* 2. Search & Filters Unified Toolbar (Figma #94:5648) */}
+      <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs p-3.5 space-y-3">
+        {/* Search Input */}
+        <div className="relative w-full">
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Tìm theo môn (PRN211...), công nghệ..."
-            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-9 pr-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
+            placeholder="Search workflows by title, description, or tag..."
+            className="w-full bg-[#F8F9FF] border border-slate-200 rounded-lg pl-10 pr-4 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0076D1]/20 focus:border-[#0076D1]"
           />
+        </div>
+
+        {/* Filter Controls Row */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {/* Category Dropdown */}
+          <div className="relative">
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="w-full appearance-none bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#0076D1] cursor-pointer"
+            >
+              <option value="ALL">All Categories</option>
+              <option value="Development">Development</option>
+              <option value="UI/UX">UI/UX</option>
+              <option value="Testing">Testing</option>
+              <option value="Productivity">Productivity</option>
+            </select>
+            <ChevronDown className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          </div>
+
+          {/* Course Dropdown */}
+          <div className="relative">
+            <select
+              value={selectedCourse}
+              onChange={(e) => setSelectedCourse(e.target.value)}
+              className="w-full appearance-none bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#0076D1] cursor-pointer"
+            >
+              <option value="ALL">All Courses</option>
+              <option value="SWP391">SWP391</option>
+              <option value="PRN211">PRN211</option>
+              <option value="SWE201">SWE201</option>
+              <option value="PRM392">PRM392</option>
+              <option value="General">General</option>
+            </select>
+            <ChevronDown className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          </div>
+
+          {/* Sort Dropdown */}
+          <div className="relative">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className="w-full appearance-none bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#0076D1] cursor-pointer"
+            >
+              <option value="newest">Sort: Newest First</option>
+              <option value="most_used">Sort: Most Applied</option>
+              <option value="most_viewed">Sort: Most Viewed</option>
+            </select>
+            <ChevronDown className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          </div>
         </div>
       </div>
 
-      {/* Workflow Cards */}
+      {/* 3. Workflow List Grid (2 Columns) (Figma #94:5684) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {filteredWorkflows.map((wf) => (
-          <Card key={wf.id} hoverable className="flex flex-col justify-between">
-            <CardBody className="p-5 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Badge variant="primary" size="sm">{wf.courseCode}</Badge>
-                  <span className="text-xs font-bold text-purple-700 bg-purple-50 dark:bg-purple-950/50 dark:text-purple-300 px-2.5 py-0.5 rounded-lg border border-purple-200/60 dark:border-purple-800">
-                    {wf.technology}
-                  </span>
-                </div>
-                <span className="text-xs text-slate-400 font-medium">{wf.steps.length} bước</span>
-              </div>
+        {filteredWorkflows.length === 0 ? (
+          <div className="col-span-2 p-12 text-center text-slate-400 text-xs bg-white rounded-xl border border-slate-200">
+            No workflows found matching your criteria.
+          </div>
+        ) : (
+          filteredWorkflows.map((wf) => {
+            const theme = getCategoryTheme(wf.category);
+            const isBookmarked = bookmarkedIds.has(wf.id);
 
-              <Link
-                to={`/workflows/${wf.id}`}
-                className="font-bold text-base text-slate-900 dark:text-slate-100 hover:text-blue-600 transition-colors line-clamp-1 block leading-snug"
+            return (
+              <div
+                key={wf.id}
+                className="bg-white rounded-xl border border-slate-200/90 shadow-2xs p-5 flex flex-col justify-between hover:border-slate-300 hover:shadow-xs transition-all"
               >
-                {wf.title}
-              </Link>
+                {/* Top Row: Badges & Bookmark */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${theme.bg}`}
+                      >
+                        {theme.icon}
+                        <span>{wf.category || 'Development'}</span>
+                      </span>
+                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                        {wf.courseCode}
+                      </span>
+                    </div>
 
-              <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">
-                {wf.description}
-              </p>
+                    <button
+                      onClick={(e) => toggleBookmark(wf.id, e)}
+                      title={isBookmarked ? 'Unsave workflow' : 'Save workflow'}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
+                    >
+                      <Bookmark
+                        className={`w-4 h-4 ${
+                          isBookmarked ? 'fill-[#0076D1] text-[#0076D1]' : ''
+                        }`}
+                      />
+                    </button>
+                  </div>
 
-              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
-                <div className="flex items-center gap-2">
-                  <img src={wf.author.avatarUrl} alt={wf.author.fullName} className="w-6 h-6 rounded-full object-cover" />
-                  <span className="font-semibold text-slate-700 dark:text-slate-300">{wf.author.fullName}</span>
+                  {/* Title & Description */}
+                  <div>
+                    <Link
+                      to={`/workflows/${wf.id}`}
+                      className="font-bold text-base text-[#181C22] hover:text-[#0076D1] transition-colors line-clamp-1 block leading-snug"
+                    >
+                      {wf.title}
+                    </Link>
+                    <p className="text-xs text-[#404753] line-clamp-2 mt-1 leading-relaxed">
+                      {wf.description}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3 font-semibold">
-                  <span className="text-blue-600">{wf.usageCount} áp dụng</span>
-                  <span className="text-slate-400">{wf.viewsCount} xem</span>
+
+                {/* Bottom Segment: Creator, Stats & Action */}
+                <div className="pt-4 border-t border-slate-100 mt-4 space-y-3">
+                  <div className="flex items-center justify-between text-xs">
+                    {/* Creator Section */}
+                    <div className="flex items-center gap-2">
+                      {wf.author.avatarUrl ? (
+                        <img
+                          src={wf.author.avatarUrl}
+                          alt={wf.author.fullName}
+                          className="w-7 h-7 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-7 h-7 rounded-full bg-blue-100 text-[#0076D1] flex items-center justify-center font-bold text-xs">
+                          {wf.author.fullName.substring(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                      <div>
+                        <div className="font-bold text-slate-800 line-clamp-1">
+                          {wf.author.fullName}
+                        </div>
+                        <div className="text-[10px] text-slate-400">
+                          {wf.author.role} · {wf.author.campus || 'CS'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Stats Row */}
+                    <div className="flex items-center gap-3 text-slate-500 font-semibold">
+                      <span className="flex items-center gap-1" title="Views">
+                        <Eye className="w-3.5 h-3.5 text-slate-400" />
+                        <span>{wf.viewsCount}</span>
+                      </span>
+                      <span className="flex items-center gap-1 text-[#0076D1]" title="Applications">
+                        <Layers className="w-3.5 h-3.5 text-[#0076D1]" />
+                        <span>{wf.usageCount}</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Action Footer */}
+                  <div className="flex items-center justify-between text-xs pt-1">
+                    <span className="text-slate-400 text-[11px]">
+                      {new Date(wf.createdAt).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
+                    </span>
+                    <Link
+                      to={`/workflows/${wf.id}`}
+                      className="inline-flex items-center gap-1 text-xs font-bold text-[#0076D1] hover:text-[#005DA7] transition-colors"
+                    >
+                      <span>View Workflow</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
                 </div>
               </div>
-            </CardBody>
-          </Card>
-        ))}
+            );
+          })
+        )}
       </div>
 
       <CreateWorkflowModal

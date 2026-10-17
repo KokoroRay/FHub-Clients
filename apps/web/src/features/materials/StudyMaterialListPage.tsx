@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import {
   Download,
   Search,
@@ -10,228 +10,284 @@ import {
   Presentation,
   Code2,
   FileSpreadsheet,
+  Link2,
+  Bookmark,
+  ExternalLink,
+  ArrowRight,
+  Filter,
 } from 'lucide-react';
 import { mockMaterials, mockCourses } from '../../services/mockData';
 import { StudyMaterial } from '../../types';
-import { Card, CardBody } from '../../components/common/Card';
-import { Badge } from '../../components/common/Badge';
-import { Button } from '../../components/common/Button';
-import { Modal } from '../../components/common/Modal';
-import { Input, Textarea, Select } from '../../components/common/Input';
+import { UploadStudyMaterialModal } from './UploadStudyMaterialModal';
+import { AddExternalLinkModal } from './AddExternalLinkModal';
+import { studyMaterialApi } from '../../services/api/contentApi';
 
 export const StudyMaterialListPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const shouldOpenUpload = searchParams.get('action') === 'upload';
+  const shouldOpenAddLink = searchParams.get('action') === 'add-link';
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCourse, setSelectedCourse] = useState<string>('ALL');
   const [selectedType, setSelectedType] = useState<string>('ALL');
+  const [sortBy, setSortBy] = useState<'downloads' | 'newest'>('downloads');
   const [isUploadOpen, setIsUploadOpen] = useState(shouldOpenUpload);
+  const [isAddLinkOpen, setIsAddLinkOpen] = useState(shouldOpenAddLink);
   const [materials, setMaterials] = useState<StudyMaterial[]>(mockMaterials);
+  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
 
-  // Upload Form State
-  const [newTitle, setNewTitle] = useState('');
-  const [newDescription, setNewDescription] = useState('');
-  const [newCourse, setNewCourse] = useState('PRN211');
-  const [newType, setNewType] = useState<'PDF' | 'DOCX' | 'ZIP' | 'PPTX' | 'CODE'>('PDF');
-
-  const fileTypes = ['ALL', 'PDF', 'ZIP', 'DOCX', 'PPTX', 'CODE'];
-
-  const filteredMaterials = materials.filter((m) => {
-    const matchType = selectedType === 'ALL' || m.fileType === selectedType;
-    const matchSearch =
-      m.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      m.courseCode.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchType && matchSearch;
-  });
-
-  const handleUpload = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTitle.trim()) return;
-
-    const newMat: StudyMaterial = {
-      id: `mat-${Date.now()}`,
-      title: newTitle,
-      description: newDescription,
-      courseCode: newCourse,
-      fileType: newType,
-      fileSizeMb: 5.2,
-      downloadUrl: '#',
-      downloadsCount: 1,
-      author: {
-        id: 'usr-1',
-        fullName: 'Nguyễn Văn A',
-      },
-      semesterUploaded: 'Spring 2026',
-      createdAt: new Date().toISOString(),
+  React.useEffect(() => {
+    const fetchMaterials = async () => {
+      try {
+        const res = await studyMaterialApi.getMaterials({
+          search: searchQuery.trim() || undefined,
+          pageSize: 20,
+        });
+        if (res && res.items && res.items.length > 0) {
+          const mapped: StudyMaterial[] = res.items.map((item) => ({
+            id: String(item.studyMaterialId),
+            title: item.title,
+            description: item.description || 'Tài liệu học tập FHub',
+            courseCode: 'PRN211',
+            fileType: (item.materialType === 'LINK' ? 'ZIP' : 'PDF') as any,
+            fileSizeMb: item.fileSizeBytes ? Number((item.fileSizeBytes / (1024 * 1024)).toFixed(1)) : 1.5,
+            downloadUrl: item.externalUrl || `/api/content/study-materials/${item.studyMaterialId}/download`,
+            downloadsCount: item.downloadCount || 0,
+            author: {
+              id: String(item.uploaderUserId),
+              fullName: 'Sinh viên FHub',
+            },
+            semesterUploaded: 'Spring 2025',
+            createdAt: item.createdAt || new Date().toISOString(),
+          }));
+          setMaterials([...mapped, ...mockMaterials]);
+        }
+      } catch (err) {
+        console.warn('Backend materials fetch notice:', err);
+      }
     };
+    fetchMaterials();
+  }, [searchQuery]);
 
-    setMaterials([newMat, ...materials]);
-    setIsUploadOpen(false);
-    setNewTitle('');
-    setNewDescription('');
+  const toggleBookmark = (id: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setBookmarkedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
-  const getFileIcon = (type: string) => {
+  const filteredMaterials = materials
+    .filter((m) => {
+      const matchType = selectedType === 'ALL' || m.fileType === selectedType;
+      const matchCourse = selectedCourse === 'ALL' || m.courseCode === selectedCourse;
+      const matchSearch =
+        m.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        m.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        m.courseCode.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchType && matchCourse && matchSearch;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'downloads') return b.downloadsCount - a.downloadsCount;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+
+  const getFileBadgeColor = (type: string) => {
     switch (type) {
       case 'PDF':
-        return <FileText className="w-5 h-5 text-rose-500" />;
+        return 'bg-rose-50 text-rose-700 border-rose-100';
+      case 'DOCX':
+        return 'bg-blue-50 text-blue-700 border-blue-100';
       case 'ZIP':
-        return <Archive className="w-5 h-5 text-amber-500" />;
-      case 'PPTX':
-        return <Presentation className="w-5 h-5 text-orange-500" />;
+        return 'bg-amber-50 text-amber-700 border-amber-100';
       case 'CODE':
-        return <Code2 className="w-5 h-5 text-purple-500" />;
+        return 'bg-purple-50 text-purple-700 border-purple-100';
       default:
-        return <FileSpreadsheet className="w-5 h-5 text-blue-500" />;
+        return 'bg-slate-50 text-slate-700 border-slate-100';
     }
   };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
-              Study Materials & Exam Bank
+      {/* Header (Figma #101:3694) */}
+      <div className="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+              Study Materials
             </h1>
-            <Badge variant="primary" size="md">{filteredMaterials.length} Tài liệu</Badge>
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-[#0076D1] border border-blue-100">
+              {filteredMaterials.length} Items
+            </span>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Đề thi thử Practical Exam (PE), bài tập Assignment mẫu và slide bài giảng tổng hợp.
+          <p className="text-xs text-slate-500">
+            Find useful resources, lecture notes, exam banks, and cheat sheets shared by the community.
           </p>
         </div>
 
-        <Button variant="primary" onClick={() => setIsUploadOpen(true)} leftIcon={<Plus className="w-4 h-4" />} className="shadow-xs">
-          Tải lên tài liệu
-        </Button>
+        <div className="flex items-center gap-2.5 shrink-0">
+          <button
+            onClick={() => setIsAddLinkOpen(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
+          >
+            <Link2 className="w-4 h-4 text-slate-500" />
+            <span>Add External Link</span>
+          </button>
+
+          <button
+            onClick={() => setIsUploadOpen(true)}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#0076D1] hover:bg-[#005DA7] transition-all shadow-md cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Upload File</span>
+          </button>
+        </div>
       </div>
 
-      {/* Type Filter & Search */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="flex items-center gap-2 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
-          {fileTypes.map((t) => (
-            <button
-              key={t}
-              onClick={() => setSelectedType(t)}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
-                selectedType === t
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800 hover:bg-slate-50'
-              }`}
-            >
-              {t === 'ALL' ? 'Tất cả định dạng' : t}
-            </button>
-          ))}
-        </div>
-
-        <div className="relative w-full sm:w-72">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+      {/* Search & Refinement Toolbar (Figma #101:3710) */}
+      <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs grid grid-cols-1 md:grid-cols-12 gap-3">
+        {/* Search */}
+        <div className="relative md:col-span-5">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Tìm theo môn (PRN211), tên file..."
-            className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-9 pr-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
+            placeholder="Search study materials..."
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0076D1]/20 focus:border-[#0076D1]"
           />
+        </div>
+
+        {/* Course Filter */}
+        <div className="md:col-span-3">
+          <select
+            value={selectedCourse}
+            onChange={(e) => setSelectedCourse(e.target.value)}
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-[#0076D1] cursor-pointer"
+          >
+            <option value="ALL">All Courses</option>
+            {mockCourses.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.code} - {c.title}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Type Filter */}
+        <div className="md:col-span-2">
+          <select
+            value={selectedType}
+            onChange={(e) => setSelectedType(e.target.value)}
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-[#0076D1] cursor-pointer"
+          >
+            <option value="ALL">All Types</option>
+            <option value="PDF">PDF Documents</option>
+            <option value="DOCX">Word Documents</option>
+            <option value="ZIP">Zip Archives</option>
+            <option value="CODE">Source Code</option>
+          </select>
+        </div>
+
+        {/* Sort */}
+        <div className="md:col-span-2">
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as any)}
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-[#0076D1] cursor-pointer"
+          >
+            <option value="downloads">Most Downloaded</option>
+            <option value="newest">Newest First</option>
+          </select>
         </div>
       </div>
 
-      {/* Materials List */}
-      <div className="space-y-3">
+      {/* Materials Two-Column Grid (Figma #101:3746) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {filteredMaterials.map((mat) => (
-          <Card key={mat.id} hoverable>
-            <CardBody className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-start gap-3.5">
-                <div className="w-11 h-11 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700">
-                  {getFileIcon(mat.fileType)}
+          <div
+            key={mat.id}
+            className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 flex flex-col justify-between hover:border-slate-300 transition-colors group"
+          >
+            <div className="space-y-3">
+              {/* Card Header */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${getFileBadgeColor(
+                      mat.fileType
+                    )}`}
+                  >
+                    {mat.fileType}
+                  </span>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-50 text-[#0076D1] border border-blue-100">
+                    [{mat.courseCode}]
+                  </span>
                 </div>
 
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="primary" size="sm">{mat.courseCode}</Badge>
-                    <span className="text-[11px] font-mono text-slate-400">{mat.fileSizeMb} MB</span>
-                    <span className="text-[11px] text-slate-400">• HK {mat.semesterUploaded}</span>
-                  </div>
-                  <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100 leading-snug">
-                    {mat.title}
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1">
-                    {mat.description}
-                  </p>
-                </div>
+                <button
+                  onClick={(e) => toggleBookmark(mat.id, e)}
+                  className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                    bookmarkedIds.has(mat.id)
+                      ? 'bg-blue-50 border-blue-200 text-[#0076D1]'
+                      : 'border-transparent text-slate-400 hover:bg-slate-100'
+                  }`}
+                  title="Bookmark"
+                >
+                  <Bookmark className="w-4 h-4" />
+                </button>
               </div>
 
-              <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800">
-                <span className="text-xs text-slate-400 sm:text-right block">
-                  Đăng bởi <span className="font-semibold text-slate-700 dark:text-slate-300">{mat.author.fullName}</span>
-                </span>
-                <Button variant="outline" size="sm" leftIcon={<FileDown className="w-4 h-4" />}>
-                  Tải về ({mat.downloadsCount})
-                </Button>
+              {/* Title & Description */}
+              <div>
+                <Link
+                  to={`/materials/${mat.id}`}
+                  className="font-bold text-sm text-slate-900 group-hover:text-[#0076D1] transition-colors leading-snug line-clamp-1 block"
+                >
+                  {mat.title}
+                </Link>
+                <p className="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed">
+                  {mat.description}
+                </p>
               </div>
-            </CardBody>
-          </Card>
+            </div>
+
+            {/* Footer */}
+            <div className="pt-4 mt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+              <div className="text-[11px] text-slate-400">
+                <span>By <strong className="text-slate-700">{mat.author.fullName}</strong></span>
+                <span className="mx-1">•</span>
+                <span>{mat.fileSizeMb} MB</span>
+              </div>
+
+              <Link
+                to={`/materials/${mat.id}`}
+                className="text-xs font-bold text-[#0076D1] hover:underline flex items-center gap-1"
+              >
+                <span>View Details</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          </div>
         ))}
       </div>
 
-      {/* Upload Material Modal */}
-      <Modal
+      {/* Upload Modal */}
+      <UploadStudyMaterialModal
         isOpen={isUploadOpen}
         onClose={() => setIsUploadOpen(false)}
-        title="Tải lên tài liệu học tập mới"
-        footer={
-          <>
-            <Button variant="outline" onClick={() => setIsUploadOpen(false)}>Hủy</Button>
-            <Button variant="primary" onClick={handleUpload}>Tải lên hệ thống (+20 Karma)</Button>
-          </>
-        }
-      >
-        <form onSubmit={handleUpload} className="space-y-4 text-xs">
-          <Input
-            label="Tiêu đề tài liệu"
-            placeholder="Ví dụ: Đề cương trắc nghiệm Final Exam PRN211 có lời giải"
-            value={newTitle}
-            onChange={(e) => setNewTitle(e.target.value)}
-            required
-          />
+        onUploaded={(newMat) => setMaterials([newMat, ...materials])}
+      />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Select
-              label="Môn học áp dụng"
-              value={newCourse}
-              onChange={(e) => setNewCourse(e.target.value)}
-              options={mockCourses.map((c) => ({ value: c.code, label: `${c.code} - ${c.title}` }))}
-            />
-            <Select
-              label="Định dạng tệp"
-              value={newType}
-              onChange={(e) => setNewType(e.target.value as any)}
-              options={[
-                { value: 'PDF', label: 'PDF Document (.pdf)' },
-                { value: 'ZIP', label: 'Mã nguồn / Project Archive (.zip)' },
-                { value: 'DOCX', label: 'Word Document (.docx)' },
-                { value: 'PPTX', label: 'Slide thuyết trình (.pptx)' },
-                { value: 'CODE', label: 'Code File (.cs, .java, .sql)' },
-              ]}
-            />
-          </div>
-
-          <Textarea
-            label="Mô tả nội dung tài liệu"
-            placeholder="Mô tả chi tiết nội dung tệp..."
-            rows={3}
-            value={newDescription}
-            onChange={(e) => setNewDescription(e.target.value)}
-          />
-
-          <div className="p-6 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl text-center space-y-2 bg-slate-50 dark:bg-slate-900/40">
-            <Download className="w-8 h-8 mx-auto text-blue-600" />
-            <p className="font-bold text-xs">Kéo thả tệp vào đây hoặc nhấn để chọn tệp</p>
-            <p className="text-[11px] text-slate-400">Dung lượng tối đa: 50MB (PDF, DOCX, ZIP, PPTX)</p>
-          </div>
-        </form>
-      </Modal>
+      {/* Add External Link Modal */}
+      <AddExternalLinkModal
+        isOpen={isAddLinkOpen}
+        onClose={() => setIsAddLinkOpen(false)}
+        onAdded={(newMat) => setMaterials([newMat, ...materials])}
+      />
     </div>
   );
 };
