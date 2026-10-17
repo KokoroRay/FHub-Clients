@@ -1,22 +1,26 @@
 import React from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { Header } from '../components/navigation/Header';
 import { LeftSidebar } from '../components/navigation/LeftSidebar';
 import { RightSidebar } from '../components/navigation/RightSidebar';
 import { ErrorBoundary } from '../components/common/ErrorBoundary';
 
 export const MainLayout: React.FC = () => {
+  const location = useLocation();
+  // In Figma #86:2, only Global Feed (/) has the 3-column layout with RightSidebar
+  const showRightSidebar = location.pathname === '/';
+
   return (
-    <div className="min-h-screen bg-[#F8F9FF] text-slate-900 flex flex-col font-sans selection:bg-blue-100 selection:text-blue-900">
+    <div className="min-h-screen bg-[#F8F9FA] text-slate-900 flex flex-col font-sans selection:bg-blue-100 selection:text-blue-900">
       <Header />
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full flex gap-6 items-start">
+      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-6 flex-1 w-full flex gap-6 items-start">
         <LeftSidebar />
-        <main className="flex-1 min-w-0 pb-16">
+        <main className="flex-1 min-w-0 pb-16 w-full">
           <ErrorBoundary>
             <Outlet />
           </ErrorBoundary>
         </main>
-        <RightSidebar />
+        {showRightSidebar && <RightSidebar />}
       </div>
     </div>
   );

@@ -53,7 +53,7 @@ export const LeftSidebar: React.FC = () => {
     }`;
 
   return (
-    <aside className="w-56 shrink-0 hidden lg:block sticky top-20 h-[calc(100vh-5.5rem)] overflow-y-auto pr-2">
+    <aside className="w-[230px] shrink-0 hidden lg:block sticky top-20 max-h-[calc(100vh-5.5rem)] overflow-y-auto scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden pr-2">
       <div className="space-y-6">
         {/* Section A: MAIN NAVIGATION */}
         <div>
@@ -119,20 +119,6 @@ export const LeftSidebar: React.FC = () => {
             })}
           </nav>
         </div>
-
-        {/* Quick User Karma / Mini Stats */}
-        {currentUser && (
-          <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-500 font-medium">Karma Points</span>
-              <span className="font-extrabold text-[#0076D1]">{currentUser.karma.toLocaleString()} pts</span>
-            </div>
-            <div className="mt-1.5 text-[11px] text-slate-400 flex items-center justify-between">
-              <span>Huy hiệu: {currentUser.badges?.length || 0}</span>
-              <span className="text-emerald-600 font-semibold">{currentUser.campus} Campus</span>
-            </div>
-          </div>
-        )}
       </div>
     </aside>
   );

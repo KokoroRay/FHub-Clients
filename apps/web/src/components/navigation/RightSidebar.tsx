@@ -73,7 +73,7 @@ export const RightSidebar: React.FC = () => {
   ];
 
   return (
-    <aside className="w-64 shrink-0 hidden xl:block sticky top-20 h-[calc(100vh-5.5rem)] overflow-y-auto pl-1 space-y-4">
+    <aside className="w-[260px] shrink-0 hidden xl:block sticky top-20 pl-1 space-y-4">
       {/* CARD 1: My Academic Profile (Figma #86:684) */}
       <div className="bg-white rounded-xl border border-slate-200/90 p-4 shadow-2xs space-y-3">
         <div className="flex items-center gap-3">
@@ -93,9 +93,9 @@ export const RightSidebar: React.FC = () => {
         </div>
 
         <div className="pt-2.5 border-t border-slate-100 space-y-1.5 text-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-slate-400">Campus:</span>
-            <span className="font-medium text-slate-700">{campusObj.name}</span>
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-slate-400 shrink-0">Campus:</span>
+            <span className="font-medium text-slate-700 truncate text-right">{campusObj.name}</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-slate-400">Major:</span>

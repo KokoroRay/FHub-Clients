@@ -173,7 +173,7 @@ export const BookmarksPage: React.FC = () => {
   });
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto pb-16">
+    <div className="space-y-6 w-full pb-16">
       {/* Page Header (Figma #93:3918) */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>

@@ -164,7 +164,7 @@ export const ProfileSettingsPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto pb-16 space-y-8">
+    <div className="w-full pb-16 space-y-8">
       {/* Page Header */}
       <div>
         <h1 className="text-2xl font-bold text-[#181C22]">Preferences & Privacy</h1>

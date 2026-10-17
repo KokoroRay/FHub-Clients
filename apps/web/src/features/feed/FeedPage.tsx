@@ -74,7 +74,7 @@ export const FeedPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* 3.A Welcome Header (Figma #86:118) */}
-      <div className="bg-gradient-to-r from-white to-blue-50/50 rounded-2xl p-6 border border-slate-200/90 shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="space-y-1.5">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-[#0076D1] border border-blue-100">
             <span className="w-1.5 h-1.5 rounded-full bg-[#0076D1]" />
@@ -89,7 +89,7 @@ export const FeedPage: React.FC = () => {
         </div>
 
         {/* Right user badge */}
-        <div className="flex items-center gap-3 bg-white/80 backdrop-blur-sm p-2.5 px-4 rounded-xl border border-blue-100 shadow-2xs">
+        <div className="flex items-center gap-3 bg-slate-50 p-2.5 px-4 rounded-xl border border-slate-100">
           <div className="w-9 h-9 rounded-full bg-[#0076D1] text-white flex items-center justify-center font-bold text-xs ring-2 ring-blue-100 shrink-0">
             {currentUser?.avatarUrl ? (
               <img src={currentUser.avatarUrl} alt={studentName} className="w-full h-full rounded-full object-cover" />
@@ -109,16 +109,16 @@ export const FeedPage: React.FC = () => {
         <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
           QUICK ACTIONS
         </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+        <div className="grid grid-cols-4 sm:grid-cols-8 gap-2.5">
           {/* 1. Ask Question */}
           <button
             onClick={() => setIsAskModalOpen(true)}
-            className="flex flex-col items-center justify-center p-3.5 bg-white rounded-xl border border-slate-200/90 hover:border-blue-400 hover:shadow-xs transition-all text-center group cursor-pointer"
+            className="h-[84px] p-2 flex flex-col items-center justify-between bg-white rounded-xl border border-slate-200/90 hover:border-blue-400 hover:shadow-xs transition-all text-center group cursor-pointer"
           >
-            <div className="w-9 h-9 rounded-lg bg-blue-50 text-[#0076D1] flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
-              <HelpCircle className="w-5 h-5" />
+            <div className="w-8 h-8 rounded-lg bg-blue-50 text-[#0076D1] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <HelpCircle className="w-4 h-4" />
             </div>
-            <span className="text-[11px] font-bold text-slate-700 leading-tight">
+            <span className="text-[10px] font-bold text-slate-700 leading-tight text-center">
               Ask<br />Question
             </span>
           </button>
@@ -126,12 +126,12 @@ export const FeedPage: React.FC = () => {
           {/* 2. New Workflow */}
           <button
             onClick={() => navigate('/workflows?action=create')}
-            className="flex flex-col items-center justify-center p-3.5 bg-white rounded-xl border border-slate-200/90 hover:border-indigo-400 hover:shadow-xs transition-all text-center group cursor-pointer"
+            className="h-[84px] p-2 flex flex-col items-center justify-between bg-white rounded-xl border border-slate-200/90 hover:border-indigo-400 hover:shadow-xs transition-all text-center group cursor-pointer"
           >
-            <div className="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
-              <Code className="w-5 h-5" />
+            <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <Code className="w-4 h-4" />
             </div>
-            <span className="text-[11px] font-bold text-slate-700 leading-tight">
+            <span className="text-[10px] font-bold text-slate-700 leading-tight text-center">
               New<br />Workflow
             </span>
           </button>
@@ -139,12 +139,12 @@ export const FeedPage: React.FC = () => {
           {/* 3. Write Article */}
           <button
             onClick={() => navigate('/articles/create')}
-            className="flex flex-col items-center justify-center p-3.5 bg-white rounded-xl border border-slate-200/90 hover:border-emerald-400 hover:shadow-xs transition-all text-center group cursor-pointer"
+            className="h-[84px] p-2 flex flex-col items-center justify-between bg-white rounded-xl border border-slate-200/90 hover:border-emerald-400 hover:shadow-xs transition-all text-center group cursor-pointer"
           >
-            <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
-              <FileText className="w-5 h-5" />
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <FileText className="w-4 h-4" />
             </div>
-            <span className="text-[11px] font-bold text-slate-700 leading-tight">
+            <span className="text-[10px] font-bold text-slate-700 leading-tight text-center">
               Write<br />Article
             </span>
           </button>
@@ -152,12 +152,12 @@ export const FeedPage: React.FC = () => {
           {/* 4. Write Course Evaluation */}
           <button
             onClick={() => navigate('/course-evaluations?action=create')}
-            className="flex flex-col items-center justify-center p-3.5 bg-white rounded-xl border border-slate-200/90 hover:border-amber-400 hover:shadow-xs transition-all text-center group cursor-pointer"
+            className="h-[84px] p-2 flex flex-col items-center justify-between bg-white rounded-xl border border-slate-200/90 hover:border-amber-400 hover:shadow-xs transition-all text-center group cursor-pointer"
           >
-            <div className="w-9 h-9 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
-              <Star className="w-5 h-5" />
+            <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <Star className="w-4 h-4" />
             </div>
-            <span className="text-[11px] font-bold text-slate-700 leading-tight">
+            <span className="text-[10px] font-bold text-slate-700 leading-tight text-center">
               Write<br />Evaluation
             </span>
           </button>
@@ -165,12 +165,12 @@ export const FeedPage: React.FC = () => {
           {/* 5. Upload Study Material */}
           <button
             onClick={() => navigate('/materials?action=upload')}
-            className="flex flex-col items-center justify-center p-3.5 bg-white rounded-xl border border-slate-200/90 hover:border-rose-400 hover:shadow-xs transition-all text-center group cursor-pointer"
+            className="h-[84px] p-2 flex flex-col items-center justify-between bg-white rounded-xl border border-slate-200/90 hover:border-rose-400 hover:shadow-xs transition-all text-center group cursor-pointer"
           >
-            <div className="w-9 h-9 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
-              <Upload className="w-5 h-5" />
+            <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <Upload className="w-4 h-4" />
             </div>
-            <span className="text-[11px] font-bold text-slate-700 leading-tight">
+            <span className="text-[10px] font-bold text-slate-700 leading-tight text-center">
               Upload<br />Material
             </span>
           </button>
@@ -178,12 +178,12 @@ export const FeedPage: React.FC = () => {
           {/* 6. Add External Material Link */}
           <button
             onClick={() => navigate('/materials?action=add-link')}
-            className="flex flex-col items-center justify-center p-3.5 bg-white rounded-xl border border-slate-200/90 hover:border-purple-400 hover:shadow-xs transition-all text-center group cursor-pointer"
+            className="h-[84px] p-2 flex flex-col items-center justify-between bg-white rounded-xl border border-slate-200/90 hover:border-purple-400 hover:shadow-xs transition-all text-center group cursor-pointer"
           >
-            <div className="w-9 h-9 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
-              <Link2 className="w-5 h-5" />
+            <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <Link2 className="w-4 h-4" />
             </div>
-            <span className="text-[11px] font-bold text-slate-700 leading-tight">
+            <span className="text-[10px] font-bold text-slate-700 leading-tight text-center">
               Add<br />Link
             </span>
           </button>
@@ -191,12 +191,12 @@ export const FeedPage: React.FC = () => {
           {/* 7. New Conversation */}
           <button
             onClick={() => navigate('/messages?action=new')}
-            className="flex flex-col items-center justify-center p-3.5 bg-white rounded-xl border border-slate-200/90 hover:border-cyan-400 hover:shadow-xs transition-all text-center group cursor-pointer"
+            className="h-[84px] p-2 flex flex-col items-center justify-between bg-white rounded-xl border border-slate-200/90 hover:border-cyan-400 hover:shadow-xs transition-all text-center group cursor-pointer"
           >
-            <div className="w-9 h-9 rounded-lg bg-cyan-50 text-cyan-600 flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
-              <MessageSquare className="w-5 h-5" />
+            <div className="w-8 h-8 rounded-lg bg-cyan-50 text-cyan-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <MessageSquare className="w-4 h-4" />
             </div>
-            <span className="text-[11px] font-bold text-slate-700 leading-tight">
+            <span className="text-[10px] font-bold text-slate-700 leading-tight text-center">
               New<br />Chat
             </span>
           </button>
@@ -204,12 +204,12 @@ export const FeedPage: React.FC = () => {
           {/* 8. Create Support Ticket */}
           <button
             onClick={() => navigate('/tickets?action=create')}
-            className="flex flex-col items-center justify-center p-3.5 bg-white rounded-xl border border-slate-200/90 hover:border-slate-400 hover:shadow-xs transition-all text-center group cursor-pointer"
+            className="h-[84px] p-2 flex flex-col items-center justify-between bg-white rounded-xl border border-slate-200/90 hover:border-slate-400 hover:shadow-xs transition-all text-center group cursor-pointer"
           >
-            <div className="w-9 h-9 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
-              <LifeBuoy className="w-5 h-5" />
+            <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <LifeBuoy className="w-4 h-4" />
             </div>
-            <span className="text-[11px] font-bold text-slate-700 leading-tight">
+            <span className="text-[10px] font-bold text-slate-700 leading-tight text-center">
               Support<br />Ticket
             </span>
           </button>
@@ -330,11 +330,11 @@ export const FeedPage: React.FC = () => {
                     }`}
                   >
                     <Bookmark className="w-3.5 h-3.5" />
-                    <span>Save</span>
+                    <span>Bookmark</span>
                   </button>
                 </div>
                 <Link to="/discussions/q-1" className="text-xs font-semibold text-[#0076D1] hover:underline flex items-center gap-1">
-                  View Discussion <ArrowRight className="w-3 h-3" />
+                  View Question <ArrowRight className="w-3 h-3" />
                 </Link>
               </div>
             </div>
@@ -401,11 +401,11 @@ export const FeedPage: React.FC = () => {
                     }`}
                   >
                     <Bookmark className="w-3.5 h-3.5" />
-                    <span>Save</span>
+                    <span>Bookmark</span>
                   </button>
                 </div>
                 <Link to="/discussions/q-2" className="text-xs font-semibold text-[#0076D1] hover:underline flex items-center gap-1">
-                  View Discussion <ArrowRight className="w-3 h-3" />
+                  View Question <ArrowRight className="w-3 h-3" />
                 </Link>
               </div>
             </div>
@@ -472,11 +472,11 @@ export const FeedPage: React.FC = () => {
                     }`}
                   >
                     <Bookmark className="w-3.5 h-3.5" />
-                    <span>Save</span>
+                    <span>Bookmark</span>
                   </button>
                 </div>
                 <Link to="/discussions/q-3" className="text-xs font-semibold text-[#0076D1] hover:underline flex items-center gap-1">
-                  View Discussion <ArrowRight className="w-3 h-3" />
+                  View Question <ArrowRight className="w-3 h-3" />
                 </Link>
               </div>
             </div>
