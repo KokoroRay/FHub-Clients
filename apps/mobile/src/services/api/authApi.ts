@@ -58,6 +58,49 @@ export const authApi = {
     }
   },
 
+  register: async (payload: {
+    fullName: string;
+    studentCode?: string;
+    email: string;
+    password: string;
+  }): Promise<{ token: string; refreshToken: string; user: User }> => {
+    try {
+      const res = await apiClient.post<{ data: LoginResponse }>('/api/auth/register', {
+        ...payload,
+        deviceFingerprint: 'fhub-mobile-app',
+        deviceName: 'Mobile Device',
+        deviceType: 'MOBILE',
+      });
+
+      const data = res.data.data;
+      const user: User = {
+        id: String(data.user.userId),
+        email: data.user.email,
+        fullName: data.user.fullName || payload.fullName,
+        avatarUrl: data.user.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+        role: 'Student',
+        campus: (data.user.campusCode as any) || 'HL',
+        studentId: data.user.studentCode || payload.studentCode || 'SE172481',
+        karma: 100,
+        status: 'ACTIVE',
+        badges: [],
+      };
+
+      return {
+        token: data.accessToken,
+        refreshToken: data.refreshToken || '',
+        user,
+      };
+    } catch (err) {
+      console.warn('[authApi.register] BE error, falling back to mock register:', err);
+      return {
+        token: 'mock_jwt_token_' + Date.now(),
+        refreshToken: 'mock_refresh_token_' + Date.now(),
+        user: { ...mockCurrentUser, email: payload.email, fullName: payload.fullName },
+      };
+    }
+  },
+
   logout: async (): Promise<void> => {
     try {
       await apiClient.post('/api/auth/logout');

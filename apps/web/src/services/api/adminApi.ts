@@ -61,6 +61,34 @@ export const authApi = {
     return res.data.data;
   },
 
+  register: async (payload: {
+    email: string;
+    password: string;
+    fullName: string;
+    studentCode?: string;
+    campus?: string;
+  }): Promise<LoginResponse> => {
+    const res = await apiClient.post<ApiResponse<LoginResponse>>('/api/auth/register', {
+      ...payload,
+      deviceFingerprint: 'fhub-web-register',
+      deviceName: navigator.userAgent.includes('Windows') ? 'Windows PC' : 'Mac Workstation',
+      deviceType: 'DESKTOP',
+      browser: 'Chrome / Edge',
+      operatingSystem: 'Windows 11'
+    });
+    return res.data.data;
+  },
+
+  googleLogin: async (idToken: string): Promise<LoginResponse> => {
+    const res = await apiClient.post<ApiResponse<LoginResponse>>('/api/auth/login/google', {
+      idToken,
+      deviceFingerprint: 'fhub-web-google',
+      deviceName: navigator.userAgent.includes('Windows') ? 'Windows PC' : 'Mac Workstation',
+      deviceType: 'DESKTOP'
+    });
+    return res.data.data;
+  },
+
   verify2FA: async (twoFactorToken: string, code: string): Promise<LoginResponse> => {
     const res = await apiClient.post<ApiResponse<LoginResponse>>('/api/auth/2fa/verify', {
       twoFactorToken,

@@ -15,6 +15,7 @@ import { Input } from '../../components/common/Input';
 import { Button } from '../../components/common/Button';
 import { Colors } from '../../constants/colors';
 import { BorderRadius, FontSize, Spacing } from '../../constants/theme';
+import { authApi } from '../../services/api/authApi';
 
 export const RegisterScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -25,21 +26,36 @@ export const RegisterScreen: React.FC = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleRegister = () => {
-    if (!fullName.trim() || !studentCode.trim() || !email.trim() || !password.trim()) {
+  const handleRegister = async () => {
+    if (!fullName.trim() || !email.trim() || !password.trim()) {
       Alert.alert('Thiếu thông tin', 'Vui lòng điền đầy đủ các trường thông tin.');
       return;
     }
 
+    if (password.trim().length < 6) {
+      Alert.alert('Mật khẩu yếu', 'Mật khẩu phải chứa ít nhất 6 ký tự.');
+      return;
+    }
+
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      await authApi.register({
+        fullName: fullName.trim(),
+        studentCode: studentCode.trim() || undefined,
+        email: email.trim(),
+        password: password.trim(),
+      });
+
       Alert.alert(
         'Đăng ký thành công',
-        'Tài khoản của bạn đã được khởi tạo. Vui lòng đăng nhập để bắt đầu trải nghiệm.',
+        'Tài khoản của bạn đã được khởi tạo thành công trên hệ sinh thái FHub. Vui lòng đăng nhập để bắt đầu trải nghiệm.',
         [{ text: 'Đăng nhập ngay', onPress: () => navigation.goBack() }]
       );
-    }, 600);
+    } catch (err: any) {
+      Alert.alert('Đăng ký thất bại', err.response?.data?.message || err.message || 'Không thể tạo tài khoản.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

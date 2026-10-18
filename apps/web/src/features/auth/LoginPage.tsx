@@ -92,8 +92,98 @@ export const LoginPage: React.FC = () => {
     }
   };
 
+  const GOOGLE_CLIENT_ID = '286107558257-opd8v8nqnogitdmkvidvei0h691rpr15.apps.googleusercontent.com';
+
+  const handleGoogleSuccess = async (idToken: string) => {
+    setIsLoading(true);
+    setErrorMessage(null);
+    try {
+      const result = await authApi.googleLogin(idToken);
+      if (result.accessToken) {
+        if (rememberMe) {
+          localStorage.setItem('fhub_token', result.accessToken);
+        } else {
+          sessionStorage.setItem('fhub_token', result.accessToken);
+        }
+      }
+      if (result.refreshToken) {
+        if (rememberMe) {
+          localStorage.setItem('fhub_refresh_token', result.refreshToken);
+        } else {
+          sessionStorage.setItem('fhub_refresh_token', result.refreshToken);
+        }
+      }
+      const roles = result.user?.roles || [];
+      let mappedRole: User['role'] = 'Student';
+      if (roles.includes('Admin')) mappedRole = 'Admin';
+      else if (roles.includes('CommunityModerator') || roles.includes('Moderator')) mappedRole = 'Community Moderator';
+      else if (roles.includes('Staff')) mappedRole = 'Staff';
+      else if (roles.includes('SchoolRepresentative')) mappedRole = 'School Representative';
+      else if (roles.includes('Alumni')) mappedRole = 'Alumni';
+
+      const userObj: User = {
+        id: String(result.user?.userId || `u-${Date.now()}`),
+        email: result.user?.email || 'student@fpt.edu.vn',
+        fullName: result.user?.fullName || result.user?.email?.split('@')[0] || 'FPT Student',
+        studentId: result.user?.studentCode || 'SE170001',
+        role: mappedRole,
+        campus: (result.user?.campusCode as any) || 'HL',
+        avatarUrl: result.user?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+        karma: 100,
+        status: 'ACTIVE',
+        badges: [],
+      };
+      login(userObj, result.accessToken, result.refreshToken);
+
+      if (mappedRole === 'Admin') navigate('/admin-console');
+      else if (mappedRole === 'Community Moderator') navigate('/admin-console/moderation');
+      else navigate('/');
+    } catch (err: any) {
+      setErrorMessage(err.response?.data?.message || err.message || 'Đăng nhập Google không thành công.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      if ((window as any).google?.accounts?.id) {
+        (window as any).google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: (response: any) => {
+            if (response.credential) {
+              handleGoogleSuccess(response.credential);
+            }
+          }
+        });
+      }
+    };
+    document.body.appendChild(script);
+    return () => {
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
+    };
+  }, []);
+
   const handleGoogleSSO = () => {
-    setErrorMessage('Cổng xác thực tập trung FPT Edu Google SSO đang trong quá trình đồng bộ máy chủ SSO. Vui lòng đăng nhập bằng Email và Mật khẩu.');
+    if ((window as any).google?.accounts?.id) {
+      (window as any).google.accounts.id.prompt();
+      return;
+    }
+
+    // In local development fallback to testing Google token
+    const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    if (isDev) {
+      handleGoogleSuccess('dev_google_se172481@fpt.edu.vn');
+      return;
+    }
+
+    setErrorMessage('Cổng Google SSO đang khởi tạo. Vui lòng thử lại sau vài giây hoặc đăng nhập bằng Email.');
   };
 
   return (
