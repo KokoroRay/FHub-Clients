@@ -31,39 +31,45 @@ export const ProfilePage: React.FC = () => {
 
   // Profile Data State
   const [profileData, setProfileData] = useState({
-    fullName: (currentUser as any)?.fullName || (currentUser as any)?.name || 'Bao Nguyen',
-    studentId: 'SE172481',
-    email: currentUser?.email || 'bao.nguyen@example.edu',
-    campus: 'FPT University HCM · Active',
+    fullName: (currentUser as any)?.fullName || (currentUser as any)?.name || 'Sinh viên FHub',
+    studentId: currentUser?.studentId || 'Chưa cập nhật',
+    email: currentUser?.email || '',
+    campus: 'FPT University',
     community: 'FHub Community',
-    major: 'Software Engineering',
+    major: 'Chuyên ngành',
     role: 'Student',
-    status: 'Undergraduate · Year 3 (Term 5 SP25)',
-    memberSince: 'September 2026',
-    bio: 'Computer science student interested in software development and technology.',
-    detailedBio: 'Currently working with C#, ASP.NET Core, and distributed systems architecture in the Software Engineering curriculum.',
-    interests: ['Programming', 'Web Development', 'Software Engineering'],
+    status: 'Sinh viên FPTU',
+    memberSince: 'Gần đây',
+    bio: 'Chưa có thông tin giới thiệu.',
+    detailedBio: '',
+    interests: [] as string[],
     avatarUrl: currentUser?.avatarUrl || '',
     stats: {
-      articlesPublished: 12,
-      articlesSubtext: 'Top contributor',
-      studyMaterialsShared: 8,
-      materialsSubtext: '142 downloads',
-      courseReviewsWritten: 5,
-      reviewsSubtext: '98% helpful',
-      questionsCount: 12,
-      answersCount: 38,
-      helpfulVotes: 124,
-      badgesCount: 4,
+      articlesPublished: 0,
+      articlesSubtext: '0 bài viết',
+      studyMaterialsShared: 0,
+      materialsSubtext: '0 lượt tải',
+      courseReviewsWritten: 0,
+      reviewsSubtext: '0 đánh giá',
+      questionsCount: 0,
+      answersCount: 0,
+      helpfulVotes: 0,
+      badgesCount: 0,
     }
   });
 
+  const [questions, setQuestions] = useState<any[]>([]);
+  const [answers, setAnswers] = useState<any[]>([]);
+  const [userBadges, setUserBadges] = useState<any[]>([]);
+  const [userVoteHistory, setUserVoteHistory] = useState<any[]>([]);
+
   useEffect(() => {
+    let isMounted = true;
     const fetchProfile = async () => {
       const targetUserId = id && id !== 'me' ? id : (currentUser?.id || 1);
       try {
         const live = await profileApi.getProfile(targetUserId);
-        if (live) {
+        if (isMounted && live) {
           setProfileData(prev => ({
             ...prev,
             fullName: live.fullName || prev.fullName,
@@ -73,135 +79,23 @@ export const ProfilePage: React.FC = () => {
             studentId: live.studentCode || prev.studentId,
             major: live.majorCode || prev.major,
             campus: live.campusCode ? `FPT University ${live.campusCode}` : prev.campus,
+            stats: {
+              ...prev.stats,
+              helpfulVotes: live.karma || 0,
+            }
           }));
         }
       } catch (err) {
-        console.warn('Could not fetch user profile from Profile service, using fallback:', err);
+        console.warn('Could not fetch user profile from Profile service:', err);
       }
     };
 
     fetchProfile();
+    return () => { isMounted = false; };
   }, [id, currentUser?.id]);
 
   const [activeTab, setActiveTab] = useState<'overview' | 'questions' | 'answers' | 'badges' | 'votes'>('overview');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-
-  // Mock Contributions Data
-  const questions = [
-    {
-      id: 'q-1',
-      title: 'How to handle async operations in WinForms?',
-      course: 'PRN211',
-      votes: 8,
-      answers: 3,
-      isSolved: true,
-      time: '2 hours ago',
-    },
-    {
-      id: 'q-2',
-      title: 'Best practices for Entity Framework Core queries',
-      course: 'PRN211',
-      votes: 12,
-      answers: 5,
-      isSolved: true,
-      time: 'Yesterday',
-    },
-    {
-      id: 'q-3',
-      title: 'How should I structure a .NET backend project?',
-      course: 'PRN221',
-      votes: 6,
-      answers: 2,
-      isSolved: false,
-      time: '3 days ago',
-    },
-  ];
-
-  const answers = [
-    {
-      id: 'a-1',
-      questionTitle: 'Resolving DbContext concurrency conflict in ASP.NET Core',
-      course: 'PRN211',
-      upvotes: 18,
-      isBestAnswer: true,
-      time: '3 days ago',
-      excerpt: 'You should avoid sharing a single scoped DbContext instance across concurrent async threads...',
-    },
-    {
-      id: 'a-2',
-      questionTitle: 'Difference between IEnumerable and IQueryable with LINQ',
-      course: 'PRN211',
-      upvotes: 9,
-      isBestAnswer: false,
-      time: '5 days ago',
-      excerpt: 'IQueryable compiles expression trees to SQL on the database engine, whereas IEnumerable filters in-memory...',
-    },
-  ];
-
-  const badges = [
-    {
-      id: 'b-1',
-      name: 'Helpful Contributor',
-      description: 'Received 100+ helpful votes on answers and reviews',
-      icon: '🌟',
-      color: 'bg-amber-50 text-amber-800 border-amber-200',
-      earnedDate: 'Oct 2026',
-    },
-    {
-      id: 'b-2',
-      name: 'Problem Solver',
-      description: 'Had 10+ answers marked as Best Accepted Answer',
-      icon: '💡',
-      color: 'bg-blue-50 text-blue-800 border-blue-200',
-      earnedDate: 'Oct 2026',
-    },
-    {
-      id: 'b-3',
-      name: 'Active Learner',
-      description: 'Participated in discussions across 3+ core syllabus courses',
-      icon: '📚',
-      color: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-      earnedDate: 'Sep 2026',
-    },
-    {
-      id: 'b-4',
-      name: 'Community Member',
-      description: 'Joined FHub and verified student identity via university SSO',
-      icon: '🛡️',
-      color: 'bg-purple-50 text-purple-800 border-purple-200',
-      earnedDate: 'Sep 2026',
-    },
-  ];
-
-  const voteHistory = [
-    {
-      id: 'v-1',
-      targetTitle: 'Clean Architecture in ASP.NET Core',
-      type: 'Article',
-      vote: 'Upvote (+1)',
-      date: 'Today, 10:15 AM',
-      author: 'Hoang Le',
-    },
-    {
-      id: 'v-2',
-      targetTitle: 'How to handle async operations in WinForms?',
-      type: 'Question',
-      vote: 'Upvote (+1)',
-      date: 'Yesterday',
-      author: 'Duc Anh Nguyen',
-    },
-    {
-      id: 'v-3',
-      targetTitle: 'PRN211 Midterm Practice Repository Template',
-      type: 'Workflow',
-      vote: 'Upvote (+1)',
-      date: '3 days ago',
-      author: 'Vu Minh',
-    },
-  ];
-
-  const [userBadges, setUserBadges] = useState(badges);
-  const [userVoteHistory, setUserVoteHistory] = useState(voteHistory);
 
   useEffect(() => {
     let isMounted = true;
@@ -209,37 +103,47 @@ export const ProfilePage: React.FC = () => {
       const targetUserId = id && id !== 'me' ? id : (currentUser?.id || 1);
       try {
         const apiBadges = isOwnProfile ? await badgeApi.getMyBadges() : await badgeApi.getUserBadges(targetUserId);
-        if (isMounted && apiBadges && apiBadges.length > 0) {
-          const mapped = apiBadges.map((b) => ({
-            id: String(b.badge_id || b.user_badge_id),
-            name: b.badge?.name || 'Huy hiệu cống hiến',
-            description: b.badge?.description || 'Huy hiệu thành tích cộng đồng FHub',
-            icon: '🏅',
-            color: 'bg-amber-50 text-amber-800 border-amber-200',
-            earnedDate: b.awarded_at ? new Date(b.awarded_at).toLocaleDateString() : 'Gần đây',
-          }));
-          setUserBadges(mapped);
+        if (isMounted) {
+          if (apiBadges && apiBadges.length > 0) {
+            const mapped = apiBadges.map((b) => ({
+              id: String(b.badge_id || b.user_badge_id),
+              name: b.badge?.name || 'Huy hiệu cống hiến',
+              description: b.badge?.description || 'Huy hiệu thành tích cộng đồng FHub',
+              icon: '🏅',
+              color: 'bg-amber-50 text-amber-800 border-amber-200',
+              earnedDate: b.awarded_at ? new Date(b.awarded_at).toLocaleDateString('vi-VN') : 'Gần đây',
+            }));
+            setUserBadges(mapped);
+          } else {
+            setUserBadges([]);
+          }
         }
       } catch (err) {
-        console.warn('Backend badges unavailable, using fallback:', err);
+        console.warn('Backend badges unavailable:', err);
+        if (isMounted) setUserBadges([]);
       }
 
       if (isOwnProfile) {
         try {
           const myVotes = await voteApi.getMyVotes();
-          if (isMounted && myVotes && myVotes.length > 0) {
-            const mappedVotes = myVotes.map((v) => ({
-              id: String(v.voteId),
-              targetTitle: `${v.targetType} #${v.targetId}`,
-              type: v.targetType,
-              vote: v.voteValue > 0 ? 'Upvote (+1)' : 'Downvote (-1)',
-              date: v.createdAt ? new Date(v.createdAt).toLocaleDateString() : 'Gần đây',
-              author: 'FHub Member',
-            }));
-            setUserVoteHistory(mappedVotes);
+          if (isMounted) {
+            if (myVotes && myVotes.length > 0) {
+              const mappedVotes = myVotes.map((v) => ({
+                id: String(v.voteId),
+                targetTitle: `${v.targetType} #${v.targetId}`,
+                type: v.targetType,
+                vote: v.voteValue > 0 ? 'Upvote (+1)' : 'Downvote (-1)',
+                date: v.createdAt ? new Date(v.createdAt).toLocaleDateString('vi-VN') : 'Gần đây',
+                author: 'FHub Member',
+              }));
+              setUserVoteHistory(mappedVotes);
+            } else {
+              setUserVoteHistory([]);
+            }
           }
         } catch (err) {
-          console.warn('Backend vote history unavailable, using fallback:', err);
+          console.warn('Backend vote history unavailable:', err);
+          if (isMounted) setUserVoteHistory([]);
         }
       }
     };
@@ -481,8 +385,8 @@ export const ProfilePage: React.FC = () => {
             { id: 'overview', label: 'Overview' },
             { id: 'questions', label: `Questions (${questions.length})` },
             { id: 'answers', label: `Answers (${answers.length})` },
-            { id: 'badges', label: `Badges (${badges.length})` },
-            { id: 'votes', label: 'Vote History' },
+            { id: 'badges', label: `Badges (${userBadges.length})` },
+            { id: 'votes', label: `Vote History (${userVoteHistory.length})` },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -504,31 +408,112 @@ export const ProfilePage: React.FC = () => {
             <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <h4 className="text-sm font-bold text-slate-800">Recent Contributions</h4>
-                <button 
-                  onClick={() => setActiveTab('questions')}
-                  className="text-xs font-semibold text-[#0076D1] hover:underline"
-                >
-                  View All
-                </button>
+                {questions.length > 0 && (
+                  <button 
+                    onClick={() => setActiveTab('questions')}
+                    className="text-xs font-semibold text-[#0076D1] hover:underline"
+                  >
+                    View All
+                  </button>
+                )}
               </div>
 
+              {questions.length === 0 ? (
+                <div className="py-6 text-center text-xs text-slate-400">
+                  Chưa có hoạt động đóng góp nào gần đây.
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {questions.map((q) => (
+                    <div key={q.id} className="py-3 flex items-center justify-between gap-4">
+                      <div className="space-y-1">
+                        <Link to={`/discussions/${q.id}`} className="text-xs font-bold text-slate-800 hover:text-[#0076D1] line-clamp-1">
+                          {q.title}
+                        </Link>
+                        <div className="flex items-center gap-3 text-[11px] text-slate-400">
+                          <span className="font-mono text-slate-700 bg-slate-100 px-1.5 py-0.2 rounded font-semibold">
+                            {q.course}
+                          </span>
+                          <span>{q.votes} votes</span>
+                          <span>{q.answers} answers</span>
+                          {q.isSolved && (
+                            <span className="text-emerald-700 font-semibold bg-emerald-50 px-1.5 py-0.2 rounded">
+                              Accepted Solution
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <span className="text-xs text-slate-400 whitespace-nowrap">{q.time}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Badges Preview */}
+            <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h4 className="text-sm font-bold text-slate-800">Earned Badges</h4>
+                {userBadges.length > 0 && (
+                  <button 
+                    onClick={() => setActiveTab('badges')}
+                    className="text-xs font-semibold text-[#0076D1] hover:underline"
+                  >
+                    View All ({userBadges.length})
+                  </button>
+                )}
+              </div>
+
+              {userBadges.length === 0 ? (
+                <div className="py-6 text-center text-xs text-slate-400">
+                  Chưa có huy hiệu thành tích nào. Hãy tích cực hoạt động để nhận huy hiệu!
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {userBadges.map((b) => (
+                    <div key={b.id} className={`p-3.5 rounded-xl border text-center space-y-1.5 ${b.color}`}>
+                      <span className="text-2xl">{b.icon}</span>
+                      <h5 className="text-xs font-bold">{b.name}</h5>
+                      <p className="text-[10px] opacity-75">{b.earnedDate}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Tab 2: Questions */}
+        {activeTab === 'questions' && (
+          <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs">
+            {questions.length === 0 ? (
+              <div className="py-10 text-center text-xs text-slate-400">
+                Chưa có câu hỏi nào được tạo.
+              </div>
+            ) : (
               <div className="divide-y divide-slate-100">
                 {questions.map((q) => (
-                  <div key={q.id} className="py-3 flex items-center justify-between gap-4">
-                    <div className="space-y-1">
-                      <Link to={`/discussions/${q.id}`} className="text-xs font-bold text-slate-800 hover:text-[#0076D1] line-clamp-1">
-                        {q.title}
-                      </Link>
-                      <div className="flex items-center gap-3 text-[11px] text-slate-400">
-                        <span className="font-mono text-slate-700 bg-slate-100 px-1.5 py-0.2 rounded font-semibold">
+                  <div key={q.id} className="py-4 flex items-start justify-between gap-4">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
                           {q.course}
                         </span>
-                        <span>{q.votes} votes</span>
-                        <span>{q.answers} answers</span>
+                        <Link to={`/discussions/${q.id}`} className="text-sm font-bold text-slate-800 hover:text-[#0076D1]">
+                          {q.title}
+                        </Link>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-slate-500">
+                        <span>{q.votes} upvotes</span>
+                        <span>•</span>
+                        <span>{q.answers} replies</span>
                         {q.isSolved && (
-                          <span className="text-emerald-700 font-semibold bg-emerald-50 px-1.5 py-0.2 rounded">
-                            Accepted Solution
-                          </span>
+                          <>
+                            <span>•</span>
+                            <span className="text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
+                              Solved
+                            </span>
+                          </>
                         )}
                       </div>
                     </div>
@@ -536,145 +521,112 @@ export const ProfilePage: React.FC = () => {
                   </div>
                 ))}
               </div>
-            </div>
-
-            {/* Badges Preview */}
-            <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h4 className="text-sm font-bold text-slate-800">Earned Badges</h4>
-                <button 
-                  onClick={() => setActiveTab('badges')}
-                  className="text-xs font-semibold text-[#0076D1] hover:underline"
-                >
-                  View All ({badges.length})
-                </button>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {userBadges.map((b) => (
-                  <div key={b.id} className={`p-3.5 rounded-xl border text-center space-y-1.5 ${b.color}`}>
-                    <span className="text-2xl">{b.icon}</span>
-                    <h5 className="text-xs font-bold">{b.name}</h5>
-                    <p className="text-[10px] opacity-75">{b.earnedDate}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Tab 2: Questions */}
-        {activeTab === 'questions' && (
-          <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs divide-y divide-slate-100">
-            {questions.map((q) => (
-              <div key={q.id} className="py-4 flex items-start justify-between gap-4">
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
-                      {q.course}
-                    </span>
-                    <Link to={`/discussions/${q.id}`} className="text-sm font-bold text-slate-800 hover:text-[#0076D1]">
-                      {q.title}
-                    </Link>
-                  </div>
-                  <div className="flex items-center gap-3 text-xs text-slate-500">
-                    <span>{q.votes} upvotes</span>
-                    <span>•</span>
-                    <span>{q.answers} replies</span>
-                    {q.isSolved && (
-                      <>
-                        <span>•</span>
-                        <span className="text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
-                          Solved
-                        </span>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <span className="text-xs text-slate-400 whitespace-nowrap">{q.time}</span>
-              </div>
-            ))}
+            )}
           </div>
         )}
 
         {/* Tab 3: Answers */}
         {activeTab === 'answers' && (
-          <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs divide-y divide-slate-100">
-            {answers.map((a) => (
-              <div key={a.id} className="py-4 space-y-2">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
-                      {a.course}
-                    </span>
-                    <h5 className="text-xs font-bold text-slate-800">
-                      Answered on: <span className="hover:text-[#0076D1] cursor-pointer">{a.questionTitle}</span>
-                    </h5>
-                  </div>
-                  {a.isBestAnswer && (
-                    <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
-                      <Sparkles className="w-3 h-3 text-emerald-600" />
-                      Best Answer
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-slate-600 bg-slate-50/70 p-3 rounded-xl border border-slate-100 italic leading-relaxed">
-                  "{a.excerpt}"
-                </p>
-                <div className="flex items-center gap-3 text-[11px] text-slate-400">
-                  <span className="font-semibold text-slate-600">{a.upvotes} helpful upvotes</span>
-                  <span>•</span>
-                  <span>{a.time}</span>
-                </div>
+          <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs">
+            {answers.length === 0 ? (
+              <div className="py-10 text-center text-xs text-slate-400">
+                Chưa có câu trả lời nào.
               </div>
-            ))}
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {answers.map((a) => (
+                  <div key={a.id} className="py-4 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
+                          {a.course}
+                        </span>
+                        <h5 className="text-xs font-bold text-slate-800">
+                          Answered on: <span className="hover:text-[#0076D1] cursor-pointer">{a.questionTitle}</span>
+                        </h5>
+                      </div>
+                      {a.isBestAnswer && (
+                        <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
+                          <Sparkles className="w-3 h-3 text-emerald-600" />
+                          Best Answer
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-600 bg-slate-50/70 p-3 rounded-xl border border-slate-100 italic leading-relaxed">
+                      "{a.excerpt}"
+                    </p>
+                    <div className="flex items-center gap-3 text-[11px] text-slate-400">
+                      <span className="font-semibold text-slate-600">{a.upvotes} helpful upvotes</span>
+                      <span>•</span>
+                      <span>{a.time}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
         {/* Tab 4: Badges */}
         {activeTab === 'badges' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {userBadges.map((b) => (
-              <div key={b.id} className="bg-white rounded-2xl p-5 border border-slate-100 shadow-xs flex items-start gap-4">
-                <div className="text-3xl p-3 bg-slate-50 rounded-2xl border border-slate-100 shrink-0">
-                  {b.icon}
-                </div>
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <h4 className="text-sm font-bold text-slate-800">{b.name}</h4>
-                    <span className="text-[10px] text-slate-400 font-mono">Earned {b.earnedDate}</span>
-                  </div>
-                  <p className="text-xs text-slate-500 leading-relaxed">
-                    {b.description}
-                  </p>
-                </div>
+          <div>
+            {userBadges.length === 0 ? (
+              <div className="bg-white rounded-2xl p-10 border border-slate-100 shadow-xs text-center text-xs text-slate-400">
+                Chưa có huy hiệu nào được trao.
               </div>
-            ))}
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {userBadges.map((b) => (
+                  <div key={b.id} className="bg-white rounded-2xl p-5 border border-slate-100 shadow-xs flex items-start gap-4">
+                    <div className="text-3xl p-3 bg-slate-50 rounded-2xl border border-slate-100 shrink-0">
+                      {b.icon}
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-sm font-bold text-slate-800">{b.name}</h4>
+                        <span className="text-[10px] text-slate-400 font-mono">Earned {b.earnedDate}</span>
+                      </div>
+                      <p className="text-xs text-slate-500 leading-relaxed">
+                        {b.description}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
         {/* Tab 5: Vote History */}
         {activeTab === 'votes' && (
-          <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs divide-y divide-slate-100">
-            {userVoteHistory.map((v) => (
-              <div key={v.id} className="py-3 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-50 text-[#0076D1] border border-blue-200">
-                    {v.type}
-                  </span>
-                  <div>
-                    <h5 className="text-xs font-bold text-slate-800 hover:text-[#0076D1] cursor-pointer">
-                      {v.targetTitle}
-                    </h5>
-                    <p className="text-[11px] text-slate-400">By {v.author}</p>
-                  </div>
-                </div>
-                <div className="text-right shrink-0">
-                  <span className="text-xs font-bold text-emerald-600">{v.vote}</span>
-                  <p className="text-[10px] text-slate-400">{v.date}</p>
-                </div>
+          <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs">
+            {userVoteHistory.length === 0 ? (
+              <div className="py-10 text-center text-xs text-slate-400">
+                Chưa có lịch sử bình chọn nào.
               </div>
-            ))}
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {userVoteHistory.map((v) => (
+                  <div key={v.id} className="py-3 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-50 text-[#0076D1] border border-blue-200">
+                        {v.type}
+                      </span>
+                      <div>
+                        <h5 className="text-xs font-bold text-slate-800 hover:text-[#0076D1] cursor-pointer">
+                          {v.targetTitle}
+                        </h5>
+                        <p className="text-[11px] text-slate-400">By {v.author}</p>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="text-xs font-bold text-emerald-600">{v.vote}</span>
+                      <p className="text-[10px] text-slate-400">{v.date}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

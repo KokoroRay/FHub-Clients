@@ -403,3 +403,67 @@ export const badgeApi = {
   },
 };
 
+// ─── 8. Direct Messages & Communication API ────────────────────────────────────
+export interface ConversationDto {
+  conversationId: string | number;
+  participantId: string | number;
+  participantName: string;
+  participantAvatar?: string;
+  participantCode?: string;
+  courseTag?: string;
+  role?: string;
+  lastMessage?: string;
+  lastMessageAt?: string;
+  unreadCount?: number;
+  isBlocked?: boolean;
+}
+
+export interface DirectMessageDto {
+  messageId: string | number;
+  conversationId: string | number;
+  senderId: string | number;
+  senderName: string;
+  content: string;
+  createdAt: string;
+  status?: string;
+}
+
+export const directMessageApi = {
+  getConversations: async (): Promise<ConversationDto[]> => {
+    const res = await apiClient.get<ConversationDto[] | ApiResponse<ConversationDto[]>>('/api/communication/conversations');
+    const data = (res.data as any).data || res.data;
+    return Array.isArray(data) ? data : [];
+  },
+
+  getMessages: async (conversationId: string | number): Promise<DirectMessageDto[]> => {
+    const res = await apiClient.get<DirectMessageDto[] | ApiResponse<DirectMessageDto[]>>(`/api/communication/conversations/${conversationId}/messages`);
+    const data = (res.data as any).data || res.data;
+    return Array.isArray(data) ? data : [];
+  },
+
+  sendMessage: async (conversationId: string | number, content: string): Promise<DirectMessageDto> => {
+    const res = await apiClient.post<DirectMessageDto | ApiResponse<DirectMessageDto>>(`/api/communication/conversations/${conversationId}/messages`, {
+      content,
+    });
+    return (res.data as any).data || res.data;
+  },
+
+  deleteMessage: async (messageId: string | number): Promise<void> => {
+    await apiClient.delete(`/api/communication/messages/${messageId}`);
+  },
+
+  getBlockedUsers: async (): Promise<any[]> => {
+    const res = await apiClient.get<any[]>('/api/communication/blocked-users');
+    const data = (res.data as any).data || res.data;
+    return Array.isArray(data) ? data : [];
+  },
+
+  blockUser: async (targetUserId: string | number): Promise<void> => {
+    await apiClient.post('/api/communication/block', { targetUserId });
+  },
+
+  unblockUser: async (targetUserId: string | number): Promise<void> => {
+    await apiClient.delete(`/api/communication/unblock/${targetUserId}`);
+  },
+};
+

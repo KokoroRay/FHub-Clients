@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Megaphone, Plus, Bell, Filter, Calendar, MapPin, Send } from 'lucide-react';
-import { mockCampuses } from '../../services/mockData';
 import { Button } from '../../components/common/Button';
 import { Badge } from '../../components/common/Badge';
 import { Card, CardBody, CardHeader } from '../../components/common/Card';
@@ -19,26 +18,8 @@ interface Broadcast {
 }
 
 export const OfficialBroadcastsPage: React.FC = () => {
-  const [broadcasts, setBroadcasts] = useState<Broadcast[]>([
-    {
-      id: 'b-1',
-      title: 'Thông báo lịch đăng ký môn học và đóng học phí Học kỳ Summer 2026',
-      content: 'Phòng Quản lý Đào tạo thông báo thời gian mở cổng đăng ký môn học bắt đầu từ 08:00 ngày 25/03/2026. Sinh viên vui lòng hoàn tất học phí đúng hạn.',
-      senderDept: 'Phòng Quản lý Đào tạo (Academic Dept)',
-      targetCampus: 'Toàn bộ 5 Campus',
-      targetMajor: 'Tất cả chuyên ngành',
-      createdAt: '15/03/2026',
-    },
-    {
-      id: 'b-2',
-      title: 'Phát động cuộc thi lập trình FPT Edu Hackathon 2026',
-      content: 'Tổng giải thưởng lên tới 500 triệu đồng dành cho các bạn sinh viên đam mê AI và Cloud Native Architecture.',
-      senderDept: 'Phòng Công tác Sinh viên (IC-PDP)',
-      targetCampus: 'HL, HCM, DN',
-      targetMajor: 'SE, IA, AI',
-      createdAt: '12/03/2026',
-    },
-  ]);
+  const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [title, setTitle] = useState('');
@@ -50,21 +31,29 @@ export const OfficialBroadcastsPage: React.FC = () => {
     let isMounted = true;
     const fetchBroadcasts = async () => {
       try {
+        setLoading(true);
         const res = await broadcastApi.getBroadcasts({ page_size: 20 });
-        if (isMounted && res && res.items && res.items.length > 0) {
-          const mapped: Broadcast[] = res.items.map((b) => ({
-            id: String(b.campaignId),
-            title: b.title,
-            content: b.body,
-            senderDept: 'Đại diện Nhà trường (School Representative)',
-            targetCampus: b.targetCampusId ? `Campus #${b.targetCampusId}` : 'Toàn bộ 5 Campus',
-            targetMajor: b.targetMajorId ? `Ngành #${b.targetMajorId}` : 'Tất cả chuyên ngành',
-            createdAt: b.createdAt ? new Date(b.createdAt).toLocaleDateString('vi-VN') : 'Gần đây',
-          }));
-          setBroadcasts(mapped);
+        if (isMounted) {
+          if (res && res.items && res.items.length > 0) {
+            const mapped: Broadcast[] = res.items.map((b) => ({
+              id: String(b.campaignId),
+              title: b.title,
+              content: b.body,
+              senderDept: 'Đại diện Nhà trường (School Representative)',
+              targetCampus: b.targetCampusId ? `Campus #${b.targetCampusId}` : 'Toàn bộ 5 Campus',
+              targetMajor: b.targetMajorId ? `Ngành #${b.targetMajorId}` : 'Tất cả chuyên ngành',
+              createdAt: b.createdAt ? new Date(b.createdAt).toLocaleDateString('vi-VN') : 'Gần đây',
+            }));
+            setBroadcasts(mapped);
+          } else {
+            setBroadcasts([]);
+          }
         }
       } catch (err) {
-        console.warn('Backend broadcasts unavailable, keeping fallback:', err);
+        console.warn('Backend broadcasts unavailable:', err);
+        if (isMounted) setBroadcasts([]);
+      } finally {
+        if (isMounted) setLoading(false);
       }
     };
     fetchBroadcasts();
@@ -139,31 +128,43 @@ export const OfficialBroadcastsPage: React.FC = () => {
 
       {/* Broadcasts List */}
       <div className="space-y-4">
-        {broadcasts.map((bc) => (
-          <Card key={bc.id} className="border-blue-200 dark:border-blue-900 bg-blue-50/20">
-            <CardBody className="p-6 space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <Badge variant="primary" size="md">OFFICIAL</Badge>
-                  <span className="font-bold text-xs text-slate-800 dark:text-slate-200">{bc.senderDept}</span>
+        {loading ? (
+          <div className="bg-white rounded-2xl p-12 text-center text-slate-400 border border-slate-100 shadow-xs">
+            <p className="text-xs">Đang tải thông báo chính thức...</p>
+          </div>
+        ) : broadcasts.length === 0 ? (
+          <div className="bg-white rounded-2xl p-12 text-center text-slate-400 border border-slate-100 shadow-xs">
+            <Megaphone className="w-10 h-10 mx-auto mb-2 opacity-30" />
+            <p className="text-sm font-semibold text-slate-700">Chưa có thông báo chính thức nào</p>
+            <p className="text-xs text-slate-400 mt-1">Các thông báo mới từ Nhà trường sẽ xuất hiện tại đây.</p>
+          </div>
+        ) : (
+          broadcasts.map((bc) => (
+            <Card key={bc.id} className="border-blue-200 dark:border-blue-900 bg-blue-50/20">
+              <CardBody className="p-6 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="primary" size="md">OFFICIAL</Badge>
+                    <span className="font-bold text-xs text-slate-800 dark:text-slate-200">{bc.senderDept}</span>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-slate-400">
+                    <span>Cơ sở: <strong className="text-slate-700 dark:text-slate-300">{bc.targetCampus}</strong></span>
+                    <span>• Ngành: <strong className="text-slate-700 dark:text-slate-300">{bc.targetMajor}</strong></span>
+                    <span>• {bc.createdAt}</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3 text-xs text-slate-400">
-                  <span>Cơ sở: <strong className="text-slate-700 dark:text-slate-300">{bc.targetCampus}</strong></span>
-                  <span>• Ngành: <strong className="text-slate-700 dark:text-slate-300">{bc.targetMajor}</strong></span>
-                  <span>• {bc.createdAt}</span>
-                </div>
-              </div>
 
-              <h2 className="text-base font-extrabold text-slate-900 dark:text-slate-100">
-                {bc.title}
-              </h2>
+                <h2 className="text-base font-extrabold text-slate-900 dark:text-slate-100">
+                  {bc.title}
+                </h2>
 
-              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                {bc.content}
-              </p>
-            </CardBody>
-          </Card>
-        ))}
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                  {bc.content}
+                </p>
+              </CardBody>
+            </Card>
+          ))
+        )}
       </div>
 
       <Modal
@@ -195,7 +196,11 @@ export const OfficialBroadcastsPage: React.FC = () => {
               onChange={(e) => setTargetCampus(e.target.value)}
               options={[
                 { value: 'ALL', label: 'Toàn bộ 5 Campus' },
-                ...mockCampuses.map((c) => ({ value: c.code, label: `${c.code} - ${c.name}` })),
+                { value: 'HL', label: 'HL - FPTU Hòa Lạc' },
+                { value: 'HCM', label: 'HCM - FPTU TP. Hồ Chí Minh' },
+                { value: 'DN', label: 'DN - FPTU Đà Nẵng' },
+                { value: 'CT', label: 'CT - FPTU Cần Thơ' },
+                { value: 'QN', label: 'QN - FPTU Quy Nhơn' },
               ]}
             />
             <Select

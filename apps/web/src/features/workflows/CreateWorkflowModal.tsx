@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Code } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { mockCourses } from '../../services/mockData';
+import { courseNodesApi } from '../../services/api/adminApi';
 import { SharedWorkflow } from '../../types';
 import { Modal } from '../../components/common/Modal';
 import { Button } from '../../components/common/Button';
@@ -21,9 +21,32 @@ export const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
   const { currentUser } = useAuth();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [courseCode, setCourseCode] = useState('PRN211');
-  const [technology, setTechnology] = useState('.NET 8 / C#');
-  const [tags, setTags] = useState('dotnet, efcore, crud');
+  const [courseCode, setCourseCode] = useState('');
+  const [technology, setTechnology] = useState('');
+  const [tags, setTags] = useState('');
+  const [courses, setCourses] = useState<Array<{ code: string; title: string }>>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadCourses = async () => {
+      try {
+        const res = await courseNodesApi.getCourseNodes();
+        const items = (res as any)?.items || res || [];
+        if (isMounted && Array.isArray(items) && items.length > 0) {
+          const mapped = items.map((c: any) => ({
+            code: c.code || c.courseCode,
+            title: c.name || c.title || c.code,
+          }));
+          setCourses(mapped);
+          if (!courseCode && mapped[0]) setCourseCode(mapped[0].code);
+        }
+      } catch (err) {
+        console.warn('Failed to load courses in workflow modal:', err);
+      }
+    };
+    loadCourses();
+    return () => { isMounted = false; };
+  }, [courseCode]);
 
   const [steps, setSteps] = useState([
     { stepNumber: 1, title: 'Bước 1: Cài đặt package', instruction: 'Chạy lệnh cài đặt NuGet packages', codeSnippet: 'dotnet add package ...', language: 'bash' },
@@ -137,7 +160,7 @@ export const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
             label="Môn học áp dụng"
             value={courseCode}
             onChange={(e) => setCourseCode(e.target.value)}
-            options={mockCourses.map((c) => ({ value: c.code, label: `${c.code} - ${c.title}` }))}
+            options={courses.map((c) => ({ value: c.code, label: `${c.code} - ${c.title}` }))}
           />
           <Input
             label="Công nghệ / Tech Stack"

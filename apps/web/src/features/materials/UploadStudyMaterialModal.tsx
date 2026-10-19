@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UploadCloud, FileText, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Modal } from '../../components/common/Modal';
 import { Button } from '../../components/common/Button';
 import { Input, Textarea, Select } from '../../components/common/Input';
-import { mockCourses } from '../../services/mockData';
+import { courseNodesApi } from '../../services/api/adminApi';
 import { StudyMaterial } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 
@@ -21,13 +21,36 @@ export const UploadStudyMaterialModal: React.FC<UploadStudyMaterialModalProps> =
   const { currentUser } = useAuth();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [courseCode, setCourseCode] = useState('PRN211');
+  const [courseCode, setCourseCode] = useState('');
+  const [courses, setCourses] = useState<Array<{ code: string; title: string }>>([]);
   const [fileType, setFileType] = useState<'PDF' | 'DOCX' | 'ZIP' | 'PPTX' | 'CODE'>('PDF');
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileSizeMb, setFileSizeMb] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadCourses = async () => {
+      try {
+        const res = await courseNodesApi.getCourseNodes();
+        const items = (res as any)?.items || res || [];
+        if (isMounted && Array.isArray(items) && items.length > 0) {
+          const mapped = items.map((c: any) => ({
+            code: c.code || c.courseCode,
+            title: c.name || c.title || c.code,
+          }));
+          setCourses(mapped);
+          if (mapped[0]) setCourseCode(mapped[0].code);
+        }
+      } catch (err) {
+        console.warn('Failed to load courses in modal:', err);
+      }
+    };
+    loadCourses();
+    return () => { isMounted = false; };
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -81,18 +104,18 @@ export const UploadStudyMaterialModal: React.FC<UploadStudyMaterialModalProps> =
     const newMat: StudyMaterial = {
       id: `mat-${Date.now()}`,
       title: title.trim(),
-      description: description.trim() || 'Tài liệu học tập do sinh viên FHub chia sẻ.',
+      description: description.trim(),
       courseCode,
       fileType,
-      fileSizeMb: fileSizeMb || 1.2,
+      fileSizeMb: fileSizeMb || 0,
       downloadUrl: '#',
       downloadsCount: 0,
       author: {
-        id: currentUser?.id || 'u-self',
-        fullName: currentUser?.fullName || 'Sinh viên FHub',
+        id: currentUser?.id || '',
+        fullName: currentUser?.fullName || '',
         avatarUrl: currentUser?.avatarUrl,
       },
-      semesterUploaded: 'Spring 2025',
+      semesterUploaded: '',
       createdAt: new Date().toISOString(),
     };
     onUploaded(newMat);
@@ -169,10 +192,14 @@ export const UploadStudyMaterialModal: React.FC<UploadStudyMaterialModalProps> =
             label="Môn học liên quan *"
             value={courseCode}
             onChange={(e) => setCourseCode(e.target.value)}
-            options={mockCourses.map((c) => ({
-              value: c.code,
-              label: `${c.code} - ${c.title}`,
-            }))}
+            options={
+              courses.length > 0
+                ? courses.map((c) => ({
+                    value: c.code,
+                    label: `${c.code} - ${c.title}`,
+                  }))
+                : [{ value: '', label: 'Đang tải hoặc chưa có môn học' }]
+            }
           />
           <Select
             label="Loại file (Format) *"

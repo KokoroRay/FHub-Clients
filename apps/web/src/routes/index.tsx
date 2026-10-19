@@ -154,10 +154,14 @@ const getSubdomainRoutes = () => [
  * Main Portal Routes Definition (fhub.edu.vn / localhost)
  */
 const getMainPortalRoutes = () => [
-  // Main Academic Hub & Student Portal
+  // Main Academic Hub & Student Portal (Enforce Auth Gate)
   {
     path: '/',
-    element: <MainLayout />,
+    element: (
+      <ProtectedRoute>
+        <MainLayout />
+      </ProtectedRoute>
+    ),
     children: [
       { index: true, element: <FeedPage /> },
       { path: 'courses', element: <CourseListPage /> },

@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Star, AlertCircle } from 'lucide-react';
 import { Modal } from '../../components/common/Modal';
 import { Button } from '../../components/common/Button';
 import { Input, Textarea, Select } from '../../components/common/Input';
-import { mockCourses } from '../../services/mockData';
+import { courseNodesApi } from '../../services/api/adminApi';
 import { useAuth } from '../../context/AuthContext';
 import { CourseReview } from '../../types';
 import { courseReviewApi } from '../../services/api/contentApi';
@@ -19,18 +19,43 @@ export const CreateCourseEvaluationModal: React.FC<CreateCourseEvaluationModalPr
   isOpen,
   onClose,
   onCreated,
-  defaultCourseCode = 'PRN211',
+  defaultCourseCode = '',
 }) => {
   const { currentUser } = useAuth();
   const [courseCode, setCourseCode] = useState(defaultCourseCode);
-  const [semesterTaken, setSemesterTaken] = useState('Spring 2025');
+  const [semesterTaken, setSemesterTaken] = useState('');
   const [lecturerName, setLecturerName] = useState('');
   const [rating, setRating] = useState(5);
-  const [workloadRating, setWorkloadRating] = useState(4);
+  const [workloadRating, setWorkloadRating] = useState(3);
   const [difficultyRating, setDifficultyRating] = useState(3);
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [courses, setCourses] = useState<Array<{ code: string; title: string }>>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadCourses = async () => {
+      try {
+        const res = await courseNodesApi.getCourseNodes();
+        const items = (res as any)?.items || res || [];
+        if (isMounted && Array.isArray(items) && items.length > 0) {
+          const mapped = items.map((c: any) => ({
+            code: c.code || c.courseCode,
+            title: c.name || c.title || c.code,
+          }));
+          setCourses(mapped);
+          if (!courseCode && mapped[0]) {
+            setCourseCode(mapped[0].code);
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load courses in evaluation modal:', err);
+      }
+    };
+    loadCourses();
+    return () => { isMounted = false; };
+  }, [courseCode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,7 +162,7 @@ export const CreateCourseEvaluationModal: React.FC<CreateCourseEvaluationModalPr
             label="Môn học đánh giá *"
             value={courseCode}
             onChange={(e) => setCourseCode(e.target.value)}
-            options={mockCourses.map((c) => ({
+            options={courses.map((c) => ({
               value: c.code,
               label: `${c.code} - ${c.title}`,
             }))}

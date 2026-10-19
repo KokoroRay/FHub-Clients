@@ -64,91 +64,11 @@ interface SupportTicketItem {
   replies: TicketReply[];
 }
 
-const INITIAL_TICKETS: SupportTicketItem[] = [
-  {
-    id: 't-1023',
-    ticketId: '#TK-1023',
-    title: 'Study material link is broken',
-    category: 'Study Materials',
-    priority: 'Medium',
-    status: 'In Progress',
-    courseCode: 'PRN211',
-    createdDate: 'Oct 11, 2026',
-    updatedDate: 'Oct 12, 2026',
-    reporterName: 'Nguyen Hoang Minh',
-    reporterId: 'SE172481',
-    reporterInitials: 'MH',
-    description: 'The external link for a study material in PRN211 does not open correctly. Whenever I click the Google Drive / GitHub mirror link in the PRN211 course node, it redirects to a 404 Not Found error. Please verify and re-link the proper course resource.',
-    replies: [
-      {
-        id: 'r-1',
-        senderName: 'You (Nguyen Hoang Minh)',
-        senderInitials: 'MH',
-        senderRole: 'Student',
-        isStaff: false,
-        time: 'October 11, 2026, 14:20',
-        content: 'The study material link returns an error when I try to open it. It says 404 Resource Moved or Deleted.',
-      },
-      {
-        id: 'r-2',
-        senderName: 'FHub Academic Support Desk (Anh Tuan - Support Agent)',
-        senderInitials: 'AT',
-        senderRole: 'Staff / Helpdesk',
-        isStaff: true,
-        time: 'October 12, 2026, 09:15',
-        content: 'Thanks for reporting this issue. We are checking the external link and will update you soon. The lecturer in charge has been notified to re-upload the correct syllabus document.',
-      },
-    ],
-  },
-  {
-    id: 't-1024',
-    ticketId: '#TK-1024',
-    title: 'Cannot access SWP391 mentor session recording',
-    category: 'Academic Issue',
-    priority: 'High',
-    status: 'Open',
-    courseCode: 'SWP391',
-    createdDate: 'Oct 14, 2026',
-    updatedDate: 'Oct 14, 2026',
-    reporterName: 'Nguyen Hoang Minh',
-    reporterId: 'SE172481',
-    reporterInitials: 'MH',
-    description: 'The Zoom cloud recording link for Sprint 1 demo is asking for restricted organizational permission that students do not have.',
-    replies: [],
-  },
-  {
-    id: 't-1020',
-    ticketId: '#TK-1020',
-    title: 'University email sync error for Term 5 courses',
-    category: 'Account & SSO',
-    priority: 'Low',
-    status: 'Resolved',
-    courseCode: 'GEN',
-    createdDate: 'Oct 05, 2026',
-    updatedDate: 'Oct 07, 2026',
-    reporterName: 'Nguyen Hoang Minh',
-    reporterId: 'SE172481',
-    reporterInitials: 'MH',
-    description: 'Enrolled courses were not reflecting automatically on the course hub after paying term tuition.',
-    replies: [
-      {
-        id: 'r-101',
-        senderName: 'FHub IT Desk',
-        senderInitials: 'IT',
-        senderRole: 'Staff / Helpdesk',
-        isStaff: true,
-        time: 'October 07, 2026, 11:00',
-        content: 'Synchronized database records with academic portal. All Term 5 courses are now unlocked.',
-      }
-    ],
-  },
-];
-
 export const SupportTicketsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { currentUser } = useAuth();
 
-  const [tickets, setTickets] = useState<SupportTicketItem[]>(INITIAL_TICKETS);
+  const [tickets, setTickets] = useState<SupportTicketItem[]>([]);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(id || null);
   const [activeStatusFilter, setActiveStatusFilter] = useState<'All' | 'Open' | 'In Progress' | 'Resolved' | 'Closed'>('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -157,49 +77,50 @@ export const SupportTicketsPage: React.FC = () => {
 
   // Fetch live tickets from Governance Service
   useEffect(() => {
+    let isMounted = true;
     const fetchLiveTickets = async () => {
       try {
         setLoading(true);
         const result = await studentSupportTicketApi.getMyTickets({ pageSize: 50 });
         const items = result?.items || (result as any)?.data || [];
-        if (Array.isArray(items) && items.length > 0) {
-          const mapped: SupportTicketItem[] = items.map((t: any) => {
-            const ticketIdNum = t.supportTicketId || t.ticketId || t.id;
-            return {
-              id: String(ticketIdNum),
-              ticketId: t.ticketNumber || `#TK-${ticketIdNum}`,
-              title: t.subject || t.title || 'Support Request',
-              category: t.category || 'General',
-              priority: mapApiPriority(t.priority),
-              status: mapApiStatus(t.status),
-              courseCode: t.courseCode || undefined,
-              createdDate: t.createdAt ? new Date(t.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recent',
-              updatedDate: t.updatedAt ? new Date(t.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Recent',
-              reporterName: (currentUser as any)?.fullName || (currentUser as any)?.name || 'Nguyen Hoang Minh',
-              reporterId: currentUser?.studentId || 'SE172481',
-              reporterInitials: ((currentUser as any)?.fullName || 'MH').split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase(),
-              description: t.description || '',
-              replies: [],
-            };
-          });
+        if (isMounted) {
+          if (Array.isArray(items) && items.length > 0) {
+            const mapped: SupportTicketItem[] = items.map((t: any) => {
+              const ticketIdNum = t.supportTicketId || t.ticketId || t.id;
+              return {
+                id: String(ticketIdNum),
+                ticketId: t.ticketNumber || `#TK-${ticketIdNum}`,
+                title: t.subject || t.title || 'Support Request',
+                category: t.category || 'General',
+                priority: mapApiPriority(t.priority),
+                status: mapApiStatus(t.status),
+                courseCode: t.courseCode || undefined,
+                createdDate: t.createdAt ? new Date(t.createdAt).toLocaleDateString('vi-VN') : 'Mới tạo',
+                updatedDate: t.updatedAt ? new Date(t.updatedAt).toLocaleDateString('vi-VN') : 'Mới cập nhật',
+                reporterName: (currentUser as any)?.fullName || (currentUser as any)?.name || 'Sinh viên FHub',
+                reporterId: currentUser?.studentId || 'SE-STUDENT',
+                reporterInitials: ((currentUser as any)?.fullName || 'SV').split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase(),
+                description: t.description || '',
+                replies: [],
+              };
+            });
 
-          const liveIdSet = new Set(mapped.map(m => m.id));
-          const remainingFallback = INITIAL_TICKETS.filter(init => !liveIdSet.has(init.id));
-          const combined = [...mapped, ...remainingFallback];
-          setTickets(combined);
-          if (!selectedTicketId && combined.length > 0) {
-            setSelectedTicketId(combined[0].id);
+            setTickets(mapped);
+          } else {
+            setTickets([]);
           }
         }
       } catch (err) {
-        console.warn('Failed to load tickets from Governance API, using fallback tickets:', err);
+        console.warn('Failed to load tickets from Governance API:', err);
+        if (isMounted) setTickets([]);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
     fetchLiveTickets();
-  }, []);
+    return () => { isMounted = false; };
+  }, [currentUser]);
 
   // Fetch ticket details & messages when selecting a ticket
   useEffect(() => {
@@ -339,13 +260,14 @@ export const SupportTicketsPage: React.FC = () => {
     const messageContent = replyText.trim();
     setReplyText('');
 
+    const userDisplayName = (currentUser as any)?.fullName || (currentUser as any)?.name || 'Bạn';
     const newReply: TicketReply = {
       id: `r-${Date.now()}`,
-      senderName: `You (${(currentUser as any)?.fullName || (currentUser as any)?.name || 'Nguyen Hoang Minh'})`,
-      senderInitials: 'MH',
+      senderName: `Bạn (${userDisplayName})`,
+      senderInitials: userDisplayName.slice(0, 2).toUpperCase(),
       senderRole: 'Student',
       isStaff: false,
-      time: 'Just now',
+      time: 'Vừa xong',
       content: messageContent,
     };
 
@@ -353,19 +275,17 @@ export const SupportTicketsPage: React.FC = () => {
       if (t.id === selectedTicket.id) {
         return {
           ...t,
-          updatedDate: 'Just now',
+          updatedDate: 'Vừa xong',
           replies: [...t.replies, newReply],
         };
       }
       return t;
     }));
 
-    if (!selectedTicket.id.startsWith('t-')) {
-      try {
-        await studentSupportTicketApi.addReply(selectedTicket.id, messageContent);
-      } catch (err) {
-        console.warn('Could not post reply to API:', err);
-      }
+    try {
+      await studentSupportTicketApi.addReply(selectedTicket.id, messageContent);
+    } catch (err) {
+      console.warn('Could not post reply to API:', err);
     }
   };
 
@@ -373,15 +293,13 @@ export const SupportTicketsPage: React.FC = () => {
     if (!selectedTicket) return;
 
     setTickets(prev => prev.map(t => 
-      t.id === selectedTicket.id ? { ...t, status: newStatus, updatedDate: 'Just now' } : t
+      t.id === selectedTicket.id ? { ...t, status: newStatus, updatedDate: 'Vừa xong' } : t
     ));
 
-    if (!selectedTicket.id.startsWith('t-')) {
-      try {
-        await studentSupportTicketApi.updateStatus(selectedTicket.id, newStatus);
-      } catch (err) {
-        console.warn('Could not update status on API:', err);
-      }
+    try {
+      await studentSupportTicketApi.updateStatus(selectedTicket.id, newStatus);
+    } catch (err) {
+      console.warn('Could not update status on API:', err);
     }
   };
 

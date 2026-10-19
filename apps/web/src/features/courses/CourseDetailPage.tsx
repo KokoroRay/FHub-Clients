@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   BookOpen,
@@ -12,37 +12,94 @@ import {
   ArrowLeft,
   Check,
   Share2,
-  ThumbsUp,
   FileDown,
-  Building,
   GraduationCap,
-  Sparkles,
-  Layers,
-  CheckCircle2,
 } from 'lucide-react';
-import { mockCourses, mockQuestions, mockMaterials, mockWorkflows, mockCourseReviews, mockCampuses } from '../../services/mockData';
+import { courseNodesApi, CourseNodeListItem } from '../../services/api/adminApi';
+import { questionApi, studyMaterialApi, workflowApi, courseReviewApi, QuestionListItem, StudyMaterialListItem, WorkflowListItem, CourseReviewListItem } from '../../services/api/contentApi';
 import { Card, CardBody, CardHeader } from '../../components/common/Card';
 import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
 import { Tabs } from '../../components/common/Tabs';
 import { Modal } from '../../components/common/Modal';
-import { Input, Textarea } from '../../components/common/Input';
+import { Textarea } from '../../components/common/Input';
 
 export const CourseDetailPage: React.FC = () => {
   const { code } = useParams<{ code: string }>();
-  const course = mockCourses.find((c) => c.code.toLowerCase() === (code || '').toLowerCase()) || mockCourses[0];
 
+  const [course, setCourse] = useState<CourseNodeListItem | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>('overview');
-  const [isFollowed, setIsFollowed] = useState(course.isFollowed || false);
+  const [isFollowed, setIsFollowed] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
-  const [reviewWorkload, setReviewWorkload] = useState(3);
   const [reviewComment, setReviewComment] = useState('');
 
-  const courseQuestions = mockQuestions.filter((q) => q.courseCode === course.code);
-  const courseMaterials = mockMaterials.filter((m) => m.courseCode === course.code);
-  const courseWorkflows = mockWorkflows.filter((w) => w.courseCode === course.code);
-  const courseReviews = mockCourseReviews.filter((r) => r.courseCode === course.code);
+  const [courseQuestions, setCourseQuestions] = useState<QuestionListItem[]>([]);
+  const [courseMaterials, setCourseMaterials] = useState<StudyMaterialListItem[]>([]);
+  const [courseWorkflows, setCourseWorkflows] = useState<WorkflowListItem[]>([]);
+  const [courseReviews, setCourseReviews] = useState<CourseReviewListItem[]>([]);
+
+  useEffect(() => {
+    if (!code) return;
+    let isMounted = true;
+    setIsLoading(true);
+
+    courseNodesApi.getCourseNodes({ search: code, pageSize: 50 })
+      .then((res) => {
+        if (!isMounted) return;
+        const items = res?.items || [];
+        const match = items.find((c: any) => (c.code || c.courseCode || '').toLowerCase() === code.toLowerCase()) || items[0] || null;
+        setCourse(match);
+        if (match) {
+          const cId = (match as any).courseNodeId || (match as any).id;
+          // Fetch sub-items for this course
+          questionApi.getQuestions({ courseId: cId, pageSize: 20 })
+            .then((qRes) => { if (isMounted) setCourseQuestions(qRes?.items || []); })
+            .catch(() => { if (isMounted) setCourseQuestions([]); });
+
+          studyMaterialApi.getMaterials({ courseId: cId, pageSize: 20 })
+            .then((mRes) => { if (isMounted) setCourseMaterials(mRes?.items || []); })
+            .catch(() => { if (isMounted) setCourseMaterials([]); });
+
+          workflowApi.getWorkflows({ courseId: cId, pageSize: 20 })
+            .then((wRes) => { if (isMounted) setCourseWorkflows(wRes?.items || []); })
+            .catch(() => { if (isMounted) setCourseWorkflows([]); });
+
+          courseReviewApi.getReviews({ courseId: cId, pageSize: 20 })
+            .then((rRes) => { if (isMounted) setCourseReviews(rRes?.items || []); })
+            .catch(() => { if (isMounted) setCourseReviews([]); });
+        }
+      })
+      .catch(() => {
+        if (isMounted) setCourse(null);
+      })
+      .finally(() => {
+        if (isMounted) setIsLoading(false);
+      });
+
+    return () => { isMounted = false; };
+  }, [code]);
+
+  if (isLoading) {
+    return (
+      <div className="p-12 text-center text-slate-400 text-xs">
+        Đang tải thông tin môn học...
+      </div>
+    );
+  }
+
+  if (!course) {
+    return (
+      <div className="p-12 text-center space-y-4 bg-white rounded-2xl border border-slate-200">
+        <h3 className="text-lg font-bold text-slate-800">Không tìm thấy môn học</h3>
+        <p className="text-xs text-slate-500">Mã môn học {code} không tồn tại trong hệ thống.</p>
+        <Link to="/courses" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700">
+          <ArrowLeft className="w-4 h-4" /> Quay lại danh sách môn học
+        </Link>
+      </div>
+    );
+  }
 
   const tabs = [
     { id: 'overview', label: 'Tổng quan & Đề cương', icon: <BookOpen className="w-4 h-4" /> },
@@ -52,20 +109,8 @@ export const CourseDetailPage: React.FC = () => {
     { id: 'reviews', label: 'Đánh giá môn học', count: courseReviews.length, icon: <Star className="w-4 h-4" /> },
   ];
 
-  const campusOfferings = [
-    { campus: 'FU-HL (Hà Nội)', code: 'HL', lecturer: 'TS. Nguyễn Hoàng Nam', syllabusVer: 'v2025.1', semester: 'Spring/Summer/Fall', status: 'Active' },
-    { campus: 'FU-HCM (TP.HCM)', code: 'HCM', lecturer: 'ThS. Trần Quốc Bảo', syllabusVer: 'v2025.1', semester: 'Spring/Summer/Fall', status: 'Active' },
-    { campus: 'FU-DN (Đà Nẵng)', code: 'DN', lecturer: 'TS. Lê Đức Thắng', syllabusVer: 'v2025.1', semester: 'Spring/Fall', status: 'Active' },
-    { campus: 'FU-CT (Cần Thơ)', code: 'CT', lecturer: 'ThS. Võ Minh Trí', syllabusVer: 'v2024.3', semester: 'Spring/Fall', status: 'Active' },
-    { campus: 'FU-QN (Quy Nhơn)', code: 'QN', lecturer: 'ThS. Đặng Hải Đăng', syllabusVer: 'v2024.3', semester: 'Spring/Fall', status: 'Active' },
-  ];
-
-  const topicsBreakdown = [
-    { id: 1, title: 'C# 12 & .NET 8 Advanced Language Features', desc: 'Record types, pattern matching, async streams, memory management & span.' },
-    { id: 2, title: 'Entity Framework Core 8 & SQL Server Integration', desc: 'DbContext pooling, migrations, Fluent API, lazy/eager loading, query optimization.' },
-    { id: 3, title: 'Cross-Platform UI Architecture (WPF / .NET MAUI)', desc: 'MVVM design pattern, XAML bindings, commands, converters, dependency injection in client apps.' },
-    { id: 4, title: 'Clean Architecture, Repository Pattern & Unit of Work', desc: 'Domain-Driven Design basics, CQRS pattern, MediatR, unit testing and mock frameworks.' },
-  ];
+  const rating = (course as any).averageRating || 0;
+  const followers = (course as any).followerCount || 0;
 
   return (
     <div className="space-y-6">
@@ -80,19 +125,23 @@ export const CourseDetailPage: React.FC = () => {
           <div className="space-y-2">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-2xl font-bold text-[#0076D1] tracking-tight">{course.code}</span>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-[#0076D1] border border-blue-100">
-                {course.majorCode} Department
-              </span>
+              {course.majorCode && (
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-[#0076D1] border border-blue-100">
+                  {course.majorCode} Department
+                </span>
+              )}
+              {course.semester && (
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
+                  Học kỳ {course.semester}
+                </span>
+              )}
               <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
-                Học kỳ {course.semester}
-              </span>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
-                {course.credits} Tín chỉ
+                {course.credits || 3} Tín chỉ
               </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-[#181C22] tracking-tight leading-tight">{course.title}</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-[#181C22] tracking-tight leading-tight">{course.name}</h1>
             <p className="text-xs sm:text-sm text-slate-600 max-w-3xl leading-relaxed">
-              {course.description}
+              {course.description || 'Chương trình đào tạo tiêu chuẩn của trường.'}
             </p>
           </div>
 
@@ -121,27 +170,21 @@ export const CourseDetailPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Prerequisites & Quick Stats Row */}
+        {/* Quick Stats Row */}
         <div className="pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-600">
           <div className="flex items-center gap-2">
-            <span className="text-slate-400">Môn tiên quyết:</span>
-            {course.prerequisites && course.prerequisites.length > 0 ? (
-              course.prerequisites.map((pre) => (
-                <Link key={pre} to={`/courses/${pre}`} className="font-bold text-[#0076D1] hover:underline bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
-                  {pre}
-                </Link>
-              ))
-            ) : (
-              <span className="text-slate-400 italic">Không có</span>
-            )}
+            <span className="text-slate-400">Mã môn:</span>
+            <span className="font-bold text-[#0076D1] bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
+              {course.code}
+            </span>
           </div>
 
           <div className="flex items-center gap-6">
             <span className="flex items-center gap-1.5 font-bold text-amber-600">
-              <Star className="w-4 h-4 fill-amber-400 text-amber-400" /> {course.averageRating} / 5.0 (240 đánh giá)
+              <Star className="w-4 h-4 fill-amber-400 text-amber-400" /> {rating > 0 ? rating.toFixed(1) : '0'} / 5.0 ({courseReviews.length} đánh giá)
             </span>
             <span className="flex items-center gap-1.5 text-slate-600">
-              <Users className="w-4 h-4 text-[#0076D1]" /> {course.followerCount.toLocaleString()} Sinh viên theo dõi
+              <Users className="w-4 h-4 text-[#0076D1]" /> {followers.toLocaleString()} Sinh viên theo dõi
             </span>
           </div>
         </div>
@@ -161,85 +204,29 @@ export const CourseDetailPage: React.FC = () => {
                 <CardHeader>
                   <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-2">
                     <GraduationCap className="w-4 h-4 text-blue-600" />
-                    <span>Mục tiêu & Chuẩn đầu ra môn học (CLOs)</span>
+                    <span>Mục tiêu môn học & Đề cương</span>
                   </h3>
                 </CardHeader>
                 <CardBody className="p-5 text-xs sm:text-sm text-slate-600 dark:text-slate-300 space-y-3 leading-relaxed">
                   <p>
-                    Môn học <strong>{course.code}</strong> cung cấp cho sinh viên kiến thức chuyên sâu và kỹ năng thực hành lập trình ứng dụng hiện đại:
+                    {course.description || `Môn học ${course.code} (${course.name}) thuộc chương trình đào tạo của Trường Đại học FPT.`}
                   </p>
-                  <ul className="list-disc list-inside space-y-2 pl-1">
-                    <li>Nắm vững cú pháp nâng cao của C# .NET và các Design Patterns thực tế trong kiến trúc phần mềm.</li>
-                    <li>Sử dụng Entity Framework Core để thiết kế ORM, quản lý migrations và tối ưu hóa truy vấn dữ liệu SQL Server.</li>
-                    <li>Xây dựng kiến trúc phân tầng chuẩn Clean Architecture (Domain, Application, Infrastructure, UI).</li>
-                    <li>Thực hành làm việc nhóm với quy trình Git flow, testing và đóng gói ứng dụng desktop/mobile.</li>
-                  </ul>
-                </CardBody>
-              </Card>
-
-              {/* Topics Breakdown */}
-              <Card>
-                <CardHeader>
-                  <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-purple-600" />
-                    <span>Kiến thức trọng tâm & Topics</span>
-                  </h3>
-                </CardHeader>
-                <CardBody className="p-5 space-y-3">
-                  {topicsBreakdown.map((topic) => (
-                    <div key={topic.id} className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="w-5 h-5 rounded-md bg-blue-600 text-white font-bold text-[11px] flex items-center justify-center shrink-0">
-                          {topic.id}
-                        </span>
-                        <h4 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100">{topic.title}</h4>
-                      </div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 pl-7 leading-relaxed">{topic.desc}</p>
+                  <div className="grid grid-cols-2 gap-3 pt-2 text-xs">
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                      <span className="text-slate-400 block text-[10px]">Số tín chỉ</span>
+                      <strong className="text-slate-800 text-sm">{course.credits || 3} Tín chỉ</strong>
                     </div>
-                  ))}
-                </CardBody>
-              </Card>
-
-              {/* 5-Campus Offering Matrix (Figma Frame 3) */}
-              <Card>
-                <CardHeader>
-                  <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                    <Building className="w-4 h-4 text-emerald-600" />
-                    <span>Phân phối môn học trên 5 Cơ sở FPT</span>
-                  </h3>
-                </CardHeader>
-                <CardBody className="p-0 overflow-x-auto">
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead>
-                      <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 text-slate-500">
-                        <th className="py-3 px-4 font-semibold">Cơ sở</th>
-                        <th className="py-3 px-4 font-semibold">Giảng viên phụ trách</th>
-                        <th className="py-3 px-4 font-semibold">Phiên bản Syllabus</th>
-                        <th className="py-3 px-4 font-semibold">Kỳ mở lớp</th>
-                        <th className="py-3 px-4 font-semibold">Trạng thái</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                      {campusOfferings.map((co) => (
-                        <tr key={co.code} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30">
-                          <td className="py-3 px-4 font-bold text-slate-900 dark:text-slate-100">{co.campus}</td>
-                          <td className="py-3 px-4 text-slate-600 dark:text-slate-300">{co.lecturer}</td>
-                          <td className="py-3 px-4 font-mono text-blue-600 dark:text-blue-400 font-semibold">{co.syllabusVer}</td>
-                          <td className="py-3 px-4 text-slate-500">{co.semester}</td>
-                          <td className="py-3 px-4">
-                            <Badge variant="success" size="sm">{co.status}</Badge>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                      <span className="text-slate-400 block text-[10px]">Học kỳ gợi nghị</span>
+                      <strong className="text-slate-800 text-sm">Học kỳ {course.semester || 'N/A'}</strong>
+                    </div>
+                  </div>
                 </CardBody>
               </Card>
             </div>
 
-            {/* Right Column: Assessment Scheme & Ratings Breakdown */}
+            {/* Right Column: Assessment Scheme */}
             <div className="space-y-6">
-              {/* Assessment Scheme */}
               <Card>
                 <CardHeader>
                   <h4 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100">
@@ -248,61 +235,20 @@ export const CourseDetailPage: React.FC = () => {
                 </CardHeader>
                 <CardBody className="p-5 space-y-3.5 text-xs">
                   <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
-                    <span className="text-slate-600 dark:text-slate-400">Progress Tests & Lab (30%)</span>
-                    <span className="font-bold text-slate-900 dark:text-slate-100">Min 4.0 / 10</span>
+                    <span className="text-slate-600 dark:text-slate-400">Progress Tests & Lab</span>
+                    <span className="font-bold text-slate-900 dark:text-slate-100">Theo Syllabus</span>
                   </div>
                   <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
-                    <span className="text-slate-600 dark:text-slate-400">Practical Exam - PE (30%)</span>
-                    <span className="font-bold text-blue-600">Min 4.0 / 10</span>
+                    <span className="text-slate-600 dark:text-slate-400">Practical Exam (PE)</span>
+                    <span className="font-bold text-blue-600">Theo Syllabus</span>
                   </div>
                   <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
-                    <span className="text-slate-600 dark:text-slate-400">Final Exam - FE (40%)</span>
-                    <span className="font-bold text-purple-600">Min 4.0 / 10</span>
+                    <span className="text-slate-600 dark:text-slate-400">Final Exam (FE)</span>
+                    <span className="font-bold text-purple-600">Theo Syllabus</span>
                   </div>
                   <div className="pt-1 flex items-center justify-between font-bold text-slate-900 dark:text-slate-100">
-                    <span>Điểm tổng kết qua môn:</span>
+                    <span>Điểm qua môn:</span>
                     <span className="text-emerald-600 font-extrabold text-sm">≥ 5.0 / 10</span>
-                  </div>
-                </CardBody>
-              </Card>
-
-              {/* Rating Breakdown Card */}
-              <Card>
-                <CardHeader>
-                  <h4 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                    <Star className="w-4 h-4 text-amber-500 fill-amber-400" />
-                    <span>Đánh giá từ sinh viên</span>
-                  </h4>
-                </CardHeader>
-                <CardBody className="p-5 space-y-3 text-xs">
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                      <span>Chất lượng môn học</span>
-                      <span className="font-bold text-slate-800 dark:text-slate-200">4.8 / 5.0</span>
-                    </div>
-                    <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
-                      <div className="bg-blue-600 h-full rounded-full" style={{ width: '96%' }} />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                      <span>Tính ứng dụng thực tế</span>
-                      <span className="font-bold text-slate-800 dark:text-slate-200">4.9 / 5.0</span>
-                    </div>
-                    <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
-                      <div className="bg-emerald-500 h-full rounded-full" style={{ width: '98%' }} />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                      <span>Độ nặng khối lượng học</span>
-                      <span className="font-bold text-slate-800 dark:text-slate-200">Vừa phải (3.5/5)</span>
-                    </div>
-                    <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
-                      <div className="bg-amber-500 h-full rounded-full" style={{ width: '70%' }} />
-                    </div>
                   </div>
                 </CardBody>
               </Card>
@@ -323,24 +269,28 @@ export const CourseDetailPage: React.FC = () => {
                 </Button>
               </Link>
             </div>
-            {courseQuestions.map((q) => (
-              <Card key={q.id} hoverable>
-                <CardBody className="p-5 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <img src={q.author.avatarUrl} alt={q.author.fullName} className="w-6 h-6 rounded-full object-cover" />
-                      <span className="font-bold text-xs text-slate-800 dark:text-slate-200">{q.author.fullName}</span>
-                      <span className="text-[10px] text-slate-400">• {new Date(q.createdAt).toLocaleDateString('vi-VN')}</span>
+            {courseQuestions.length === 0 ? (
+              <div className="p-8 text-center text-slate-400 text-xs bg-white rounded-xl border border-slate-200">
+                Chưa có câu hỏi thảo luận nào cho môn học này.
+              </div>
+            ) : (
+              courseQuestions.map((q) => (
+                <Card key={q.questionId} hoverable>
+                  <CardBody className="p-5 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-xs text-slate-800 dark:text-slate-200">
+                        {q.isAnonymous ? 'Ẩn danh FPTer' : (q.authorDisplayName || `User #${q.authorUserId || 1}`)}
+                      </span>
+                      {q.hasBestAnswer && <Badge variant="success" size="sm">Đã có Best Answer</Badge>}
                     </div>
-                    {q.isSolved && <Badge variant="success" size="sm">Đã có Best Answer</Badge>}
-                  </div>
-                  <Link to={`/discussions/${q.id}`} className="font-bold text-sm text-slate-900 dark:text-slate-100 hover:text-blue-600 block">
-                    {q.title}
-                  </Link>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">{q.content}</p>
-                </CardBody>
-              </Card>
-            ))}
+                    <Link to={`/discussions/${q.questionId}`} className="font-bold text-sm text-slate-900 dark:text-slate-100 hover:text-blue-600 block">
+                      {q.title}
+                    </Link>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">{q.body}</p>
+                  </CardBody>
+                </Card>
+              ))
+            )}
           </div>
         )}
 
@@ -349,7 +299,7 @@ export const CourseDetailPage: React.FC = () => {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-base text-slate-900 dark:text-slate-100">
-                Tài liệu & Đề thi môn {course.code}
+                Tài liệu & Đề thi môn {course.code} ({courseMaterials.length})
               </h3>
               <Link to="/materials?action=upload">
                 <Button size="sm" variant="primary" leftIcon={<Plus className="w-4 h-4" />}>
@@ -357,22 +307,32 @@ export const CourseDetailPage: React.FC = () => {
                 </Button>
               </Link>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {courseMaterials.map((m) => (
-                <Card key={m.id} hoverable>
-                  <CardBody className="p-4 flex items-start justify-between gap-3">
-                    <div className="space-y-1">
-                      <Badge variant="primary" size="sm">{m.fileType || 'PDF'}</Badge>
-                      <h4 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100">{m.title}</h4>
-                      <p className="text-[11px] text-slate-500">{m.fileSizeMb ? `${m.fileSizeMb} MB` : '1.5 MB'} • {m.downloadsCount} lượt tải</p>
-                    </div>
-                    <Button size="sm" variant="secondary" leftIcon={<FileDown className="w-4 h-4" />}>
-                      Tải về
-                    </Button>
-                  </CardBody>
-                </Card>
-              ))}
-            </div>
+            {courseMaterials.length === 0 ? (
+              <div className="p-8 text-center text-slate-400 text-xs bg-white rounded-xl border border-slate-200">
+                Chưa có tài liệu nào cho môn học này.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {courseMaterials.map((m) => (
+                  <Card key={m.studyMaterialId} hoverable>
+                    <CardBody className="p-4 flex items-start justify-between gap-3">
+                      <div className="space-y-1">
+                        <Badge variant="primary" size="sm">{m.materialType || 'PDF'}</Badge>
+                        <h4 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100">{m.title}</h4>
+                        <p className="text-[11px] text-slate-500">
+                          {m.fileSizeBytes ? `${(m.fileSizeBytes / (1024 * 1024)).toFixed(1)} MB` : 'Tài liệu'} • {m.downloadCount || 0} lượt tải
+                        </p>
+                      </div>
+                      <Link to={`/materials/${m.studyMaterialId}`}>
+                        <Button size="sm" variant="secondary" leftIcon={<FileDown className="w-4 h-4" />}>
+                          Chi tiết
+                        </Button>
+                      </Link>
+                    </CardBody>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -381,7 +341,7 @@ export const CourseDetailPage: React.FC = () => {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-base text-slate-900 dark:text-slate-100">
-                Workflows & Kiến trúc mẫu
+                Workflows & Kiến trúc mẫu ({courseWorkflows.length})
               </h3>
               <Link to="/workflows?action=create">
                 <Button size="sm" variant="primary" leftIcon={<Plus className="w-4 h-4" />}>
@@ -389,19 +349,25 @@ export const CourseDetailPage: React.FC = () => {
                 </Button>
               </Link>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {courseWorkflows.map((w) => (
-                <Card key={w.id} hoverable>
-                  <CardBody className="p-5 space-y-2">
-                    <Badge variant="purple" size="sm">{w.technology}</Badge>
-                    <Link to={`/workflows/${w.id}`} className="font-bold text-sm text-slate-900 dark:text-slate-100 hover:text-blue-600 block">
-                      {w.title}
-                    </Link>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">{w.description}</p>
-                  </CardBody>
-                </Card>
-              ))}
-            </div>
+            {courseWorkflows.length === 0 ? (
+              <div className="p-8 text-center text-slate-400 text-xs bg-white rounded-xl border border-slate-200">
+                Chưa có workflow nào cho môn học này.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {courseWorkflows.map((w) => (
+                  <Card key={w.workflowId} hoverable>
+                    <CardBody className="p-5 space-y-2">
+                      <Badge variant="purple" size="sm">v{(w as any).version || 1}</Badge>
+                      <Link to={`/workflows/${w.workflowId}`} className="font-bold text-sm text-slate-900 dark:text-slate-100 hover:text-blue-600 block">
+                        {w.title}
+                      </Link>
+                      <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">{w.summary}</p>
+                    </CardBody>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -416,23 +382,30 @@ export const CourseDetailPage: React.FC = () => {
                 Viết đánh giá
               </Button>
             </div>
-            {courseReviews.map((r) => (
-              <Card key={r.id}>
-                <CardBody className="p-5 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-xs text-slate-800 dark:text-slate-200">{r.reviewer?.fullName || 'Sinh viên ẩn danh'}</span>
-                      <Badge variant="neutral" size="sm">{r.semesterTaken || 'FA24'}</Badge>
+            {courseReviews.length === 0 ? (
+              <div className="p-8 text-center text-slate-400 text-xs bg-white rounded-xl border border-slate-200">
+                Chưa có đánh giá nào cho môn học này.
+              </div>
+            ) : (
+              courseReviews.map((r) => (
+                <Card key={r.courseReviewId}>
+                  <CardBody className="p-5 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-xs text-slate-800 dark:text-slate-200">
+                        {r.isAnonymous ? 'Sinh viên ẩn danh' : `Sinh viên #${r.authorUserId || 1}`}
+                      </span>
+                      <div className="flex items-center text-amber-500 font-bold text-xs">
+                        <Star className="w-3.5 h-3.5 fill-amber-400" />
+                        <span className="ml-1">{r.overallRating} / 5.0</span>
+                      </div>
                     </div>
-                    <div className="flex items-center text-amber-500 font-bold text-xs">
-                      <Star className="w-3.5 h-3.5 fill-amber-400" />
-                      <span className="ml-1">{r.rating} / 5.0</span>
-                    </div>
-                  </div>
-                  <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">{r.comment}</p>
-                </CardBody>
-              </Card>
-            ))}
+                    <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                      {r.reviewContent || r.survivalTips}
+                    </p>
+                  </CardBody>
+                </Card>
+              ))
+            )}
           </div>
         )}
       </div>

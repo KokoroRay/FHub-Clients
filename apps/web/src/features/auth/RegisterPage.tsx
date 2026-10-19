@@ -1,11 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, User as UserIcon, ArrowRight, Eye, EyeOff, ShieldCheck, MapPin } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { mockCampuses, mockCurrentUser } from '../../services/mockData';
 import { User } from '../../types';
-
-import { authApi } from '../../services/api/adminApi';
+import { authApi, campusesApi } from '../../services/api/adminApi';
 
 export const RegisterPage: React.FC = () => {
   const { login } = useAuth();
@@ -13,13 +11,36 @@ export const RegisterPage: React.FC = () => {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [studentId, setStudentId] = useState('');
-  const [campus, setCampus] = useState('HCM');
+  const [campus, setCampus] = useState('');
+  const [campuses, setCampuses] = useState<Array<{ code: string; name: string }>>([]);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadCampuses = async () => {
+      try {
+        const res = await campusesApi.getCampuses();
+        const items = (res as any)?.items || res || [];
+        if (isMounted && Array.isArray(items) && items.length > 0) {
+          const mapped = items.map((c: any) => ({
+            code: c.code || c.campusCode,
+            name: c.name || c.campusName || c.code,
+          }));
+          setCampuses(mapped);
+          if (mapped[0]) setCampus(mapped[0].code);
+        }
+      } catch (err) {
+        console.warn('Failed to load campuses in RegisterPage:', err);
+      }
+    };
+    loadCampuses();
+    return () => { isMounted = false; };
+  }, []);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,11 +77,11 @@ export const RegisterPage: React.FC = () => {
         id: String(result.user?.userId || `u-${Date.now()}`),
         email: result.user?.email || email,
         fullName: result.user?.fullName || fullName,
-        studentId: result.user?.studentCode || studentId.trim().toUpperCase() || 'SE180001',
+        studentId: result.user?.studentCode || studentId.trim().toUpperCase() || '',
         role: 'Student',
-        campus: (result.user?.campusCode as any) || (campus as any) || 'HL',
-        avatarUrl: result.user?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-        karma: 100,
+        campus: (result.user?.campusCode as any) || (campus as any) || '',
+        avatarUrl: result.user?.avatarUrl || '',
+        karma: 0,
         status: 'ACTIVE',
         badges: []
       };
@@ -213,11 +234,15 @@ export const RegisterPage: React.FC = () => {
                       onChange={(e) => setCampus(e.target.value)}
                       className="w-full bg-slate-50/60 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0076D1]/20 focus:border-[#0076D1] transition-all cursor-pointer"
                     >
-                      {mockCampuses.map((c) => (
-                        <option key={c.code} value={c.code}>
-                          {c.code} - {c.name}
-                        </option>
-                      ))}
+                      {campuses.length > 0 ? (
+                        campuses.map((c) => (
+                          <option key={c.code} value={c.code}>
+                            {c.code} - {c.name}
+                          </option>
+                        ))
+                      ) : (
+                        <option value="">Đang tải Campus...</option>
+                      )}
                     </select>
                   </div>
                 </div>

@@ -485,6 +485,8 @@ export interface MajorItemDto {
   majorId: number;
   majorCode: string;
   majorName: string;
+  code?: string;
+  name?: string;
   description?: string;
   isActive: boolean;
   vietnameseName?: string;
@@ -508,6 +510,8 @@ export interface MajorItemDto {
   }>;
 }
 
+export type MajorListItem = MajorItemDto;
+
 export const majorsApi = {
   getMajors: async (params?: { search?: string; isActive?: boolean; pageNumber?: number; pageSize?: number }) => {
     const query = new URLSearchParams();
@@ -517,7 +521,21 @@ export const majorsApi = {
     if (params?.pageSize) query.set('pageSize', String(params.pageSize));
 
     const res = await apiClient.get<any>(`/api/majors?${query.toString()}`);
-    return res.data?.data ?? res.data;
+    const data = res.data?.data ?? res.data;
+    if (data && Array.isArray(data.items)) {
+      data.items = data.items.map((m: any) => ({
+        ...m,
+        code: m.majorCode ?? m.code,
+        name: m.majorName ?? m.name,
+      }));
+    } else if (Array.isArray(data)) {
+      return data.map((m: any) => ({
+        ...m,
+        code: m.majorCode ?? m.code,
+        name: m.majorName ?? m.name,
+      }));
+    }
+    return data;
   },
 
   getMajorById: async (id: number | string) => {
@@ -625,8 +643,16 @@ export interface CourseNodeDto {
   courseNodeId: number;
   courseCode: string;
   courseName: string;
-  description?: string;
+  id?: string | number;
+  code?: string;
+  name?: string;
+  title?: string;
+  credits?: number;
   creditCount?: number;
+  semester?: number | string;
+  majorCode?: string;
+  majorId?: number;
+  description?: string;
   isActive: boolean;
   vietnameseTitle?: string;
   department?: string;
@@ -646,6 +672,8 @@ export interface CourseNodeDto {
   }>;
 }
 
+export type CourseNodeListItem = CourseNodeDto;
+
 export const courseNodesApi = {
   getCourseNodes: async (params?: { search?: string; isActive?: boolean; pageNumber?: number; pageSize?: number }) => {
     const query = new URLSearchParams();
@@ -654,12 +682,35 @@ export const courseNodesApi = {
     if (params?.pageNumber) query.set('pageNumber', String(params.pageNumber));
     if (params?.pageSize) query.set('pageSize', String(params.pageSize));
 
+    const normalize = (data: any) => {
+      if (data && Array.isArray(data.items)) {
+        data.items = data.items.map((c: any) => ({
+          ...c,
+          id: c.courseNodeId ?? c.id,
+          code: c.courseCode ?? c.code,
+          name: c.courseName ?? c.name,
+          title: c.courseName ?? c.title,
+          credits: c.creditCount ?? c.credits ?? 3,
+        }));
+      } else if (Array.isArray(data)) {
+        return data.map((c: any) => ({
+          ...c,
+          id: c.courseNodeId ?? c.id,
+          code: c.courseCode ?? c.code,
+          name: c.courseName ?? c.name,
+          title: c.courseName ?? c.title,
+          credits: c.creditCount ?? c.credits ?? 3,
+        }));
+      }
+      return data;
+    };
+
     try {
       const res = await apiClient.get<any>(`/api/courses?${query.toString()}`);
-      return res.data?.data ?? res.data;
+      return normalize(res.data?.data ?? res.data);
     } catch {
       const res = await apiClient.get<any>(`/api/course-nodes?${query.toString()}`);
-      return res.data?.data ?? res.data;
+      return normalize(res.data?.data ?? res.data);
     }
   },
 

@@ -33,8 +33,8 @@ export const LeftSidebar: React.FC = () => {
     { name: 'Questions', path: '/discussions', icon: HelpCircle },
   ];
 
-  const commNav = [
-    { name: 'Messages', path: '/messages', icon: Users, badge: 2 },
+  const commNav: Array<{ name: string; path: string; icon: any; badge?: number | string }> = [
+    { name: 'Messages', path: '/messages', icon: Users },
     { name: 'Bookmarks', path: '/bookmarks', icon: Bookmark },
   ];
 

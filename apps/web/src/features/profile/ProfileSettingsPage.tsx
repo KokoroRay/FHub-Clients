@@ -34,26 +34,18 @@ export const ProfileSettingsPage: React.FC = () => {
   const [showContributionActivity, setShowContributionActivity] = useState(true);
 
   // Muted Tags (Figma #93:4497)
-  const [mutedTags, setMutedTags] = useState<string[]>(['spoilers', 'off-topic']);
+  const [mutedTags, setMutedTags] = useState<string[]>([]);
   const [newTagInput, setNewTagInput] = useState('');
 
   // Active Sessions
   const [activeSessions, setActiveSessions] = useState([
     {
-      id: 'session-1',
-      device: 'Windows PC · Chrome',
-      location: 'Ho Chi Minh City, VN',
-      ip: '118.69.182.41',
-      lastActive: 'Now',
+      id: 'session-current',
+      device: typeof navigator !== 'undefined' && navigator.userAgent.includes('Windows') ? 'Windows PC · Trình duyệt hiện tại' : 'Thiết bị hiện tại',
+      location: 'Việt Nam',
+      ip: '127.0.0.1',
+      lastActive: 'Đang hoạt động',
       isCurrent: true
-    },
-    {
-      id: 'session-2',
-      device: 'iPhone 15 Pro · Safari Mobile',
-      location: 'Ho Chi Minh City, VN',
-      ip: '14.169.102.18',
-      lastActive: '3 hours ago',
-      isCurrent: false
     }
   ]);
 
@@ -105,8 +97,8 @@ export const ProfileSettingsPage: React.FC = () => {
       setIsExporting(false);
       // Client-side JSON file download
       const blob = new Blob([JSON.stringify({
-        user: (currentUser as any)?.fullName || (currentUser as any)?.name || 'Nguyen Hoang Minh',
-        email: currentUser?.email || 'bao.nguyen@example.edu',
+        user: (currentUser as any)?.fullName || (currentUser as any)?.name || 'Sinh viên FHub',
+        email: currentUser?.email || '',
         exportDate: new Date().toISOString(),
         settings: {
           language,
@@ -151,7 +143,7 @@ export const ProfileSettingsPage: React.FC = () => {
   };
 
   const handleResetDefaults = () => {
-    setLanguage('en');
+    setLanguage('vi');
     setDefaultFeed('global');
     setThemeMode('light');
     setEmailNotifications(true);
@@ -160,7 +152,7 @@ export const ProfileSettingsPage: React.FC = () => {
     setShowAcademicInfo(true);
     setAllowDirectMessages(true);
     setShowContributionActivity(true);
-    setMutedTags(['spoilers', 'off-topic']);
+    setMutedTags([]);
   };
 
   return (

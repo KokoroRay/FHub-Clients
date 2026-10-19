@@ -9,7 +9,6 @@ import {
   Eye,
   CheckCircle2,
 } from 'lucide-react';
-import { mockMarketplaceListings } from '../../services/mockData';
 import { MarketplaceListing } from '../../types';
 import { Card, CardBody } from '../../components/common/Card';
 import { Badge } from '../../components/common/Badge';
@@ -23,7 +22,7 @@ export const MarketplaceListPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [isCreateOpen, setIsCreateOpen] = useState(shouldOpenCreate);
-  const [listings, setListings] = useState<MarketplaceListing[]>(mockMarketplaceListings);
+  const [listings, setListings] = useState<MarketplaceListing[]>([]);
 
   const categories = ['ALL', 'Electronics', 'Books', 'Study Materials', 'Accessories'];
 
@@ -88,52 +87,60 @@ export const MarketplaceListPage: React.FC = () => {
 
       {/* Listings Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
-        {filteredListings.map((item) => (
-          <Card key={item.id} hoverable className="overflow-hidden flex flex-col justify-between">
-            <div className="h-44 w-full bg-slate-100 overflow-hidden relative">
-              <img
-                src={item.images[0] || 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=600&auto=format&fit=crop&q=80'}
-                alt={item.title}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              />
-              <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
-                <Badge variant="success" size="sm">
-                  {item.condition}
-                </Badge>
-                <Badge variant="neutral" size="sm" className="bg-black/50 text-white backdrop-blur-xs">
-                  {item.campus}
-                </Badge>
-              </div>
-            </div>
-
-            <CardBody className="p-4 space-y-2.5 flex-1 flex flex-col justify-between">
-              <div>
-                <div className="text-base font-black text-rose-600 dark:text-rose-400">
-                  {item.price.toLocaleString()} {item.currency}
+        {filteredListings.length === 0 ? (
+          <div className="col-span-full py-16 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
+            <ShoppingBag className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+            <p className="text-sm font-bold text-slate-700 dark:text-slate-300">Chưa có sản phẩm nào được đăng bán</p>
+            <p className="text-xs text-slate-400 mt-1">Hãy trở thành người đầu tiên đăng tin trên FHub Marketplace.</p>
+          </div>
+        ) : (
+          filteredListings.map((item) => (
+            <Card key={item.id} hoverable className="overflow-hidden flex flex-col justify-between">
+              <div className="h-44 w-full bg-slate-100 overflow-hidden relative">
+                <img
+                  src={item.images[0] || 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=600&auto=format&fit=crop&q=80'}
+                  alt={item.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                />
+                <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
+                  <Badge variant="success" size="sm">
+                    {item.condition}
+                  </Badge>
+                  <Badge variant="neutral" size="sm" className="bg-black/50 text-white backdrop-blur-xs">
+                    {item.campus}
+                  </Badge>
                 </div>
-                <Link
-                  to={`/marketplace/${item.id}`}
-                  className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100 hover:text-blue-600 transition-colors line-clamp-2 mt-1 block leading-snug"
-                >
-                  {item.title}
-                </Link>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 mt-1">
-                  {item.description}
-                </p>
               </div>
 
-              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
-                <div className="flex items-center gap-1.5">
-                  <img src={item.seller.avatarUrl} alt={item.seller.fullName} className="w-5 h-5 rounded-full object-cover" />
-                  <span className="text-slate-700 dark:text-slate-300 font-medium truncate max-w-[100px]">{item.seller.fullName}</span>
+              <CardBody className="p-4 space-y-2.5 flex-1 flex flex-col justify-between">
+                <div>
+                  <div className="text-base font-black text-rose-600 dark:text-rose-400">
+                    {item.price.toLocaleString()} {item.currency}
+                  </div>
+                  <Link
+                    to={`/marketplace/${item.id}`}
+                    className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100 hover:text-blue-600 transition-colors line-clamp-2 mt-1 block leading-snug"
+                  >
+                    {item.title}
+                  </Link>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2 mt-1">
+                    {item.description}
+                  </p>
                 </div>
-                <span className="flex items-center gap-1">
-                  <Eye className="w-3 h-3" /> {item.viewsCount}
-                </span>
-              </div>
-            </CardBody>
-          </Card>
-        ))}
+
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+                  <div className="flex items-center gap-1.5">
+                    <img src={item.seller.avatarUrl} alt={item.seller.fullName} className="w-5 h-5 rounded-full object-cover" />
+                    <span className="text-slate-700 dark:text-slate-300 font-medium truncate max-w-[100px]">{item.seller.fullName}</span>
+                  </div>
+                  <span className="flex items-center gap-1">
+                    <Eye className="w-3 h-3" /> {item.viewsCount}
+                  </span>
+                </div>
+              </CardBody>
+            </Card>
+          ))
+        )}
       </div>
 
       <CreateListingModal

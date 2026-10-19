@@ -16,41 +16,61 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { courseReviewApi } from '../../services/api/contentApi';
 
+interface ReviewDetail {
+  id: string;
+  courseCode: string;
+  courseTitle: string;
+  reviewer: {
+    id: string;
+    fullName: string;
+    avatarUrl: string;
+    studentId: string;
+  };
+  rating: number;
+  workloadRating: number;
+  difficultyRating: number;
+  title: string;
+  comment: string;
+  semesterTaken: string;
+  lecturerName: string;
+  upvotes: number;
+  createdAt: string;
+}
+
+interface ReviewComment {
+  id: string;
+  author: string;
+  avatar: string;
+  content: string;
+  time: string;
+}
+
 export const CourseEvaluationDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
 
-  const [evaluation, setEvaluation] = useState({
-    id: id || 'eval-1',
-    courseCode: 'PRN211',
-    courseTitle: 'Basic Cross-Platform App Programming',
-    reviewer: {
-      id: 'u-1',
-      fullName: 'Le Quang Huy',
-      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
-      studentId: 'SE172091',
-    },
-    rating: 5,
-    workloadRating: 4,
-    difficultyRating: 3,
-    title: 'Kinh nghiệm đạt điểm 9+ môn PRN211 kỳ Spring 2025',
-    comment:
-      'PRN211 là môn học nền tảng cực tốt về C# và hệ sinh thái .NET. Thầy Bình dạy rất chi tiết về async/await, Entity Framework Core và mô hình Clean Architecture. Chú ý làm kỹ các Lab WPF và nộp assignment đúng hạn thì việc qua môn và đạt điểm 8+ hoàn toàn trong tầm tay.\n\nĐề thi Practical Exam (PE) thường gồm 2 phần: xây dựng cơ sở dữ liệu với Code First / Database First, sau đó làm giao diện WinForms hoặc WPF để thực hiện các thao tác CRUD và tìm kiếm dữ liệu. Cần lưu ý việc bind dữ liệu vào DataGridView và bắt ngoại lệ Validation.',
-    semesterTaken: 'Spring 2025',
-    lecturerName: 'Thầy Bùi Đình Bình',
-    upvotes: 42,
-    createdAt: '2025-02-14T08:00:00Z',
-  });
+  const [evaluation, setEvaluation] = useState<ReviewDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isUpvoted, setIsUpvoted] = useState(false);
+  const [comments, setComments] = useState<ReviewComment[]>([]);
+  const [commentInput, setCommentInput] = useState('');
 
   useEffect(() => {
-    if (!id) return;
+    if (!id) {
+      setLoading(false);
+      return;
+    }
     const numericId = Number(id);
-    if (isNaN(numericId)) return;
+    if (isNaN(numericId)) {
+      setLoading(false);
+      return;
+    }
 
     let isMounted = true;
     const fetchReview = async () => {
       try {
+        setLoading(true);
         const data = await courseReviewApi.getReviewById(numericId);
         if (isMounted && data) {
           setEvaluation({
@@ -58,55 +78,40 @@ export const CourseEvaluationDetailPage: React.FC = () => {
             courseCode: `CRS-${data.courseId}`,
             courseTitle: `Course #${data.courseId}`,
             reviewer: {
-              id: data.isAnonymous ? 'anon' : String(data.authorUserId || 'u-1'),
-              fullName: data.isAnonymous ? 'Sinh viên ẩn danh' : `Sinh viên #${data.authorUserId || 1}`,
-              avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+              id: data.isAnonymous ? 'anon' : String(data.authorUserId || ''),
+              fullName: data.isAnonymous ? 'Sinh viên ẩn danh' : `Sinh viên #${data.authorUserId || ''}`,
+              avatarUrl: '',
               studentId: data.isAnonymous ? 'ANONYMOUS' : 'SE-STUDENT',
             },
-            rating: data.overallRating,
-            workloadRating: data.workloadRating,
-            difficultyRating: data.difficultyRating,
+            rating: data.overallRating || 0,
+            workloadRating: data.workloadRating || 0,
+            difficultyRating: data.difficultyRating || 0,
             title: data.survivalTips || `Đánh giá môn học #${data.courseId}`,
             comment: data.reviewContent || '',
-            semesterTaken: `${data.semesterCode} ${data.academicYear}`,
+            semesterTaken: `${data.semesterCode || ''} ${data.academicYear || ''}`.trim() || 'N/A',
             lecturerName: 'Bộ môn FPTU',
             upvotes: 0,
             createdAt: data.createdAt,
           });
         }
       } catch (err) {
-        console.warn('Backend course review detail unavailable, keeping fallback mock data', err);
+        console.warn('Backend course review detail unavailable:', err);
+      } finally {
+        if (isMounted) setLoading(false);
       }
     };
     fetchReview();
     return () => { isMounted = false; };
   }, [id]);
-
-  const [isUpvoted, setIsUpvoted] = useState(false);
-  const [comments, setComments] = useState([
-    {
-      id: 'c-1',
-      author: 'Nguyen Hoang Minh',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
-      content: 'Cảm ơn bạn đã chia sẻ, đề thi PE có yêu cầu viết Unit Test không bạn ơi?',
-      time: '2 ngày trước',
-    },
-    {
-      id: 'c-2',
-      author: 'Le Quang Huy',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
-      content: 'Thường thì PE chỉ yêu cầu CRUD kết nối SQL Server hoàn chỉnh thôi bạn nhé, Unit Test nằm ở assignment!',
-      time: '1 ngày trước',
-    },
-  ]);
-  const [commentInput, setCommentInput] = useState('');
-
   const handleVote = () => {
     setIsUpvoted(!isUpvoted);
-    setEvaluation((prev) => ({
-      ...prev,
-      upvotes: prev.upvotes + (isUpvoted ? -1 : 1),
-    }));
+    setEvaluation((prev) => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        upvotes: (prev.upvotes || 0) + (isUpvoted ? -1 : 1),
+      };
+    });
   };
 
   const handleAddComment = (e: React.FormEvent) => {
@@ -124,6 +129,46 @@ export const CourseEvaluationDetailPage: React.FC = () => {
     ]);
     setCommentInput('');
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <Link
+          to="/course-evaluations"
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#0076D1] transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" /> Quay lại danh sách đánh giá
+        </Link>
+        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-12 text-center text-xs text-slate-400">
+          Đang tải thông tin đánh giá...
+        </div>
+      </div>
+    );
+  }
+
+  if (!evaluation) {
+    return (
+      <div className="space-y-6">
+        <Link
+          to="/course-evaluations"
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#0076D1] transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" /> Quay lại danh sách đánh giá
+        </Link>
+        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-12 text-center">
+          <BookOpen className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+          <h3 className="text-sm font-bold text-slate-700 mb-1">Không tìm thấy đánh giá</h3>
+          <p className="text-xs text-slate-400 mb-4">Bài đánh giá môn học này không tồn tại hoặc đã bị xóa.</p>
+          <button
+            onClick={() => navigate('/course-evaluations')}
+            className="px-4 py-2 bg-[#0076D1] hover:bg-[#005DA7] text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
+          >
+            Về trang đánh giá
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -172,11 +217,17 @@ export const CourseEvaluationDetailPage: React.FC = () => {
         {/* Reviewer Meta Bar */}
         <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl border border-slate-100 text-xs">
           <div className="flex items-center gap-3">
-            <img
-              src={evaluation.reviewer.avatarUrl}
-              alt={evaluation.reviewer.fullName}
-              className="w-8 h-8 rounded-full object-cover ring-1 ring-slate-200"
-            />
+            {evaluation.reviewer.avatarUrl ? (
+              <img
+                src={evaluation.reviewer.avatarUrl}
+                alt={evaluation.reviewer.fullName}
+                className="w-8 h-8 rounded-full object-cover ring-1 ring-slate-200"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center font-bold text-xs ring-1 ring-slate-200">
+                <User className="w-4 h-4" />
+              </div>
+            )}
             <div>
               <span className="font-bold text-slate-800 block">{evaluation.reviewer.fullName}</span>
               <span className="text-[10px] text-slate-400 font-mono">{evaluation.reviewer.studentId}</span>
@@ -243,20 +294,26 @@ export const CourseEvaluationDetailPage: React.FC = () => {
         </form>
 
         <div className="space-y-3 pt-2">
-          {comments.map((c) => (
-            <div key={c.id} className="p-3.5 rounded-xl bg-slate-50/60 border border-slate-100 flex items-start gap-3">
-              <div className="w-7 h-7 rounded-full bg-blue-100 text-[#0076D1] font-bold text-xs flex items-center justify-center shrink-0">
-                {c.author.slice(0, 2).toUpperCase()}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-bold text-xs text-slate-800">{c.author}</span>
-                  <span className="text-[10px] text-slate-400">{c.time}</span>
-                </div>
-                <p className="text-xs text-slate-600 leading-relaxed">{c.content}</p>
-              </div>
+          {comments.length === 0 ? (
+            <div className="py-6 text-center text-xs text-slate-400">
+              Chưa có bình luận nào. Hãy là người đầu tiên đặt câu hỏi hoặc chia sẻ!
             </div>
-          ))}
+          ) : (
+            comments.map((c) => (
+              <div key={c.id} className="p-3.5 rounded-xl bg-slate-50/60 border border-slate-100 flex items-start gap-3">
+                <div className="w-7 h-7 rounded-full bg-blue-100 text-[#0076D1] font-bold text-xs flex items-center justify-center shrink-0">
+                  {c.author.slice(0, 2).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-bold text-xs text-slate-800">{c.author}</span>
+                    <span className="text-[10px] text-slate-400">{c.time}</span>
+                  </div>
+                  <p className="text-xs text-slate-600 leading-relaxed">{c.content}</p>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>

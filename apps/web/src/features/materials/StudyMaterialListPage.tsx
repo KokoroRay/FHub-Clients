@@ -16,7 +16,7 @@ import {
   ArrowRight,
   Filter,
 } from 'lucide-react';
-import { mockMaterials, mockCourses } from '../../services/mockData';
+import { courseNodesApi, CourseNodeListItem } from '../../services/api/adminApi';
 import { StudyMaterial } from '../../types';
 import { UploadStudyMaterialModal } from './UploadStudyMaterialModal';
 import { AddExternalLinkModal } from './AddExternalLinkModal';
@@ -33,8 +33,15 @@ export const StudyMaterialListPage: React.FC = () => {
   const [sortBy, setSortBy] = useState<'downloads' | 'newest'>('downloads');
   const [isUploadOpen, setIsUploadOpen] = useState(shouldOpenUpload);
   const [isAddLinkOpen, setIsAddLinkOpen] = useState(shouldOpenAddLink);
-  const [materials, setMaterials] = useState<StudyMaterial[]>(mockMaterials);
+  const [materials, setMaterials] = useState<StudyMaterial[]>([]);
+  const [availableCourses, setAvailableCourses] = useState<CourseNodeListItem[]>([]);
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
+
+  React.useEffect(() => {
+    courseNodesApi.getCourseNodes({ pageSize: 50 })
+      .then((res) => setAvailableCourses(res?.items || []))
+      .catch(() => setAvailableCourses([]));
+  }, []);
 
   React.useEffect(() => {
     const fetchMaterials = async () => {
@@ -43,27 +50,27 @@ export const StudyMaterialListPage: React.FC = () => {
           search: searchQuery.trim() || undefined,
           pageSize: 20,
         });
-        if (res && res.items && res.items.length > 0) {
+        if (res && res.items) {
           const mapped: StudyMaterial[] = res.items.map((item) => ({
             id: String(item.studyMaterialId),
             title: item.title,
             description: item.description || 'Tài liệu học tập FHub',
-            courseCode: 'PRN211',
+            courseCode: item.courseId ? `COURSE-${item.courseId}` : 'GEN',
             fileType: (item.materialType === 'LINK' ? 'ZIP' : 'PDF') as any,
-            fileSizeMb: item.fileSizeBytes ? Number((item.fileSizeBytes / (1024 * 1024)).toFixed(1)) : 1.5,
+            fileSizeMb: item.fileSizeBytes ? Number((item.fileSizeBytes / (1024 * 1024)).toFixed(1)) : 0,
             downloadUrl: item.externalUrl || `/api/content/study-materials/${item.studyMaterialId}/download`,
             downloadsCount: item.downloadCount || 0,
             author: {
               id: String(item.uploaderUserId),
               fullName: 'Sinh viên FHub',
             },
-            semesterUploaded: 'Spring 2025',
+            semesterUploaded: 'N/A',
             createdAt: item.createdAt || new Date().toISOString(),
           }));
-          setMaterials([...mapped, ...mockMaterials]);
+          setMaterials(mapped);
         }
       } catch (err) {
-        console.warn('Backend materials fetch notice:', err);
+        setMaterials([]);
       }
     };
     fetchMaterials();
@@ -169,9 +176,9 @@ export const StudyMaterialListPage: React.FC = () => {
             className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-[#0076D1] cursor-pointer"
           >
             <option value="ALL">All Courses</option>
-            {mockCourses.map((c) => (
+            {availableCourses.map((c) => (
               <option key={c.code} value={c.code}>
-                {c.code} - {c.title}
+                {c.code} - {c.name}
               </option>
             ))}
           </select>

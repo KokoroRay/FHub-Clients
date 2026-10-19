@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   Workflow,
@@ -8,21 +8,63 @@ import {
   ArrowLeft,
   Terminal,
   Share2,
-  Bookmark,
-  Eye,
-  CheckCircle2,
 } from 'lucide-react';
-import { mockWorkflows } from '../../services/mockData';
-import { Card, CardBody, CardHeader } from '../../components/common/Card';
+import { workflowApi } from '../../services/api/contentApi';
+import { Card, CardBody } from '../../components/common/Card';
 import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
 
 export const WorkflowDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const workflow = mockWorkflows.find((w) => w.id === id) || mockWorkflows[0];
 
+  const [workflow, setWorkflow] = useState<any | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [copiedStep, setCopiedStep] = useState<number | null>(null);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+
+  useEffect(() => {
+    if (!id) {
+      setIsLoading(false);
+      return;
+    }
+    let isMounted = true;
+    const fetchWorkflow = async () => {
+      try {
+        setIsLoading(true);
+        const data = await workflowApi.getWorkflowById(id);
+        if (isMounted && data) {
+          setWorkflow({
+            id: String(data.workflowId),
+            title: data.title,
+            description: data.summary || '',
+            courseCode: 'PRN211',
+            technology: '.NET / C#',
+            version: (data as any).version || 1,
+            author: {
+              fullName: `Author #${data.authorUserId || 1}`,
+              role: 'Student',
+              avatarUrl: '',
+            },
+            usageCount: 0,
+            viewsCount: 0,
+            steps: (data.steps || []).map((s: any) => ({
+              stepNumber: s.stepNumber,
+              title: s.stepTitle || `Bước ${s.stepNumber}`,
+              instruction: s.instruction || '',
+              codeSnippet: s.codeSnippet || '',
+              language: s.language || 'csharp',
+            })),
+          });
+        }
+      } catch (err) {
+        if (isMounted) setWorkflow(null);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+    fetchWorkflow();
+    return () => { isMounted = false; };
+  }, [id]);
 
   const handleCopyCode = (stepNum: number, snippet?: string) => {
     if (!snippet) return;
@@ -36,6 +78,26 @@ export const WorkflowDetailPage: React.FC = () => {
       prev.includes(stepNum) ? prev.filter((s) => s !== stepNum) : [...prev, stepNum]
     );
   };
+
+  if (isLoading) {
+    return (
+      <div className="p-12 text-center text-slate-400 text-xs">
+        Đang tải workflow...
+      </div>
+    );
+  }
+
+  if (!workflow) {
+    return (
+      <div className="p-12 text-center space-y-4 bg-white rounded-2xl border border-slate-200">
+        <h3 className="text-lg font-bold text-slate-800">Không tìm thấy workflow</h3>
+        <p className="text-xs text-slate-500">Workflow này không tồn tại hoặc đã bị gỡ bỏ.</p>
+        <Link to="/workflows" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700">
+          <ArrowLeft className="w-4 h-4" /> Quay lại danh sách Workflows
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 w-full">
@@ -75,14 +137,16 @@ export const WorkflowDetailPage: React.FC = () => {
 
           <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
             <div className="flex items-center gap-2.5">
-              <img src={workflow.author.avatarUrl} alt={workflow.author.fullName} className="w-8 h-8 rounded-full object-cover" />
+              <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center font-bold text-xs">
+                {workflow.author.fullName.substring(0, 2).toUpperCase()}
+              </div>
               <div>
                 <span className="font-bold text-slate-800 dark:text-slate-200">{workflow.author.fullName}</span>
                 <span className="text-[10px] text-slate-400 block">{workflow.author.role}</span>
               </div>
             </div>
             <div className="flex items-center gap-4 font-semibold">
-              <span className="text-blue-600">{workflow.usageCount} lượt áp dụng thành công</span>
+              <span className="text-blue-600">{workflow.usageCount} lượt áp dụng</span>
               <span>{workflow.viewsCount} lượt xem</span>
             </div>
           </div>
@@ -101,63 +165,69 @@ export const WorkflowDetailPage: React.FC = () => {
           </span>
         </div>
 
-        {workflow.steps.map((step) => {
-          const isDone = completedSteps.includes(step.stepNumber);
-          return (
-            <Card
-              key={step.stepNumber}
-              className={`transition-all ${isDone ? 'border-emerald-500/50 bg-emerald-50/20 dark:bg-emerald-950/10' : ''}`}
-            >
-              <CardBody className="p-5 space-y-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => toggleStepComplete(step.stepNumber)}
-                      className={`w-7 h-7 rounded-xl flex items-center justify-center font-bold text-xs transition-colors cursor-pointer ${
-                        isDone
-                          ? 'bg-emerald-600 text-white'
-                          : 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border border-blue-200/80 dark:border-blue-800'
-                      }`}
-                    >
-                      {isDone ? <Check className="w-4 h-4" /> : step.stepNumber}
-                    </button>
-                    <div>
-                      <h3 className={`font-bold text-sm text-slate-900 dark:text-slate-100 ${isDone ? 'line-through text-slate-400' : ''}`}>
+        {workflow.steps.length === 0 ? (
+          <div className="p-8 text-center text-slate-400 text-xs bg-white rounded-xl border border-slate-200">
+            Workflow này chưa có bước thực hiện chi tiết nào.
+          </div>
+        ) : (
+          workflow.steps.map((step: any) => {
+            const isDone = completedSteps.includes(step.stepNumber);
+            return (
+              <Card
+                key={step.stepNumber}
+                className={`transition-all ${isDone ? 'border-emerald-500/50 bg-emerald-50/20 dark:bg-emerald-950/10' : ''}`}
+              >
+                <CardBody className="p-5 sm:p-6 space-y-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => toggleStepComplete(step.stepNumber)}
+                        className={`w-6 h-6 rounded-full flex items-center justify-center border transition-all cursor-pointer ${
+                          isDone
+                            ? 'bg-emerald-500 border-emerald-500 text-white'
+                            : 'border-slate-300 dark:border-slate-700 hover:border-blue-500'
+                        }`}
+                      >
+                        {isDone && <Check className="w-3.5 h-3.5" />}
+                      </button>
+                      <h3 className={`font-bold text-sm sm:text-base ${isDone ? 'line-through text-slate-400' : 'text-slate-900 dark:text-slate-100'}`}>
                         {step.title}
                       </h3>
                     </div>
+
+                    <span className="text-xs font-mono text-slate-400">
+                      Step {step.stepNumber}
+                    </span>
                   </div>
+
+                  {step.instruction && (
+                    <p className="text-xs text-slate-600 dark:text-slate-400 pl-9 leading-relaxed">
+                      {step.instruction}
+                    </p>
+                  )}
 
                   {step.codeSnippet && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleCopyCode(step.stepNumber, step.codeSnippet)}
-                      leftIcon={copiedStep === step.stepNumber ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                    >
-                      {copiedStep === step.stepNumber ? 'Đã copy' : 'Copy Code'}
-                    </Button>
-                  )}
-                </div>
-
-                <p className="text-xs text-slate-600 dark:text-slate-400 pl-10 leading-relaxed">
-                  {step.description}
-                </p>
-
-                {step.codeSnippet && (
-                  <div className="ml-10 rounded-xl overflow-hidden bg-slate-900 text-slate-100 border border-slate-800 font-mono text-xs shadow-inner">
-                    <div className="px-3.5 py-1.5 bg-slate-950 border-b border-slate-800 text-[10px] text-slate-400 font-semibold">
-                      Bash / Terminal Command
+                    <div className="ml-9 rounded-xl overflow-hidden border border-slate-800 bg-slate-900 dark:bg-black text-slate-200 text-xs font-mono">
+                      <div className="flex items-center justify-between px-4 py-2 border-b border-slate-800 bg-slate-950/60">
+                        <span className="text-[11px] text-slate-400 font-sans">{step.language || 'bash'}</span>
+                        <button
+                          onClick={() => handleCopyCode(step.stepNumber, step.codeSnippet)}
+                          className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors cursor-pointer"
+                        >
+                          {copiedStep === step.stepNumber ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                          <span>{copiedStep === step.stepNumber ? 'Đã sao chép' : 'Sao chép'}</span>
+                        </button>
+                      </div>
+                      <pre className="p-4 overflow-x-auto leading-relaxed">
+                        <code>{step.codeSnippet}</code>
+                      </pre>
                     </div>
-                    <pre className="p-3.5 overflow-x-auto text-slate-200">
-                      <code>{step.codeSnippet}</code>
-                    </pre>
-                  </div>
-                )}
-              </CardBody>
-            </Card>
-          );
-        })}
+                  )}
+                </CardBody>
+              </Card>
+            );
+          })
+        )}
       </div>
     </div>
   );

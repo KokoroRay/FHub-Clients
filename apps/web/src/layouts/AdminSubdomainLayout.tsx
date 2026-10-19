@@ -29,7 +29,6 @@ import {
   Tag,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { mockCampuses } from '../services/mockData';
 import { Dropdown } from '../components/common/Dropdown';
 import { ErrorBoundary } from '../components/common/ErrorBoundary';
 import { setSubdomainMode } from '../utils/subdomain';
@@ -92,7 +91,7 @@ export const AdminSubdomainLayout: React.FC = () => {
         code: c.campusCode || c.code,
         name: c.campusName || c.name || c.campusCode,
       }))
-    : mockCampuses;
+    : [];
 
   const isMod = currentUser?.role === 'Community Moderator';
 

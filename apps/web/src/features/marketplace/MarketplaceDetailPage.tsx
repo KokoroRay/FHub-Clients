@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   ShoppingBag,
@@ -12,7 +12,7 @@ import {
   Tag,
   Clock,
 } from 'lucide-react';
-import { mockMarketplaceListings } from '../../services/mockData';
+import { MarketplaceListing } from '../../types';
 import { Card, CardBody } from '../../components/common/Card';
 import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
@@ -20,10 +20,26 @@ import { Modal } from '../../components/common/Modal';
 
 export const MarketplaceDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const item = mockMarketplaceListings.find((m) => m.id === id) || mockMarketplaceListings[0];
-
+  const [item, setItem] = useState<MarketplaceListing | null>(null);
   const [showContactModal, setShowContactModal] = useState(false);
-  const [status, setStatus] = useState(item.status);
+  const [status, setStatus] = useState<'AVAILABLE' | 'RESERVED' | 'SOLD'>('AVAILABLE');
+
+  useEffect(() => {
+    // If listings API is added or local state exists, set item here. Default null.
+  }, [id]);
+
+  if (!item) {
+    return (
+      <div className="py-20 text-center space-y-4 max-w-md mx-auto">
+        <ShoppingBag className="w-12 h-12 text-slate-300 mx-auto" />
+        <h2 className="text-base font-bold text-slate-700 dark:text-slate-200">Không tìm thấy sản phẩm</h2>
+        <p className="text-xs text-slate-500">Tin đăng này có thể đã bị gỡ hoặc chưa có trên hệ thống.</p>
+        <Link to="/marketplace" className="inline-block mt-2">
+          <Button variant="primary" size="sm">Quay lại Marketplace</Button>
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -137,11 +153,11 @@ export const MarketplaceDetailPage: React.FC = () => {
           <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-slate-500">Số điện thoại / Zalo:</span>
-              <span className="font-bold text-sm text-blue-600">{item.seller.contactPhone || '0987.654.321'}</span>
+              <span className="font-bold text-sm text-blue-600">{item.seller.contactPhone || 'Chưa cung cấp'}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-slate-500">Email trường:</span>
-              <span className="font-bold text-slate-800 dark:text-slate-200">{item.seller.contactEmail || 'longlh@fpt.edu.vn'}</span>
+              <span className="font-bold text-slate-800 dark:text-slate-200">{item.seller.contactEmail || 'Chưa cung cấp'}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-slate-500">Khuôn viên gặp mặt:</span>

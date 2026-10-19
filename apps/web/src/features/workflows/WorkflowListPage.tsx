@@ -13,7 +13,6 @@ import {
   Layers,
   ChevronDown,
 } from 'lucide-react';
-import { mockWorkflows, mockCourses } from '../../services/mockData';
 import { SharedWorkflow } from '../../types';
 import { CreateWorkflowModal } from './CreateWorkflowModal';
 import { workflowApi } from '../../services/api/contentApi';
@@ -28,14 +27,13 @@ export const WorkflowListPage: React.FC = () => {
   const [sortBy, setSortBy] = useState<'newest' | 'most_used' | 'most_viewed'>('newest');
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
   const [isCreateOpen, setIsCreateOpen] = useState(shouldOpenCreate);
-  const [workflows, setWorkflows] = useState<SharedWorkflow[]>(mockWorkflows);
-  const [apiWorkflows, setApiWorkflows] = useState<SharedWorkflow[]>([]);
+  const [workflows, setWorkflows] = useState<SharedWorkflow[]>([]);
 
   React.useEffect(() => {
     const fetchWfs = async () => {
       try {
         const res = await workflowApi.getWorkflows({ search: searchQuery.trim() || undefined });
-        if (res && res.items && res.items.length > 0) {
+        if (res && res.items) {
           const mapped: SharedWorkflow[] = res.items.map((item) => ({
             id: String(item.workflowId),
             title: item.title,
@@ -49,18 +47,17 @@ export const WorkflowListPage: React.FC = () => {
               id: String(item.authorUserId),
               fullName: 'Sinh viên FPT',
               role: 'Student',
-              campus: 'FU-HL',
+              campus: 'FU',
             },
-            viewsCount: 24,
-            usageCount: 8,
+            viewsCount: 0,
+            usageCount: 0,
             tags: ['dotnet', 'workflow'],
             createdAt: item.createdAt || new Date().toISOString(),
           }));
-          setApiWorkflows(mapped);
-          setWorkflows([...mapped, ...mockWorkflows]);
+          setWorkflows(mapped);
         }
       } catch (err) {
-        console.warn('Backend workflows fetch notice:', err);
+        setWorkflows([]);
       }
     };
     fetchWfs();

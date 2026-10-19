@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal } from '../../components/common/Modal';
 import { Button } from '../../components/common/Button';
 import { Input, Textarea, Select } from '../../components/common/Input';
-import { mockCourses } from '../../services/mockData';
+import { courseNodesApi } from '../../services/api/adminApi';
 import { StudyMaterial } from '../../types';
 
 export interface UpdateMaterialMetadataModalProps {
@@ -21,8 +21,31 @@ export const UpdateMaterialMetadataModal: React.FC<UpdateMaterialMetadataModalPr
   const [title, setTitle] = useState(material.title);
   const [description, setDescription] = useState(material.description);
   const [courseCode, setCourseCode] = useState(material.courseCode);
+  const [courses, setCourses] = useState<Array<{ code: string; title: string }>>([]);
   const [fileType, setFileType] = useState(material.fileType);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadCourses = async () => {
+      try {
+        const res = await courseNodesApi.getCourseNodes();
+        const items = (res as any)?.items || res || [];
+        if (isMounted && Array.isArray(items) && items.length > 0) {
+          setCourses(
+            items.map((c: any) => ({
+              code: c.code || c.courseCode,
+              title: c.name || c.title || c.code,
+            }))
+          );
+        }
+      } catch (err) {
+        console.warn('Failed to load courses in modal:', err);
+      }
+    };
+    loadCourses();
+    return () => { isMounted = false; };
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,10 +95,14 @@ export const UpdateMaterialMetadataModal: React.FC<UpdateMaterialMetadataModalPr
             label="Môn học liên quan"
             value={courseCode}
             onChange={(e) => setCourseCode(e.target.value)}
-            options={mockCourses.map((c) => ({
-              value: c.code,
-              label: `${c.code} - ${c.title}`,
-            }))}
+            options={
+              courses.length > 0
+                ? courses.map((c) => ({
+                    value: c.code,
+                    label: `${c.code} - ${c.title}`,
+                  }))
+                : [{ value: courseCode || '', label: courseCode || 'Đang tải môn học...' }]
+            }
           />
           <Select
             label="Loại file"

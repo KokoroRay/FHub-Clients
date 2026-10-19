@@ -18,7 +18,6 @@ import {
   ListFilter,
   Send,
 } from 'lucide-react';
-import { mockArticles } from '../../services/mockData';
 import { Card, CardBody, CardHeader } from '../../components/common/Card';
 import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
@@ -27,52 +26,57 @@ import { articleApi } from '../../services/api/contentApi';
 
 export const ArticleDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const initialArticle = mockArticles.find((a) => a.id === id) || mockArticles[0];
-  const [article, setArticle] = useState(initialArticle);
+  const [article, setArticle] = useState<any | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id) {
+      setIsLoading(false);
+      return;
+    }
+    let isMounted = true;
     const loadDetail = async () => {
       try {
+        setIsLoading(true);
         const data = await articleApi.getArticleById(id);
-        if (data) {
-          setArticle((prev) => ({
-            ...prev,
+        if (isMounted && data) {
+          setArticle({
             id: String(data.articleId),
             title: data.title,
-            summary: data.summary || prev.summary,
-            content: data.content || prev.content,
-            coverImage: data.coverImageUrl || prev.coverImage,
-            createdAt: data.createdAt || prev.createdAt,
-          }));
+            summary: data.summary || '',
+            content: data.content || '',
+            coverImage: data.coverImageUrl || '',
+            createdAt: data.createdAt,
+            readTimeMinutes: 4,
+            viewsCount: 0,
+            likesCount: 0,
+            category: 'Academic Article',
+            author: {
+              fullName: data.authorStaffId ? 'FPT Faculty Staff' : `Author #${data.authorUserId || 1}`,
+              role: data.authorStaffId ? 'Staff' : 'Student',
+              campus: 'FU',
+              avatarUrl: '',
+            },
+          });
+          setLikesCount(0);
         }
       } catch (err) {
-        console.warn('Backend article detail notice:', err);
+        if (isMounted) setArticle(null);
+      } finally {
+        if (isMounted) setIsLoading(false);
       }
     };
     loadDetail();
+    return () => { isMounted = false; };
   }, [id]);
 
-  const [isLiked, setIsLiked] = useState(article.isLiked || false);
-  const [likesCount, setLikesCount] = useState(article.likesCount);
-  const [isBookmarked, setIsBookmarked] = useState(article.isBookmarked || false);
+  const [isLiked, setIsLiked] = useState(false);
+  const [likesCount, setLikesCount] = useState(0);
+  const [isBookmarked, setIsBookmarked] = useState(false);
   const [isFollowingAuthor, setIsFollowingAuthor] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   const [commentText, setCommentText] = useState('');
-  const [comments, setComments] = useState([
-    {
-      id: 'cmt-1',
-      author: { fullName: 'Trần Văn Mạnh', avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80', campus: 'FU-HL' },
-      content: 'Bài viết cực kỳ dễ hiểu! Mình từng bị dính lỗi Captive Dependency khi inject Scoped DbContext vào Singleton Service suốt 2 ngày.',
-      createdAt: 'Hôm qua lúc 15:30',
-    },
-    {
-      id: 'cmt-2',
-      author: { fullName: 'Nguyễn Thị Hoa', avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80', campus: 'FU-HCM' },
-      content: 'Rất mong bạn ra thêm phần 2 về Factory Pattern kết hợp Keyed Services trong .NET 8 nhé!',
-      createdAt: '2 giờ trước',
-    },
-  ]);
+  const [comments, setComments] = useState<any[]>([]);
 
   const toggleLike = () => {
     setIsLiked(!isLiked);
@@ -92,7 +96,7 @@ export const ArticleDetailPage: React.FC = () => {
       ...comments,
       {
         id: `cmt-${Date.now()}`,
-        author: { fullName: 'Bạn (Sinh viên FHub)', avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80', campus: 'FU-HL' },
+        author: { fullName: 'Bạn (Sinh viên FHub)', avatarUrl: '', campus: 'FU' },
         content: commentText,
         createdAt: 'Vừa xong',
       },
@@ -102,11 +106,28 @@ export const ArticleDetailPage: React.FC = () => {
 
   const tocItems = [
     { id: 'intro', title: '1. Introduction' },
-    { id: 'what-is-di', title: '2. What is Dependency Injection?' },
-    { id: 'registering-services', title: '3. Registering Services (Lifecycles)' },
-    { id: 'injecting-dependencies', title: '4. Injecting Dependencies' },
-    { id: 'anti-patterns', title: '5. Common Anti-Patterns' },
+    { id: 'content', title: '2. Content Details' },
   ];
+
+  if (isLoading) {
+    return (
+      <div className="p-12 text-center text-slate-400 text-xs">
+        Đang tải bài viết...
+      </div>
+    );
+  }
+
+  if (!article) {
+    return (
+      <div className="p-12 text-center space-y-4 bg-white rounded-2xl border border-slate-200">
+        <h3 className="text-lg font-bold text-slate-800">Không tìm thấy bài viết</h3>
+        <p className="text-xs text-slate-500">Bài viết này không tồn tại hoặc đã bị gỡ bỏ.</p>
+        <Link to="/articles" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700">
+          <ArrowLeft className="w-4 h-4" /> Quay lại danh sách bài viết
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -308,7 +329,7 @@ builder.Services.AddSingleton<IMemoryCacheProvider, MemoryCacheProvider>();`}</c
 
               {/* Tags */}
               <div className="flex flex-wrap gap-1.5 pt-4 border-t border-slate-100 dark:border-slate-800">
-                {article.tags.map((t) => (
+                {(article.tags || []).map((t: string) => (
                   <span key={t} className="text-xs font-semibold px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                     #{t}
                   </span>

@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link2, Globe, AlertCircle } from 'lucide-react';
 import { Modal } from '../../components/common/Modal';
 import { Button } from '../../components/common/Button';
 import { Input, Textarea, Select } from '../../components/common/Input';
-import { mockCourses } from '../../services/mockData';
+import { courseNodesApi } from '../../services/api/adminApi';
 import { StudyMaterial } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 
@@ -21,10 +21,33 @@ export const AddExternalLinkModal: React.FC<AddExternalLinkModalProps> = ({
   const { currentUser } = useAuth();
   const [title, setTitle] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
-  const [courseCode, setCourseCode] = useState('DBI202');
+  const [courseCode, setCourseCode] = useState('');
+  const [courses, setCourses] = useState<Array<{ code: string; title: string }>>([]);
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadCourses = async () => {
+      try {
+        const res = await courseNodesApi.getCourseNodes();
+        const items = (res as any)?.items || res || [];
+        if (isMounted && Array.isArray(items) && items.length > 0) {
+          const mapped = items.map((c: any) => ({
+            code: c.code || c.courseCode,
+            title: c.name || c.title || c.code,
+          }));
+          setCourses(mapped);
+          if (mapped[0]) setCourseCode(mapped[0].code);
+        }
+      } catch (err) {
+        console.warn('Failed to load courses in modal:', err);
+      }
+    };
+    loadCourses();
+    return () => { isMounted = false; };
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,18 +71,18 @@ export const AddExternalLinkModal: React.FC<AddExternalLinkModalProps> = ({
       const newMat: StudyMaterial = {
         id: `mat-${Date.now()}`,
         title: title.trim(),
-        description: description.trim() || `Liên kết tài liệu ngoài: ${cleanUrl}`,
+        description: description.trim() || cleanUrl,
         courseCode,
         fileType: 'CODE',
-        fileSizeMb: 0.1,
+        fileSizeMb: 0,
         downloadUrl: cleanUrl,
         downloadsCount: 0,
         author: {
-          id: currentUser?.id || 'u-self',
-          fullName: currentUser?.fullName || 'Sinh viên FHub',
+          id: currentUser?.id || '',
+          fullName: currentUser?.fullName || '',
           avatarUrl: currentUser?.avatarUrl,
         },
-        semesterUploaded: 'Spring 2025',
+        semesterUploaded: '',
         createdAt: new Date().toISOString(),
       };
       onAdded(newMat);
@@ -117,10 +140,14 @@ export const AddExternalLinkModal: React.FC<AddExternalLinkModalProps> = ({
           label="Môn học liên quan *"
           value={courseCode}
           onChange={(e) => setCourseCode(e.target.value)}
-          options={mockCourses.map((c) => ({
-            value: c.code,
-            label: `${c.code} - ${c.title}`,
-          }))}
+          options={
+            courses.length > 0
+              ? courses.map((c) => ({
+                  value: c.code,
+                  label: `${c.code} - ${c.title}`,
+                }))
+              : [{ value: '', label: 'Đang tải hoặc chưa có môn học' }]
+          }
         />
 
         <Textarea
