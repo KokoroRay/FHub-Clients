@@ -19,7 +19,9 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { EditProfileModal } from './EditProfileModal';
-import { profileApi } from '../../services/api/studentApi';
+import { profileApi, badgeApi, voteApi } from '../../services/api/studentApi';
+
+
 
 export const ProfilePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -197,6 +199,54 @@ export const ProfilePage: React.FC = () => {
       author: 'Vu Minh',
     },
   ];
+
+  const [userBadges, setUserBadges] = useState(badges);
+  const [userVoteHistory, setUserVoteHistory] = useState(voteHistory);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchInteractions = async () => {
+      const targetUserId = id && id !== 'me' ? id : (currentUser?.id || 1);
+      try {
+        const apiBadges = isOwnProfile ? await badgeApi.getMyBadges() : await badgeApi.getUserBadges(targetUserId);
+        if (isMounted && apiBadges && apiBadges.length > 0) {
+          const mapped = apiBadges.map((b) => ({
+            id: String(b.badge_id || b.user_badge_id),
+            name: b.badge?.name || 'Huy hiệu cống hiến',
+            description: b.badge?.description || 'Huy hiệu thành tích cộng đồng FHub',
+            icon: '🏅',
+            color: 'bg-amber-50 text-amber-800 border-amber-200',
+            earnedDate: b.awarded_at ? new Date(b.awarded_at).toLocaleDateString() : 'Gần đây',
+          }));
+          setUserBadges(mapped);
+        }
+      } catch (err) {
+        console.warn('Backend badges unavailable, using fallback:', err);
+      }
+
+      if (isOwnProfile) {
+        try {
+          const myVotes = await voteApi.getMyVotes();
+          if (isMounted && myVotes && myVotes.length > 0) {
+            const mappedVotes = myVotes.map((v) => ({
+              id: String(v.voteId),
+              targetTitle: `${v.targetType} #${v.targetId}`,
+              type: v.targetType,
+              vote: v.voteValue > 0 ? 'Upvote (+1)' : 'Downvote (-1)',
+              date: v.createdAt ? new Date(v.createdAt).toLocaleDateString() : 'Gần đây',
+              author: 'FHub Member',
+            }));
+            setUserVoteHistory(mappedVotes);
+          }
+        } catch (err) {
+          console.warn('Backend vote history unavailable, using fallback:', err);
+        }
+      }
+    };
+
+    fetchInteractions();
+    return () => { isMounted = false; };
+  }, [id, currentUser?.id, isOwnProfile]);
 
   const handleSaveProfile = (updated: any) => {
     setProfileData(prev => ({
@@ -501,7 +551,7 @@ export const ProfilePage: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {badges.map((b) => (
+                {userBadges.map((b) => (
                   <div key={b.id} className={`p-3.5 rounded-xl border text-center space-y-1.5 ${b.color}`}>
                     <span className="text-2xl">{b.icon}</span>
                     <h5 className="text-xs font-bold">{b.name}</h5>
@@ -584,7 +634,7 @@ export const ProfilePage: React.FC = () => {
         {/* Tab 4: Badges */}
         {activeTab === 'badges' && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {badges.map((b) => (
+            {userBadges.map((b) => (
               <div key={b.id} className="bg-white rounded-2xl p-5 border border-slate-100 shadow-xs flex items-start gap-4">
                 <div className="text-3xl p-3 bg-slate-50 rounded-2xl border border-slate-100 shrink-0">
                   {b.icon}
@@ -606,7 +656,7 @@ export const ProfilePage: React.FC = () => {
         {/* Tab 5: Vote History */}
         {activeTab === 'votes' && (
           <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs divide-y divide-slate-100">
-            {voteHistory.map((v) => (
+            {userVoteHistory.map((v) => (
               <div key={v.id} className="py-3 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-50 text-[#0076D1] border border-blue-200">

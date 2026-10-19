@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+
 import { useParams, Link } from 'react-router-dom';
 import {
   ThumbsUp,
@@ -27,8 +28,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { mockQuestions } from '../../services/mockData';
-import { governanceModerationApi } from '../../services/api/adminApi';
-import { Answer, CommentItem } from '../../types';
+import { questionApi, alumniApi } from '../../services/api/contentApi';
+import { Answer, CommentItem, QuestionPost } from '../../types';
 import { Card, CardBody, CardHeader } from '../../components/common/Card';
 import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
@@ -39,7 +40,9 @@ export const QuestionDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { currentUser, currentRole } = useAuth();
 
-  const question = mockQuestions.find((q) => q.id === id) || mockQuestions[0];
+  const [question, setQuestion] = useState<QuestionPost>(() => {
+    return mockQuestions.find((q) => q.id === id) || mockQuestions[0];
+  });
   const [upvotes, setUpvotes] = useState(question.upvotes);
   const [userVote, setUserVote] = useState<'UP' | 'DOWN' | null>(question.userVote || null);
   const [isLocked, setIsLocked] = useState(question.isLocked || false);
@@ -48,6 +51,85 @@ export const QuestionDetailPage: React.FC = () => {
   const [copiedCode, setCopiedCode] = useState(false);
   const [composerTab, setComposerTab] = useState<'write' | 'preview'>('write');
   const [isVotingStatsOpen, setIsVotingStatsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!id) return;
+    const numId = Number(id.replace(/\D/g, ''));
+    if (!numId) return;
+
+    let isMounted = true;
+    const fetchDetail = async () => {
+      try {
+        setIsLoading(true);
+        const data = await questionApi.getQuestionById(numId);
+        if (isMounted && data) {
+          setQuestion({
+            id: String(data.questionId),
+            title: data.title,
+            content: data.body,
+            courseCode: data.courseId ? `COURSE-${data.courseId}` : undefined,
+            author: {
+              id: String(data.authorUserId || 'anon'),
+              fullName: data.isAnonymous ? 'Ẩn danh FPTer' : (data.authorDisplayName || 'Sinh viên FHub'),
+              role: 'Student',
+              karma: 250,
+              campus: 'FU-HL',
+              isAnonymous: data.isAnonymous,
+            },
+            tags: ['fhub', 'qa'],
+            upvotes: 10,
+            downvotes: 0,
+            answersCount: data.answerCount,
+            viewsCount: data.viewCount,
+            isSolved: data.hasBestAnswer,
+            isLocked: data.areCommentsLocked,
+            isPinned: data.isPinned,
+            createdAt: data.createdAt,
+          });
+          setIsLocked(data.areCommentsLocked);
+          setIsPinned(data.isPinned);
+        }
+
+        const answersData = await questionApi.getAnswers(numId);
+        if (isMounted && answersData && answersData.length > 0) {
+          const mappedAnswers: Answer[] = answersData.map((ans) => ({
+            id: String(ans.answerId),
+            questionId: String(ans.questionId),
+            author: {
+              id: String(ans.authorUserId || 'usr'),
+              fullName: ans.isAnonymous ? 'Ẩn danh FPTer' : (ans.authorDisplayName || 'Sinh viên FHub'),
+              avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
+              role: ans.isModeratorVerified ? 'Alumni' : 'Student',
+              karma: 1500,
+              campus: 'FU-HL',
+            },
+            content: ans.body,
+            upvotes: 5,
+            downvotes: 0,
+            userVote: null,
+            isBestAnswer: ans.isBestAnswer,
+            isModVerified: ans.isModeratorVerified,
+            comments: (ans.comments || []).map((c) => ({
+              id: String(c.commentId),
+              parentId: String(ans.answerId),
+              author: { id: String(c.authorUserId || 'u'), fullName: c.authorDisplayName || 'Người dùng FHub' },
+              content: c.body,
+              createdAt: c.createdAt || 'Vừa xong',
+            })),
+            createdAt: ans.createdAt,
+          }));
+          setAnswers(mappedAnswers);
+        }
+      } catch (err) {
+        console.warn('API error fetching question detail, using mock:', err);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+    fetchDetail();
+    return () => { isMounted = false; };
+  }, [id]);
 
   const [answers, setAnswers] = useState<Answer[]>([
     {
@@ -151,7 +233,16 @@ Kiểm tra xem có service Singleton nào đang inject DbContext hay không đ�
     );
   };
 
-  const handleMarkBestAnswer = (ansId: string) => {
+  const handleMarkBestAnswer = async (ansId: string) => {
+    const numQId = Number(question.id.replace(/\D/g, ''));
+    const numAnsId = Number(ansId.replace(/\D/g, ''));
+    if (numQId && numAnsId) {
+      try {
+        await questionApi.markBestAnswer(numQId, numAnsId);
+      } catch (err) {
+        console.warn('API error marking best answer:', err);
+      }
+    }
     setAnswers((prev) =>
       prev.map((a) => ({
         ...a,
@@ -166,12 +257,30 @@ Kiểm tra xem có service Singleton nào đang inject DbContext hay không đ�
     );
   };
 
-  const handleSubmitAnswer = (e: React.FormEvent) => {
+  const handleSubmitAnswer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newAnswerContent.trim()) return;
 
+    const numQId = Number(question.id.replace(/\D/g, ''));
+    let createdAnsId = `ans-${Date.now()}`;
+    if (numQId) {
+      try {
+        if (currentUser?.role === 'Alumni') {
+          const res = await alumniApi.createExpertAnswer(numQId, { body: newAnswerContent.trim(), industryContext: 'Alumni Insight' });
+          if (res && (res.answerId || res.data?.answerId)) {
+            createdAnsId = String(res.answerId || res.data?.answerId);
+          }
+        } else {
+          const res = await questionApi.createAnswer(numQId, { body: newAnswerContent.trim() });
+          createdAnsId = String(res.answerId);
+        }
+      } catch (err) {
+        console.warn('API error creating answer, saving locally:', err);
+      }
+    }
+
     const newAns: Answer = {
-      id: `ans-${Date.now()}`,
+      id: createdAnsId,
       questionId: question.id,
       author: {
         id: currentUser?.id || 'usr-current',
@@ -195,12 +304,23 @@ Kiểm tra xem có service Singleton nào đang inject DbContext hay không đ�
     setNewAnswerContent('');
   };
 
-  const handleAddComment = (ansId: string) => {
+  const handleAddComment = async (ansId: string) => {
     const text = commentInputs[ansId];
     if (!text || !text.trim()) return;
 
+    const numAnsId = Number(ansId.replace(/\D/g, ''));
+    let commentId = `c-${Date.now()}`;
+    if (numAnsId) {
+      try {
+        const res = await questionApi.createAnswerComment(numAnsId, { body: text.trim() });
+        commentId = String(res.commentId);
+      } catch (err) {
+        console.warn('API error creating comment:', err);
+      }
+    }
+
     const newComment: CommentItem = {
-      id: `c-${Date.now()}`,
+      id: commentId,
       parentId: ansId,
       author: {
         id: currentUser?.id || 'usr-current',

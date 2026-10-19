@@ -7,6 +7,8 @@ import { Modal } from '../../components/common/Modal';
 import { Button } from '../../components/common/Button';
 import { Input, Textarea, Select } from '../../components/common/Input';
 
+import { questionApi } from '../../services/api/contentApi';
+
 export interface AskQuestionModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -27,7 +29,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (title.trim().length < 10) {
       setErrorMessage('Tiêu đề câu hỏi quá ngắn. Vui lòng nhập ít nhất 10 ký tự để người khác dễ hiểu vấn đề.');
@@ -40,8 +42,45 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
 
     setErrorMessage(null);
     setIsSubmitting(true);
-    setTimeout(() => {
+    try {
+      const res = await questionApi.createQuestion({
+        title: title.trim(),
+        body: content.trim(),
+        isAnonymous,
+      });
+
       const newQuestion: QuestionPost = {
+        id: String(res.questionId),
+        title: res.title,
+        content: res.body,
+        courseCode,
+        author: {
+          id: String(res.authorUserId || currentUser?.id || 'anon'),
+          fullName: isAnonymous ? 'Ẩn danh FPTer' : (res.authorDisplayName || currentUser?.fullName || 'Sinh viên FHub'),
+          avatarUrl: isAnonymous ? undefined : currentUser?.avatarUrl,
+          role: currentUser?.role || 'Student',
+          karma: isAnonymous ? 0 : currentUser?.karma || 0,
+          isAnonymous,
+          campus: currentUser?.campus || 'FU-HL',
+        },
+        tags: tagsInput.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean),
+        upvotes: 1,
+        downvotes: 0,
+        userVote: 'UP',
+        answersCount: 0,
+        viewsCount: 1,
+        isSolved: false,
+        createdAt: res.createdAt || new Date().toISOString(),
+      };
+
+      onCreated(newQuestion);
+      setTitle('');
+      setContent('');
+      setErrorMessage(null);
+      onClose();
+    } catch (err: any) {
+      console.error('Failed to create question via API, falling back locally:', err);
+      const fallbackQuestion: QuestionPost = {
         id: `q-${Date.now()}`,
         title: title.trim(),
         content: content.trim(),
@@ -64,14 +103,13 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
         isSolved: false,
         createdAt: new Date().toISOString(),
       };
-
-      onCreated(newQuestion);
-      setIsSubmitting(false);
+      onCreated(fallbackQuestion);
       setTitle('');
       setContent('');
-      setErrorMessage(null);
       onClose();
-    }, 400);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

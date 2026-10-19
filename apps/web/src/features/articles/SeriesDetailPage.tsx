@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Layers, ArrowLeft, ArrowRight, Edit3, Trash2, Plus, BookOpen, CheckCircle2 } from 'lucide-react';
 import { SeriesModal } from './SeriesModal';
 import { Series } from '../../types';
+import { seriesApi } from '../../services/api/contentApi';
 
 export const SeriesDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -55,10 +56,55 @@ export const SeriesDetailPage: React.FC = () => {
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-  const handleDeleteSeries = () => {
-    if (window.confirm('Bạn có chắc chắn muốn xóa toàn bộ Series này không?')) {
-      navigate('/articles');
+  useEffect(() => {
+    if (!id) return;
+    const numericId = Number(id);
+    if (isNaN(numericId)) return;
+
+    let isMounted = true;
+    const fetchSeries = async () => {
+      try {
+        const data = await seriesApi.getSeriesById(numericId);
+        if (isMounted && data) {
+          setSeries({
+            id: String(data.seriesId),
+            title: data.title,
+            description: data.description || '',
+            author: {
+              id: String(data.authorUserId),
+              fullName: `Tác giả #${data.authorUserId}`,
+              avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+            },
+            itemCount: data.items ? data.items.length : 0,
+            items: (data.items || []).map((it, idx) => ({
+              id: String(it.seriesItemId),
+              type: (it.contentType as 'ARTICLE' | 'WORKFLOW' | 'QUESTION') || 'ARTICLE',
+              title: `${it.contentType} #${it.contentId}`,
+              orderIndex: it.position || (idx + 1),
+              url: it.contentType === 'WORKFLOW' ? `/workflows/${it.contentId}` : `/articles/${it.contentId}`,
+            })),
+            createdAt: data.createdAt,
+            updatedAt: data.updatedAt,
+          });
+        }
+      } catch (err) {
+        console.warn('Backend series detail unavailable, using fallback mock data', err);
+      }
+    };
+    fetchSeries();
+    return () => { isMounted = false; };
+  }, [id]);
+
+  const handleDeleteSeries = async () => {
+    if (!window.confirm('Bạn có chắc chắn muốn xóa toàn bộ Series này không?')) return;
+    try {
+      if (id && !isNaN(Number(id))) {
+        await seriesApi.deleteSeries(Number(id));
+      }
+    } catch (err) {
+      console.warn('Delete series error, redirecting anyway', err);
     }
+    navigate('/articles');
   };
 
   return (

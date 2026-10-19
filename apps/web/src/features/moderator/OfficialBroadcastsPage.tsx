@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Megaphone, Plus, Bell, Filter, Calendar, MapPin, Send } from 'lucide-react';
 import { mockCampuses } from '../../services/mockData';
 import { Button } from '../../components/common/Button';
@@ -6,6 +6,7 @@ import { Badge } from '../../components/common/Badge';
 import { Card, CardBody, CardHeader } from '../../components/common/Card';
 import { Modal } from '../../components/common/Modal';
 import { Input, Textarea, Select } from '../../components/common/Input';
+import { broadcastApi } from '../../services/api/studentApi';
 
 interface Broadcast {
   id: string;
@@ -45,9 +46,62 @@ export const OfficialBroadcastsPage: React.FC = () => {
   const [targetCampus, setTargetCampus] = useState('ALL');
   const [targetMajor, setTargetMajor] = useState('ALL');
 
-  const handleCreateBroadcast = (e: React.FormEvent) => {
+  useEffect(() => {
+    let isMounted = true;
+    const fetchBroadcasts = async () => {
+      try {
+        const res = await broadcastApi.getBroadcasts({ page_size: 20 });
+        if (isMounted && res && res.items && res.items.length > 0) {
+          const mapped: Broadcast[] = res.items.map((b) => ({
+            id: String(b.campaignId),
+            title: b.title,
+            content: b.body,
+            senderDept: 'Đại diện Nhà trường (School Representative)',
+            targetCampus: b.targetCampusId ? `Campus #${b.targetCampusId}` : 'Toàn bộ 5 Campus',
+            targetMajor: b.targetMajorId ? `Ngành #${b.targetMajorId}` : 'Tất cả chuyên ngành',
+            createdAt: b.createdAt ? new Date(b.createdAt).toLocaleDateString('vi-VN') : 'Gần đây',
+          }));
+          setBroadcasts(mapped);
+        }
+      } catch (err) {
+        console.warn('Backend broadcasts unavailable, keeping fallback:', err);
+      }
+    };
+    fetchBroadcasts();
+    return () => { isMounted = false; };
+  }, []);
+
+  const handleCreateBroadcast = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !content.trim()) return;
+
+    try {
+      const created = await broadcastApi.createBroadcast({
+        title: title.trim(),
+        body: content.trim(),
+        audienceType: targetCampus !== 'ALL' ? 'CAMPUS' : (targetMajor !== 'ALL' ? 'MAJOR' : 'ALL'),
+        deliveryChannels: 'IN_APP',
+        isMandatory: true,
+      });
+      if (created) {
+        const newB: Broadcast = {
+          id: String(created.campaignId),
+          title: created.title,
+          content: created.body,
+          senderDept: 'Đại diện Nhà trường (School Representative)',
+          targetCampus: targetCampus === 'ALL' ? 'Toàn bộ 5 Campus' : targetCampus,
+          targetMajor: targetMajor === 'ALL' ? 'Tất cả chuyên ngành' : targetMajor,
+          createdAt: new Date().toLocaleDateString('vi-VN'),
+        };
+        setBroadcasts((prev) => [newB, ...prev]);
+        setIsModalOpen(false);
+        setTitle('');
+        setContent('');
+        return;
+      }
+    } catch (err) {
+      console.warn('Backend broadcast create failed, saving locally:', err);
+    }
 
     const newB: Broadcast = {
       id: `b-${Date.now()}`,

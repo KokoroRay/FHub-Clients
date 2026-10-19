@@ -4,18 +4,22 @@ import { FileText, ArrowLeft, Image as ImageIcon, AlertCircle } from 'lucide-rea
 import { Card, CardBody, CardHeader } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Input, Textarea, Select } from '../../components/common/Input';
-import { articleApi } from '../../services/api/contentApi';
+import { articleApi, alumniApi } from '../../services/api/contentApi';
+import { useAuth } from '../../context/AuthContext';
 
 export const CreateArticlePage: React.FC = () => {
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('Backend Development');
+  const [isAlumniArticle, setIsAlumniArticle] = useState(currentUser?.role === 'Alumni');
   const [summary, setSummary] = useState('');
   const [content, setContent] = useState('');
   const [tags, setTags] = useState('dotnet, architecture, clean-code');
   const [coverUrl, setCoverUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,13 +39,23 @@ export const CreateArticlePage: React.FC = () => {
     setErrorMessage(null);
     setIsSubmitting(true);
     try {
-      await articleApi.createArticle({
-        title: title.trim(),
-        content: content.trim(),
-        summary: summary.trim(),
-        coverImageUrl: coverUrl.trim() || undefined,
-        status: 'PUBLISHED',
-      });
+      if (isAlumniArticle || currentUser?.role === 'Alumni') {
+        await alumniApi.createCareerArticle({
+          title: title.trim(),
+          content: content.trim(),
+          summary: summary.trim(),
+          coverImageUrl: coverUrl.trim() || undefined,
+          status: 'PUBLISHED',
+        });
+      } else {
+        await articleApi.createArticle({
+          title: title.trim(),
+          content: content.trim(),
+          summary: summary.trim(),
+          coverImageUrl: coverUrl.trim() || undefined,
+          status: 'PUBLISHED',
+        });
+      }
       navigate('/articles');
     } catch (err: any) {
       console.warn('Backend article create notice:', err);
@@ -75,6 +89,19 @@ export const CreateArticlePage: React.FC = () => {
             </div>
           )}
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="flex items-center gap-2 p-3 bg-slate-50 border border-slate-200/80 rounded-xl">
+              <input
+                type="checkbox"
+                id="alumniCheckbox"
+                checked={isAlumniArticle}
+                onChange={(e) => setIsAlumniArticle(e.target.checked)}
+                className="w-4 h-4 text-[#0076D1] rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
+              />
+              <label htmlFor="alumniCheckbox" className="text-xs font-semibold text-slate-700 cursor-pointer select-none">
+                Đăng dưới danh nghĩa Cựu sinh viên (Alumni Industry & Career Guidance)
+              </label>
+            </div>
+
             <Input
               label="Tiêu đề bài viết"
               placeholder="Ví dụ: Hướng dẫn Clean Architecture với CQRS trong ASP.NET Core"

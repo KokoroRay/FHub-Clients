@@ -14,7 +14,7 @@ import {
 import { SeriesModal } from './SeriesModal';
 import { Article, Series } from '../../types';
 import { mockArticles } from '../../services/mockData';
-import { articleApi } from '../../services/api/contentApi';
+import { articleApi, seriesApi } from '../../services/api/contentApi';
 
 export const ArticleListPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'articles' | 'series'>('articles');
@@ -70,7 +70,6 @@ export const ArticleListPage: React.FC = () => {
 
   const allArticles = [...apiArticles, ...mockArticles];
 
-
   const [seriesList, setSeriesList] = useState<Series[]>([
     {
       id: 'series-1',
@@ -99,6 +98,39 @@ export const ArticleListPage: React.FC = () => {
       createdAt: '2025-02-01T08:00:00Z',
     },
   ]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchSeries = async () => {
+      try {
+        const res = await seriesApi.getSeriesList({
+          search: searchQuery.trim() || undefined,
+          pageSize: 20,
+        });
+        if (isMounted && res && res.items && res.items.length > 0) {
+          const mapped: Series[] = res.items.map((item) => ({
+            id: String(item.seriesId),
+            title: item.title,
+            description: item.description || '',
+            author: {
+              id: String(item.authorUserId),
+              fullName: `Author #${item.authorUserId}`,
+              avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+            },
+            itemCount: item.itemCount || 0,
+            items: [],
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt,
+          }));
+          setSeriesList(mapped);
+        }
+      } catch (err) {
+        console.warn('Backend series fetch notice:', err);
+      }
+    };
+    fetchSeries();
+    return () => { isMounted = false; };
+  }, [searchQuery]);
 
   const toggleBookmark = (id: string, e: React.MouseEvent) => {
     e.preventDefault();

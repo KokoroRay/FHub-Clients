@@ -1,17 +1,6 @@
 import { apiClient } from './client';
+import type { ApiResponse, PagedResult } from './adminApi';
 
-export interface ApiResponse<T> {
-  success?: boolean;
-  message?: string;
-  data: T;
-}
-
-export interface PagedResult<T> {
-  items: T[];
-  totalCount: number;
-  pageNumber: number;
-  pageSize: number;
-}
 
 // ─── 1. Bookmark API (Go Interaction Service) ─────────────────────────────────
 export interface BookmarkItem {
@@ -71,6 +60,65 @@ export const notificationApi = {
 
   deleteNotification: async (id: number | string): Promise<void> => {
     await apiClient.delete(`/api/communication/notifications/${id}`);
+  },
+};
+
+// ─── 2.5 Broadcast Campaigns API (Go Communication Service) ───────────────────
+export interface BroadcastCampaignDto {
+  campaignId: number;
+  ownerAccountId: number;
+  title: string;
+  body: string;
+  audienceType: string;
+  targetCampusId?: number;
+  targetMajorId?: number;
+  targetSpecializationId?: number;
+  deliveryChannels: string;
+  isMandatory: boolean;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateBroadcastRequest {
+  title: string;
+  body: string;
+  audienceType: 'ALL' | 'CAMPUS' | 'MAJOR' | 'SPECIALIZATION';
+  targetCampusId?: number;
+  targetMajorId?: number;
+  targetSpecializationId?: number;
+  deliveryChannels?: string;
+  isMandatory?: boolean;
+}
+
+export const broadcastApi = {
+  getBroadcasts: async (params?: { status?: string; search?: string; page?: number; page_size?: number }): Promise<{ items: BroadcastCampaignDto[]; total_count: number }> => {
+    const res = await apiClient.get('/api/communication/broadcasts', { params });
+    const data = (res.data as any).data || res.data;
+    return data && data.items ? data : { items: Array.isArray(data) ? data : [], total_count: 0 };
+  },
+
+  getBroadcastById: async (id: number | string): Promise<BroadcastCampaignDto> => {
+    const res = await apiClient.get(`/api/communication/broadcasts/${id}`);
+    return (res.data as any).data || res.data;
+  },
+
+  createBroadcast: async (payload: CreateBroadcastRequest): Promise<BroadcastCampaignDto> => {
+    const res = await apiClient.post('/api/communication/broadcasts', {
+      title: payload.title,
+      body: payload.body,
+      audienceType: payload.audienceType,
+      targetCampusId: payload.targetCampusId,
+      targetMajorId: payload.targetMajorId,
+      targetSpecializationId: payload.targetSpecializationId,
+      deliveryChannels: payload.deliveryChannels || 'IN_APP',
+      isMandatory: payload.isMandatory ?? true,
+    });
+    return (res.data as any).data || res.data;
+  },
+
+  deleteBroadcast: async (id: number | string): Promise<void> => {
+    await apiClient.delete(`/api/communication/broadcasts/${id}`);
   },
 };
 
@@ -232,3 +280,126 @@ export const profileApi = {
     return res.data.data;
   },
 };
+
+// ─── 5. Vote API (Go Interaction Service) ─────────────────────────────────────
+export interface VoteRequest {
+  target_type: 'ARTICLE' | 'QUESTION' | 'COMMENT' | 'WORKFLOW' | 'STUDY_MATERIAL';
+  target_id: number | string;
+  vote_value: 1 | -1;
+}
+
+export interface VoteResponse {
+  voteId: number;
+  userId: number;
+  targetType: string;
+  targetId: number;
+  voteValue: number;
+  scoreDelta: number;
+  revokedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface VoteStats {
+  targetType: string;
+  targetId: number;
+  upvotes: number;
+  downvotes: number;
+  score: number;
+}
+
+export const voteApi = {
+  vote: async (payload: VoteRequest): Promise<VoteResponse> => {
+    const res = await apiClient.put<VoteResponse>('/api/votes', {
+      target_type: payload.target_type,
+      target_id: Number(payload.target_id) || 1,
+      vote_value: payload.vote_value,
+    });
+    return (res.data as any).data || res.data;
+  },
+
+  removeVote: async (targetType: string, targetId: number | string): Promise<void> => {
+    await apiClient.delete(`/api/votes/${targetType}/${targetId}`);
+  },
+
+  getStats: async (targetType: string, targetId: number | string): Promise<VoteStats> => {
+    const res = await apiClient.get<VoteStats>(`/api/votes/stats/${targetType}/${targetId}`);
+    return (res.data as any).data || res.data;
+  },
+
+  getMyVotes: async (): Promise<VoteResponse[]> => {
+    const res = await apiClient.get<VoteResponse[]>('/api/interactions/me/votes');
+    return (res.data as any).data || res.data || [];
+  },
+};
+
+// ─── 6. Reputation & Rules API (Go Interaction Service) ───────────────────────
+export interface ReputationRuleDto {
+  rule_id: number;
+  action_type: string;
+  karma_delta: number;
+  daily_cap: number;
+  description: string;
+  is_active: boolean;
+}
+
+export const studentReputationApi = {
+  getRules: async (): Promise<ReputationRuleDto[]> => {
+    const res = await apiClient.get<ReputationRuleDto[] | ApiResponse<ReputationRuleDto[]>>('/api/interactions/rules');
+    const data = (res.data as any).data || res.data;
+    return Array.isArray(data) ? data : [];
+  },
+
+  getUserHistory: async (userId: number | string): Promise<any> => {
+    const res = await apiClient.get(`/api/reputation/history/${userId}`);
+    return (res.data as any).data || res.data;
+  },
+
+  getAccount: async (userId: number | string): Promise<any> => {
+    const res = await apiClient.get(`/api/reputation/accounts/${userId}`);
+    return (res.data as any).data || res.data;
+  },
+};
+
+// ─── 7. Badges API (Go Interaction Service) ───────────────────────────────────
+export interface BadgeDto {
+  badge_id: number;
+  name: string;
+  description: string;
+  icon_url: string;
+  category: string;
+  tier: string;
+  criteria_type: string;
+  threshold_value: number;
+  is_active: boolean;
+}
+
+export interface UserBadgeDto {
+  user_badge_id: number;
+  user_id: number;
+  badge_id: number;
+  badge: BadgeDto;
+  awarded_at: string;
+  is_pinned: boolean;
+}
+
+export const badgeApi = {
+  getMyBadges: async (): Promise<UserBadgeDto[]> => {
+    const res = await apiClient.get<UserBadgeDto[] | ApiResponse<UserBadgeDto[]>>('/api/interactions/me/badges');
+    const data = (res.data as any).data || res.data;
+    return Array.isArray(data) ? data : [];
+  },
+
+  getUserBadges: async (userId: number | string): Promise<UserBadgeDto[]> => {
+    const res = await apiClient.get<UserBadgeDto[] | ApiResponse<UserBadgeDto[]>>(`/api/users/${userId}/badges`);
+    const data = (res.data as any).data || res.data;
+    return Array.isArray(data) ? data : [];
+  },
+
+  getAllBadges: async (): Promise<BadgeDto[]> => {
+    const res = await apiClient.get<BadgeDto[] | ApiResponse<BadgeDto[]>>('/api/badges');
+    const data = (res.data as any).data || res.data;
+    return Array.isArray(data) ? data : [];
+  },
+};
+

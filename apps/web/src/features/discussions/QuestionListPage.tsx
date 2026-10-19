@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   Search,
@@ -14,6 +15,7 @@ import {
 import { mockQuestions, mockCourses } from '../../services/mockData';
 import { QuestionPost } from '../../types';
 import { AskQuestionModal } from './AskQuestionModal';
+import { questionApi } from '../../services/api/contentApi';
 
 export const QuestionListPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -28,6 +30,51 @@ export const QuestionListPage: React.FC = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(shouldOpenCreate);
   const [questions, setQuestions] = useState<QuestionPost[]>(mockQuestions);
   const [votesState, setVotesState] = useState<Record<string, { score: number; userVote: 'UP' | 'DOWN' | null }>>({});
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchQuestions = async () => {
+      try {
+        const res = await questionApi.getQuestions({
+          search: searchQuery.trim() || undefined,
+          sortBy: sortBy === 'upvoted' ? 'upvotes' : sortBy === 'answers' ? 'answers' : 'created_at',
+          pageSize: 50,
+        });
+        if (isMounted && res?.items && res.items.length > 0) {
+          const mapped: QuestionPost[] = res.items.map((item) => ({
+            id: String(item.questionId),
+            title: item.title,
+            content: item.body,
+            courseCode: item.courseId ? `COURSE-${item.courseId}` : undefined,
+            author: {
+              id: String(item.authorUserId || 'anon'),
+              fullName: item.isAnonymous ? 'Ẩn danh FPTer' : (item.authorDisplayName || 'Sinh viên FHub'),
+              role: 'Student',
+              karma: item.isAnonymous ? 0 : 250,
+              campus: 'FU-HL',
+              isAnonymous: item.isAnonymous,
+            },
+            tags: ['fhub', 'qa'],
+            upvotes: 5,
+            downvotes: 0,
+            answersCount: item.answerCount || 0,
+            viewsCount: item.viewCount || 0,
+            isSolved: item.hasBestAnswer || item.status === 'RESOLVED',
+            isLocked: item.areCommentsLocked,
+            isPinned: item.isPinned,
+            createdAt: item.createdAt || new Date().toISOString(),
+          }));
+          setQuestions(mapped);
+        }
+      } catch (err) {
+        console.warn('API error fetching questions, fallback to mock:', err);
+      }
+    };
+    fetchQuestions();
+    return () => {
+      isMounted = false;
+    };
+  }, [searchQuery, sortBy]);
 
   const allTopics = useMemo(() => {
     const set = new Set<string>();
