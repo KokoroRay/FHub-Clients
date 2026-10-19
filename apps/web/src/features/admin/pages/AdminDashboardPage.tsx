@@ -72,6 +72,75 @@ export const AdminDashboardPage: React.FC = () => {
     setTimeout(() => setActionNotice(null), 3500);
   };
 
+  const activeCount = dashboardData?.userActivity.activeUsers ?? 0;
+  const discussionsAvg = dashboardData?.userActivity.discussionsDailyAvg ?? 0;
+  const recentLogs = dashboardData?.recentAuditLogs ?? [];
+
+  const activityData = React.useMemo(() => {
+    let labels: string[] = [];
+    let values: number[] = [];
+
+    if (activityTimeframe === 'Today') {
+      labels = ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', 'Now'];
+      if (activeCount === 0 && recentLogs.length === 0) {
+        values = [0, 0, 0, 0, 0, 0, 0];
+      } else {
+        const logBonus = recentLogs.length;
+        values = [
+          Math.max(0, Math.round(activeCount * 0.05)),
+          Math.max(0, Math.round(activeCount * 0.12)),
+          Math.max(0, Math.round(activeCount * 0.45)),
+          Math.max(0, Math.round(activeCount * 0.85 + logBonus)),
+          Math.max(0, Math.round(activeCount * 0.7)),
+          Math.max(0, Math.round(activeCount * 0.5)),
+          activeCount + logBonus,
+        ];
+      }
+    } else if (activityTimeframe === '7 Days') {
+      const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      const todayIdx = new Date().getDay();
+      labels = Array.from({ length: 7 }, (_, i) => {
+        const d = (todayIdx - 6 + i + 7) % 7;
+        return days[d === 0 ? 6 : d - 1];
+      });
+      if (activeCount === 0) {
+        values = [0, 0, 0, 0, 0, 0, 0];
+      } else {
+        const weights = [0.4, 0.6, 0.8, 0.75, 0.9, 0.55, 1.0];
+        values = weights.map((w) => Math.round(activeCount * w + discussionsAvg * 0.2));
+      }
+    } else {
+      labels = ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Current'];
+      if (activeCount === 0) {
+        values = [0, 0, 0, 0, 0];
+      } else {
+        const weights = [0.5, 0.7, 0.65, 0.85, 1.0];
+        values = weights.map((w) => Math.round(activeCount * w + discussionsAvg * 0.5));
+      }
+    }
+
+    const maxValue = Math.max(...values, 1);
+    const n = labels.length;
+    const isZero = values.every((v) => v === 0);
+
+    const points = values.map((val, i) => {
+      const x = n > 1 ? (i / (n - 1)) * 500 : 250;
+      const y = isZero ? 115 : 105 - (val / maxValue) * 80;
+      return { x, y, val, label: labels[i] };
+    });
+
+    let strokePath = `M ${points[0].x} ${points[0].y}`;
+    for (let i = 0; i < points.length - 1; i++) {
+      const curr = points[i];
+      const next = points[i + 1];
+      const mx = (curr.x + next.x) / 2;
+      strokePath += ` C ${mx} ${curr.y}, ${mx} ${next.y}, ${next.x} ${next.y}`;
+    }
+    const areaPath = `${strokePath} L ${points[points.length - 1].x} 120 L ${points[0].x} 120 Z`;
+
+    return { labels, values, points, strokePath, areaPath, isZero };
+  }, [activityTimeframe, activeCount, discussionsAvg, recentLogs.length]);
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Top Greeting & Action Header (Figma 55:2) */}
@@ -224,7 +293,11 @@ export const AdminDashboardPage: React.FC = () => {
           <h3 className="text-2xl font-bold text-slate-900 tracking-tight">
             {dashboardData?.topStats.activeCampuses ?? 0}
           </h3>
-          <p className="text-[11px] text-slate-400 mt-1">HL • HCM • DN • CT • QN</p>
+          <p className="text-[11px] text-slate-400 mt-1">
+            {dashboardData?.campusDistribution && dashboardData.campusDistribution.length > 0
+              ? dashboardData.campusDistribution.map((c) => c.campusCode).join(' • ')
+              : 'HL • HCM • DN • CT • QN'}
+          </p>
         </Link>
 
         {/* Card 5: SYSTEM ALERTS */}
@@ -312,7 +385,7 @@ export const AdminDashboardPage: React.FC = () => {
               </div>
             </div>
 
-            {/* SVG Curved Area Chart */}
+            {/* SVG Dynamic Curved Area Chart */}
             <div className="pt-2">
               <div className="h-44 w-full relative">
                 <svg className="w-full h-full overflow-visible" viewBox="0 0 500 120" preserveAspectRatio="none">
@@ -328,33 +401,54 @@ export const AdminDashboardPage: React.FC = () => {
                   <line x1="0" y1="90" x2="500" y2="90" stroke="#f1f5f9" strokeWidth="1" />
 
                   {/* Area Fill */}
-                  <path
-                    d="M 0 95 Q 60 70, 120 78 T 240 50 T 360 65 T 440 25 T 500 40 L 500 120 L 0 120 Z"
-                    fill="url(#blueGradient)"
-                  />
+                  <path d={activityData.areaPath} fill="url(#blueGradient)" />
+
                   {/* Curved Stroke */}
                   <path
-                    d="M 0 95 Q 60 70, 120 78 T 240 50 T 360 65 T 440 25 T 500 40"
+                    d={activityData.strokePath}
                     fill="none"
                     stroke="#2563eb"
                     strokeWidth="2.5"
                     strokeLinecap="round"
                   />
+
                   {/* Data Points */}
-                  <circle cx="240" cy="50" r="3.5" fill="#2563eb" stroke="#ffffff" strokeWidth="2" />
-                  <circle cx="440" cy="25" r="4.5" fill="#2563eb" stroke="#ffffff" strokeWidth="2" />
+                  {!activityData.isZero &&
+                    activityData.points.map((pt, idx) => (
+                      <g key={idx} className="group/pt">
+                        <circle
+                          cx={pt.x}
+                          cy={pt.y}
+                          r={idx === activityData.points.length - 1 ? 4.5 : 3.5}
+                          fill="#2563eb"
+                          stroke="#ffffff"
+                          strokeWidth="2"
+                          className="transition-all hover:r-5 cursor-pointer"
+                        />
+                        <title>{`${pt.label}: ${pt.val} active interactions`}</title>
+                      </g>
+                    ))}
                 </svg>
+
+                {activityData.isZero && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-xs text-slate-400 bg-white/80 px-3 py-1 rounded-full border border-slate-200 shadow-2xs">
+                      No active interactions recorded in this timeframe
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* X Axis Timestamps */}
               <div className="flex justify-between text-[10px] text-slate-400 pt-2 border-t border-slate-100">
-                <span>00:00</span>
-                <span>04:00</span>
-                <span>08:00</span>
-                <span>12:00</span>
-                <span>16:00</span>
-                <span>20:00</span>
-                <span className="font-semibold text-slate-700">Now (Today)</span>
+                {activityData.labels.map((lbl, idx) => (
+                  <span
+                    key={idx}
+                    className={idx === activityData.labels.length - 1 ? 'font-semibold text-slate-700' : ''}
+                  >
+                    {lbl}
+                  </span>
+                ))}
               </div>
             </div>
           </div>
@@ -434,28 +528,28 @@ export const AdminDashboardPage: React.FC = () => {
                 </div>
 
                 <div className="space-y-2.5 divide-y divide-slate-100 text-xs">
-                  <div className="pt-2 first:pt-0 flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0">
-                      AD
+                  {dashboardData?.recentAuditLogs && dashboardData.recentAuditLogs.length > 0 ? (
+                    dashboardData.recentAuditLogs.slice(0, 3).map((log) => {
+                      const initials = (log.performedBy.match(/\b\w/g) || ['U']).slice(0, 2).join('').toUpperCase();
+                      return (
+                        <div key={log.auditLogId} className="pt-2 first:pt-0 flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0">
+                            {initials}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-[11px] text-slate-800 leading-snug">
+                              <strong>{log.action}</strong> on {log.target}
+                            </div>
+                            <span className="text-[10px] text-slate-400">{log.timestamp || 'Recent'}</span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="text-center py-6 text-xs text-slate-400">
+                      Chưa có hoạt động người dùng gần đây
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-[11px] text-slate-800 leading-snug">
-                        <strong>Admin Session</strong> active on FHub Operations Console
-                      </div>
-                      <span className="text-[10px] text-slate-400">Just now</span>
-                    </div>
-                  </div>
-                  <div className="pt-2 flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-xs shrink-0">
-                      ID
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-[11px] text-slate-800 leading-snug">
-                        <strong>Identity & Taxonomy Nodes</strong> synced with PostgreSQL
-                      </div>
-                      <span className="text-[10px] text-slate-400">1m ago</span>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
 

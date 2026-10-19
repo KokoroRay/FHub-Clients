@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Layers,
@@ -12,9 +12,11 @@ import {
   Trash2,
   Edit2,
   ChevronRight,
+  ChevronLeft,
   Loader2,
   AlertTriangle,
-  RefreshCw
+  RefreshCw,
+  Pencil
 } from 'lucide-react';
 import {
   useSpecializations,
@@ -30,7 +32,7 @@ export const SpecializationsPage: React.FC = () => {
   const [selectedMajorId, setSelectedMajorId] = useState<string>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
   const [pageNumber, setPageNumber] = useState(1);
-  const pageSize = 20;
+  const pageSize = 15;
 
   // Modals state
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -46,6 +48,22 @@ export const SpecializationsPage: React.FC = () => {
   const [formIsActive, setFormIsActive] = useState(true);
   const [formError, setFormError] = useState<string | null>(null);
 
+  // Reset page number on filter changes
+  const handleSearchChange = (val: string) => {
+    setSearchQuery(val);
+    setPageNumber(1);
+  };
+
+  const handleMajorChange = (val: string) => {
+    setSelectedMajorId(val);
+    setPageNumber(1);
+  };
+
+  const handleStatusChange = (val: string) => {
+    setSelectedStatus(val);
+    setPageNumber(1);
+  };
+
   // Queries & Mutations
   const { data: majorsData } = useMajors({ pageSize: 100 });
   const {
@@ -54,7 +72,7 @@ export const SpecializationsPage: React.FC = () => {
     isRefetching,
     refetch
   } = useSpecializations({
-    search: searchQuery || undefined,
+    search: searchQuery.trim() || undefined,
     majorId: selectedMajorId !== 'ALL' ? Number(selectedMajorId) : undefined,
     isActive: selectedStatus !== 'ALL' ? selectedStatus === 'ACTIVE' : undefined,
     pageNumber,
@@ -67,6 +85,7 @@ export const SpecializationsPage: React.FC = () => {
 
   const specializations: SpecializationItemDto[] = specsData?.items || [];
   const totalCount: number = specsData?.totalCount || 0;
+  const totalPages = Math.ceil(totalCount / pageSize) || 1;
   const majors = majorsData?.items || [];
 
   // Metrics
@@ -176,11 +195,48 @@ export const SpecializationsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+      {/* Header aligned with Academic Taxonomy (Majors / Campuses / Courses) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+            <span>ACADEMIC TAXONOMY</span>
+            <span>&gt;</span>
+            <span className="text-blue-600">SPECIALIZATIONS ({totalCount})</span>
+          </div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+            Specializations Registry
+          </h1>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Manage academic specializations, curriculum alignments, and parent degree tracks across all campuses.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => refetch()}
+            disabled={isRefetching}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 shadow-2xs transition-colors cursor-pointer"
+            title="Refresh specializations"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${isRefetching ? 'animate-spin' : ''}`} />
+            <span>Refresh</span>
+          </button>
+
+          <button
+            onClick={handleOpenCreate}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add Specialization</span>
+          </button>
+        </div>
+      </div>
+
       {/* Toast Notice */}
       {notice && (
         <div
-          className={`p-4 rounded-xl shadow-lg border flex items-center justify-between transition-all ${
+          className={`p-3 rounded-xl border flex items-center justify-between text-xs transition-all animate-fadeIn ${
             notice.type === 'success'
               ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
               : 'bg-rose-50 border-rose-200 text-rose-800'
@@ -188,202 +244,179 @@ export const SpecializationsPage: React.FC = () => {
         >
           <div className="flex items-center gap-2">
             {notice.type === 'success' ? (
-              <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             ) : (
-              <AlertTriangle className="w-5 h-5 text-rose-600 flex-shrink-0" />
+              <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
             )}
-            <span className="font-medium text-sm">{notice.message}</span>
+            <span className="font-medium">{notice.message}</span>
           </div>
           <button
             onClick={() => setNotice(null)}
-            className="text-xs font-semibold uppercase tracking-wider underline hover:opacity-75"
+            className="text-[10px] font-bold uppercase tracking-wider underline hover:opacity-75 cursor-pointer ml-3"
           >
             Đóng
           </button>
         </div>
       )}
 
-      {/* Header Banner */}
-      <div className="bg-gradient-to-r from-indigo-700 via-blue-700 to-sky-600 rounded-2xl p-6 text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <div className="flex items-center gap-2 text-indigo-200 text-sm font-semibold uppercase tracking-wider mb-1">
-            <Layers className="w-4 h-4" /> Academic Taxonomy
-          </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">Specialization Management</h1>
-          <p className="text-indigo-100 text-sm mt-1 max-w-xl">
-            Quản lý danh mục chuyên ngành hẹp trực thuộc ngành đào tạo (Majors), cấu hình khung chương trình (Curricula) và định hướng học tập.
-          </p>
+      {/* 4 Stat Cards Row (Consistent with MajorsPage) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
+        <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">TOTAL SPECIALIZATIONS</span>
+          <h3 className="text-2xl font-bold text-slate-900 tracking-tight mt-1">{totalCount}</h3>
+          <p className="text-[11px] text-slate-400 mt-0.5">Defined academic sub-tracks</p>
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => refetch()}
-            disabled={isRefetching}
-            className="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-all flex items-center justify-center"
-            title="Làm mới dữ liệu"
-          >
-            <RefreshCw className={`w-5 h-5 ${isRefetching ? 'animate-spin' : ''}`} />
-          </button>
-          <button
-            onClick={handleOpenCreate}
-            className="px-5 py-2.5 rounded-xl bg-white text-indigo-700 font-bold shadow-md hover:bg-indigo-50 transition-all flex items-center gap-2"
-          >
-            <Plus className="w-5 h-5" /> Thêm Chuyên Ngành
-          </button>
+
+        <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
+          <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">ACTIVE TRACKS</span>
+          <h3 className="text-2xl font-bold text-emerald-600 tracking-tight mt-1">{activeCount}</h3>
+          <p className="text-[11px] text-slate-400 mt-0.5">Currently enrolling students</p>
+        </div>
+
+        <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
+          <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">CURRICULA LINKED</span>
+          <h3 className="text-2xl font-bold text-blue-600 tracking-tight mt-1">{totalCurricula}</h3>
+          <p className="text-[11px] text-slate-400 mt-0.5">Roadmap matrices active</p>
+        </div>
+
+        <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">PARENT MAJORS</span>
+          <h3 className="text-2xl font-bold text-slate-900 tracking-tight mt-1">{majors.length}</h3>
+          <p className="text-[11px] text-slate-400 mt-0.5">Undergraduate degree programs</p>
         </div>
       </div>
 
-      {/* Metrics Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tổng Chuyên Ngành</div>
-          <div className="text-2xl font-black text-slate-800 mt-1">{totalCount}</div>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <div className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Đang Hoạt Động</div>
-          <div className="text-2xl font-black text-emerald-600 mt-1">{activeCount}</div>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <div className="text-xs font-bold text-blue-600 uppercase tracking-wider">Khung Đào Tạo (Curricula)</div>
-          <div className="text-2xl font-black text-blue-600 mt-1">{totalCurricula}</div>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-          <div className="text-xs font-bold text-purple-600 uppercase tracking-wider">Ngành Liên Kết</div>
-          <div className="text-2xl font-black text-purple-600 mt-1">{majors.length}</div>
-        </div>
-      </div>
-
-      {/* Filters and Search Bar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4 justify-between items-center">
-        <div className="relative w-full md:w-96">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+      {/* Filter and Search Bar */}
+      <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs flex flex-col md:flex-row items-center gap-3">
+        <div className="relative flex-1 w-full">
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Tìm theo mã, tên chuyên ngành, tên ngành..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            onChange={(e) => handleSearchChange(e.target.value)}
+            placeholder="Search by specialization code (SE_IS, SE_AI), title, or parent major..."
+            className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-slate-400" />
-            <select
-              value={selectedMajorId}
-              onChange={(e) => setSelectedMajorId(e.target.value)}
-              className="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="ALL">Tất cả ngành (Majors)</option>
-              {majors.map((m: any) => (
-                <option key={m.majorId} value={m.majorId}>
-                  {m.majorCode} - {m.majorName}
-                </option>
-              ))}
-            </select>
-          </div>
+        <div className="flex items-center gap-2 w-full md:w-auto">
+          <select
+            value={selectedMajorId}
+            onChange={(e) => handleMajorChange(e.target.value)}
+            className="w-full md:w-56 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none cursor-pointer"
+          >
+            <option value="ALL">All Majors (Degree Tracks)</option>
+            {majors.map((m: any) => (
+              <option key={m.majorId} value={m.majorId}>
+                {m.majorCode} - {m.majorName}
+              </option>
+            ))}
+          </select>
 
           <select
             value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            onChange={(e) => handleStatusChange(e.target.value)}
+            className="w-full md:w-36 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none cursor-pointer"
           >
-            <option value="ALL">Tất cả trạng thái</option>
-            <option value="ACTIVE">Đang hoạt động</option>
-            <option value="INACTIVE">Đã vô hiệu hóa</option>
+            <option value="ALL">All Status</option>
+            <option value="ACTIVE">Active</option>
+            <option value="INACTIVE">Inactive</option>
           </select>
         </div>
       </div>
 
-      {/* Main Content Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      {/* Data Table */}
+      <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs overflow-hidden">
         {isLoading ? (
-          <div className="p-12 text-center text-slate-500 flex flex-col items-center justify-center gap-3">
-            <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
-            <p className="text-sm font-medium">Đang tải danh sách chuyên ngành...</p>
+          <div className="p-12 text-center text-slate-500 flex flex-col items-center justify-center gap-2">
+            <Loader2 className="w-7 h-7 animate-spin text-blue-600" />
+            <p className="text-xs font-medium text-slate-500">Loading specializations registry...</p>
           </div>
         ) : specializations.length === 0 ? (
           <div className="p-12 text-center text-slate-500">
-            <Layers className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-            <h3 className="text-base font-semibold text-slate-700">Không tìm thấy chuyên ngành nào</h3>
-            <p className="text-sm text-slate-400 mt-1 max-w-sm mx-auto">
-              Thử thay đổi bộ lọc tìm kiếm hoặc nhấn nút "Thêm Chuyên Ngành" để tạo chuyên ngành mới.
+            <Layers className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+            <h3 className="text-sm font-semibold text-slate-700">No specializations found</h3>
+            <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+              No matching records found. Adjust your search keywords or add a new specialization.
             </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-wider border-b border-slate-200">
-                  <th className="py-3.5 px-4">Mã Chuyên Ngành</th>
-                  <th className="py-3.5 px-4">Tên Chuyên Ngành</th>
-                  <th className="py-3.5 px-4">Ngành Trực Thuộc</th>
-                  <th className="py-3.5 px-4 text-center">Khung ĐT</th>
-                  <th className="py-3.5 px-4">Trạng Thái</th>
-                  <th className="py-3.5 px-4 text-right">Thao Tác</th>
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50/80 text-[10px] font-bold text-slate-400 uppercase border-b border-slate-200">
+                <tr>
+                  <th className="py-3 px-4 font-bold">SPECIALIZATION CODE & TITLE</th>
+                  <th className="py-3 px-3 font-bold">PARENT MAJOR</th>
+                  <th className="py-3 px-3 font-bold text-center">CURRICULA</th>
+                  <th className="py-3 px-3 font-bold">STATUS</th>
+                  <th className="py-3 px-4 font-bold text-right">ACTIONS</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-sm">
+              <tbody className="divide-y divide-slate-100">
                 {specializations.map((spec) => (
-                  <tr key={spec.specializationId} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3 px-4 font-mono font-bold text-indigo-700">
-                      {spec.specializationCode}
-                    </td>
+                  <tr key={spec.specializationId} className="hover:bg-slate-50/70 transition-colors">
                     <td className="py-3 px-4">
-                      <div className="font-semibold text-slate-800">{spec.specializationName}</div>
-                      {spec.description && (
-                        <div className="text-xs text-slate-500 line-clamp-1 max-w-md mt-0.5">
-                          {spec.description}
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 font-mono font-bold text-xs flex items-center justify-center shrink-0">
+                          {spec.specializationCode.substring(0, 3)}
                         </div>
-                      )}
+                        <div>
+                          <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                            <span className="font-mono text-blue-600">{spec.specializationCode}</span>
+                            <span>- {spec.specializationName}</span>
+                          </div>
+                          {spec.description && (
+                            <div className="text-[11px] text-slate-400 line-clamp-1 max-w-md mt-0.5">
+                              {spec.description}
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </td>
-                    <td className="py-3 px-4">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-                        <GraduationCap className="w-3.5 h-3.5" />
+
+                    <td className="py-3 px-3">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded font-bold font-mono text-[10px] bg-blue-50 text-blue-700 border border-blue-200">
+                        <GraduationCap className="w-3 h-3" />
                         {spec.majorCode}
                       </span>
-                      <span className="text-xs text-slate-600 ml-2">{spec.majorName}</span>
+                      <span className="text-[11px] text-slate-500 ml-1.5">{spec.majorName}</span>
                     </td>
-                    <td className="py-3 px-4 text-center">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
-                        <BookOpen className="w-3.5 h-3.5 text-slate-500" />
+
+                    <td className="py-3 px-3 text-center">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-700">
+                        <BookOpen className="w-3 h-3 text-slate-400" />
                         {spec.curriculaCount || 0}
                       </span>
                     </td>
-                    <td className="py-3 px-4">
+
+                    <td className="py-3 px-3">
                       {spec.isActive ? (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Hoạt động
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                          <CheckCircle2 className="w-3 h-3" /> Active
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200">
-                          <XCircle className="w-3.5 h-3.5" /> Tạm dừng
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
+                          <XCircle className="w-3 h-3" /> Inactive
                         </span>
                       )}
                     </td>
-                    <td className="py-3 px-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Link
-                          to={`/specializations/${spec.specializationId}`}
-                          className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                          title="Xem chi tiết"
-                        >
-                          <ChevronRight className="w-4 h-4" />
-                        </Link>
-                        <button
-                          onClick={() => handleOpenEdit(spec)}
-                          className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          title="Chỉnh sửa"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => setDeletingSpec(spec)}
-                          className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                          title="Xóa chuyên ngành"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
+
+                    <td className="py-3 px-4 text-right space-x-1.5">
+                      <button
+                        onClick={() => handleOpenEdit(spec)}
+                        className="p-1 rounded text-slate-400 hover:text-blue-600 cursor-pointer"
+                        title="Edit specialization"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+
+                      <button
+                        onClick={() => setDeletingSpec(spec)}
+                        className="p-1 rounded text-slate-400 hover:text-rose-600 cursor-pointer"
+                        title="Delete specialization"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -391,35 +424,104 @@ export const SpecializationsPage: React.FC = () => {
             </table>
           </div>
         )}
+
+        {/* Pagination Bar */}
+        {totalCount > 0 && (
+          <div className="p-3.5 bg-slate-50/60 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+            <div>
+              Showing{' '}
+              <span className="font-semibold text-slate-800">
+                {(pageNumber - 1) * pageSize + 1}
+              </span>{' '}
+              to{' '}
+              <span className="font-semibold text-slate-800">
+                {Math.min(pageNumber * pageSize, totalCount)}
+              </span>{' '}
+              of <span className="font-semibold text-slate-800">{totalCount}</span> specializations
+            </div>
+
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setPageNumber((p) => Math.max(1, p - 1))}
+                disabled={pageNumber === 1}
+                className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded text-xs font-semibold text-slate-700 shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 cursor-pointer"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+                <span>Prev</span>
+              </button>
+
+              <div className="flex items-center gap-1 px-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter((p) => p === 1 || p === totalPages || Math.abs(p - pageNumber) <= 1)
+                  .map((p, idx, arr) => {
+                    const prev = arr[idx - 1];
+                    const hasGap = prev && p - prev > 1;
+                    return (
+                      <React.Fragment key={p}>
+                        {hasGap && <span className="px-1 text-slate-400">...</span>}
+                        <button
+                          onClick={() => setPageNumber(p)}
+                          className={`w-7 h-7 rounded text-xs font-semibold transition-colors cursor-pointer ${
+                            pageNumber === p
+                              ? 'bg-blue-600 text-white shadow-2xs'
+                              : 'bg-white hover:bg-slate-100 border border-slate-200 text-slate-700'
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      </React.Fragment>
+                    );
+                  })}
+              </div>
+
+              <button
+                onClick={() => setPageNumber((p) => Math.min(totalPages, p + 1))}
+                disabled={pageNumber >= totalPages}
+                className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded text-xs font-semibold text-slate-700 shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 cursor-pointer"
+              >
+                <span>Next</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Create Modal */}
+      {/* Modal: Create Specialization */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100">
-            <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2 mb-4">
-              <Plus className="w-5 h-5 text-indigo-600" /> Tạo Mới Chuyên Ngành
-            </h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-fadeIn">
+          <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full p-6 shadow-xl space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Plus className="w-4 h-4 text-blue-600" /> Add Specialization
+              </h2>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
 
             {formError && (
-              <div className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-lg flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
                 <span>{formError}</span>
               </div>
             )}
 
-            <form onSubmit={handleCreateSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Ngành đào tạo trực thuộc (Major) <span className="text-rose-500">*</span>
+            <form onSubmit={handleCreateSubmit} className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-700">
+                  Parent Major (Degree Track) <span className="text-rose-500">*</span>
                 </label>
                 <select
                   value={formMajorId}
                   onChange={(e) => setFormMajorId(Number(e.target.value))}
                   required
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
                 >
-                  <option value="" disabled>-- Chọn ngành --</option>
+                  <option value="" disabled>-- Select Degree Track --</option>
                   {majors.map((m: any) => (
                     <option key={m.majorId} value={m.majorId}>
                       {m.majorCode} - {m.majorName}
@@ -428,46 +530,45 @@ export const SpecializationsPage: React.FC = () => {
                 </select>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Mã chuyên ngành (Specialization Code) <span className="text-rose-500">*</span>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-700">
+                  Specialization Code <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
-                  placeholder="VD: SE_IS, SE_AI, IA_NET"
+                  placeholder="e.g. SE_IS, SE_AI, IA_NET"
                   value={formCode}
                   onChange={(e) => setFormCode(e.target.value)}
                   maxLength={30}
                   required
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm uppercase font-mono focus:ring-2 focus:ring-indigo-500"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono uppercase text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 />
-                <p className="text-xs text-slate-400 mt-1">Chữ cái tiếng Anh, số, dấu gạch nối/dưới, tối đa 30 ký tự.</p>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Tên chuyên ngành (Specialization Name) <span className="text-rose-500">*</span>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-700">
+                  Specialization Title <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
-                  placeholder="VD: Hệ thống thông tin, Trí tuệ nhân tạo"
+                  placeholder="e.g. Information Systems, Artificial Intelligence"
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
                   maxLength={200}
                   required
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Mô tả</label>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-700">Description</label>
                 <textarea
                   rows={3}
-                  placeholder="Mô tả định hướng đào tạo, kiến thức chuyên sâu..."
+                  placeholder="Describe academic focus, specialization competencies..."
                   value={formDescription}
                   onChange={(e) => setFormDescription(e.target.value)}
                   maxLength={1000}
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 />
               </div>
 
@@ -477,28 +578,28 @@ export const SpecializationsPage: React.FC = () => {
                   id="createIsActive"
                   checked={formIsActive}
                   onChange={(e) => setFormIsActive(e.target.checked)}
-                  className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4"
+                  className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
                 />
-                <label htmlFor="createIsActive" className="text-sm font-medium text-slate-700">
-                  Kích hoạt chuyên ngành này ngay sau khi tạo
+                <label htmlFor="createIsActive" className="text-xs text-slate-700 cursor-pointer">
+                  Activate specialization immediately
                 </label>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-50 transition-colors"
+                  className="px-3.5 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
                 >
-                  Hủy bỏ
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={createMutation.isPending}
-                  className="px-5 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                  className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
                 >
-                  {createMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                  Tạo Chuyên Ngành
+                  {createMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                  <span>Save Specialization</span>
                 </button>
               </div>
             </form>
@@ -506,37 +607,45 @@ export const SpecializationsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Edit Modal */}
+      {/* Modal: Edit Specialization */}
       {editingSpec && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100">
-            <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2 mb-4">
-              <Edit2 className="w-5 h-5 text-blue-600" /> Cập Nhật Chuyên Ngành: {editingSpec.specializationCode}
-            </h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-fadeIn">
+          <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full p-6 shadow-xl space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Edit2 className="w-4 h-4 text-blue-600" /> Edit Specialization: {editingSpec.specializationCode}
+              </h2>
+              <button
+                onClick={() => setEditingSpec(null)}
+                className="text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
 
             {formError && (
-              <div className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-lg flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
                 <span>{formError}</span>
               </div>
             )}
 
-            <form onSubmit={handleUpdateSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Mã chuyên ngành (Không thể thay đổi)
+            <form onSubmit={handleUpdateSubmit} className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-700">
+                  Specialization Code (Immutable)
                 </label>
                 <input
                   type="text"
                   disabled
                   value={editingSpec.specializationCode}
-                  className="w-full bg-slate-100 border border-slate-300 rounded-lg px-3 py-2 text-sm font-mono text-slate-500 cursor-not-allowed"
+                  className="w-full bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono text-slate-500 cursor-not-allowed"
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                  Tên chuyên ngành <span className="text-rose-500">*</span>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-700">
+                  Specialization Title <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -544,18 +653,18 @@ export const SpecializationsPage: React.FC = () => {
                   onChange={(e) => setFormName(e.target.value)}
                   maxLength={200}
                   required
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Mô tả</label>
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-700">Description</label>
                 <textarea
                   rows={3}
                   value={formDescription}
                   onChange={(e) => setFormDescription(e.target.value)}
                   maxLength={1000}
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 />
               </div>
 
@@ -567,26 +676,26 @@ export const SpecializationsPage: React.FC = () => {
                   onChange={(e) => setFormIsActive(e.target.checked)}
                   className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
                 />
-                <label htmlFor="editIsActive" className="text-sm font-medium text-slate-700">
-                  Trạng thái hoạt động (Active)
+                <label htmlFor="editIsActive" className="text-xs text-slate-700 cursor-pointer">
+                  Active in academic catalog
                 </label>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setEditingSpec(null)}
-                  className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-50 transition-colors"
+                  className="px-3.5 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
                 >
-                  Hủy bỏ
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={updateMutation.isPending}
-                  className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                  className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
                 >
-                  {updateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                  Lưu Thay Đổi
+                  {updateMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                  <span>Update Changes</span>
                 </button>
               </div>
             </form>
@@ -594,46 +703,48 @@ export const SpecializationsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
+      {/* Modal: Delete Confirmation */}
       {deletingSpec && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
-            <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mb-4">
-              <Trash2 className="w-6 h-6" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-fadeIn">
+          <div className="bg-white rounded-2xl border border-slate-200 max-w-sm w-full p-6 shadow-xl space-y-4">
+            <div className="w-10 h-10 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
+              <Trash2 className="w-5 h-5" />
             </div>
 
-            <h3 className="text-lg font-bold text-slate-800">
-              Xác nhận xóa chuyên ngành {deletingSpec.specializationCode}?
-            </h3>
-            <p className="text-sm text-slate-500 mt-1">
-              Bạn có chắc chắn muốn xóa chuyên ngành <span className="font-semibold text-slate-800">{deletingSpec.specializationName}</span>?
-            </p>
+            <div className="text-center">
+              <h3 className="text-base font-bold text-slate-900">
+                Delete {deletingSpec.specializationCode}?
+              </h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Are you sure you want to delete <span className="font-semibold text-slate-800">{deletingSpec.specializationName}</span>?
+              </p>
+            </div>
 
             {deletingSpec.curriculaCount > 0 && (
-              <div className="my-4 p-3 bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-lg flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-xl flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                 <span>
-                  <strong>Cảnh báo:</strong> Chuyên ngành này đang liên kết với <strong>{deletingSpec.curriculaCount} khung chương trình</strong>. Hệ thống sẽ chặn xóa để bảo đảm toàn vẹn dữ liệu. Vui lòng chuyển hoặc hủy liên kết khung chương trình trước, hoặc chỉ vô hiệu hóa trạng thái chuyên ngành.
+                  This specialization has <strong>{deletingSpec.curriculaCount} linked curricula</strong>. Deletion will be rejected if curricula exist.
                 </span>
               </div>
             )}
 
-            <div className="flex justify-end gap-3 mt-6">
+            <div className="flex justify-end gap-2 pt-2">
               <button
                 type="button"
                 onClick={() => setDeletingSpec(null)}
-                className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-50 transition-colors"
+                className="px-3.5 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
               >
-                Hủy bỏ
+                Cancel
               </button>
               <button
                 type="button"
                 onClick={handleDeleteSubmit}
                 disabled={deleteMutation.isPending}
-                className="px-5 py-2 bg-rose-600 text-white rounded-lg text-sm font-semibold hover:bg-rose-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                className="px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold shadow-xs disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
               >
-                {deleteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                Xác Nhận Xóa
+                {deleteMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                <span>Delete Specialization</span>
               </button>
             </div>
           </div>
