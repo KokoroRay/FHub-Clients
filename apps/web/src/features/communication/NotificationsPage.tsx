@@ -32,133 +32,68 @@ interface NotificationItem {
   isRead: boolean;
 }
 
-const INITIAL_NOTIFICATIONS: NotificationItem[] = [
-  {
-    id: 'notif-1',
-    type: 'message',
-    typeLabel: 'New Message',
-    typeColor: 'bg-indigo-50 text-indigo-700 border-indigo-100',
-    time: '5 minutes ago',
-    title: 'Minh Tran sent you a message.',
-    description: '"Hey Minh, do you have the project rubric slides from Prof.…"',
-    actionText: 'View Conversation',
-    actionUrl: '/messages',
-    isRead: false,
-  },
-  {
-    id: 'notif-2',
-    type: 'article',
-    typeLabel: 'Article Interaction',
-    typeColor: 'bg-emerald-50 text-emerald-700 border-emerald-100',
-    time: '1 hour ago',
-    title: 'Linh Nguyen commented on your article.',
-    description: '"Great breakdown of the Entity Framework Core concurrency…"',
-    actionText: 'View Comment',
-    actionUrl: '/articles/1',
-    isRead: false,
-  },
-  {
-    id: 'notif-3',
-    type: 'material',
-    typeLabel: 'Study Material',
-    typeColor: 'bg-blue-50 text-blue-700 border-blue-100',
-    courseCode: 'PRN211',
-    time: 'Yesterday',
-    title: 'A new study material was added to PRN211.',
-    description: 'File uploaded: PRN211_Complete_Summary.pdf (14.2 MB)',
-    actionText: 'Open Resource',
-    actionUrl: '/materials/1',
-    isRead: true,
-  },
-  {
-    id: 'notif-4',
-    type: 'evaluation',
-    typeLabel: 'Course Review',
-    typeColor: 'bg-purple-50 text-purple-700 border-purple-100',
-    courseCode: 'PRN211',
-    time: '2 days ago',
-    title: 'Your course review received a helpful vote.',
-    description: 'Course: PRN211 • Community karma score +15 points',
-    actionText: 'View Evaluation',
-    actionUrl: '/course-evaluations/1',
-    isRead: true,
-  },
-  {
-    id: 'notif-5',
-    type: 'community',
-    typeLabel: 'Community Update',
-    typeColor: 'bg-sky-50 text-sky-800 border-sky-100',
-    time: '3 days ago',
-    title: 'A new discussion is available in your course community.',
-    description: 'Thread: "Async/await in WinForms UI thread starvation…"',
-    actionText: 'Join Discussion',
-    actionUrl: '/discussions/1',
-    isRead: true,
-  },
-];
-
 export const NotificationsPage: React.FC = () => {
   const navigate = useNavigate();
-  const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [activeTab, setActiveTab] = useState<'all' | 'unread' | 'read'>('all');
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchLiveNotifications = async () => {
-      try {
-        setLoading(true);
-        const liveItems = await notificationApi.getNotifications({ pageSize: 50 });
-        if (liveItems && liveItems.length > 0) {
-          const mapped: NotificationItem[] = liveItems.map(item => {
-            const rawType = (item.type || '').toLowerCase();
-            let mappedType: NotificationItem['type'] = 'community';
-            let label = 'Community Update';
-            let color = 'bg-sky-50 text-sky-800 border-sky-100';
+  const fetchLiveNotifications = async () => {
+    try {
+      setLoading(true);
+      const liveItems = await notificationApi.getNotifications({ pageSize: 50 });
+      if (liveItems && liveItems.length > 0) {
+        const mapped: NotificationItem[] = liveItems.map(item => {
+          const rawType = (item.type || '').toLowerCase();
+          let mappedType: NotificationItem['type'] = 'community';
+          let label = 'Thông báo chung';
+          let color = 'bg-sky-50 text-sky-800 border-sky-100';
 
-            if (rawType.includes('message')) {
-              mappedType = 'message';
-              label = 'New Message';
-              color = 'bg-indigo-50 text-indigo-700 border-indigo-100';
-            } else if (rawType.includes('article')) {
-              mappedType = 'article';
-              label = 'Article Interaction';
-              color = 'bg-emerald-50 text-emerald-700 border-emerald-100';
-            } else if (rawType.includes('material')) {
-              mappedType = 'material';
-              label = 'Study Material';
-              color = 'bg-blue-50 text-blue-700 border-blue-100';
-            } else if (rawType.includes('evaluation') || rawType.includes('review')) {
-              mappedType = 'evaluation';
-              label = 'Course Review';
-              color = 'bg-purple-50 text-purple-700 border-purple-100';
-            }
+          if (rawType.includes('message')) {
+            mappedType = 'message';
+            label = 'Tin nhắn mới';
+            color = 'bg-indigo-50 text-indigo-700 border-indigo-100';
+          } else if (rawType.includes('article')) {
+            mappedType = 'article';
+            label = 'Tương tác bài viết';
+            color = 'bg-emerald-50 text-emerald-700 border-emerald-100';
+          } else if (rawType.includes('material')) {
+            mappedType = 'material';
+            label = 'Tài liệu học tập';
+            color = 'bg-blue-50 text-blue-700 border-blue-100';
+          } else if (rawType.includes('evaluation') || rawType.includes('review')) {
+            mappedType = 'evaluation';
+            label = 'Đánh giá môn học';
+            color = 'bg-purple-50 text-purple-700 border-purple-100';
+          }
 
-            return {
-              id: String(item.id),
-              type: mappedType,
-              typeLabel: label,
-              typeColor: color,
-              time: item.createdAt ? new Date(item.createdAt).toLocaleDateString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'Vừa xong',
-              title: item.title,
-              description: item.message,
-              actionText: 'Chi tiết thông báo',
-              actionUrl: item.actionUrl || '/notifications',
-              isRead: item.isRead,
-            };
-          });
+          return {
+            id: String(item.id),
+            type: mappedType,
+            typeLabel: label,
+            typeColor: color,
+            time: item.createdAt ? new Date(item.createdAt).toLocaleDateString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'Vừa xong',
+            title: item.title || 'Thông báo mới',
+            description: item.message || '',
+            actionText: 'Chi tiết thông báo',
+            actionUrl: item.actionUrl || '/notifications',
+            isRead: item.isRead,
+          };
+        });
 
-          // Merge live items with initial fallback items avoiding duplicates
-          const liveIds = new Set(mapped.map(m => m.id));
-          const remainingFallback = INITIAL_NOTIFICATIONS.filter(f => !liveIds.has(f.id));
-          setNotifications([...mapped, ...remainingFallback]);
-        }
-      } catch (err) {
-        console.warn('Failed to load live notifications from Communication service, using fallback feed:', err);
-      } finally {
-        setLoading(false);
+        setNotifications(mapped);
+      } else {
+        setNotifications([]);
       }
-    };
+    } catch (err) {
+      console.warn('Failed to load live notifications from Communication service:', err);
+      setNotifications([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchLiveNotifications();
   }, []);
 
@@ -174,9 +109,7 @@ export const NotificationsPage: React.FC = () => {
   const handleMarkAsRead = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      if (!id.startsWith('notif-')) {
-        await notificationApi.markAsRead(id);
-      }
+      await notificationApi.markAsRead(id);
     } catch (err) {
       console.warn('Could not mark notification as read on API:', err);
     }
@@ -188,7 +121,7 @@ export const NotificationsPage: React.FC = () => {
     const target = notifications.find(n => n.id === id);
     if (!target) return;
     
-    if (!target.isRead && !id.startsWith('notif-')) {
+    if (!target.isRead) {
       try {
         await notificationApi.markAsRead(id);
       } catch (err) {
@@ -201,9 +134,7 @@ export const NotificationsPage: React.FC = () => {
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     try {
-      if (!id.startsWith('notif-')) {
-        await notificationApi.deleteNotification(id);
-      }
+      await notificationApi.deleteNotification(id);
     } catch (err) {
       console.warn('Could not delete notification on API:', err);
     }
@@ -220,7 +151,7 @@ export const NotificationsPage: React.FC = () => {
   };
 
   const handleResetFeed = () => {
-    setNotifications(INITIAL_NOTIFICATIONS);
+    fetchLiveNotifications();
   };
 
   const getTypeIcon = (type: NotificationItem['type']) => {

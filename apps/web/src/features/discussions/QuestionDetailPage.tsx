@@ -27,7 +27,6 @@ import {
   BarChart2,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { mockQuestions } from '../../services/mockData';
 import { questionApi, alumniApi } from '../../services/api/contentApi';
 import { Answer, CommentItem, QuestionPost } from '../../types';
 import { Card, CardBody, CardHeader } from '../../components/common/Card';
@@ -40,23 +39,25 @@ export const QuestionDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { currentUser, currentRole } = useAuth();
 
-  const [question, setQuestion] = useState<QuestionPost>(() => {
-    return mockQuestions.find((q) => q.id === id) || mockQuestions[0];
-  });
-  const [upvotes, setUpvotes] = useState(question.upvotes);
-  const [userVote, setUserVote] = useState<'UP' | 'DOWN' | null>(question.userVote || null);
-  const [isLocked, setIsLocked] = useState(question.isLocked || false);
-  const [isPinned, setIsPinned] = useState(question.isPinned || false);
+  const [question, setQuestion] = useState<QuestionPost | null>(null);
+  const [upvotes, setUpvotes] = useState(0);
+  const [userVote, setUserVote] = useState<'UP' | 'DOWN' | null>(null);
+  const [isLocked, setIsLocked] = useState(false);
+  const [isPinned, setIsPinned] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   const [composerTab, setComposerTab] = useState<'write' | 'preview'>('write');
   const [isVotingStatsOpen, setIsVotingStatsOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [answers, setAnswers] = useState<Answer[]>([]);
 
   useEffect(() => {
     if (!id) return;
     const numId = Number(id.replace(/\D/g, ''));
-    if (!numId) return;
+    if (!numId) {
+      setIsLoading(false);
+      return;
+    }
 
     let isMounted = true;
     const fetchDetail = async () => {
@@ -73,44 +74,45 @@ export const QuestionDetailPage: React.FC = () => {
               id: String(data.authorUserId || 'anon'),
               fullName: data.isAnonymous ? 'Ẩn danh FPTer' : (data.authorDisplayName || 'Sinh viên FHub'),
               role: 'Student',
-              karma: 250,
-              campus: 'FU-HL',
+              karma: 0,
+              campus: '',
               isAnonymous: data.isAnonymous,
             },
             tags: ['fhub', 'qa'],
-            upvotes: 10,
-            downvotes: 0,
-            answersCount: data.answerCount,
-            viewsCount: data.viewCount,
-            isSolved: data.hasBestAnswer,
-            isLocked: data.areCommentsLocked,
-            isPinned: data.isPinned,
+            upvotes: data.upvoteCount || 0,
+            downvotes: data.downvoteCount || 0,
+            answersCount: data.answerCount || 0,
+            viewsCount: data.viewCount || 0,
+            isSolved: data.hasBestAnswer || false,
+            isLocked: data.areCommentsLocked || false,
+            isPinned: data.isPinned || false,
             createdAt: data.createdAt,
           });
-          setIsLocked(data.areCommentsLocked);
-          setIsPinned(data.isPinned);
+          setUpvotes(data.upvoteCount || 0);
+          setIsLocked(data.areCommentsLocked || false);
+          setIsPinned(data.isPinned || false);
         }
 
         const answersData = await questionApi.getAnswers(numId);
-        if (isMounted && answersData && answersData.length > 0) {
-          const mappedAnswers: Answer[] = answersData.map((ans) => ({
+        if (isMounted) {
+          const mappedAnswers: Answer[] = (answersData || []).map((ans) => ({
             id: String(ans.answerId),
             questionId: String(ans.questionId),
             author: {
               id: String(ans.authorUserId || 'usr'),
               fullName: ans.isAnonymous ? 'Ẩn danh FPTer' : (ans.authorDisplayName || 'Sinh viên FHub'),
-              avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
+              avatarUrl: '',
               role: ans.isModeratorVerified ? 'Alumni' : 'Student',
-              karma: 1500,
-              campus: 'FU-HL',
+              karma: 0,
+              campus: '',
             },
             content: ans.body,
-            upvotes: 5,
-            downvotes: 0,
+            upvotes: ans.upvoteCount || 0,
+            downvotes: ans.downvoteCount || 0,
             userVote: null,
-            isBestAnswer: ans.isBestAnswer,
-            isModVerified: ans.isModeratorVerified,
-            comments: (ans.comments || []).map((c) => ({
+            isBestAnswer: ans.isBestAnswer || false,
+            isModVerified: ans.isModeratorVerified || false,
+            comments: (ans.comments || []).map((c: any) => ({
               id: String(c.commentId),
               parentId: String(ans.answerId),
               author: { id: String(c.authorUserId || 'u'), fullName: c.authorDisplayName || 'Người dùng FHub' },
@@ -122,7 +124,10 @@ export const QuestionDetailPage: React.FC = () => {
           setAnswers(mappedAnswers);
         }
       } catch (err) {
-        console.warn('API error fetching question detail, using mock:', err);
+        if (isMounted) {
+          setQuestion(null);
+          setAnswers([]);
+        }
       } finally {
         if (isMounted) setIsLoading(false);
       }
@@ -130,78 +135,6 @@ export const QuestionDetailPage: React.FC = () => {
     fetchDetail();
     return () => { isMounted = false; };
   }, [id]);
-
-  const [answers, setAnswers] = useState<Answer[]>([
-    {
-      id: 'ans-1',
-      questionId: question.id,
-      author: {
-        id: 'usr-3',
-        fullName: 'Lê Hoàng Long',
-        avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
-        role: 'Alumni',
-        karma: 2890,
-        campus: 'FU-HL',
-      },
-      content: `Để tối ưu DbContext và tránh timeout connection pool trong ASP.NET Core, bạn nên áp dụng các giải pháp sau:
-
-1. **Sử dụng DbContext Pooling**:
-Thay vì \`AddDbContext\`, hãy dùng \`AddDbContextPool\` để tái sử dụng các instance đã được khởi tạo, giảm tải GC:
-\`\`\`csharp
-builder.Services.AddDbContextPool<AppDbContext>(options =>
-    options.UseSqlServer(connectionString, sqlOptions => {
-        sqlOptions.EnableRetryOnFailure(
-            maxRetryCount: 5,
-            maxRetryDelay: TimeSpan.FromSeconds(10),
-            errorNumbersToAdd: null);
-    }),
-    poolSize: 128);
-\`\`\`
-
-2. **Luôn dùng AsNoTracking() cho các câu truy vấn Read-Only**:
-\`\`\`csharp
-var users = await _context.Users.AsNoTracking().ToListAsync();
-\`\`\`
-
-3. **Đảm bảo không giữ DbContext trong Singleton**:
-Kiểm tra xem có service Singleton nào đang inject DbContext hay không để tránh Captive Dependency.`,
-      upvotes: 45,
-      downvotes: 0,
-      userVote: 'UP',
-      isBestAnswer: true,
-      isModVerified: true,
-      comments: [
-        {
-          id: 'c-1',
-          parentId: 'ans-1',
-          author: { id: 'usr-1', fullName: 'Nguyễn Văn A' },
-          content: 'Em đã thử bật DbContextPool và EnableRetryOnFailure, lỗi timeout đã hết hoàn toàn! Cảm ơn anh Long nhiều ạ.',
-          createdAt: 'Hôm qua',
-        },
-      ],
-      createdAt: '2026-03-15T14:20:00Z',
-    },
-    {
-      id: 'ans-2',
-      questionId: question.id,
-      author: {
-        id: 'usr-4',
-        fullName: 'Phạm Minh Đức',
-        avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80',
-        role: 'Community Moderator',
-        karma: 1800,
-        campus: 'FU-HCM',
-      },
-      content: `Bổ sung thêm: Nếu dùng Dapper cho các query báo cáo nặng thì tốc độ đọc còn nhanh gấp 3-5 lần so với EF Core thông thường nhé. Bạn có thể kết hợp cả 2: Dapper cho Query (Read), EF Core cho Command (Write) theo mô hình CQRS nhẹ.`,
-      upvotes: 12,
-      downvotes: 0,
-      userVote: null,
-      isBestAnswer: false,
-      isModVerified: false,
-      comments: [],
-      createdAt: '2026-03-15T16:00:00Z',
-    },
-  ]);
 
   const [newAnswerContent, setNewAnswerContent] = useState('');
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
@@ -234,6 +167,7 @@ Kiểm tra xem có service Singleton nào đang inject DbContext hay không đ�
   };
 
   const handleMarkBestAnswer = async (ansId: string) => {
+    if (!question) return;
     const numQId = Number(question.id.replace(/\D/g, ''));
     const numAnsId = Number(ansId.replace(/\D/g, ''));
     if (numQId && numAnsId) {
@@ -259,7 +193,7 @@ Kiểm tra xem có service Singleton nào đang inject DbContext hay không đ�
 
   const handleSubmitAnswer = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newAnswerContent.trim()) return;
+    if (!question || !newAnswerContent.trim()) return;
 
     const numQId = Number(question.id.replace(/\D/g, ''));
     let createdAnsId = `ans-${Date.now()}`;
@@ -341,6 +275,26 @@ Kiểm tra xem có service Singleton nào đang inject DbContext hay không đ�
     setCopiedCode(true);
     setTimeout(() => setCopiedCode(false), 2000);
   };
+
+  if (isLoading) {
+    return (
+      <div className="p-12 text-center text-slate-400 text-xs">
+        Đang tải thông tin câu hỏi...
+      </div>
+    );
+  }
+
+  if (!question) {
+    return (
+      <div className="p-12 text-center space-y-4 bg-white rounded-2xl border border-slate-200">
+        <h3 className="text-lg font-bold text-slate-800">Không tìm thấy câu hỏi</h3>
+        <p className="text-xs text-slate-500">Câu hỏi này không tồn tại hoặc đã bị xóa.</p>
+        <Link to="/discussions" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700">
+          <ArrowLeft className="w-4 h-4" /> Quay lại danh sách câu hỏi
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 w-full">

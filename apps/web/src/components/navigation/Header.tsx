@@ -20,7 +20,7 @@ import {
   ShoppingBag,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { mockCampuses, mockNotifications } from '../../services/mockData';
+import { campusesApi } from '../../services/api/adminApi';
 import { Dropdown } from '../common/Dropdown';
 import { Button } from '../common/Button';
 import { Badge } from '../common/Badge';
@@ -29,7 +29,28 @@ export const Header: React.FC = () => {
   const { currentUser, currentCampus, setCurrentCampus, logout } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotifDrawer, setShowNotifDrawer] = useState(false);
+  const [campuses, setCampuses] = useState<Array<{ code: string; name: string }>>([]);
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    let isMounted = true;
+    const fetchCampuses = async () => {
+      try {
+        const res = await campusesApi.getCampuses();
+        const items = (res as any)?.items || res || [];
+        if (isMounted && Array.isArray(items) && items.length > 0) {
+          setCampuses(items.map((c: any) => ({
+            code: c.code || c.campusCode,
+            name: c.name || c.campusName,
+          })));
+        }
+      } catch (err) {
+        console.warn('Backend campuses unavailable:', err);
+      }
+    };
+    fetchCampuses();
+    return () => { isMounted = false; };
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,7 +59,7 @@ export const Header: React.FC = () => {
     }
   };
 
-  const currentCampusObj = mockCampuses.find((c) => c.code === currentCampus) || mockCampuses[0];
+  const currentCampusObj = campuses.find((c) => c.code === currentCampus) || { code: currentCampus || 'FPTU', name: 'FPT University' };
 
   const createMenu = [
     {
@@ -130,15 +151,15 @@ export const Header: React.FC = () => {
                   <ChevronDown className="w-3 h-3 text-slate-400" />
                 </button>
               }
-              items={mockCampuses.map((c) => ({
+              items={campuses.map((c) => ({
                 id: c.code,
                 label: (
                   <div className="flex flex-col">
                     <span className="font-semibold text-xs">{c.name}</span>
-                    <span className="text-[10px] text-slate-400">{c.studentCount.toLocaleString()} sinh viên</span>
+                    <span className="text-[10px] text-slate-400">Campus {c.code}</span>
                   </div>
                 ),
-                onClick: () => setCurrentCampus(c.code),
+                onClick: () => setCurrentCampus(c.code as any),
               }))}
             />
           </div>
@@ -188,7 +209,7 @@ export const Header: React.FC = () => {
                       <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate max-w-[120px]">
                         {currentUser.fullName}
                       </span>
-                      <span className="text-[10px] text-slate-400 font-medium">{currentUser.studentId || 'SE172481'}</span>
+                      <span className="text-[10px] text-slate-400 font-medium">{currentUser.studentId || ''}</span>
                     </div>
                     <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden sm:block" />
                   </div>

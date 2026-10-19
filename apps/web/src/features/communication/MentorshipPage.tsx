@@ -20,33 +20,12 @@ interface MentorshipPairing {
 
 export const MentorshipPage: React.FC = () => {
   const { currentUser } = useAuth();
-  const [requests, setRequests] = useState<MentorshipPairing[]>([
-    {
-      id: 'm-1',
-      mentorName: 'Lê Hoàng Long',
-      mentorRole: 'Alumni (Senior .NET Engineer)',
-      menteeName: 'Nguyễn Văn A',
-      topic: 'Hướng dẫn kiến trúc Microservices và chuẩn bị phỏng vấn OJT kỳ 6',
-      courseCode: 'PRN231 / SWP391',
-      status: 'ACTIVE',
-      startDate: '01/03/2026',
-    },
-    {
-      id: 'm-2',
-      mentorName: 'Phạm Minh Đức',
-      mentorRole: 'Community Moderator (AI Specialization)',
-      menteeName: 'Trần Thị B',
-      topic: 'Tư vấn đồ án tốt nghiệp Capstone Project',
-      courseCode: 'SEP490',
-      status: 'PENDING',
-      startDate: '15/03/2026',
-    },
-  ]);
+  const [requests, setRequests] = useState<MentorshipPairing[]>([]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [courseCode, setCourseCode] = useState('SWP391');
   const [topic, setTopic] = useState('');
-  const [mentorName, setMentorName] = useState('Lê Hoàng Long (Alumni)');
+  const [mentorName, setMentorName] = useState('Alumni Mentor');
 
   const handleCreateRequest = (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,44 +71,52 @@ export const MentorshipPage: React.FC = () => {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {requests.map((req) => (
-          <Card key={req.id}>
-            <CardBody className="p-5 space-y-3">
-              <div className="flex items-center justify-between">
-                <Badge variant="primary" size="sm">{req.courseCode}</Badge>
-                {req.status === 'ACTIVE' ? (
-                  <Badge variant="success" size="sm" icon={<CheckCircle2 className="w-3 h-3" />}>Đang diễn ra</Badge>
-                ) : req.status === 'PENDING' ? (
-                  <Badge variant="warning" size="sm" icon={<Clock className="w-3 h-3" />}>Chờ Mentor xác nhận</Badge>
-                ) : (
-                  <Badge variant="neutral" size="sm">Đã kết thúc</Badge>
-                )}
-              </div>
-
-              <div>
-                <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">{req.topic}</h3>
-                <div className="mt-2 text-xs text-slate-500 space-y-1">
-                  <div><strong>Mentor:</strong> {req.mentorName} ({req.mentorRole})</div>
-                  <div><strong>Mentee:</strong> {req.menteeName}</div>
-                  <div><strong>Ngày bắt đầu:</strong> {req.startDate}</div>
+      {requests.length === 0 ? (
+        <div className="bg-white rounded-2xl p-12 text-center text-slate-400 border border-slate-100 shadow-xs">
+          <Users className="w-10 h-10 mx-auto mb-2 opacity-30" />
+          <p className="text-sm font-semibold text-slate-700">Chưa có yêu cầu ghép đôi Mentorship nào</p>
+          <p className="text-xs text-slate-400 mt-1">Nhấn "Gửi yêu cầu ghép đôi Mentor" để kết nối với cựu sinh viên.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {requests.map((req) => (
+            <Card key={req.id}>
+              <CardBody className="p-5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <Badge variant="primary" size="sm">{req.courseCode}</Badge>
+                  {req.status === 'ACTIVE' ? (
+                    <Badge variant="success" size="sm" icon={<CheckCircle2 className="w-3 h-3" />}>Đang diễn ra</Badge>
+                  ) : req.status === 'PENDING' ? (
+                    <Badge variant="warning" size="sm" icon={<Clock className="w-3 h-3" />}>Chờ Mentor xác nhận</Badge>
+                  ) : (
+                    <Badge variant="neutral" size="sm">Đã kết thúc</Badge>
+                  )}
                 </div>
-              </div>
 
-              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                <Button variant="outline" size="sm" leftIcon={<MessageSquare className="w-3.5 h-3.5" />}>
-                  Nhắn tin trao đổi
-                </Button>
-                {req.status === 'ACTIVE' && (
-                  <Button variant="danger" size="sm" onClick={() => handleTerminate(req.id)}>
-                    Kết thúc
+                <div>
+                  <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">{req.topic}</h3>
+                  <div className="mt-2 text-xs text-slate-500 space-y-1">
+                    <div><strong>Mentor:</strong> {req.mentorName} ({req.mentorRole})</div>
+                    <div><strong>Mentee:</strong> {req.menteeName}</div>
+                    <div><strong>Ngày bắt đầu:</strong> {req.startDate}</div>
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                  <Button variant="outline" size="sm" leftIcon={<MessageSquare className="w-3.5 h-3.5" />}>
+                    Nhắn tin trao đổi
                   </Button>
-                )}
-              </div>
-            </CardBody>
-          </Card>
-        ))}
-      </div>
+                  {req.status === 'ACTIVE' && (
+                    <Button variant="danger" size="sm" onClick={() => handleTerminate(req.id)}>
+                      Kết thúc
+                    </Button>
+                  )}
+                </div>
+              </CardBody>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <Modal
         isOpen={isModalOpen}

@@ -10,56 +10,32 @@ export const SeriesDetailPage: React.FC = () => {
   const navigate = useNavigate();
 
   const [series, setSeries] = useState<Series>({
-    id: id || 'series-1',
-    title: '.NET Microservices & Clean Architecture Playbook',
-    description:
-      'Tuyển tập chuỗi bài viết hướng dẫn xây dựng giải pháp Microservices hoàn chỉnh từ zero cho sinh viên ngành SE/SWP391. Bao gồm kiến trúc phân tầng Clean Architecture, Docker Compose, xác thực JWT và kết nối PostgreSQL.',
+    id: id || '',
+    title: '',
+    description: '',
     author: {
-      id: 'u-1',
-      fullName: 'Le Quang Huy',
-      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+      id: '',
+      fullName: '',
+      avatarUrl: '',
     },
-    itemCount: 4,
-    items: [
-      {
-        id: 'item-1',
-        type: 'ARTICLE',
-        title: 'Phần 1: Khởi tạo Solution với Clean Architecture Template',
-        orderIndex: 1,
-        url: '/articles/art-1',
-      },
-      {
-        id: 'item-2',
-        type: 'WORKFLOW',
-        title: 'Phần 2: Dockerize PostgreSQL & RabbitMQ local environment',
-        orderIndex: 2,
-        url: '/workflows/wf-1',
-      },
-      {
-        id: 'item-3',
-        type: 'ARTICLE',
-        title: 'Phần 3: Triển khai Authentication Service với JWT & Refresh Token',
-        orderIndex: 3,
-        url: '/articles/art-2',
-      },
-      {
-        id: 'item-4',
-        type: 'QUESTION',
-        title: 'Thảo luận giải đáp thắc mắc: Connection Pool & Entity Framework Core',
-        orderIndex: 4,
-        url: '/discussions/q-1',
-      },
-    ],
-    createdAt: '2025-01-10T12:00:00Z',
-    updatedAt: '2025-02-15T09:30:00Z',
+    itemCount: 0,
+    items: [],
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   });
-
+  const [isLoading, setIsLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id) {
+      setIsLoading(false);
+      return;
+    }
     const numericId = Number(id);
-    if (isNaN(numericId)) return;
+    if (isNaN(numericId)) {
+      setIsLoading(false);
+      return;
+    }
 
     let isMounted = true;
     const fetchSeries = async () => {
@@ -73,7 +49,7 @@ export const SeriesDetailPage: React.FC = () => {
             author: {
               id: String(data.authorUserId),
               fullName: `Tác giả #${data.authorUserId}`,
-              avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+              avatarUrl: '',
             },
             itemCount: data.items ? data.items.length : 0,
             items: (data.items || []).map((it, idx) => ({
@@ -88,7 +64,9 @@ export const SeriesDetailPage: React.FC = () => {
           });
         }
       } catch (err) {
-        console.warn('Backend series detail unavailable, using fallback mock data', err);
+        console.warn('Backend series detail unavailable:', err);
+      } finally {
+        if (isMounted) setIsLoading(false);
       }
     };
     fetchSeries();
@@ -106,6 +84,15 @@ export const SeriesDetailPage: React.FC = () => {
     }
     navigate('/articles');
   };
+
+  if (isLoading) {
+    return (
+      <div className="py-20 flex flex-col items-center justify-center gap-3">
+        <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin" />
+        <p className="text-xs font-semibold text-slate-500">Đang tải dữ liệu Series...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -128,10 +115,10 @@ export const SeriesDetailPage: React.FC = () => {
               <span>Curated Series • {series.items.length} Chuyên mục</span>
             </div>
             <h1 className="text-2xl font-black text-slate-900 tracking-tight leading-tight">
-              {series.title}
+              {series.title || 'Series không có tiêu đề'}
             </h1>
             <p className="text-xs text-slate-500 max-w-2xl leading-relaxed">
-              {series.description}
+              {series.description || 'Chưa có mô tả cho series này.'}
             </p>
           </div>
 
@@ -155,13 +142,19 @@ export const SeriesDetailPage: React.FC = () => {
 
         {/* Author info */}
         <div className="flex items-center gap-3 text-xs text-slate-500">
-          <img
-            src={series.author.avatarUrl}
-            alt={series.author.fullName}
-            className="w-8 h-8 rounded-full object-cover ring-1 ring-slate-200"
-          />
+          {series.author.avatarUrl ? (
+            <img
+              src={series.author.avatarUrl}
+              alt={series.author.fullName}
+              className="w-8 h-8 rounded-full object-cover ring-1 ring-slate-200"
+            />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-600 font-bold flex items-center justify-center ring-1 ring-slate-200 text-xs">
+              {(series.author.fullName || 'A').charAt(0).toUpperCase()}
+            </div>
+          )}
           <div>
-            <span className="font-bold text-slate-800 block">{series.author.fullName}</span>
+            <span className="font-bold text-slate-800 block">{series.author.fullName || 'Người dùng FHub'}</span>
             <span className="text-[10px] text-slate-400">Tác giả biên soạn</span>
           </div>
         </div>
@@ -173,41 +166,47 @@ export const SeriesDetailPage: React.FC = () => {
           MỤC LỤC SERIES ({series.items.length} BÀI HỌC)
         </h3>
 
-        <div className="divide-y divide-slate-100">
-          {series.items.map((item, idx) => (
-            <div
-              key={item.id}
-              className="py-4 flex items-center justify-between gap-4 hover:bg-slate-50/60 transition-colors px-2 rounded-xl group"
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <span className="w-8 h-8 rounded-xl bg-blue-50 text-[#0076D1] font-mono font-bold text-xs flex items-center justify-center shrink-0 border border-blue-100 group-hover:bg-[#0076D1] group-hover:text-white transition-colors">
-                  0{idx + 1}
-                </span>
-                <div>
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-slate-100 text-slate-600">
-                      {item.type}
-                    </span>
-                  </div>
-                  <Link
-                    to={item.url}
-                    className="font-bold text-xs text-slate-800 group-hover:text-[#0076D1] transition-colors leading-snug block"
-                  >
-                    {item.title}
-                  </Link>
-                </div>
-              </div>
-
-              <Link
-                to={item.url}
-                className="text-xs font-semibold text-[#0076D1] group-hover:underline flex items-center gap-1 shrink-0"
+        {series.items.length === 0 ? (
+          <div className="py-8 text-center text-xs text-slate-400 font-medium">
+            Chưa có bài viết hoặc tài liệu nào trong Series này.
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {series.items.map((item, idx) => (
+              <div
+                key={item.id}
+                className="py-4 flex items-center justify-between gap-4 hover:bg-slate-50/60 transition-colors px-2 rounded-xl group"
               >
-                <span>Học ngay</span>
-                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-              </Link>
-            </div>
-          ))}
-        </div>
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className="w-8 h-8 rounded-xl bg-blue-50 text-[#0076D1] font-mono font-bold text-xs flex items-center justify-center shrink-0 border border-blue-100 group-hover:bg-[#0076D1] group-hover:text-white transition-colors">
+                    0{idx + 1}
+                  </span>
+                  <div>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-slate-100 text-slate-600">
+                        {item.type}
+                      </span>
+                    </div>
+                    <Link
+                      to={item.url}
+                      className="font-bold text-xs text-slate-800 group-hover:text-[#0076D1] transition-colors leading-snug block"
+                    >
+                      {item.title}
+                    </Link>
+                  </div>
+                </div>
+
+                <Link
+                  to={item.url}
+                  className="text-xs font-semibold text-[#0076D1] group-hover:underline flex items-center gap-1 shrink-0"
+                >
+                  <span>Học ngay</span>
+                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Edit Modal */}

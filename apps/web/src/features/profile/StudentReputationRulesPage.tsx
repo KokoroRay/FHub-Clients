@@ -14,81 +14,9 @@ interface ReputationRuleItem {
   eligibility: string;
 }
 
-const DEFAULT_RULES: ReputationRuleItem[] = [
-  {
-    id: 'r-1',
-    code: 'ANSWER_ACCEPTED',
-    name: 'Answer Marked as Best Solution',
-    category: 'DISCUSSION',
-    pointDelta: 25,
-    dailyCap: 150,
-    description: 'Awarded when your answer is chosen by the question author as the best accepted solution.',
-    eligibility: 'All verified students and alumni experts.',
-  },
-  {
-    id: 'r-2',
-    code: 'QUESTION_UPVOTED',
-    name: 'Question Received Upvote',
-    category: 'DISCUSSION',
-    pointDelta: 5,
-    dailyCap: 50,
-    description: 'Awarded when peers find your question insightful, clear, and well-researched.',
-    eligibility: 'All students.',
-  },
-  {
-    id: 'r-3',
-    code: 'ANSWER_UPVOTED',
-    name: 'Answer Received Upvote',
-    category: 'DISCUSSION',
-    pointDelta: 10,
-    dailyCap: 100,
-    description: 'Awarded when your answer or explanation receives helpful upvotes from the community.',
-    eligibility: 'All students.',
-  },
-  {
-    id: 'r-4',
-    code: 'ARTICLE_PUBLISHED',
-    name: 'Curriculum Article Published',
-    category: 'CONTENT',
-    pointDelta: 30,
-    dailyCap: 90,
-    description: 'Awarded when your technical article or curated guide passes community standards and is published.',
-    eligibility: 'Students with 50+ base karma.',
-  },
-  {
-    id: 'r-5',
-    code: 'STUDY_MATERIAL_DOWNLOADED',
-    name: 'Study Material Reached 100 Downloads',
-    category: 'ACADEMIC',
-    pointDelta: 40,
-    dailyCap: 120,
-    description: 'Awarded when your shared lecture summary, exam prep slides, or code cheat sheet reaches 100 peer downloads.',
-    eligibility: 'All students enrolled in the corresponding course.',
-  },
-  {
-    id: 'r-6',
-    code: 'COURSE_EVALUATION_HELPFUL',
-    name: 'Course Evaluation Marked Helpful',
-    category: 'ACADEMIC',
-    pointDelta: 15,
-    dailyCap: 60,
-    description: 'Awarded when other students mark your detailed syllabus review and workload rating as helpful for registration.',
-    eligibility: 'Verified course completers.',
-  },
-  {
-    id: 'r-7',
-    code: 'SPAM_FLAGGED',
-    name: 'Content Flagged as Inappropriate',
-    category: 'PENALTY',
-    pointDelta: -50,
-    dailyCap: -200,
-    description: 'Deducted when a post is removed by moderators for violating academic integrity or spam rules.',
-    eligibility: 'Any account with confirmed policy violation.',
-  },
-];
-
 export const StudentReputationRulesPage: React.FC = () => {
-  const [rules, setRules] = useState<ReputationRuleItem[]>(DEFAULT_RULES);
+  const [rules, setRules] = useState<ReputationRuleItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<'ALL' | 'DISCUSSION' | 'CONTENT' | 'ACADEMIC' | 'PENALTY'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRule, setSelectedRule] = useState<ReputationRuleItem | null>(null);
@@ -97,22 +25,30 @@ export const StudentReputationRulesPage: React.FC = () => {
     let isMounted = true;
     const fetchRules = async () => {
       try {
+        setLoading(true);
         const apiRules = await studentReputationApi.getRules();
-        if (isMounted && apiRules && apiRules.length > 0) {
-          const mapped: ReputationRuleItem[] = apiRules.map((r) => ({
-            id: String(r.rule_id),
-            code: r.action_type,
-            name: r.action_type.replace(/_/g, ' '),
-            category: r.karma_delta < 0 ? 'PENALTY' : (r.action_type.includes('ANSWER') || r.action_type.includes('QUESTION') ? 'DISCUSSION' : 'CONTENT'),
-            pointDelta: r.karma_delta,
-            dailyCap: r.daily_cap,
-            description: r.description,
-            eligibility: 'All verified users',
-          }));
-          setRules(mapped);
+        if (isMounted) {
+          if (apiRules && apiRules.length > 0) {
+            const mapped: ReputationRuleItem[] = apiRules.map((r) => ({
+              id: String(r.rule_id),
+              code: r.action_type,
+              name: r.action_type.replace(/_/g, ' '),
+              category: r.karma_delta < 0 ? 'PENALTY' : (r.action_type.includes('ANSWER') || r.action_type.includes('QUESTION') ? 'DISCUSSION' : 'CONTENT'),
+              pointDelta: r.karma_delta,
+              dailyCap: r.daily_cap,
+              description: r.description,
+              eligibility: 'Tất cả sinh viên đã xác thực',
+            }));
+            setRules(mapped);
+          } else {
+            setRules([]);
+          }
         }
       } catch (err) {
-        console.warn('Backend reputation rules API not responding, using default rules', err);
+        console.warn('Backend reputation rules API not responding:', err);
+        if (isMounted) setRules([]);
+      } finally {
+        if (isMounted) setLoading(false);
       }
     };
     fetchRules();
@@ -174,8 +110,19 @@ export const StudentReputationRulesPage: React.FC = () => {
       </div>
 
       {/* Rules Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {filteredRules.map((rule) => (
+      {loading ? (
+        <div className="bg-white rounded-2xl p-12 text-center text-slate-400 border border-slate-100 shadow-xs">
+          <p className="text-xs">Đang tải danh sách quy tắc uy tín...</p>
+        </div>
+      ) : filteredRules.length === 0 ? (
+        <div className="bg-white rounded-2xl p-12 text-center text-slate-400 border border-slate-100 shadow-xs">
+          <Award className="w-10 h-10 mx-auto mb-2 opacity-30" />
+          <p className="text-sm font-semibold text-slate-700">Chưa có quy tắc nào</p>
+          <p className="text-xs text-slate-400 mt-1">Hệ thống tính điểm uy tín chưa thiết lập quy tắc hoạt động.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {filteredRules.map((rule) => (
           <div
             key={rule.id}
             onClick={() => setSelectedRule(rule)}
@@ -211,9 +158,10 @@ export const StudentReputationRulesPage: React.FC = () => {
                 <ArrowRight className="w-3.5 h-3.5" />
               </span>
             </div>
-          </div>
-        ))}
-      </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* View Reputation Rule Detail Modal (Figma & Functional Requirement) */}
       {selectedRule && (

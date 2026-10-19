@@ -129,6 +129,7 @@ export interface WorkflowListItem {
   isPinned: boolean;
   areCommentsLocked: boolean;
   status: string;
+  version?: string;
   publishedAt?: string;
   createdAt: string;
   updatedAt: string;
@@ -145,6 +146,7 @@ export interface WorkflowDetail {
   isPinned: boolean;
   areCommentsLocked: boolean;
   status: string;
+  version?: string;
   publishedAt?: string;
   createdAt: string;
   updatedAt: string;
@@ -210,6 +212,8 @@ export interface StudyMaterialItem {
   updatedAt: string;
   semanticTagIds: number[];
 }
+
+export type StudyMaterialListItem = StudyMaterialItem;
 
 export const studyMaterialApi = {
   getMaterials: async (params?: {
@@ -340,6 +344,8 @@ export interface QuestionListItem {
   viewCount: number;
   answerCount: number;
   commentCount: number;
+  upvoteCount?: number;
+  downvoteCount?: number;
   hasBestAnswer: boolean;
   bestAnswerId?: number;
   resolvedAt?: string;
@@ -360,6 +366,8 @@ export interface AnswerDto {
   verifiedAt?: string;
   status: string;
   isBestAnswer: boolean;
+  upvoteCount?: number;
+  downvoteCount?: number;
   createdAt: string;
   updatedAt: string;
   commentsCount: number;

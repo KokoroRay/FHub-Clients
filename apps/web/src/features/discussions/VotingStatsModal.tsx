@@ -24,52 +24,23 @@ export const VotingStatsModal: React.FC<VotingStatsModalProps> = ({
   onClose,
   question,
   upvotesCount,
-  downvotesCount = 14,
+  downvotesCount = 0,
 }) => {
   if (!isOpen) return null;
 
   const totalVotes = Math.max(1, upvotesCount + downvotesCount);
-  const upvotePercent = Math.round((upvotesCount / totalVotes) * 100);
-  const downvotePercent = 100 - upvotePercent;
+  const upvotePercent = upvotesCount + downvotesCount === 0 ? 0 : Math.round((upvotesCount / (upvotesCount + downvotesCount)) * 100);
+  const downvotePercent = upvotesCount + downvotesCount === 0 ? 0 : 100 - upvotePercent;
 
-  const mockVotersHistory = [
-    {
-      id: 'v1',
-      name: 'Nguyen Van An',
-      role: 'Alumni Expert',
-      vote: 'UP',
-      karmaWeight: '+10 Karma',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
-      time: '15 phút trước',
-    },
-    {
-      id: 'v2',
-      name: 'Tran Thi Mai',
-      role: 'Student (SE17)',
-      vote: 'UP',
-      karmaWeight: '+5 Karma',
-      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80',
-      time: '1 giờ trước',
-    },
-    {
-      id: 'v3',
-      name: 'Le Quang Huy',
-      role: 'Student (IA18)',
-      vote: 'UP',
-      karmaWeight: '+5 Karma',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
-      time: '2 giờ trước',
-    },
-    {
-      id: 'v4',
-      name: 'Pham Minh Duc',
-      role: 'Student (GD16)',
-      vote: 'DOWN',
-      karmaWeight: '-2 Karma',
-      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80',
-      time: '3 giờ trước',
-    },
-  ];
+  const votersHistory: Array<{
+    id: string;
+    name: string;
+    role: string;
+    vote: 'UP' | 'DOWN';
+    karmaWeight: string;
+    avatar?: string;
+    time: string;
+  }> = [];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
@@ -221,35 +192,43 @@ export const VotingStatsModal: React.FC<VotingStatsModalProps> = ({
             </h5>
 
             <div className="border border-slate-200 rounded-xl divide-y divide-slate-100 overflow-hidden">
-              {mockVotersHistory.map((v) => (
-                <div key={v.id} className="p-3 flex items-center justify-between text-xs hover:bg-slate-50">
-                  <div className="flex items-center gap-2.5">
-                    <img
-                      src={v.avatar}
-                      alt={v.name}
-                      className="w-7 h-7 rounded-full object-cover"
-                    />
-                    <div>
-                      <span className="font-bold text-slate-800 block leading-tight">{v.name}</span>
-                      <span className="text-[10px] text-slate-400">{v.role}</span>
+              {votersHistory.length === 0 ? (
+                <div className="p-6 text-center text-xs text-slate-400">
+                  Chưa có lịch sử vote nào được ghi nhận.
+                </div>
+              ) : (
+                votersHistory.map((v) => (
+                  <div key={v.id} className="p-3 flex items-center justify-between text-xs hover:bg-slate-50">
+                    <div className="flex items-center gap-2.5">
+                      {v.avatar && (
+                        <img
+                          src={v.avatar}
+                          alt={v.name}
+                          className="w-7 h-7 rounded-full object-cover"
+                        />
+                      )}
+                      <div>
+                        <span className="font-bold text-slate-800 block leading-tight">{v.name}</span>
+                        <span className="text-[10px] text-slate-400">{v.role}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <span className="text-[10px] text-slate-400">{v.time}</span>
+                      <span
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold ${
+                          v.vote === 'UP'
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : 'bg-rose-50 text-rose-700 border border-rose-200'
+                        }`}
+                      >
+                        {v.vote === 'UP' ? <ThumbsUp className="w-3 h-3" /> : <ThumbsDown className="w-3 h-3" />}
+                        <span>{v.karmaWeight}</span>
+                      </span>
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-3">
-                    <span className="text-[10px] text-slate-400">{v.time}</span>
-                    <span
-                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold ${
-                        v.vote === 'UP'
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          : 'bg-rose-50 text-rose-700 border border-rose-200'
-                      }`}
-                    >
-                      {v.vote === 'UP' ? <ThumbsUp className="w-3 h-3" /> : <ThumbsDown className="w-3 h-3" />}
-                      <span>{v.karmaWeight}</span>
-                    </span>
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         </div>

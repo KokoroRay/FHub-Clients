@@ -12,7 +12,6 @@ import {
   Radio,
   Eye,
 } from 'lucide-react';
-import { mockQuestions, mockCourses } from '../../services/mockData';
 import { QuestionPost } from '../../types';
 import { AskQuestionModal } from './AskQuestionModal';
 import { questionApi } from '../../services/api/contentApi';
@@ -28,7 +27,7 @@ export const QuestionListPage: React.FC = () => {
   const [selectedTopic, setSelectedTopic] = useState<string>(initialTag || 'ALL');
   const [sortBy, setSortBy] = useState<'recent' | 'upvoted' | 'answers'>('recent');
   const [isCreateOpen, setIsCreateOpen] = useState(shouldOpenCreate);
-  const [questions, setQuestions] = useState<QuestionPost[]>(mockQuestions);
+  const [questions, setQuestions] = useState<QuestionPost[]>([]);
   const [votesState, setVotesState] = useState<Record<string, { score: number; userVote: 'UP' | 'DOWN' | null }>>({});
 
   useEffect(() => {
@@ -40,8 +39,9 @@ export const QuestionListPage: React.FC = () => {
           sortBy: sortBy === 'upvoted' ? 'upvotes' : sortBy === 'answers' ? 'answers' : 'created_at',
           pageSize: 50,
         });
-        if (isMounted && res?.items && res.items.length > 0) {
-          const mapped: QuestionPost[] = res.items.map((item) => ({
+        if (isMounted) {
+          const items = res?.items || [];
+          const mapped: QuestionPost[] = items.map((item) => ({
             id: String(item.questionId),
             title: item.title,
             content: item.body,
@@ -50,24 +50,24 @@ export const QuestionListPage: React.FC = () => {
               id: String(item.authorUserId || 'anon'),
               fullName: item.isAnonymous ? 'Ẩn danh FPTer' : (item.authorDisplayName || 'Sinh viên FHub'),
               role: 'Student',
-              karma: item.isAnonymous ? 0 : 250,
-              campus: 'FU-HL',
+              karma: 0,
+              campus: '',
               isAnonymous: item.isAnonymous,
             },
-            tags: ['fhub', 'qa'],
-            upvotes: 5,
-            downvotes: 0,
+            tags: item.semanticTagIds?.map((t) => `tag-${t}`) || ['qa'],
+            upvotes: item.upvoteCount || 0,
+            downvotes: item.downvoteCount || 0,
             answersCount: item.answerCount || 0,
             viewsCount: item.viewCount || 0,
             isSolved: item.hasBestAnswer || item.status === 'RESOLVED',
-            isLocked: item.areCommentsLocked,
-            isPinned: item.isPinned,
+            isLocked: item.areCommentsLocked || false,
+            isPinned: item.isPinned || false,
             createdAt: item.createdAt || new Date().toISOString(),
           }));
           setQuestions(mapped);
         }
       } catch (err) {
-        console.warn('API error fetching questions, fallback to mock:', err);
+        if (isMounted) setQuestions([]);
       }
     };
     fetchQuestions();

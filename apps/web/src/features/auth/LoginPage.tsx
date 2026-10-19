@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, ArrowRight, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { mockCurrentUser } from '../../services/mockData';
 import { authApi } from '../../services/api/adminApi';
 import { User } from '../../types';
 
@@ -67,11 +66,11 @@ export const LoginPage: React.FC = () => {
         id: String(result.user?.userId || `u-${Date.now()}`),
         email: result.user?.email || email,
         fullName: result.user?.fullName || email.split('@')[0],
-        studentId: result.user?.studentCode || 'SE170001',
+        studentId: result.user?.studentCode || '',
         role: mappedRole,
-        campus: (result.user?.campusCode as any) || 'HL',
-        avatarUrl: result.user?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-        karma: 100,
+        campus: (result.user?.campusCode as any) || '',
+        avatarUrl: result.user?.avatarUrl || '',
+        karma: 0,
         status: 'ACTIVE',
         badges: [],
       };
@@ -123,13 +122,13 @@ export const LoginPage: React.FC = () => {
 
       const userObj: User = {
         id: String(result.user?.userId || `u-${Date.now()}`),
-        email: result.user?.email || 'student@fpt.edu.vn',
+        email: result.user?.email || '',
         fullName: result.user?.fullName || result.user?.email?.split('@')[0] || 'FPT Student',
-        studentId: result.user?.studentCode || 'SE170001',
+        studentId: result.user?.studentCode || '',
         role: mappedRole,
-        campus: (result.user?.campusCode as any) || 'HL',
-        avatarUrl: result.user?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-        karma: 100,
+        campus: (result.user?.campusCode as any) || '',
+        avatarUrl: result.user?.avatarUrl || '',
+        karma: 0,
         status: 'ACTIVE',
         badges: [],
       };

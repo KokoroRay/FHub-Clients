@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   MessageSquare, 
   Send, 
@@ -46,152 +46,94 @@ interface ConversationItem {
   isBlocked?: boolean;
 }
 
-const INITIAL_CONVERSATIONS: ConversationItem[] = [
-  {
-    id: 'conv-1',
-    participantId: 'p-1',
-    name: 'Minh Tran',
-    initials: 'MT',
-    initialsBg: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    studentId: 'SE172481',
-    courseTag: 'PRN211',
-    role: 'Community Member · Software Eng. (Batch 17)',
-    statusText: 'Active now',
-    isActiveNow: true,
-    lastMessage: 'Sure! Which part are you having trouble with?',
-    lastTime: '10:42 AM',
-    unreadCount: 1,
-    taskTitle: 'Assignment 2: Asynchronous Repository Pattern in .NET 8',
-    isBlocked: false,
-  },
-  {
-    id: 'conv-2',
-    participantId: 'p-2',
-    name: 'Linh Nguyen',
-    initials: 'LN',
-    initialsBg: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-    studentId: 'SE160892',
-    courseTag: 'PRN221',
-    role: 'Student Mentor · Batch 16',
-    statusText: 'Active 2h ago',
-    isActiveNow: false,
-    lastMessage: 'Can you explain the solution for this problem?',
-    lastTime: 'Yesterday',
-    unreadCount: 1,
-    taskTitle: 'Lab 4: Entity Framework Core Concurrency Resolution',
-    isBlocked: false,
-  },
-  {
-    id: 'conv-3',
-    participantId: 'p-3',
-    name: 'An Pham',
-    initials: 'AP',
-    initialsBg: 'bg-amber-50 text-amber-700 border-amber-200',
-    studentId: 'SE160914',
-    courseTag: 'SWP391',
-    role: 'Student · SE160914',
-    statusText: 'Offline',
-    isActiveNow: false,
-    lastMessage: 'I have updated the project document.',
-    lastTime: 'Mon',
-    unreadCount: 0,
-    taskTitle: 'Sprint 2 Requirement Specification and Mockups',
-    isBlocked: false,
-  },
-  {
-    id: 'conv-4',
-    participantId: 'p-4',
-    name: 'Khoa Le',
-    initials: 'KL',
-    initialsBg: 'bg-sky-50 text-sky-700 border-sky-200',
-    studentId: 'SE174129',
-    courseTag: 'DBI202',
-    role: 'Student · SE174129',
-    statusText: 'Offline',
-    isActiveNow: false,
-    lastMessage: "Let's discuss the assignment.",
-    lastTime: 'Sun',
-    unreadCount: 0,
-    taskTitle: 'Midterm Database Schema Optimization Practice',
-    isBlocked: false,
-  },
-];
-
-const INITIAL_MESSAGES: Record<string, Message[]> = {
-  'conv-1': [
-    {
-      id: 'm-1',
-      senderId: 'p-1',
-      senderName: 'Minh Tran',
-      senderInitials: 'MT',
-      text: 'Hi! I saw your question about the programming assignment.',
-      time: '10:35 AM',
-      isYou: false,
-    },
-    {
-      id: 'm-2',
-      senderId: 'you',
-      senderName: 'You',
-      senderInitials: 'BQ',
-      text: 'Hi Minh, could you help me understand the solution for async/await starvation?',
-      time: '10:38 AM',
-      isYou: true,
-      status: 'delivered',
-    },
-    {
-      id: 'm-3',
-      senderId: 'p-1',
-      senderName: 'Minh Tran',
-      senderInitials: 'MT',
-      text: 'Sure! Which part are you having trouble with?',
-      time: '10:42 AM',
-      isYou: false,
-    },
-  ],
-  'conv-2': [
-    {
-      id: 'm-201',
-      senderId: 'p-2',
-      senderName: 'Linh Nguyen',
-      senderInitials: 'LN',
-      text: 'Hey Bao, I reviewed your EF Core query article, great explanation!',
-      time: 'Yesterday, 3:20 PM',
-      isYou: false,
-    },
-    {
-      id: 'm-202',
-      senderId: 'you',
-      senderName: 'You',
-      senderInitials: 'BQ',
-      text: 'Thanks Linh! Glad it helps with the lab assignment.',
-      time: 'Yesterday, 3:25 PM',
-      isYou: true,
-      status: 'read',
-    },
-    {
-      id: 'm-203',
-      senderId: 'p-2',
-      senderName: 'Linh Nguyen',
-      senderInitials: 'LN',
-      text: 'Can you explain the solution for this problem?',
-      time: 'Yesterday, 4:10 PM',
-      isYou: false,
-    },
-  ],
-};
+import { directMessageApi } from '../../services/api/studentApi';
 
 export const DirectMessagesPage: React.FC = () => {
   const { currentUser } = useAuth();
-  const [conversations, setConversations] = useState<ConversationItem[]>(INITIAL_CONVERSATIONS);
-  const [activeConvId, setActiveConvId] = useState<string>('conv-1');
-  const [messages, setMessages] = useState<Record<string, Message[]>>(INITIAL_MESSAGES);
+  const [conversations, setConversations] = useState<ConversationItem[]>([]);
+  const [activeConvId, setActiveConvId] = useState<string>('');
+  const [messages, setMessages] = useState<Record<string, Message[]>>({});
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [inputText, setInputText] = useState('');
   const [showBlockedModal, setShowBlockedModal] = useState(false);
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
 
-  const activeConv = conversations.find(c => c.id === activeConvId) || conversations[0];
-  const activeMessages = messages[activeConvId] || [];
+  useEffect(() => {
+    let isMounted = true;
+    const loadConversations = async () => {
+      try {
+        setLoading(true);
+        const data = await directMessageApi.getConversations();
+        if (isMounted && data && data.length > 0) {
+          const mapped: ConversationItem[] = data.map((c) => {
+            const initials = c.participantName ? c.participantName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'SV';
+            return {
+              id: String(c.conversationId),
+              participantId: String(c.participantId),
+              name: c.participantName || `Sinh viên #${c.participantId}`,
+              initials,
+              initialsBg: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+              studentId: c.participantCode || `SE-${c.participantId}`,
+              courseTag: c.courseTag || 'FHub',
+              role: c.role || 'Thành viên FHub',
+              statusText: 'Hoạt động',
+              isActiveNow: false,
+              lastMessage: c.lastMessage || 'Chưa có tin nhắn',
+              lastTime: c.lastMessageAt ? new Date(c.lastMessageAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+              unreadCount: c.unreadCount || 0,
+              isBlocked: c.isBlocked || false,
+            };
+          });
+          setConversations(mapped);
+          setActiveConvId(mapped[0]?.id || '');
+        } else if (isMounted) {
+          setConversations([]);
+          setActiveConvId('');
+        }
+      } catch (err) {
+        console.warn('Failed to fetch conversations:', err);
+        if (isMounted) {
+          setConversations([]);
+          setActiveConvId('');
+        }
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+    loadConversations();
+    return () => { isMounted = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!activeConvId) return;
+    let isMounted = true;
+    const loadMessages = async () => {
+      try {
+        const data = await directMessageApi.getMessages(activeConvId);
+        if (isMounted && data) {
+          const mapped: Message[] = data.map((m) => ({
+            id: String(m.messageId),
+            senderId: String(m.senderId),
+            senderName: m.senderName,
+            senderInitials: m.senderName ? m.senderName.slice(0, 2).toUpperCase() : 'SV',
+            text: m.content,
+            time: m.createdAt ? new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Vừa xong',
+            isYou: String(m.senderId) === String(currentUser?.id),
+            status: 'read',
+          }));
+          setMessages(prev => ({ ...prev, [activeConvId]: mapped }));
+        }
+      } catch (err) {
+        console.warn('Failed to load messages for conversation:', err);
+      }
+    };
+    loadMessages();
+    return () => { isMounted = false; };
+  }, [activeConvId, currentUser?.id]);
+
+  const activeConv = conversations.find(c => c.id === activeConvId);
+  const activeMessages = activeConvId ? (messages[activeConvId] || []) : [];
 
   const unreadTotal = conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
   const blockedUsers = conversations.filter(c => c.isBlocked);
@@ -204,17 +146,18 @@ export const DirectMessagesPage: React.FC = () => {
     )
   );
 
-  const handleSendMessage = (textToSend?: string) => {
+  const handleSendMessage = async (textToSend?: string) => {
     const content = textToSend || inputText.trim();
     if (!content || !activeConv || activeConv.isBlocked) return;
 
+    const optimisticId = `m-${Date.now()}`;
     const newMsg: Message = {
-      id: `m-${Date.now()}`,
+      id: optimisticId,
       senderId: currentUser?.id || 'you',
-      senderName: 'You',
-      senderInitials: 'BQ',
+      senderName: currentUser?.fullName || 'Bạn',
+      senderInitials: currentUser?.fullName ? currentUser.fullName.slice(0, 2).toUpperCase() : 'ME',
       text: content,
-      time: 'Just now',
+      time: 'Vừa xong',
       isYou: true,
       status: 'delivered',
     };
@@ -226,25 +169,48 @@ export const DirectMessagesPage: React.FC = () => {
 
     setConversations(prev => prev.map(c => 
       c.id === activeConvId 
-        ? { ...c, lastMessage: content, lastTime: 'Just now' }
+        ? { ...c, lastMessage: content, lastTime: 'Vừa xong' }
         : c
     ));
 
     if (!textToSend) setInputText('');
+
+    try {
+      await directMessageApi.sendMessage(activeConvId, content);
+    } catch (err) {
+      console.warn('Backend send message notice:', err);
+    }
   };
 
-  const handleDeleteMessage = (msgId: string) => {
+  const handleDeleteMessage = async (msgId: string) => {
     setMessages(prev => ({
       ...prev,
       [activeConvId]: (prev[activeConvId] || []).filter(m => m.id !== msgId),
     }));
+    try {
+      await directMessageApi.deleteMessage(msgId);
+    } catch (err) {
+      console.warn('Backend delete message notice:', err);
+    }
   };
 
-  const handleToggleBlock = (convId: string) => {
+  const handleToggleBlock = async (convId: string) => {
+    const target = conversations.find(c => c.id === convId);
+    if (!target) return;
+    const willBlock = !target.isBlocked;
     setConversations(prev => prev.map(c => 
-      c.id === convId ? { ...c, isBlocked: !c.isBlocked } : c
+      c.id === convId ? { ...c, isBlocked: willBlock } : c
     ));
     setIsOptionsOpen(false);
+    try {
+      if (willBlock) {
+        await directMessageApi.blockUser(target.participantId);
+      } else {
+        await directMessageApi.unblockUser(target.participantId);
+      }
+    } catch (err) {
+      console.warn('Backend block/unblock notice:', err);
+    }
   };
 
   const handleSuggestionClick = (suggestion: string) => {
@@ -301,10 +267,15 @@ export const DirectMessagesPage: React.FC = () => {
 
           {/* Conversations Items */}
           <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
-            {filteredConversations.length === 0 ? (
+            {loading ? (
+              <div className="p-8 text-center text-slate-400">
+                <p className="text-xs">Đang tải cuộc trò chuyện...</p>
+              </div>
+            ) : filteredConversations.length === 0 ? (
               <div className="p-8 text-center text-slate-400">
                 <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                <p className="text-xs font-medium">No conversations found</p>
+                <p className="text-xs font-medium">Chưa có cuộc trò chuyện nào</p>
+                <p className="text-[11px] text-slate-400 mt-1">Các tin nhắn trực tiếp với bạn học sẽ xuất hiện ở đây.</p>
               </div>
             ) : (
               filteredConversations.map((conv) => {
@@ -562,8 +533,10 @@ export const DirectMessagesPage: React.FC = () => {
               </div>
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center text-slate-400">
-              Select a conversation to start chatting.
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-400">
+              <MessageSquare className="w-12 h-12 mb-3 text-slate-300 stroke-1" />
+              <p className="text-sm font-semibold text-slate-600">Chọn cuộc trò chuyện</p>
+              <p className="text-xs text-slate-400 mt-1">Chọn một cuộc trò chuyện từ danh sách bên trái để bắt đầu nhắn tin.</p>
             </div>
           )}
         </div>

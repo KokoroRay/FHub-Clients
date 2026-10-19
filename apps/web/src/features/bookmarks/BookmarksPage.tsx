@@ -36,112 +36,65 @@ interface BookmarkItem {
   isVerified?: boolean;
 }
 
-const INITIAL_BOOKMARKS: BookmarkItem[] = [
-  {
-    id: 'bm-1',
-    type: 'question',
-    typeLabel: 'QUESTION',
-    typeColor: 'bg-blue-50 text-[#0076D1] border-blue-100',
-    title: 'How to handle async operations in WinForms?',
-    summary: 'Understanding async/await and avoiding UI thread blocking when running long database operations with Entity Framework Core and background progress…',
-    savedTime: 'Saved 2 hours ago',
-    url: '/discussions/1',
-    tags: ['#async-programming', 'WinForms'],
-    courseCode: 'PRN211',
-    votes: 8,
-    answers: 3,
-    isSolved: true,
-  },
-  {
-    id: 'bm-2',
-    type: 'article',
-    typeLabel: 'ARTICLE',
-    typeColor: 'bg-emerald-50 text-emerald-700 border-emerald-100',
-    title: 'Clean Architecture in ASP.NET Core',
-    summary: 'A practical overview of organizing a maintainable .NET application following domain-driven patterns, inversion of control, and testing strategies.',
-    savedTime: 'Saved Yesterday',
-    url: '/articles/1',
-    tags: ['Backend Development', 'C#', 'ASP.NET'],
-    votes: 45,
-  },
-  {
-    id: 'bm-3',
-    type: 'material',
-    typeLabel: 'STUDY MATERIAL',
-    typeColor: 'bg-amber-50 text-amber-800 border-amber-200',
-    title: 'PRN211 Programming Notes',
-    summary: 'A concise collection of course notes, WinForms design samples, LINQ cheat sheets, and practical assignment prep code snippets for midterm revision.',
-    savedTime: 'Saved 2 days ago',
-    url: '/materials/1',
-    tags: ['Midterm Revision', 'LINQ'],
-    courseCode: 'PRN211',
-    downloads: 142,
-    fileFormat: 'PDF',
-    fileSize: '2.4 MB',
-    isVerified: true,
-  },
-  {
-    id: 'bm-4',
-    type: 'question',
-    typeLabel: 'QUESTION',
-    typeColor: 'bg-blue-50 text-[#0076D1] border-blue-100',
-    title: 'Best practices for Entity Framework Core queries',
-    summary: 'Tips for writing efficient and maintainable database queries, preventing Cartesian explosions with AsSplitQuery, and avoiding the N+1 select problem.',
-    savedTime: 'Saved 3 days ago',
-    url: '/discussions/2',
-    tags: ['EF Core', 'Database'],
-    courseCode: 'PRN211',
-    votes: 12,
-    answers: 5,
-    isSolved: true,
-  },
-  {
-    id: 'bm-5',
-    type: 'workflow',
-    typeLabel: 'WORKFLOW',
-    typeColor: 'bg-purple-50 text-purple-700 border-purple-100',
-    title: 'ASP.NET Core REST API Pipeline with JWT & Swagger',
-    summary: 'Step-by-step verified workflow for initializing an ASP.NET 8 Web API project with clean token-based authentication and database migrations.',
-    savedTime: 'Saved 4 days ago',
-    url: '/workflows/1',
-    tags: ['Web API', 'JWT'],
-    courseCode: 'SWP391',
-    votes: 28,
-  },
-];
-
 import { bookmarkApi } from '../../services/api/studentApi';
 
 export const BookmarksPage: React.FC = () => {
-  const [bookmarks, setBookmarks] = useState<BookmarkItem[]>(INITIAL_BOOKMARKS);
+  const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'all' | 'question' | 'article' | 'material' | 'workflow'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'recent' | 'votes'>('recent');
 
   React.useEffect(() => {
+    let isMounted = true;
     const fetchBookmarks = async () => {
       try {
+        setLoading(true);
         const typeParam = activeTab !== 'all' ? activeTab.toUpperCase() : undefined;
         const res = await bookmarkApi.getBookmarks(typeParam);
-        if (res && res.length > 0) {
-          const mapped: BookmarkItem[] = res.map((b) => ({
-            id: String(b.id),
-            type: (b.targetType.toLowerCase() as any) || 'article',
-            typeLabel: b.targetType || 'ARTICLE',
-            typeColor: 'bg-emerald-50 text-emerald-700 border-emerald-100',
-            title: b.title || `Bookmark #${b.id}`,
-            summary: b.summary || 'Nội dung đã lưu vào dấu trang cá nhân.',
-            savedTime: new Date(b.createdAt).toLocaleDateString('vi-VN'),
-            url: b.targetType === 'ARTICLE' ? `/articles/${b.targetId}` : b.targetType === 'WORKFLOW' ? `/workflows/${b.targetId}` : `/discussions/${b.targetId}`,
-            tags: ['saved'],
-          }));
-          setBookmarks([...mapped, ...INITIAL_BOOKMARKS]);
+        if (isMounted) {
+          if (res && res.length > 0) {
+            const mapped: BookmarkItem[] = res.map((b) => {
+              const typeLower = (b.targetType?.toLowerCase() || 'article') as 'question' | 'article' | 'material' | 'workflow';
+              const colorMap: Record<string, string> = {
+                question: 'bg-blue-50 text-[#0076D1] border-blue-100',
+                article: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+                material: 'bg-amber-50 text-amber-800 border-amber-200',
+                workflow: 'bg-purple-50 text-purple-700 border-purple-100',
+              };
+              const urlMap: Record<string, string> = {
+                question: `/discussions/${b.targetId}`,
+                article: `/articles/${b.targetId}`,
+                material: `/materials/${b.targetId}`,
+                workflow: `/workflows/${b.targetId}`,
+              };
+              return {
+                id: String(b.id),
+                type: typeLower,
+                typeLabel: (b.targetType || 'ARTICLE').toUpperCase(),
+                typeColor: colorMap[typeLower] || colorMap.article,
+                title: b.title || `Dấu trang #${b.id}`,
+                summary: b.summary || 'Nội dung đã lưu vào dấu trang cá nhân.',
+                savedTime: b.createdAt ? new Date(b.createdAt).toLocaleDateString('vi-VN') : 'Mới lưu',
+                url: urlMap[typeLower] || `/articles/${b.targetId}`,
+                tags: ['saved'],
+                votes: 0,
+              };
+            });
+            setBookmarks(mapped);
+          } else {
+            setBookmarks([]);
+          }
         }
       } catch (err) {
         console.warn('Backend bookmarks notice:', err);
+        if (isMounted) setBookmarks([]);
+      } finally {
+        if (isMounted) setLoading(false);
       }
     };
     fetchBookmarks();
+    return () => { isMounted = false; };
   }, [activeTab]);
 
   const counts = {
@@ -254,11 +207,15 @@ export const BookmarksPage: React.FC = () => {
           </div>
 
           {/* Bookmarks List Container */}
-          {filteredBookmarks.length === 0 ? (
+          {loading ? (
+            <div className="bg-white rounded-2xl p-12 text-center text-slate-400 border border-slate-100 shadow-xs">
+              <p className="text-xs">Đang tải danh sách dấu trang...</p>
+            </div>
+          ) : filteredBookmarks.length === 0 ? (
             <div className="bg-white rounded-2xl p-12 text-center text-slate-400 border border-slate-100 shadow-xs">
               <Bookmark className="w-10 h-10 mx-auto mb-3 opacity-30" />
-              <p className="text-sm font-semibold text-slate-700">No saved bookmarks found</p>
-              <p className="text-xs text-slate-400 mt-1">Bookmark questions, articles, and study materials to revise them here anytime.</p>
+              <p className="text-sm font-semibold text-slate-700">Chưa có dấu trang nào</p>
+              <p className="text-xs text-slate-400 mt-1">Lưu các câu hỏi, bài viết và tài liệu để ôn tập lại tại đây bất kỳ lúc nào.</p>
             </div>
           ) : (
             <div className="space-y-3.5">

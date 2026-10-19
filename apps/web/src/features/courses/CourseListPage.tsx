@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   BookOpen,
@@ -7,18 +7,38 @@ import {
   Bookmark,
   Star,
   ArrowRight,
-  Sparkles,
-  Layers,
 } from 'lucide-react';
-import { mockCourses, mockMajors } from '../../services/mockData';
+import { courseNodesApi, majorsApi, CourseNodeListItem, MajorListItem } from '../../services/api/adminApi';
 
 export const CourseListPage: React.FC = () => {
   const [selectedMajor, setSelectedMajor] = useState<string>('ALL');
   const [selectedSemester, setSelectedSemester] = useState<string>('ALL');
   const [sortBy, setSortBy] = useState<'code' | 'rating' | 'popular'>('code');
   const [searchQuery, setSearchQuery] = useState('');
-  const [courses, setCourses] = useState(mockCourses);
+  const [courses, setCourses] = useState<CourseNodeListItem[]>([]);
+  const [majors, setMajors] = useState<MajorListItem[]>([]);
   const [bookmarkedCodes, setBookmarkedCodes] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    let isMounted = true;
+    courseNodesApi.getCourseNodes({ pageSize: 100 })
+      .then((res) => {
+        if (isMounted) setCourses(res?.items || []);
+      })
+      .catch(() => {
+        if (isMounted) setCourses([]);
+      });
+
+    majorsApi.getMajors({ pageSize: 50 })
+      .then((res) => {
+        if (isMounted) setMajors(res?.items || []);
+      })
+      .catch(() => {
+        if (isMounted) setMajors([]);
+      });
+
+    return () => { isMounted = false; };
+  }, []);
 
   const toggleBookmark = (code: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -34,18 +54,20 @@ export const CourseListPage: React.FC = () => {
   const filteredCourses = useMemo(() => {
     return courses
       .filter((c) => {
-        const matchMajor = selectedMajor === 'ALL' || c.majorCode === selectedMajor;
+        const matchMajor = selectedMajor === 'ALL' || c.majorCode === selectedMajor || String(c.majorId) === selectedMajor;
         const matchSemester = selectedSemester === 'ALL' || String(c.semester) === selectedSemester;
+        const codeStr = (c.code || c.courseCode || '').toLowerCase();
+        const nameStr = (c.name || c.courseName || '').toLowerCase();
         const matchSearch =
-          c.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          c.description.toLowerCase().includes(searchQuery.toLowerCase());
+          codeStr.includes(searchQuery.toLowerCase()) ||
+          nameStr.includes(searchQuery.toLowerCase()) ||
+          (c.description || '').toLowerCase().includes(searchQuery.toLowerCase());
         return matchMajor && matchSemester && matchSearch;
       })
       .sort((a, b) => {
-        if (sortBy === 'rating') return b.averageRating - a.averageRating;
-        if (sortBy === 'popular') return b.followerCount - a.followerCount;
-        return a.code.localeCompare(b.code);
+        if (sortBy === 'rating') return ((b as any).averageRating || 0) - ((a as any).averageRating || 0);
+        if (sortBy === 'popular') return ((b as any).followerCount || 0) - ((a as any).followerCount || 0);
+        return (a.code || a.courseCode || '').localeCompare(b.code || b.courseCode || '');
       });
   }, [courses, selectedMajor, selectedSemester, sortBy, searchQuery]);
 
@@ -91,7 +113,7 @@ export const CourseListPage: React.FC = () => {
             className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-[#0076D1] cursor-pointer"
           >
             <option value="ALL">All Departments</option>
-            {mockMajors.map((m) => (
+            {majors.map((m) => (
               <option key={m.code} value={m.code}>
                 {m.code} - {m.name}
               </option>
@@ -132,27 +154,31 @@ export const CourseListPage: React.FC = () => {
       {/* Course Cards Grid: 3-column desktop layout (Figma #93:4702) */}
       {filteredCourses.length === 0 ? (
         <div className="p-12 text-center text-slate-400 text-xs bg-white rounded-2xl border border-slate-200">
-          Không tìm thấy môn học nào khớp với bộ lọc tìm kiếm.
+          Không tìm thấy môn học nào trong cơ sở dữ liệu.
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredCourses.map((c) => {
-            const isBookmarked = bookmarkedCodes.has(c.code);
+            const courseCode = c.code || c.courseCode || '';
+            const isBookmarked = bookmarkedCodes.has(courseCode);
+            const enrolled = (c as any).followerCount || 0;
+            const rating = (c as any).averageRating || 0;
+
             return (
               <div
-                key={c.id}
+                key={c.id || courseCode}
                 className="bg-white rounded-xl border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-[#0076D1]/40 transition-all p-5 flex flex-col justify-between group"
               >
                 <div className="space-y-3">
                   {/* Top row: Code Pill & Bookmark button (Figma #93:4706) */}
                   <div className="flex items-center justify-between">
                     <span className="px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-[#D3E3FF] text-[#0076D1]">
-                      {c.code}
+                      {courseCode}
                     </span>
 
                     <button
                       type="button"
-                      onClick={(e) => toggleBookmark(c.code, e)}
+                      onClick={(e) => toggleBookmark(courseCode, e)}
                       className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
                         isBookmarked
                           ? 'bg-blue-50 border-blue-200 text-[#0076D1]'
@@ -169,33 +195,35 @@ export const CourseListPage: React.FC = () => {
                     to={`/courses/${c.code}`}
                     className="font-bold text-sm sm:text-base text-[#181C22] group-hover:text-[#0076D1] transition-colors line-clamp-1 block leading-snug"
                   >
-                    {c.title}
+                    {c.name}
                   </Link>
 
                   {/* Description (Figma #93:4714) */}
                   <p className="text-xs text-[#404753] line-clamp-2 leading-relaxed">
-                    {c.description}
+                    {c.description || 'Chương trình đào tạo tiêu chuẩn của trường.'}
                   </p>
 
                   {/* Metadata Row: Term, Credits, Rating (Figma #93:4716) */}
                   <div className="flex items-center gap-2 text-[11px] text-slate-500 font-medium pt-1">
-                    <span>Term {c.semester}</span>
-                    <span>•</span>
-                    <span>{c.credits} Credits</span>
+                    {c.semester && <span>Term {c.semester}</span>}
+                    {c.semester && <span>•</span>}
+                    <span>{c.credits || 3} Credits</span>
                     <span>•</span>
                     <span className="flex items-center gap-1 text-amber-500 font-bold">
                       <Star className="w-3.5 h-3.5 fill-amber-400" />
-                      <span>{c.averageRating}</span>
+                      <span>{rating > 0 ? rating.toFixed(1) : '0'}</span>
                     </span>
                   </div>
 
                   {/* Topic / Department Chips (Figma #93:4723) */}
                   <div className="flex flex-wrap gap-1.5 pt-1">
+                    {c.majorCode && (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-[#404753]">
+                        {c.majorCode}
+                      </span>
+                    )}
                     <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-[#404753]">
-                      {c.majorCode}
-                    </span>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-[#404753]">
-                      {c.credits >= 4 ? 'Core Discipline' : 'Major Required'}
+                      {(c.credits || 3) >= 4 ? 'Core Discipline' : 'Major Required'}
                     </span>
                   </div>
                 </div>
@@ -204,7 +232,7 @@ export const CourseListPage: React.FC = () => {
                 <div className="pt-4 mt-3 border-t border-slate-100 flex items-center justify-between">
                   <span className="text-[11px] text-slate-400 flex items-center gap-1">
                     <Users className="w-3.5 h-3.5" />
-                    <span>{c.followerCount.toLocaleString()} enrolled</span>
+                    <span>{enrolled.toLocaleString()} enrolled</span>
                   </span>
 
                   <Link

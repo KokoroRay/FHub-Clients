@@ -13,7 +13,6 @@ import {
 } from 'lucide-react';
 import { SeriesModal } from './SeriesModal';
 import { Article, Series } from '../../types';
-import { mockArticles } from '../../services/mockData';
 import { articleApi, seriesApi } from '../../services/api/contentApi';
 
 export const ArticleListPage: React.FC = () => {
@@ -35,31 +34,31 @@ export const ArticleListPage: React.FC = () => {
           search: searchQuery.trim() || undefined,
           pageSize: 20,
         });
-        if (res && res.items && res.items.length > 0) {
+        if (res && res.items) {
           const mapped: Article[] = res.items.map((item) => ({
             id: String(item.articleId),
             title: item.title,
             summary: item.summary || item.title,
             content: '',
-            coverImage: item.coverImageUrl || 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600&auto=format&fit=crop&q=80',
+            coverImage: item.coverImageUrl || '',
             category: 'Backend Development',
             tags: ['dotnet', 'csharp', 'architecture'],
             author: {
               id: String(item.authorUserId || item.authorStaffId || 1),
               fullName: item.authorStaffId ? 'FPT Faculty Staff' : 'Student Author',
               role: item.authorStaffId ? 'Staff' : 'Student',
-              avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+              avatarUrl: '',
             },
-            likesCount: 15,
-            bookmarksCount: 3,
-            viewsCount: 180,
-            readTimeMinutes: 4,
+            likesCount: 0,
+            bookmarksCount: 0,
+            viewsCount: 0,
+            readTimeMinutes: 3,
             createdAt: item.createdAt || new Date().toISOString(),
           }));
           setApiArticles(mapped);
         }
       } catch (err) {
-        console.warn('Backend articles fetch notice:', err);
+        setApiArticles([]);
       } finally {
         setIsLoading(false);
       }
@@ -68,36 +67,9 @@ export const ArticleListPage: React.FC = () => {
     fetchArticles();
   }, [searchQuery]);
 
-  const allArticles = [...apiArticles, ...mockArticles];
+  const allArticles = apiArticles;
 
-  const [seriesList, setSeriesList] = useState<Series[]>([
-    {
-      id: 'series-1',
-      title: '.NET Microservices & Clean Architecture Playbook',
-      description: 'Tuyển tập chuỗi bài viết hướng dẫn xây dựng giải pháp Microservices hoàn chỉnh từ zero cho sinh viên ngành SE/SWP391.',
-      author: {
-        id: 'u-1',
-        fullName: 'Le Quang Huy',
-        avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
-      },
-      itemCount: 4,
-      items: [],
-      createdAt: '2025-01-10T12:00:00Z',
-    },
-    {
-      id: 'series-2',
-      title: 'Design Patterns thực chiến trong dự án thực tế C#',
-      description: 'Phân tích các mẫu thiết kế Factory, Singleton, Strategy, Observer, Repository & Unit of Work kèm mã nguồn mẫu.',
-      author: {
-        id: 'u-2',
-        fullName: 'Thầy Bùi Đình Bình',
-        avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
-      },
-      itemCount: 6,
-      items: [],
-      createdAt: '2025-02-01T08:00:00Z',
-    },
-  ]);
+  const [seriesList, setSeriesList] = useState<Series[]>([]);
 
   useEffect(() => {
     let isMounted = true;
@@ -107,15 +79,16 @@ export const ArticleListPage: React.FC = () => {
           search: searchQuery.trim() || undefined,
           pageSize: 20,
         });
-        if (isMounted && res && res.items && res.items.length > 0) {
-          const mapped: Series[] = res.items.map((item) => ({
+        if (isMounted) {
+          const items = res?.items || [];
+          const mapped: Series[] = items.map((item) => ({
             id: String(item.seriesId),
             title: item.title,
             description: item.description || '',
             author: {
               id: String(item.authorUserId),
               fullName: `Author #${item.authorUserId}`,
-              avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+              avatarUrl: '',
             },
             itemCount: item.itemCount || 0,
             items: [],
@@ -125,7 +98,7 @@ export const ArticleListPage: React.FC = () => {
           setSeriesList(mapped);
         }
       } catch (err) {
-        console.warn('Backend series fetch notice:', err);
+        if (isMounted) setSeriesList([]);
       }
     };
     fetchSeries();

@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { HelpCircle, EyeOff, Tag, BookOpen } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { mockCourses } from '../../services/mockData';
+import { courseNodesApi } from '../../services/api/adminApi';
 import { QuestionPost } from '../../types';
 import { Modal } from '../../components/common/Modal';
 import { Button } from '../../components/common/Button';
@@ -23,11 +23,34 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
   const { currentUser } = useAuth();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [courseCode, setCourseCode] = useState('PRN211');
-  const [tagsInput, setTagsInput] = useState('dotnet, csharp, clean-architecture');
+  const [courseCode, setCourseCode] = useState('');
+  const [tagsInput, setTagsInput] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [courses, setCourses] = useState<Array<{ code: string; title: string }>>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadCourses = async () => {
+      try {
+        const res = await courseNodesApi.getCourseNodes();
+        const items = (res as any)?.items || res || [];
+        if (isMounted && Array.isArray(items) && items.length > 0) {
+          const mapped = items.map((c: any) => ({
+            code: c.code || c.courseCode,
+            title: c.name || c.title || c.code,
+          }));
+          setCourses(mapped);
+          if (mapped[0]) setCourseCode(mapped[0].code);
+        }
+      } catch (err) {
+        console.warn('Failed to load courses in modal:', err);
+      }
+    };
+    loadCourses();
+    return () => { isMounted = false; };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -149,7 +172,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
             label="Môn học liên quan"
             value={courseCode}
             onChange={(e) => setCourseCode(e.target.value)}
-            options={mockCourses.map((c) => ({
+            options={courses.map((c) => ({
               value: c.code,
               label: `${c.code} - ${c.title}`,
             }))}

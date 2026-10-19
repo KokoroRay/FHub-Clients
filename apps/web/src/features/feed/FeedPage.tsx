@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   HelpCircle,
@@ -13,33 +13,96 @@ import {
   ChevronDown,
   ArrowRight,
   Bookmark,
-  Share2,
   CheckCircle2,
   Bell,
-  Sparkles,
-  ExternalLink,
   BookOpen,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { mockCampuses } from '../../services/mockData';
 import { AskQuestionModal } from '../discussions/AskQuestionModal';
 import { QuestionPost } from '../../types';
+import { questionApi, articleApi, workflowApi, studyMaterialApi, courseReviewApi, ArticleListItem, WorkflowListItem, StudyMaterialListItem, CourseReviewListItem } from '../../services/api/contentApi';
+import { courseNodesApi, CourseNodeListItem } from '../../services/api/adminApi';
+import { notificationApi, NotificationItem } from '../../services/api/studentApi';
 
 export const FeedPage: React.FC = () => {
   const { currentUser, currentCampus } = useAuth();
-  const campusObj = mockCampuses.find((c) => c.code === currentCampus) || mockCampuses[0];
+  const campusDisplay = currentUser?.campus || currentCampus || 'FPT University';
   const navigate = useNavigate();
 
   const [questionTab, setQuestionTab] = useState<'recent' | 'voted' | 'unanswered'>('recent');
   const [isAskModalOpen, setIsAskModalOpen] = useState(false);
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
 
-  // Vote states for questions
-  const [votes, setVotes] = useState<Record<string, { count: number; userVote: 'UP' | 'DOWN' | null }>>({
-    'q-1': { count: 142, userVote: null },
-    'q-2': { count: 58, userVote: null },
-    'q-3': { count: 34, userVote: null },
-  });
+  // Dynamic state loaded 100% from backend / database
+  const [questions, setQuestions] = useState<any[]>([]);
+  const [workflows, setWorkflows] = useState<WorkflowListItem[]>([]);
+  const [articles, setArticles] = useState<ArticleListItem[]>([]);
+  const [materials, setMaterials] = useState<StudyMaterialListItem[]>([]);
+  const [courses, setCourses] = useState<CourseNodeListItem[]>([]);
+  const [evaluations, setEvaluations] = useState<CourseReviewListItem[]>([]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [votes, setVotes] = useState<Record<string, { count: number; userVote: 'UP' | 'DOWN' | null }>>({});
+
+  // 1. Fetch questions based on tab
+  useEffect(() => {
+    let isMounted = true;
+    const loadQuestions = async () => {
+      try {
+        const sortBy = questionTab === 'voted' ? 'upvotes' : questionTab === 'unanswered' ? 'unanswered' : 'created_at';
+        const res = await questionApi.getQuestions({ pageSize: 5, sortBy });
+        if (isMounted) {
+          const items = res?.items || [];
+          setQuestions(items);
+          const initialVotes: Record<string, { count: number; userVote: 'UP' | 'DOWN' | null }> = {};
+          items.forEach((q: any) => {
+            initialVotes[String(q.questionId)] = { count: q.upvoteCount || 0, userVote: null };
+          });
+          setVotes(initialVotes);
+        }
+      } catch (err) {
+        if (isMounted) setQuestions([]);
+      }
+    };
+    loadQuestions();
+    return () => { isMounted = false; };
+  }, [questionTab]);
+
+  // 2. Fetch other sections from backend
+  useEffect(() => {
+    let isMounted = true;
+
+    // Workflows
+    workflowApi.getWorkflows({ pageSize: 2 })
+      .then((res) => { if (isMounted) setWorkflows(res?.items || []); })
+      .catch(() => { if (isMounted) setWorkflows([]); });
+
+    // Articles
+    articleApi.getArticles({ pageSize: 2 })
+      .then((res) => { if (isMounted) setArticles(res?.items || []); })
+      .catch(() => { if (isMounted) setArticles([]); });
+
+    // Study Materials
+    studyMaterialApi.getMaterials({ pageSize: 3 })
+      .then((res) => { if (isMounted) setMaterials(res?.items || []); })
+      .catch(() => { if (isMounted) setMaterials([]); });
+
+    // Courses Hub
+    courseNodesApi.getCourseNodes({ pageSize: 3 })
+      .then((res) => { if (isMounted) setCourses(res?.items || []); })
+      .catch(() => { if (isMounted) setCourses([]); });
+
+    // Course Reviews
+    courseReviewApi.getReviews({ pageSize: 2 })
+      .then((res) => { if (isMounted) setEvaluations(res?.items || []); })
+      .catch(() => { if (isMounted) setEvaluations([]); });
+
+    // Notifications
+    notificationApi.getNotifications({ pageSize: 2 })
+      .then((res) => { if (isMounted) setNotifications(res || []); })
+      .catch(() => { if (isMounted) setNotifications([]); });
+
+    return () => { isMounted = false; };
+  }, []);
 
   const handleVote = (id: string, dir: 'UP' | 'DOWN') => {
     setVotes((prev) => {
@@ -68,8 +131,8 @@ export const FeedPage: React.FC = () => {
     });
   };
 
-  const studentName = currentUser?.fullName || 'Nguyen Hoang Minh';
-  const studentInitials = studentName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'NH';
+  const studentName = currentUser?.fullName || 'Sinh viên FHub';
+  const studentInitials = studentName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'SV';
 
   return (
     <div className="space-y-6">
@@ -78,7 +141,7 @@ export const FeedPage: React.FC = () => {
         <div className="space-y-1.5">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-[#0076D1] border border-blue-100">
             <span className="w-1.5 h-1.5 rounded-full bg-[#0076D1]" />
-            <span>Spring 2025 • {campusObj.name}</span>
+            <span>Campus: {campusDisplay}</span>
           </div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">
             Welcome back to FHub
@@ -190,7 +253,7 @@ export const FeedPage: React.FC = () => {
 
           {/* 7. New Conversation */}
           <button
-            onClick={() => navigate('/messages?action=new')}
+            onClick={() => navigate('/messages')}
             className="h-[84px] p-2 flex flex-col items-center justify-between bg-white rounded-xl border border-slate-200/90 hover:border-cyan-400 hover:shadow-xs transition-all text-center group cursor-pointer"
           >
             <div className="w-8 h-8 rounded-lg bg-cyan-50 text-cyan-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
@@ -203,7 +266,7 @@ export const FeedPage: React.FC = () => {
 
           {/* 8. Create Support Ticket */}
           <button
-            onClick={() => navigate('/tickets?action=create')}
+            onClick={() => navigate('/tickets')}
             className="h-[84px] p-2 flex flex-col items-center justify-between bg-white rounded-xl border border-slate-200/90 hover:border-slate-400 hover:shadow-xs transition-all text-center group cursor-pointer"
           >
             <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
@@ -268,220 +331,102 @@ export const FeedPage: React.FC = () => {
         </div>
 
         {/* Question Cards (Figma #86:215) */}
-        <div className="divide-y divide-slate-100">
-          {/* Question 1 */}
-          <div className="p-5 flex items-start gap-4 hover:bg-slate-50/60 transition-colors">
-            {/* Vote Counter */}
-            <div className="flex flex-col items-center bg-slate-50 border border-slate-200/80 rounded-xl p-1 shrink-0">
-              <button
-                onClick={() => handleVote('q-1', 'UP')}
-                className={`p-1 rounded hover:bg-slate-200/60 cursor-pointer transition-colors ${
-                  votes['q-1']?.userVote === 'UP' ? 'text-[#0076D1] font-bold' : 'text-slate-400'
-                }`}
-              >
-                <ChevronUp className="w-4 h-4" />
-              </button>
-              <span className="text-xs font-mono font-bold text-slate-700 my-0.5">
-                {votes['q-1']?.count || 142}
-              </span>
-              <button
-                onClick={() => handleVote('q-1', 'DOWN')}
-                className={`p-1 rounded hover:bg-slate-200/60 cursor-pointer transition-colors ${
-                  votes['q-1']?.userVote === 'DOWN' ? 'text-rose-600 font-bold' : 'text-slate-400'
-                }`}
-              >
-                <ChevronDown className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Content */}
-            <div className="flex-1 min-w-0 space-y-1.5">
-              <div className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-slate-800">@duc_anh_swe</span>
-                  <span className="text-slate-400">• 4 hours ago</span>
-                </div>
-                <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-blue-50 text-[#0076D1] border border-blue-100">
-                  [PRN211]
-                </span>
-              </div>
-
-              <Link
-                to="/discussions/q-1"
-                className="block text-sm font-bold text-slate-900 hover:text-[#0076D1] transition-colors leading-snug"
-              >
-                Help understanding async/await lifecycle in WinForms threading?
-              </Link>
-
-              <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
-                I'm struggling to keep the UI responsive while making database calls through Entity Framework. Whenever I call async tasks, the UI locks up unexpectedly...
-              </p>
-
-              <div className="pt-2 flex items-center justify-between text-xs text-slate-500">
-                <div className="flex items-center gap-4">
-                  <span className="flex items-center gap-1.5 font-medium">
-                    <MessageSquare className="w-3.5 h-3.5 text-slate-400" />
-                    12 answers
-                  </span>
-                  <button
-                    onClick={() => toggleBookmark('q-1')}
-                    className={`flex items-center gap-1 hover:text-[#0076D1] cursor-pointer transition-colors ${
-                      bookmarkedIds.has('q-1') ? 'text-[#0076D1] font-bold' : ''
-                    }`}
-                  >
-                    <Bookmark className="w-3.5 h-3.5" />
-                    <span>Bookmark</span>
-                  </button>
-                </div>
-                <Link to="/discussions/q-1" className="text-xs font-semibold text-[#0076D1] hover:underline flex items-center gap-1">
-                  View Question <ArrowRight className="w-3 h-3" />
-                </Link>
-              </div>
-            </div>
+        {questions.length === 0 ? (
+          <div className="p-12 text-center text-slate-400 text-xs">
+            <HelpCircle className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+            <p className="font-semibold text-slate-600">Chưa có câu hỏi hoặc thảo luận nào</p>
+            <p className="text-[11px] text-slate-400 mt-1">Hãy là người đầu tiên đặt câu hỏi để nhận trợ giúp từ bạn học và giảng viên!</p>
+            <button
+              onClick={() => setIsAskModalOpen(true)}
+              className="mt-3 px-3 py-1.5 rounded-lg text-xs font-bold text-[#0076D1] bg-blue-50 hover:bg-blue-100 transition-colors"
+            >
+              + Đặt câu hỏi ngay
+            </button>
           </div>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {questions.map((q) => {
+              const qId = String(q.questionId || q.id);
+              const authorName = q.isAnonymous ? 'Ẩn danh FPTer' : (q.authorDisplayName || `User #${q.authorUserId || 1}`);
+              const voteInfo = votes[qId] || { count: q.upvoteCount || 0, userVote: null };
+              return (
+                <div key={qId} className="p-5 flex items-start gap-4 hover:bg-slate-50/60 transition-colors">
+                  {/* Vote Counter */}
+                  <div className="flex flex-col items-center bg-slate-50 border border-slate-200/80 rounded-xl p-1 shrink-0">
+                    <button
+                      onClick={() => handleVote(qId, 'UP')}
+                      className={`p-1 rounded hover:bg-slate-200/60 cursor-pointer transition-colors ${
+                        voteInfo.userVote === 'UP' ? 'text-[#0076D1] font-bold' : 'text-slate-400'
+                      }`}
+                    >
+                      <ChevronUp className="w-4 h-4" />
+                    </button>
+                    <span className="text-xs font-mono font-bold text-slate-700 my-0.5">
+                      {voteInfo.count}
+                    </span>
+                    <button
+                      onClick={() => handleVote(qId, 'DOWN')}
+                      className={`p-1 rounded hover:bg-slate-200/60 cursor-pointer transition-colors ${
+                        voteInfo.userVote === 'DOWN' ? 'text-rose-600 font-bold' : 'text-slate-400'
+                      }`}
+                    >
+                      <ChevronDown className="w-4 h-4" />
+                    </button>
+                  </div>
 
-          {/* Question 2 */}
-          <div className="p-5 flex items-start gap-4 hover:bg-slate-50/60 transition-colors">
-            {/* Vote Counter */}
-            <div className="flex flex-col items-center bg-slate-50 border border-slate-200/80 rounded-xl p-1 shrink-0">
-              <button
-                onClick={() => handleVote('q-2', 'UP')}
-                className={`p-1 rounded hover:bg-slate-200/60 cursor-pointer transition-colors ${
-                  votes['q-2']?.userVote === 'UP' ? 'text-[#0076D1] font-bold' : 'text-slate-400'
-                }`}
-              >
-                <ChevronUp className="w-4 h-4" />
-              </button>
-              <span className="text-xs font-mono font-bold text-slate-700 my-0.5">
-                {votes['q-2']?.count || 58}
-              </span>
-              <button
-                onClick={() => handleVote('q-2', 'DOWN')}
-                className={`p-1 rounded hover:bg-slate-200/60 cursor-pointer transition-colors ${
-                  votes['q-2']?.userVote === 'DOWN' ? 'text-rose-600 font-bold' : 'text-slate-400'
-                }`}
-              >
-                <ChevronDown className="w-4 h-4" />
-              </button>
-            </div>
+                  {/* Content */}
+                  <div className="flex-1 min-w-0 space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-800">{authorName}</span>
+                        <span className="text-slate-400">
+                          • {q.createdAt ? new Date(q.createdAt).toLocaleDateString('vi-VN') : 'Mới đây'}
+                        </span>
+                      </div>
+                      {q.courseId && (
+                        <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-blue-50 text-[#0076D1] border border-blue-100">
+                          [Course #{q.courseId}]
+                        </span>
+                      )}
+                    </div>
 
-            {/* Content */}
-            <div className="flex-1 min-w-0 space-y-1.5">
-              <div className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-slate-800">@minh_fpt</span>
-                  <span className="text-slate-400">• 8 hours ago</span>
+                    <Link
+                      to={`/discussions/${qId}`}
+                      className="block text-sm font-bold text-slate-900 hover:text-[#0076D1] transition-colors leading-snug"
+                    >
+                      {q.title}
+                    </Link>
+
+                    <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                      {q.body || q.content}
+                    </p>
+
+                    <div className="pt-2 flex items-center justify-between text-xs text-slate-500">
+                      <div className="flex items-center gap-4">
+                        <span className="flex items-center gap-1.5 font-medium">
+                          <MessageSquare className="w-3.5 h-3.5 text-slate-400" />
+                          {q.answerCount || 0} answers
+                        </span>
+                        <button
+                          onClick={() => toggleBookmark(qId)}
+                          className={`flex items-center gap-1 hover:text-[#0076D1] cursor-pointer transition-colors ${
+                            bookmarkedIds.has(qId) ? 'text-[#0076D1] font-bold' : ''
+                          }`}
+                        >
+                          <Bookmark className="w-3.5 h-3.5" />
+                          <span>Bookmark</span>
+                        </button>
+                      </div>
+                      <Link to={`/discussions/${qId}`} className="text-xs font-semibold text-[#0076D1] hover:underline flex items-center gap-1">
+                        View Question <ArrowRight className="w-3 h-3" />
+                      </Link>
+                    </div>
+                  </div>
                 </div>
-                <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
-                  [SWE201]
-                </span>
-              </div>
-
-              <Link
-                to="/discussions/q-2"
-                className="block text-sm font-bold text-slate-900 hover:text-[#0076D1] transition-colors leading-snug"
-              >
-                What is the standard format for Non-Functional Requirement documentation in SWE201?
-              </Link>
-
-              <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
-                Our team is drafting the SRS document for SWE201. Should usability and security requirements follow the FURPS+ template or standard IEEE 830?
-              </p>
-
-              <div className="pt-2 flex items-center justify-between text-xs text-slate-500">
-                <div className="flex items-center gap-4">
-                  <span className="flex items-center gap-1.5 font-medium">
-                    <MessageSquare className="w-3.5 h-3.5 text-slate-400" />
-                    7 answers
-                  </span>
-                  <button
-                    onClick={() => toggleBookmark('q-2')}
-                    className={`flex items-center gap-1 hover:text-[#0076D1] cursor-pointer transition-colors ${
-                      bookmarkedIds.has('q-2') ? 'text-[#0076D1] font-bold' : ''
-                    }`}
-                  >
-                    <Bookmark className="w-3.5 h-3.5" />
-                    <span>Bookmark</span>
-                  </button>
-                </div>
-                <Link to="/discussions/q-2" className="text-xs font-semibold text-[#0076D1] hover:underline flex items-center gap-1">
-                  View Question <ArrowRight className="w-3 h-3" />
-                </Link>
-              </div>
-            </div>
+              );
+            })}
           </div>
-
-          {/* Question 3 */}
-          <div className="p-5 flex items-start gap-4 hover:bg-slate-50/60 transition-colors">
-            {/* Vote Counter */}
-            <div className="flex flex-col items-center bg-slate-50 border border-slate-200/80 rounded-xl p-1 shrink-0">
-              <button
-                onClick={() => handleVote('q-3', 'UP')}
-                className={`p-1 rounded hover:bg-slate-200/60 cursor-pointer transition-colors ${
-                  votes['q-3']?.userVote === 'UP' ? 'text-[#0076D1] font-bold' : 'text-slate-400'
-                }`}
-              >
-                <ChevronUp className="w-4 h-4" />
-              </button>
-              <span className="text-xs font-mono font-bold text-slate-700 my-0.5">
-                {votes['q-3']?.count || 34}
-              </span>
-              <button
-                onClick={() => handleVote('q-3', 'DOWN')}
-                className={`p-1 rounded hover:bg-slate-200/60 cursor-pointer transition-colors ${
-                  votes['q-3']?.userVote === 'DOWN' ? 'text-rose-600 font-bold' : 'text-slate-400'
-                }`}
-              >
-                <ChevronDown className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Content */}
-            <div className="flex-1 min-w-0 space-y-1.5">
-              <div className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-slate-800">@khanh_dev</span>
-                  <span className="text-slate-400">• 1 day ago</span>
-                </div>
-                <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-purple-50 text-purple-700 border border-purple-100">
-                  [DBI202]
-                </span>
-              </div>
-
-              <Link
-                to="/discussions/q-3"
-                className="block text-sm font-bold text-slate-900 hover:text-[#0076D1] transition-colors leading-snug"
-              >
-                Best practices for indexing foreign keys and composite keys in SQL Server
-              </Link>
-
-              <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
-                When dealing with high cardinality queries in DBI202 practical labs, how do non-clustered indexes affect write execution performance?
-              </p>
-
-              <div className="pt-2 flex items-center justify-between text-xs text-slate-500">
-                <div className="flex items-center gap-4">
-                  <span className="flex items-center gap-1.5 font-medium">
-                    <MessageSquare className="w-3.5 h-3.5 text-slate-400" />
-                    5 answers
-                  </span>
-                  <button
-                    onClick={() => toggleBookmark('q-3')}
-                    className={`flex items-center gap-1 hover:text-[#0076D1] cursor-pointer transition-colors ${
-                      bookmarkedIds.has('q-3') ? 'text-[#0076D1] font-bold' : ''
-                    }`}
-                  >
-                    <Bookmark className="w-3.5 h-3.5" />
-                    <span>Bookmark</span>
-                  </button>
-                </div>
-                <Link to="/discussions/q-3" className="text-xs font-semibold text-[#0076D1] hover:underline flex items-center gap-1">
-                  View Question <ArrowRight className="w-3 h-3" />
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
+        )}
 
         {/* Footer: View All Link */}
         <div className="p-3.5 bg-slate-50/80 border-t border-slate-100 text-center">
@@ -513,43 +458,30 @@ export const FeedPage: React.FC = () => {
               </button>
             </div>
 
-            <div className="space-y-3">
-              <div className="p-3.5 rounded-xl border border-slate-100 hover:border-slate-200 bg-slate-50/40 transition-colors">
-                <Link to="/workflows/wf-1" className="font-bold text-xs text-slate-800 hover:text-blue-600 block leading-snug">
-                  ASP.NET Core Web API + PostgreSQL Boilerplate
-                </Link>
-                <p className="text-[11px] text-slate-500 mt-1 line-clamp-1">
-                  By @dev_master • Dockerized local environment with clean architecture setup.
-                </p>
-                <div className="mt-2 flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-indigo-50 text-indigo-700">#dotnet</span>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-blue-50 text-blue-700">#csharp</span>
-                  </div>
-                  <Link to="/workflows/wf-1" className="text-[11px] font-semibold text-[#0076D1] hover:underline">
-                    View →
-                  </Link>
-                </div>
+            {workflows.length === 0 ? (
+              <div className="p-6 text-center text-slate-400 text-xs">
+                Chưa có workflow nào được chia sẻ.
               </div>
-
-              <div className="p-3.5 rounded-xl border border-slate-100 hover:border-slate-200 bg-slate-50/40 transition-colors">
-                <Link to="/workflows/wf-2" className="font-bold text-xs text-slate-800 hover:text-blue-600 block leading-snug">
-                  Automated Unit Testing with xUnit & Moq
-                </Link>
-                <p className="text-[11px] text-slate-500 mt-1 line-clamp-1">
-                  By @fpt_tester • Ready-to-use testing pipeline with coverage metrics.
-                </p>
-                <div className="mt-2 flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-emerald-50 text-emerald-700">#testing</span>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-indigo-50 text-indigo-700">#dotnet</span>
+            ) : (
+              <div className="space-y-3">
+                {workflows.map((wf) => (
+                  <div key={wf.workflowId} className="p-3.5 rounded-xl border border-slate-100 hover:border-slate-200 bg-slate-50/40 transition-colors">
+                    <Link to={`/workflows/${wf.workflowId}`} className="font-bold text-xs text-slate-800 hover:text-blue-600 block leading-snug">
+                      {wf.title}
+                    </Link>
+                    <p className="text-[11px] text-slate-500 mt-1 line-clamp-1">
+                      {wf.summary || 'Quy trình hướng dẫn thực hành kỹ thuật.'}
+                    </p>
+                    <div className="mt-2 flex items-center justify-between">
+                      <span className="text-[10px] font-mono text-slate-400">Version {(wf as any).version || 1}</span>
+                      <Link to={`/workflows/${wf.workflowId}`} className="text-[11px] font-semibold text-[#0076D1] hover:underline">
+                        View →
+                      </Link>
+                    </div>
                   </div>
-                  <Link to="/workflows/wf-2" className="text-[11px] font-semibold text-[#0076D1] hover:underline">
-                    View →
-                  </Link>
-                </div>
+                ))}
               </div>
-            </div>
+            )}
           </div>
 
           <div className="pt-4 mt-2 border-t border-slate-100 text-center">
@@ -576,37 +508,32 @@ export const FeedPage: React.FC = () => {
               </button>
             </div>
 
-            <div className="space-y-3">
-              <div className="p-3.5 rounded-xl border border-slate-100 hover:border-slate-200 bg-slate-50/40 transition-colors">
-                <Link to="/articles/art-1" className="font-bold text-xs text-slate-800 hover:text-blue-600 block leading-snug">
-                  Mastering LINQ in C#: From Basics to Advanced Expression Trees
-                </Link>
-                <p className="text-[11px] text-slate-500 mt-1 line-clamp-1">
-                  By @linh_lecturer • A comprehensive guide to understanding deferred execution.
-                </p>
-                <div className="mt-2 flex items-center justify-between text-[11px]">
-                  <span className="text-slate-400">6 min read • 82 reads</span>
-                  <Link to="/articles/art-1" className="font-semibold text-[#0076D1] hover:underline">
-                    Read →
-                  </Link>
-                </div>
+            {articles.length === 0 ? (
+              <div className="p-6 text-center text-slate-400 text-xs">
+                Chưa có bài viết nào được đăng tải.
               </div>
-
-              <div className="p-3.5 rounded-xl border border-slate-100 hover:border-slate-200 bg-slate-50/40 transition-colors">
-                <Link to="/articles/art-2" className="font-bold text-xs text-slate-800 hover:text-blue-600 block leading-snug">
-                  Demystifying Agile Requirements & User Story Mapping
-                </Link>
-                <p className="text-[11px] text-slate-500 mt-1 line-clamp-1">
-                  By @sarah_pm • Practical examples tailored for FPT software project submissions.
-                </p>
-                <div className="mt-2 flex items-center justify-between text-[11px]">
-                  <span className="text-slate-400">4 min read • 54 reads</span>
-                  <Link to="/articles/art-2" className="font-semibold text-[#0076D1] hover:underline">
-                    Read →
-                  </Link>
-                </div>
+            ) : (
+              <div className="space-y-3">
+                {articles.map((art) => (
+                  <div key={art.articleId} className="p-3.5 rounded-xl border border-slate-100 hover:border-slate-200 bg-slate-50/40 transition-colors">
+                    <Link to={`/articles/${art.articleId}`} className="font-bold text-xs text-slate-800 hover:text-blue-600 block leading-snug">
+                      {art.title}
+                    </Link>
+                    <p className="text-[11px] text-slate-500 mt-1 line-clamp-1">
+                      {art.summary || 'Bài viết học tập và chia sẻ kinh nghiệm.'}
+                    </p>
+                    <div className="mt-2 flex items-center justify-between text-[11px]">
+                      <span className="text-slate-400">
+                        {art.createdAt ? new Date(art.createdAt).toLocaleDateString('vi-VN') : 'Gần đây'}
+                      </span>
+                      <Link to={`/articles/${art.articleId}`} className="font-semibold text-[#0076D1] hover:underline">
+                        Read →
+                      </Link>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
+            )}
           </div>
 
           <div className="pt-4 mt-2 border-t border-slate-100 text-center">
@@ -644,46 +571,32 @@ export const FeedPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between p-2.5 rounded-xl border border-slate-100 bg-slate-50/40">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700">PDF</span>
-                  <div className="truncate">
-                    <h5 className="font-bold text-xs text-slate-800 truncate">PRN211_Complete_Summary_Cheatsheet.pdf</h5>
-                    <p className="text-[10px] text-slate-400">Course: PRN211 • By @hoang_nam</p>
-                  </div>
-                </div>
-                <Link to="/materials" className="text-xs font-bold text-[#0076D1] hover:underline ml-2 shrink-0">
-                  Download
-                </Link>
+            {materials.length === 0 ? (
+              <div className="p-6 text-center text-slate-400 text-xs">
+                Chưa có tài liệu học tập nào được tải lên.
               </div>
-
-              <div className="flex items-center justify-between p-2.5 rounded-xl border border-slate-100 bg-slate-50/40">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700">DOCX</span>
-                  <div className="truncate">
-                    <h5 className="font-bold text-xs text-slate-800 truncate">SWE201_SRS_Template_Standard_2025.docx</h5>
-                    <p className="text-[10px] text-slate-400">Course: SWE201 • By @admin_office</p>
+            ) : (
+              <div className="space-y-2.5">
+                {materials.map((mat) => (
+                  <div key={mat.studyMaterialId} className="flex items-center justify-between p-2.5 rounded-xl border border-slate-100 bg-slate-50/40">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700">
+                        {mat.materialType || 'DOC'}
+                      </span>
+                      <div className="truncate">
+                        <h5 className="font-bold text-xs text-slate-800 truncate">{mat.title}</h5>
+                        <p className="text-[10px] text-slate-400">
+                          {mat.fileSizeBytes ? `${(mat.fileSizeBytes / (1024 * 1024)).toFixed(1)} MB` : 'Tài liệu môn học'}
+                        </p>
+                      </div>
+                    </div>
+                    <Link to={`/materials/${mat.studyMaterialId}`} className="text-xs font-bold text-[#0076D1] hover:underline ml-2 shrink-0">
+                      Detail
+                    </Link>
                   </div>
-                </div>
-                <Link to="/materials" className="text-xs font-bold text-[#0076D1] hover:underline ml-2 shrink-0">
-                  Download
-                </Link>
+                ))}
               </div>
-
-              <div className="flex items-center justify-between p-2.5 rounded-xl border border-slate-100 bg-slate-50/40">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-700">LINK</span>
-                  <div className="truncate">
-                    <h5 className="font-bold text-xs text-slate-800 truncate">DBI202 SQL Server Sample Database Script</h5>
-                    <p className="text-[10px] text-slate-400">Course: DBI202 • By @tuan_db</p>
-                  </div>
-                </div>
-                <Link to="/materials" className="text-xs font-bold text-[#0076D1] hover:underline ml-2 shrink-0">
-                  Open
-                </Link>
-              </div>
-            </div>
+            )}
           </div>
 
           <div className="pt-4 mt-2 border-t border-slate-100 text-center">
@@ -707,50 +620,38 @@ export const FeedPage: React.FC = () => {
               </Link>
             </div>
 
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50/40">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-blue-100 text-blue-800">PRN211</span>
-                    <h5 className="font-bold text-xs text-slate-800">Basic Cross-Platform App Programming</h5>
-                  </div>
-                  <p className="text-[11px] text-slate-500 mt-0.5">3 Credits • C#, .NET Architecture, WPF & MAUI</p>
-                </div>
-                <span className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
-                  Enrolled
-                </span>
+            {courses.length === 0 ? (
+              <div className="p-6 text-center text-slate-400 text-xs">
+                Chưa có môn học nào trong danh mục.
               </div>
-
-              <div className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50/40">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-indigo-100 text-indigo-800">SWE201</span>
-                    <h5 className="font-bold text-xs text-slate-800">Software Requirements</h5>
+            ) : (
+              <div className="space-y-2.5">
+                {courses.map((crs) => (
+                  <div key={crs.id} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50/40">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-blue-100 text-blue-800">
+                          {crs.code}
+                        </span>
+                        <h5 className="font-bold text-xs text-slate-800">{crs.name}</h5>
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        {crs.credits || 3} Tín chỉ • {crs.description || 'Chương trình đào tạo tiêu chuẩn FPT'}
+                      </p>
+                    </div>
+                    <Link to={`/courses/${crs.code}`} className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-blue-50 text-[#0076D1] border border-blue-200 shrink-0">
+                      View
+                    </Link>
                   </div>
-                  <p className="text-[11px] text-slate-500 mt-0.5">3 Credits • Requirements elicitation & validation</p>
-                </div>
-                <span className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
-                  Enrolled
-                </span>
+                ))}
               </div>
-
-              <div className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50/40">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-purple-100 text-purple-800">DBI202</span>
-                    <h5 className="font-bold text-xs text-slate-800">Database Systems</h5>
-                  </div>
-                  <p className="text-[11px] text-slate-500 mt-0.5">3 Credits • Relational algebra, SQL design & indexing</p>
-                </div>
-                <span className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
-                  Enrolled
-                </span>
-              </div>
-            </div>
+            )}
           </div>
 
           <div className="pt-3 border-t border-slate-100 text-center">
-            <span className="text-[11px] font-medium text-slate-400">Enrolled in 3 Active Course Nodes</span>
+            <span className="text-[11px] font-medium text-slate-400">
+              {courses.length} Môn học hiển thị
+            </span>
           </div>
         </div>
       </div>
@@ -773,29 +674,32 @@ export const FeedPage: React.FC = () => {
               </button>
             </div>
 
-            <div className="space-y-3">
-              <div className="p-3.5 rounded-xl border border-slate-100 bg-slate-50/40">
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-50 text-blue-700">PRN211</span>
-                  <span className="text-[10px] text-slate-400">Feb 2025</span>
-                </div>
-                <h5 className="font-bold text-xs text-slate-800">Comprehensive review on Assignment 1 & 2 difficulty</h5>
-                <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">
-                  "Great coverage of WPF and asynchronous programming. Practical exam requires speed in creating data access layers..."
-                </p>
+            {evaluations.length === 0 ? (
+              <div className="p-6 text-center text-slate-400 text-xs">
+                Chưa có đánh giá môn học nào.
               </div>
-
-              <div className="p-3.5 rounded-xl border border-slate-100 bg-slate-50/40">
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-indigo-50 text-indigo-700">SWE201</span>
-                  <span className="text-[10px] text-slate-400">Jan 2025</span>
-                </div>
-                <h5 className="font-bold text-xs text-slate-800">Tips for scoring high on SRS document presentations</h5>
-                <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">
-                  "Focus heavily on traceability matrix and clear use-case diagrams with correct UML syntax."
-                </p>
+            ) : (
+              <div className="space-y-3">
+                {evaluations.map((ev) => (
+                  <div key={ev.courseReviewId} className="p-3.5 rounded-xl border border-slate-100 bg-slate-50/40">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-50 text-blue-700">
+                        Course #{ev.courseId}
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        {ev.semesterCode} {ev.academicYear}
+                      </span>
+                    </div>
+                    <h5 className="font-bold text-xs text-slate-800">
+                      Overall Rating: {ev.overallRating}/5 ★
+                    </h5>
+                    <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">
+                      {ev.reviewContent || ev.survivalTips || 'Đánh giá môn học từ sinh viên.'}
+                    </p>
+                  </div>
+                ))}
               </div>
-            </div>
+            )}
           </div>
 
           <div className="pt-4 mt-2 border-t border-slate-100 text-center">
@@ -819,56 +723,13 @@ export const FeedPage: React.FC = () => {
               </Link>
             </div>
 
-            <div className="space-y-2.5">
-              <Link to="/messages" className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition-colors group">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-8 h-8 rounded-full bg-blue-100 text-[#0076D1] font-bold text-xs flex items-center justify-center shrink-0">
-                    DA
-                  </div>
-                  <div className="truncate">
-                    <div className="flex items-center gap-1.5">
-                      <h5 className="font-bold text-xs text-slate-800">Duc Anh (SWE)</h5>
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#0076D1]" />
-                    </div>
-                    <p className="text-[11px] text-slate-500 truncate">Did you commit the updated database connection string yet?</p>
-                  </div>
-                </div>
-                <span className="text-[10px] text-slate-400 shrink-0 ml-2">12m ago</span>
-              </Link>
-
-              <Link to="/messages" className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition-colors group">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-700 font-bold text-xs flex items-center justify-center shrink-0">
-                    TB
-                  </div>
-                  <div className="truncate">
-                    <div className="flex items-center gap-1.5">
-                      <h5 className="font-bold text-xs text-slate-800">Thao Binh</h5>
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#0076D1]" />
-                    </div>
-                    <p className="text-[11px] text-slate-500 truncate">Thanks for sharing the PRN211 test script, it worked!</p>
-                  </div>
-                </div>
-                <span className="text-[10px] text-slate-400 shrink-0 ml-2">1h ago</span>
-              </Link>
-
-              <Link to="/messages" className="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition-colors group">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-700 font-bold text-xs flex items-center justify-center shrink-0">
-                    QL
-                  </div>
-                  <div className="truncate">
-                    <h5 className="font-bold text-xs text-slate-800">Quoc Lam</h5>
-                    <p className="text-[11px] text-slate-500 truncate">Are we meeting tomorrow at the library at 2 PM?</p>
-                  </div>
-                </div>
-                <span className="text-[10px] text-slate-400 shrink-0 ml-2">1d ago</span>
-              </Link>
+            <div className="p-6 text-center text-slate-400 text-xs">
+              Chưa có cuộc trò chuyện nào gần đây.
             </div>
           </div>
 
           <div className="pt-3 border-t border-slate-100 text-center">
-            <span className="text-[11px] font-medium text-slate-400">2 unread conversations</span>
+            <span className="text-[11px] font-medium text-slate-400">0 unread conversations</span>
           </div>
         </div>
       </div>
@@ -893,27 +754,27 @@ export const FeedPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between p-3 rounded-xl bg-blue-50/50 border border-blue-100">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="w-2 h-2 rounded-full bg-[#0076D1] shrink-0" />
-                  <p className="text-xs text-slate-800 truncate">
-                    <strong>@mr.binh (Lecturer)</strong> replied to your discussion on WinForms.
-                  </p>
-                </div>
-                <span className="text-[10px] text-slate-400 shrink-0 ml-2">25m ago</span>
+            {notifications.length === 0 ? (
+              <div className="p-6 text-center text-slate-400 text-xs">
+                Không có thông báo mới nào.
               </div>
-
-              <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50/80 border border-slate-100">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                  <p className="text-xs text-slate-800 truncate">
-                    15 students upvoted your shared workflow <strong>".NET Microservices Setup"</strong>.
-                  </p>
-                </div>
-                <span className="text-[10px] text-slate-400 shrink-0 ml-2">3h ago</span>
+            ) : (
+              <div className="space-y-2.5">
+                {notifications.map((notif) => (
+                  <div key={notif.id} className="flex items-center justify-between p-3 rounded-xl bg-blue-50/50 border border-blue-100">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="w-2 h-2 rounded-full bg-[#0076D1] shrink-0" />
+                      <p className="text-xs text-slate-800 truncate">
+                        <strong>{notif.title}</strong>: {notif.message}
+                      </p>
+                    </div>
+                    <span className="text-[10px] text-slate-400 shrink-0 ml-2">
+                      {notif.createdAt ? new Date(notif.createdAt).toLocaleDateString('vi-VN') : 'Gần đây'}
+                    </span>
+                  </div>
+                ))}
               </div>
-            </div>
+            )}
           </div>
         </div>
 
@@ -943,7 +804,7 @@ export const FeedPage: React.FC = () => {
               View Tickets
             </button>
             <button
-              onClick={() => navigate('/tickets?action=create')}
+              onClick={() => navigate('/tickets')}
               className="py-2 text-xs font-bold rounded-lg bg-[#0076D1] hover:bg-[#005DA7] text-white transition-colors cursor-pointer shadow-2xs"
             >
               Create Ticket

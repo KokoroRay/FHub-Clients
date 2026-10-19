@@ -9,138 +9,15 @@ import {
   User,
   ChevronDown,
 } from 'lucide-react';
-import { mockCourses } from '../../services/mockData';
+import { courseNodesApi, CourseNodeListItem } from '../../services/api/adminApi';
 import { CourseReview } from '../../types';
 import { CreateCourseEvaluationModal } from './CreateCourseEvaluationModal';
 import { courseReviewApi } from '../../services/api/contentApi';
 
-
-const initialEvaluations: (CourseReview & { courseTitle?: string; shortReview?: string })[] = [
-  {
-    id: 'eval-1',
-    courseCode: 'PRN211',
-    courseTitle: 'Basic Cross-Platform Programming',
-    shortReview: '“Helpful practical exercises and clear examples.”',
-    reviewer: {
-      id: 'u-1',
-      fullName: 'Minh Tran',
-      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
-    },
-    rating: 5,
-    workloadRating: 4,
-    difficultyRating: 3,
-    comment:
-      'PRN211 là môn học nền tảng cực tốt về C# và hệ sinh thái .NET. Thầy Bình dạy rất chi tiết về async/await và Entity Framework Core. Chú ý làm kỹ các Lab WPF và nộp assignment đúng hạn thì việc qua môn và đạt điểm 8+ hoàn toàn trong tầm tay.',
-    semesterTaken: 'Spring 2025',
-    lecturerName: 'Thầy Bùi Đình Bình',
-    upvotes: 42,
-    createdAt: '2026-10-12T08:00:00Z',
-  },
-  {
-    id: 'eval-2',
-    courseCode: 'PRN221',
-    courseTitle: 'Advanced Cross-Platform Programming',
-    shortReview: '“Good projects, but some topics need more explanation.”',
-    reviewer: {
-      id: 'u-2',
-      fullName: 'Linh Nguyen',
-      avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80',
-    },
-    rating: 4,
-    workloadRating: 4,
-    difficultyRating: 4,
-    comment:
-      'Môn học đi sâu vào Clean Architecture, CQRS và gRPC. Cần đầu tư thời gian tìm hiểu về Unit Test và SignalR thời gian thực để bảo vệ đồ án trước ban giám khảo.',
-    semesterTaken: 'Fall 2025',
-    lecturerName: 'Thầy Nguyễn Văn Nam',
-    upvotes: 28,
-    createdAt: '2026-10-10T10:30:00Z',
-  },
-  {
-    id: 'eval-3',
-    courseCode: 'SWP391',
-    courseTitle: 'Software Project',
-    shortReview: '“Useful teamwork experience and realistic project tasks.”',
-    reviewer: {
-      id: 'u-3',
-      fullName: 'An Nguyen',
-      avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80',
-    },
-    rating: 5,
-    workloadRating: 5,
-    difficultyRating: 5,
-    comment:
-      'Dự án phần mềm thực chiến đầu tiên với mô hình Agile/Scrum. Nên dùng React + ASP.NET Core hoặc Java Spring Boot. Nhóm phải họp thường xuyên và dùng Git Flow chuẩn để tránh xung đột mã nguồn.',
-    semesterTaken: 'Spring 2025',
-    lecturerName: 'Hội đồng Bộ môn SE',
-    upvotes: 56,
-    createdAt: '2026-10-08T14:15:00Z',
-  },
-  {
-    id: 'eval-4',
-    courseCode: 'DBI202',
-    courseTitle: 'Database Systems',
-    shortReview: '“The fundamentals are useful, but practice is important.”',
-    reviewer: {
-      id: 'u-4',
-      fullName: 'Bao Pham',
-      avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80',
-    },
-    rating: 4,
-    workloadRating: 3,
-    difficultyRating: 4,
-    comment:
-      'Môn cơ sở dữ liệu quan trọng bậc nhất của ngành KTPM. Chú ý phần Chuẩn hóa 1NF, 2NF, 3NF và viết Store Procedure / Trigger. Đề thi Practical có thời gian khá gấp nên cần luyện gõ code SQL nhuần nhuyễn.',
-    semesterTaken: 'Fall 2025',
-    lecturerName: 'Thầy Trần Quốc Tuấn',
-    upvotes: 35,
-    createdAt: '2026-10-05T09:00:00Z',
-  },
-  {
-    id: 'eval-5',
-    courseCode: 'SWE201',
-    courseTitle: 'Introduction to Software Engineering',
-    shortReview: '“Well-structured material covering UML, SRS, and IEEE standards.”',
-    reviewer: {
-      id: 'u-5',
-      fullName: 'Hoang Long',
-      avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&auto=format&fit=crop&q=80',
-    },
-    rating: 5,
-    workloadRating: 4,
-    difficultyRating: 3,
-    comment:
-      'SWE201 rất nặng về viết tài liệu SRS và vẽ biểu đồ Use-Case / Class Diagram. Đề tài nhóm nên chốt sớm từ tuần 2. Cần bám sát chuẩn IEEE 830 và ma trận truy vết.',
-    semesterTaken: 'Spring 2025',
-    lecturerName: 'Cô Nguyễn Thị Lan',
-    upvotes: 31,
-    createdAt: '2026-09-28T11:20:00Z',
-  },
-  {
-    id: 'eval-6',
-    courseCode: 'PRM392',
-    courseTitle: 'Mobile Programming',
-    shortReview: '“Building cross-platform apps with Flutter and REST APIs was rewarding.”',
-    reviewer: {
-      id: 'u-6',
-      fullName: 'Thu Ha',
-      avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80',
-    },
-    rating: 4,
-    workloadRating: 4,
-    difficultyRating: 4,
-    comment:
-      'Khóa học thực chiến về lập trình di động với Flutter / Android Kotlin. Chú ý kiến trúc State Management (Bloc / Provider) để cấu trúc code không bị spaghetti.',
-    semesterTaken: 'Fall 2025',
-    lecturerName: 'Thầy Lê Hoàng',
-    upvotes: 24,
-    createdAt: '2026-09-20T16:00:00Z',
-  },
-];
-
 export const CourseEvaluationListPage: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const [evaluations, setEvaluations] = useState(initialEvaluations);
+  const [evaluations, setEvaluations] = useState<(CourseReview & { courseTitle?: string; shortReview?: string })[]>([]);
+  const [courses, setCourses] = useState<CourseNodeListItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCourse, setSelectedCourse] = useState<string>('ALL');
   const [sortBy, setSortBy] = useState<'newest' | 'highest' | 'helpful'>('newest');
@@ -148,9 +25,15 @@ export const CourseEvaluationListPage: React.FC = () => {
   const [votedIds, setVotedIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
 
+  useEffect(() => {
+    courseNodesApi.getCourseNodes({ pageSize: 50 })
+      .then((res) => setCourses(res?.items || []))
+      .catch(() => setCourses([]));
+  }, []);
+
   const getCourseTitle = (code: string) => {
-    const course = mockCourses.find((c) => c.code.toLowerCase() === code.toLowerCase());
-    return course ? course.title : 'Academic Course';
+    const found = courses.find((c) => (c.code || c.courseCode || '').toLowerCase() === code.toLowerCase());
+    return found ? (found.name || found.courseName || 'Môn học FPT') : 'Môn học FPT';
   };
 
   useEffect(() => {
@@ -162,16 +45,17 @@ export const CourseEvaluationListPage: React.FC = () => {
           search: searchQuery.trim() || undefined,
           pageSize: 50,
         });
-        if (isMounted && res && res.items && res.items.length > 0) {
-          const mappedReviews: (CourseReview & { courseTitle?: string; shortReview?: string })[] = res.items.map((item) => ({
+        if (isMounted) {
+          const items = res?.items || [];
+          const mappedReviews: (CourseReview & { courseTitle?: string; shortReview?: string })[] = items.map((item) => ({
             id: String(item.courseReviewId),
             courseCode: `CRS-${item.courseId}`,
-            courseTitle: getCourseTitle(`CRS-${item.courseId}`),
+            courseTitle: `Course #${item.courseId}`,
             shortReview: item.survivalTips || (item.reviewContent ? item.reviewContent.slice(0, 80) + '...' : 'Đánh giá môn học chi tiết'),
             reviewer: {
               id: item.isAnonymous ? 'anon' : String(item.authorUserId || 'u-1'),
               fullName: item.isAnonymous ? 'Sinh viên ẩn danh' : `Sinh viên #${item.authorUserId || 1}`,
-              avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+              avatarUrl: '',
             },
             rating: item.overallRating,
             workloadRating: item.workloadRating,
@@ -185,7 +69,7 @@ export const CourseEvaluationListPage: React.FC = () => {
           setEvaluations(mappedReviews);
         }
       } catch (err) {
-        console.warn('Backend course-reviews not responding, keeping fallback mock data', err);
+        if (isMounted) setEvaluations([]);
       } finally {
         if (isMounted) setIsLoading(false);
       }
