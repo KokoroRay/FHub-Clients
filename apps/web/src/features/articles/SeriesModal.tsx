@@ -5,6 +5,7 @@ import { Button } from '../../components/common/Button';
 import { Input, Textarea } from '../../components/common/Input';
 import { Series } from '../../types';
 import { useAuth } from '../../context/AuthContext';
+import { seriesApi } from '../../services/api/contentApi';
 
 export interface SeriesModalProps {
   isOpen: boolean;
@@ -73,30 +74,65 @@ export const SeriesModal: React.FC<SeriesModalProps> = ({
     setItems(nextItems.map((it, idx) => ({ ...it, orderIndex: idx + 1 })));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
 
     setIsSubmitting(true);
-    setTimeout(() => {
-      const savedSeries: Series = {
-        id: initialSeries?.id || `series-${Date.now()}`,
-        title: title.trim(),
-        description: description.trim(),
-        author: {
-          id: currentUser?.id || 'u-self',
-          fullName: currentUser?.fullName || 'Sinh viên FHub',
-          avatarUrl: currentUser?.avatarUrl,
-        },
-        itemCount: items.length,
-        items,
-        createdAt: initialSeries?.createdAt || new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      onSaved(savedSeries);
-      setIsSubmitting(false);
-      onClose();
-    }, 300);
+    try {
+      if (initialSeries && !isNaN(Number(initialSeries.id))) {
+        await seriesApi.updateSeries(initialSeries.id, {
+          title: title.trim(),
+          description: description.trim(),
+          status: 'PUBLISHED',
+        });
+      } else {
+        const created = await seriesApi.createSeries({
+          title: title.trim(),
+          description: description.trim(),
+        });
+        if (created) {
+          const savedSeries: Series = {
+            id: String(created.seriesId),
+            title: created.title,
+            description: created.description || '',
+            author: {
+              id: currentUser?.id || 'u-self',
+              fullName: currentUser?.fullName || 'Sinh viên FHub',
+              avatarUrl: currentUser?.avatarUrl,
+            },
+            itemCount: items.length,
+            items,
+            createdAt: created.createdAt,
+            updatedAt: created.updatedAt,
+          };
+          onSaved(savedSeries);
+          setIsSubmitting(false);
+          onClose();
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('Backend series API not responding, saving locally', err);
+    }
+
+    const savedSeries: Series = {
+      id: initialSeries?.id || `series-${Date.now()}`,
+      title: title.trim(),
+      description: description.trim(),
+      author: {
+        id: currentUser?.id || 'u-self',
+        fullName: currentUser?.fullName || 'Sinh viên FHub',
+        avatarUrl: currentUser?.avatarUrl,
+      },
+      itemCount: items.length,
+      items,
+      createdAt: initialSeries?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    onSaved(savedSeries);
+    setIsSubmitting(false);
+    onClose();
   };
 
   return (

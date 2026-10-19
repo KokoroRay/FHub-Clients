@@ -5,6 +5,8 @@ import { useAuth } from '../../context/AuthContext';
 import { mockCampuses, mockCurrentUser } from '../../services/mockData';
 import { User } from '../../types';
 
+import { authApi } from '../../services/api/adminApi';
+
 export const RegisterPage: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -19,10 +21,14 @@ export const RegisterPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName.trim() || !email.trim() || !password) {
       setErrorMessage('Vui lòng điền đầy đủ các trường bắt buộc.');
+      return;
+    }
+    if (password.length < 6) {
+      setErrorMessage('Mật khẩu phải chứa ít nhất 6 ký tự.');
       return;
     }
     if (password !== confirmPassword) {
@@ -35,20 +41,38 @@ export const RegisterPage: React.FC = () => {
     }
 
     setIsLoading(true);
-    setTimeout(() => {
-      const newUser: User = {
-        ...mockCurrentUser,
-        id: `u-${Date.now()}`,
-        fullName,
-        email,
-        studentId: studentId.trim().toUpperCase() || 'SE180001',
-        campus: campus as any,
+    setErrorMessage(null);
+
+    try {
+      const result = await authApi.register({
+        fullName: fullName.trim(),
+        email: email.trim(),
+        password: password.trim(),
+        studentCode: studentId.trim().toUpperCase() || undefined,
+        campus
+      });
+
+      const userObj: User = {
+        id: String(result.user?.userId || `u-${Date.now()}`),
+        email: result.user?.email || email,
+        fullName: result.user?.fullName || fullName,
+        studentId: result.user?.studentCode || studentId.trim().toUpperCase() || 'SE180001',
         role: 'Student',
+        campus: (result.user?.campusCode as any) || (campus as any) || 'HL',
+        avatarUrl: result.user?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+        karma: 100,
+        status: 'ACTIVE',
+        badges: []
       };
-      login(newUser);
-      setIsLoading(false);
+
+      login(userObj, result.accessToken, result.refreshToken);
       navigate('/');
-    }, 500);
+    } catch (err: any) {
+      const msg = err.response?.data?.message || err.message || 'Đăng ký không thành công. Vui lòng kiểm tra lại thông tin.';
+      setErrorMessage(msg);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

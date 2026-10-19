@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   Star,
@@ -12,6 +12,8 @@ import {
 import { mockCourses } from '../../services/mockData';
 import { CourseReview } from '../../types';
 import { CreateCourseEvaluationModal } from './CreateCourseEvaluationModal';
+import { courseReviewApi } from '../../services/api/contentApi';
+
 
 const initialEvaluations: (CourseReview & { courseTitle?: string; shortReview?: string })[] = [
   {
@@ -144,6 +146,53 @@ export const CourseEvaluationListPage: React.FC = () => {
   const [sortBy, setSortBy] = useState<'newest' | 'highest' | 'helpful'>('newest');
   const [isModalOpen, setIsModalOpen] = useState(searchParams.get('action') === 'create');
   const [votedIds, setVotedIds] = useState<Set<string>>(new Set());
+  const [isLoading, setIsLoading] = useState(false);
+
+  const getCourseTitle = (code: string) => {
+    const course = mockCourses.find((c) => c.code.toLowerCase() === code.toLowerCase());
+    return course ? course.title : 'Academic Course';
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchReviews = async () => {
+      try {
+        setIsLoading(true);
+        const res = await courseReviewApi.getReviews({
+          search: searchQuery.trim() || undefined,
+          pageSize: 50,
+        });
+        if (isMounted && res && res.items && res.items.length > 0) {
+          const mappedReviews: (CourseReview & { courseTitle?: string; shortReview?: string })[] = res.items.map((item) => ({
+            id: String(item.courseReviewId),
+            courseCode: `CRS-${item.courseId}`,
+            courseTitle: getCourseTitle(`CRS-${item.courseId}`),
+            shortReview: item.survivalTips || (item.reviewContent ? item.reviewContent.slice(0, 80) + '...' : 'Đánh giá môn học chi tiết'),
+            reviewer: {
+              id: item.isAnonymous ? 'anon' : String(item.authorUserId || 'u-1'),
+              fullName: item.isAnonymous ? 'Sinh viên ẩn danh' : `Sinh viên #${item.authorUserId || 1}`,
+              avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+            },
+            rating: item.overallRating,
+            workloadRating: item.workloadRating,
+            difficultyRating: item.difficultyRating,
+            comment: item.reviewContent || '',
+            semesterTaken: `${item.semesterCode} ${item.academicYear}`,
+            lecturerName: 'Bộ môn FPTU',
+            upvotes: 0,
+            createdAt: item.createdAt,
+          }));
+          setEvaluations(mappedReviews);
+        }
+      } catch (err) {
+        console.warn('Backend course-reviews not responding, keeping fallback mock data', err);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+    fetchReviews();
+    return () => { isMounted = false; };
+  }, [searchQuery]);
 
   const handleVoteHelpful = (id: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -163,11 +212,6 @@ export const CourseEvaluationListPage: React.FC = () => {
       else next.add(id);
       return next;
     });
-  };
-
-  const getCourseTitle = (code: string) => {
-    const course = mockCourses.find((c) => c.code.toLowerCase() === code.toLowerCase());
-    return course ? course.title : 'Academic Course';
   };
 
   const filteredEvaluations = useMemo(() => {

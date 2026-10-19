@@ -6,6 +6,7 @@ import { Input, Textarea, Select } from '../../components/common/Input';
 import { mockCourses } from '../../services/mockData';
 import { useAuth } from '../../context/AuthContext';
 import { CourseReview } from '../../types';
+import { courseReviewApi } from '../../services/api/contentApi';
 
 export interface CreateCourseEvaluationModalProps {
   isOpen: boolean;
@@ -31,7 +32,7 @@ export const CreateCourseEvaluationModal: React.FC<CreateCourseEvaluationModalPr
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (comment.trim().length < 20) {
       setErrorMessage('Nội dung nhận xét đánh giá môn học cần tối thiểu 20 ký tự để cung cấp thông tin hữu ích cho các bạn sinh viên khác.');
@@ -40,8 +41,48 @@ export const CreateCourseEvaluationModal: React.FC<CreateCourseEvaluationModalPr
 
     setErrorMessage(null);
     setIsSubmitting(true);
-    setTimeout(() => {
+    try {
+      const courseNum = Number(courseCode.replace(/\D/g, '')) || 1;
+      const parts = semesterTaken.trim().split(' ');
+      const sem = parts[0]?.toUpperCase() || 'FA';
+      const year = Number(parts[1]) || 2025;
+
+      const res = await courseReviewApi.createReview({
+        courseId: courseNum,
+        semesterCode: sem,
+        academicYear: year,
+        overallRating: rating,
+        difficultyRating,
+        workloadRating,
+        reviewContent: comment.trim(),
+        survivalTips: lecturerName.trim() ? `Giảng viên: ${lecturerName.trim()}` : undefined,
+      });
+
       const newReview: CourseReview = {
+        id: String(res.courseReviewId),
+        courseCode,
+        reviewer: {
+          id: currentUser?.id || 'u-self',
+          fullName: currentUser?.fullName || 'Sinh viên FHub',
+          avatarUrl: currentUser?.avatarUrl,
+        },
+        rating: res.overallRating,
+        workloadRating: res.workloadRating,
+        difficultyRating: res.difficultyRating,
+        comment: res.reviewContent || comment.trim(),
+        semesterTaken: `${res.semesterCode} ${res.academicYear}`,
+        lecturerName: lecturerName.trim() || undefined,
+        upvotes: 1,
+        createdAt: res.createdAt || new Date().toISOString(),
+      };
+
+      onCreated(newReview);
+      setComment('');
+      setLecturerName('');
+      onClose();
+    } catch (err: any) {
+      console.warn('API error creating course review, saving locally:', err);
+      const fallbackReview: CourseReview = {
         id: `rev-${Date.now()}`,
         courseCode,
         reviewer: {
@@ -58,12 +99,13 @@ export const CreateCourseEvaluationModal: React.FC<CreateCourseEvaluationModalPr
         upvotes: 1,
         createdAt: new Date().toISOString(),
       };
-      onCreated(newReview);
-      setIsSubmitting(false);
+      onCreated(fallbackReview);
       setComment('');
-      setErrorMessage(null);
+      setLecturerName('');
       onClose();
-    }, 400);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

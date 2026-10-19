@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   Star,
@@ -14,6 +14,7 @@ import {
   Edit3,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { courseReviewApi } from '../../services/api/contentApi';
 
 export const CourseEvaluationDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -41,6 +42,45 @@ export const CourseEvaluationDetailPage: React.FC = () => {
     upvotes: 42,
     createdAt: '2025-02-14T08:00:00Z',
   });
+
+  useEffect(() => {
+    if (!id) return;
+    const numericId = Number(id);
+    if (isNaN(numericId)) return;
+
+    let isMounted = true;
+    const fetchReview = async () => {
+      try {
+        const data = await courseReviewApi.getReviewById(numericId);
+        if (isMounted && data) {
+          setEvaluation({
+            id: String(data.courseReviewId),
+            courseCode: `CRS-${data.courseId}`,
+            courseTitle: `Course #${data.courseId}`,
+            reviewer: {
+              id: data.isAnonymous ? 'anon' : String(data.authorUserId || 'u-1'),
+              fullName: data.isAnonymous ? 'Sinh viên ẩn danh' : `Sinh viên #${data.authorUserId || 1}`,
+              avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+              studentId: data.isAnonymous ? 'ANONYMOUS' : 'SE-STUDENT',
+            },
+            rating: data.overallRating,
+            workloadRating: data.workloadRating,
+            difficultyRating: data.difficultyRating,
+            title: data.survivalTips || `Đánh giá môn học #${data.courseId}`,
+            comment: data.reviewContent || '',
+            semesterTaken: `${data.semesterCode} ${data.academicYear}`,
+            lecturerName: 'Bộ môn FPTU',
+            upvotes: 0,
+            createdAt: data.createdAt,
+          });
+        }
+      } catch (err) {
+        console.warn('Backend course review detail unavailable, keeping fallback mock data', err);
+      }
+    };
+    fetchReview();
+    return () => { isMounted = false; };
+  }, [id]);
 
   const [isUpvoted, setIsUpvoted] = useState(false);
   const [comments, setComments] = useState([

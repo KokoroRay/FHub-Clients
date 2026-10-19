@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Award, Zap, Shield, Search, ArrowRight, X, Sparkles, CheckCircle2 } from 'lucide-react';
+import { studentReputationApi } from '../../services/api/studentApi';
+
 
 interface ReputationRuleItem {
   id: string;
@@ -86,10 +88,36 @@ const DEFAULT_RULES: ReputationRuleItem[] = [
 ];
 
 export const StudentReputationRulesPage: React.FC = () => {
-  const [rules] = useState<ReputationRuleItem[]>(DEFAULT_RULES);
+  const [rules, setRules] = useState<ReputationRuleItem[]>(DEFAULT_RULES);
   const [activeCategory, setActiveCategory] = useState<'ALL' | 'DISCUSSION' | 'CONTENT' | 'ACADEMIC' | 'PENALTY'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRule, setSelectedRule] = useState<ReputationRuleItem | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchRules = async () => {
+      try {
+        const apiRules = await studentReputationApi.getRules();
+        if (isMounted && apiRules && apiRules.length > 0) {
+          const mapped: ReputationRuleItem[] = apiRules.map((r) => ({
+            id: String(r.rule_id),
+            code: r.action_type,
+            name: r.action_type.replace(/_/g, ' '),
+            category: r.karma_delta < 0 ? 'PENALTY' : (r.action_type.includes('ANSWER') || r.action_type.includes('QUESTION') ? 'DISCUSSION' : 'CONTENT'),
+            pointDelta: r.karma_delta,
+            dailyCap: r.daily_cap,
+            description: r.description,
+            eligibility: 'All verified users',
+          }));
+          setRules(mapped);
+        }
+      } catch (err) {
+        console.warn('Backend reputation rules API not responding, using default rules', err);
+      }
+    };
+    fetchRules();
+    return () => { isMounted = false; };
+  }, []);
 
   const filteredRules = rules.filter(r => {
     if (activeCategory !== 'ALL' && r.category !== activeCategory) return false;
