@@ -54,7 +54,7 @@ export const ForgotPasswordPage: React.FC = () => {
     setStep('new-password');
   };
 
-  const handleResetPassword = (e: React.FormEvent) => {
+  const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPassword || newPassword.length < 6) {
       setErrorMessage('Mật khẩu mới phải có ít nhất 6 ký tự.');
@@ -66,10 +66,15 @@ export const ForgotPasswordPage: React.FC = () => {
     }
     setIsLoading(true);
     setErrorMessage(null);
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      await authApi.resetPassword(email.trim(), otp.join(''), newPassword.trim());
       setStep('success');
-    }, 500);
+    } catch (err: any) {
+      const msg = err.response?.data?.message || err.message || 'Không thể đặt lại mật khẩu. Vui lòng kiểm tra mã OTP.';
+      setErrorMessage(msg);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

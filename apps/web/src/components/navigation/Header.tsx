@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { campusesApi } from '../../services/api/adminApi';
+import { notificationApi, NotificationItem } from '../../services/api/studentApi';
 import { Dropdown } from '../common/Dropdown';
 import { Button } from '../common/Button';
 import { Badge } from '../common/Badge';
@@ -30,6 +31,52 @@ export const Header: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotifDrawer, setShowNotifDrawer] = useState(false);
   const [campuses, setCampuses] = useState<Array<{ code: string; name: string }>>([]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [notifLoading, setNotifLoading] = useState(false);
+
+  const fetchNotifications = async () => {
+    try {
+      setNotifLoading(true);
+      const items = await notificationApi.getNotifications({ pageSize: 20 });
+      setNotifications(items || []);
+    } catch (err) {
+      console.warn('Failed to fetch notifications:', err);
+    } finally {
+      setNotifLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (currentUser) {
+      fetchNotifications();
+    }
+  }, [currentUser]);
+
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  const handleMarkAllRead = async () => {
+    try {
+      await notificationApi.markAllAsRead();
+      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+    } catch (err) {
+      console.warn('Failed to mark all as read:', err);
+    }
+  };
+
+  const handleNotificationClick = async (notif: NotificationItem) => {
+    if (!notif.isRead) {
+      try {
+        await notificationApi.markAsRead(notif.id);
+        setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, isRead: true } : n));
+      } catch (err) {
+        console.warn('Failed to mark notification as read:', err);
+      }
+    }
+    if (notif.actionUrl) {
+      setShowNotifDrawer(false);
+      navigate(notif.actionUrl);
+    }
+  };
   const navigate = useNavigate();
 
   React.useEffect(() => {
@@ -186,15 +233,70 @@ export const Header: React.FC = () => {
         <div className="flex items-center gap-3">
           {currentUser ? (
             <>
-              {/* Notifications Link */}
-              <button
-                onClick={() => setShowNotifDrawer(!showNotifDrawer)}
-                className="p-2 text-slate-500 hover:text-[#0076D1] hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors relative cursor-pointer"
-                title="Notifications"
-              >
-                <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white dark:ring-slate-900" />
-              </button>
+              {/* Notifications Link & Live Drawer */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowNotifDrawer(!showNotifDrawer)}
+                  className="p-2 text-slate-500 hover:text-[#0076D1] hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors relative cursor-pointer"
+                  title="Notifications"
+                >
+                  <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white dark:ring-slate-900" />
+                  )}
+                </button>
+
+                {showNotifDrawer && (
+                  <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200/80 dark:border-slate-800 py-3 z-50">
+                    <div className="flex items-center justify-between px-4 pb-2 border-b border-slate-100 dark:border-slate-800">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-xs text-slate-900 dark:text-slate-100 uppercase tracking-wider">Thông báo</span>
+                        {unreadCount > 0 && (
+                          <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700">
+                            {unreadCount} mới
+                          </span>
+                        )}
+                      </div>
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={handleMarkAllRead}
+                          className="text-[11px] font-semibold text-[#0076D1] hover:underline cursor-pointer"
+                        >
+                          Đọc tất cả
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+                      {notifLoading ? (
+                        <div className="p-6 text-center text-xs text-slate-400">Đang tải thông báo...</div>
+                      ) : notifications.length === 0 ? (
+                        <div className="p-6 text-center text-xs text-slate-400">Không có thông báo mới nào.</div>
+                      ) : (
+                        notifications.map((n) => (
+                          <div
+                            key={String(n.id)}
+                            onClick={() => handleNotificationClick(n)}
+                            className={`p-3 text-xs hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors cursor-pointer ${
+                              !n.isRead ? 'bg-blue-50/40 dark:bg-blue-950/20' : ''
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <span className="font-bold text-slate-800 dark:text-slate-200">{n.title}</span>
+                              <span className="text-[10px] text-slate-400 shrink-0">
+                                {n.createdAt ? new Date(n.createdAt).toLocaleDateString('vi-VN') : ''}
+                              </span>
+                            </div>
+                            <p className="text-slate-600 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">
+                              {n.message}
+                            </p>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* User Avatar & Menu */}
               <Dropdown

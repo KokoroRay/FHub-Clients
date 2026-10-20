@@ -45,6 +45,7 @@ export default defineConfig({
       '/api/admin/badges': { target: 'http://localhost:8081', changeOrigin: true },
       '/api/interactions': { target: 'http://localhost:8081', changeOrigin: true },
       '/api/bookmarks': { target: 'http://localhost:8081', changeOrigin: true },
+      '/api/votes': { target: 'http://localhost:8081', changeOrigin: true },
       '/api/communication': { target: 'http://localhost:8082', changeOrigin: true },
       '/api/health/identity': { target: 'http://localhost:5111', rewrite: () => '/health', changeOrigin: true },
       '/api/health/taxonomy': { target: 'http://localhost:5255', rewrite: () => '/health', changeOrigin: true },
@@ -56,4 +57,3 @@ export default defineConfig({
     }
   }
 })
-

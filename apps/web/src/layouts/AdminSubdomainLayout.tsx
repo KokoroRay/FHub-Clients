@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { NavLink, Outlet, Link, useNavigate } from 'react-router-dom';
+import {
+  NavLink, Outlet, Link, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
@@ -27,6 +28,7 @@ import {
   Shield,
   CheckCircle2,
   Tag,
+  Newspaper,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Dropdown } from '../components/common/Dropdown';
@@ -104,6 +106,7 @@ export const AdminSubdomainLayout: React.FC = () => {
             { name: 'Support Tickets', path: '/tickets', icon: LifeBuoy, badge: ticketsCount, badgeColor: 'bg-amber-100 text-amber-700' },
             { name: 'Verification Queue', path: '/verifications', icon: CheckCircle2, badge: 'KYC', badgeColor: 'bg-blue-100 text-blue-700' },
             { name: 'Semantic Tags', path: '/tags', icon: Tag },
+            { name: 'School News', path: '/news', icon: Newspaper, badge: 'School Rep', badgeColor: 'bg-blue-100 text-blue-700' },
           ],
         },
         {

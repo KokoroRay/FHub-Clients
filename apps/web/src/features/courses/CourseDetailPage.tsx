@@ -31,6 +31,8 @@ export const CourseDetailPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>('overview');
   const [isFollowed, setIsFollowed] = useState(false);
+  const [followCount, setFollowCount] = useState(0);
+  const [isFollowingPending, setIsFollowingPending] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState('');
@@ -51,6 +53,10 @@ export const CourseDetailPage: React.FC = () => {
         const items = res?.items || [];
         const match = items.find((c: any) => (c.code || c.courseCode || '').toLowerCase() === code.toLowerCase()) || items[0] || null;
         setCourse(match);
+        if (match) {
+          setIsFollowed(Boolean((match as any).isFollowing || (match as any).is_following));
+          setFollowCount((match as any).followerCount || (match as any).follower_count || 0);
+        }
         if (match) {
           const cId = (match as any).courseNodeId || (match as any).id;
           // Fetch sub-items for this course
@@ -110,7 +116,7 @@ export const CourseDetailPage: React.FC = () => {
   ];
 
   const rating = (course as any).averageRating || 0;
-  const followers = (course as any).followerCount || 0;
+  const followers = followCount || (course as any)?.followerCount || 0;
 
   return (
     <div className="space-y-6">
@@ -147,7 +153,28 @@ export const CourseDetailPage: React.FC = () => {
 
           <div className="flex items-center gap-3 shrink-0">
             <button
-              onClick={() => setIsFollowed(!isFollowed)}
+              disabled={isFollowingPending}
+              onClick={async () => {
+                if (!course) return;
+                const cId = (course as any).courseNodeId || (course as any).id;
+                const prev = isFollowed;
+                setIsFollowed(!prev);
+                setFollowCount((c) => prev ? Math.max(0, c - 1) : c + 1);
+                setIsFollowingPending(true);
+                try {
+                  if (prev) {
+                    await courseNodesApi.unfollowCourse(cId);
+                  } else {
+                    await courseNodesApi.followCourse(cId);
+                  }
+                } catch (err) {
+                  console.warn('Follow toggle failed, reverting:', err);
+                  setIsFollowed(prev);
+                  setFollowCount((c) => prev ? c + 1 : Math.max(0, c - 1));
+                } finally {
+                  setIsFollowingPending(false);
+                }
+              }}
               className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-xs ${
                 isFollowed 
                   ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200' 

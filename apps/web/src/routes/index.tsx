@@ -1,3 +1,4 @@
+import { NewsManagementPage } from '../features/news/NewsManagementPage';
 import React from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { MainLayout } from '../layouts/MainLayout';
@@ -142,6 +143,7 @@ const getSubdomainRoutes = () => [
       { path: 'verifications', element: <VerificationQueuePage /> },
       { path: 'tags', element: <SemanticTagsPage /> },
       { path: 'staff', element: <StaffAccountsAdminPage /> },
+      { path: 'news', element: <NewsManagementPage /> },
     ],
   },
   {
@@ -192,6 +194,7 @@ const getMainPortalRoutes = () => [
       { path: 'bookmarks', element: <BookmarksPage /> },
       { path: 'moderator', element: <ModeratorToolsPage /> },
       { path: 'broadcasts', element: <OfficialBroadcastsPage /> },
+      { path: 'news', element: <NewsManagementPage /> },
       { path: 'alumni', element: <AlumniKarmaPage /> },
       { path: 'reputation-rules', element: <StudentReputationRulesPage /> },
     ],

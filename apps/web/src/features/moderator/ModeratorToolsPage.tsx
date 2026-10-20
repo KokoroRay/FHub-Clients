@@ -25,9 +25,13 @@ import { Modal } from '../../components/common/Modal';
 import { Input, Textarea } from '../../components/common/Input';
 import {
   governanceModerationApi,
+  semanticTagsApi,
   ContentReportItem,
-  ProcessReportPayload
+  ProcessReportPayload,
+  ModerationContentItem,
+  SemanticTagItemDto
 } from '../../services/api/adminApi';
+import { seriesApi } from '../../services/api/contentApi';
 
 export const ModeratorToolsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'reports' | 'moderation' | 'warnings' | 'series' | 'tags'>('reports');
@@ -65,6 +69,61 @@ export const ModeratorToolsPage: React.FC = () => {
     { id: 's1', title: 'ASP.NET Core Master Series', author: 'Lê Hoàng Long (Alumni)', postCount: 5, views: '12.4k' },
     { id: 's2', title: 'Data Structures & Algorithms in Java', author: 'Phạm Minh Đức (Mod)', postCount: 8, views: '28.1k' },
   ]);
+
+  // Content Moderation List
+  const [contentList, setContentList] = useState<ModerationContentItem[]>([]);
+  const [contentListLoading, setContentListLoading] = useState(false);
+
+  // Live Series & Tags State
+  const [liveSeries, setLiveSeries] = useState<any[]>([]);
+  const [liveTags, setLiveTags] = useState<SemanticTagItemDto[]>([]);
+  const [isTagsLoading, setIsTagsLoading] = useState(false);
+
+  // Fetch real content moderation list
+  const fetchContentList = async () => {
+    setContentListLoading(true);
+    try {
+      const res = await governanceModerationApi.getContentList({ pageSize: 30 });
+      const items = res?.items || (Array.isArray(res) ? res : []);
+      setContentList(items);
+    } catch (err) {
+      console.warn('Failed to load content moderation list:', err);
+      setContentList([]);
+    } finally {
+      setContentListLoading(false);
+    }
+  };
+
+  // Fetch real series
+  const fetchLiveSeries = async () => {
+    try {
+      const res = await seriesApi.getSeriesList({ pageSize: 30 });
+      setLiveSeries(res?.items || []);
+    } catch (err) {
+      console.warn('Failed to load series list:', err);
+      setLiveSeries([]);
+    }
+  };
+
+  // Fetch real semantic tags
+  const fetchLiveTags = async () => {
+    setIsTagsLoading(true);
+    try {
+      const res = await semanticTagsApi.getTags({ pageSize: 50 });
+      setLiveTags(res?.items || []);
+    } catch (err) {
+      console.warn('Failed to load semantic tags:', err);
+      setLiveTags([]);
+    } finally {
+      setIsTagsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'moderation') fetchContentList();
+    if (activeTab === 'series') fetchLiveSeries();
+    if (activeTab === 'tags') fetchLiveTags();
+  }, [activeTab]);
 
   const [semanticTags, setSemanticTags] = useState([
     { id: 't1', name: 'dotnet-8', aliasOf: 'dotnet', count: 420 },
