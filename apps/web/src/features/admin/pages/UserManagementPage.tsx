@@ -22,7 +22,7 @@ import {
   ArrowUpDown,
   RefreshCw,
 } from 'lucide-react';
-import { AdminUser } from '../../../services/adminMockData';
+import { AdminUser } from '../../../types';
 import { 
   useGovernanceAccounts, 
   useUpdateUserAccountStatus, 

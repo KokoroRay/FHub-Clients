@@ -67,19 +67,10 @@ import {
   StaffAccountsAdminPage,
 } from '../features/admin/pages';
 
-// Admin & Staff Governance (Legacy / Domain Portal)
-import { CampusManagementPage } from '../features/admin/CampusManagementPage';
-import { MajorManagementPage } from '../features/admin/MajorManagementPage';
-import { CourseNodeManagementPage } from '../features/admin/CourseNodeManagementPage';
-import { TopicManagementPage } from '../features/admin/TopicManagementPage';
+// Admin & Staff Governance Pages
 import { RolePolicyManagementPage } from '../features/admin/RolePolicyManagementPage';
-import { StaffManagementPage } from '../features/admin/StaffManagementPage';
-import { BadgeReputationPage } from '../features/admin/BadgeReputationPage';
-import { SystemAuditLogsPage } from '../features/admin/SystemAuditLogsPage';
 import { AIModerationPage } from '../features/admin/AIModerationPage';
-import { UserAccountsPage } from '../features/staff/UserAccountsPage';
 import { VerificationQueuePage } from '../features/staff/VerificationQueuePage';
-import { SystemHealthDashboardPage } from '../features/staff/SystemHealthDashboardPage';
 
 // Auth Pages
 import { LoginPage } from '../features/auth/LoginPage';
@@ -235,24 +226,24 @@ const getMainPortalRoutes = () => [
     ],
   },
 
-  // Admin & Staff Governance Layout (Legacy compatibility)
+  // Admin & Staff Governance Legacy Redirects
   {
     path: '/',
     element: <AdminLayout />,
     children: [
-      { path: 'admin/campus', element: <CampusManagementPage /> },
-      { path: 'admin/majors', element: <MajorManagementPage /> },
-      { path: 'admin/courses', element: <CourseNodeManagementPage /> },
-      { path: 'admin/course-nodes', element: <Navigate to="/admin/courses" replace /> },
-      { path: 'admin/topics', element: <TopicManagementPage /> },
+      { path: 'admin/campus', element: <Navigate to="/campuses" replace /> },
+      { path: 'admin/majors', element: <Navigate to="/majors" replace /> },
+      { path: 'admin/courses', element: <Navigate to="/courses" replace /> },
+      { path: 'admin/course-nodes', element: <Navigate to="/courses" replace /> },
+      { path: 'admin/topics', element: <Navigate to="/tags" replace /> },
       { path: 'admin/roles-policies', element: <RolePolicyManagementPage /> },
-      { path: 'admin/staff-accounts', element: <StaffManagementPage /> },
-      { path: 'admin/badges', element: <BadgeReputationPage /> },
-      { path: 'admin/audit-logs', element: <SystemAuditLogsPage /> },
+      { path: 'admin/staff-accounts', element: <Navigate to="/staff" replace /> },
+      { path: 'admin/badges', element: <Navigate to="/badges" replace /> },
+      { path: 'admin/audit-logs', element: <Navigate to="/audit-logs" replace /> },
       { path: 'admin/ai-moderation', element: <AIModerationPage /> },
-      { path: 'staff/accounts', element: <UserAccountsPage /> },
-      { path: 'staff/verification', element: <VerificationQueuePage /> },
-      { path: 'staff/health', element: <SystemHealthDashboardPage /> },
+      { path: 'staff/accounts', element: <Navigate to="/users" replace /> },
+      { path: 'staff/verification', element: <Navigate to="/verifications" replace /> },
+      { path: 'staff/health', element: <Navigate to="/health" replace /> },
     ],
   },
 

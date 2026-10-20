@@ -13,7 +13,7 @@ import {
   Sparkles,
   Loader2,
 } from 'lucide-react';
-import { DetailedMajor } from '../../../services/adminMockData';
+import { DetailedMajor } from '../../../types';
 import { useMajorDetail, useAddCourseToSemester, useRemoveCourseFromSemester } from '../../../services/api';
 
 export const MajorDetailPage: React.FC = () => {

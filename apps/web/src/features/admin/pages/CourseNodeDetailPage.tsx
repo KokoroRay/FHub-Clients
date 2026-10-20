@@ -20,7 +20,7 @@ import {
   Plus,
   Loader2,
 } from 'lucide-react';
-import { DetailedCourseNode } from '../../../services/adminMockData';
+import { DetailedCourseNode } from '../../../types';
 import { useCourseNodes } from '../../../services/api';
 
 export const CourseNodeDetailPage: React.FC = () => {

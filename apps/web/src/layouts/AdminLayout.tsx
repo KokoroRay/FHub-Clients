@@ -24,24 +24,24 @@ export const AdminLayout: React.FC = () => {
 
   const adminMenu = [
     { title: 'Academic Taxonomy', items: [
-      { name: 'Quản lý Campus', path: '/admin/campus', icon: Building2 },
-      { name: 'Quản lý Chuyên ngành', path: '/admin/majors', icon: GraduationCap },
-      { name: 'Quản lý Khóa học (Courses)', path: '/admin/courses', icon: BookOpen },
-      { name: 'Quản lý Topics', path: '/admin/topics', icon: Hash },
+      { name: 'Quản lý Campus', path: '/campuses', icon: Building2 },
+      { name: 'Quản lý Chuyên ngành', path: '/majors', icon: GraduationCap },
+      { name: 'Quản lý Khóa học (Courses)', path: '/courses', icon: BookOpen },
+      { name: 'Quản lý Semantic Tags', path: '/tags', icon: Hash },
     ]},
     { title: 'Identity & Staff', items: [
       { name: 'Roles & Policies', path: '/admin/roles-policies', icon: KeyRound },
-      { name: 'Quản lý Staff Accounts', path: '/admin/staff-accounts', icon: UserCheck },
+      { name: 'Quản lý Staff Accounts', path: '/staff', icon: UserCheck },
     ]},
     { title: 'Interactions & System', items: [
-      { name: 'Badges & Karma Rules', path: '/admin/badges', icon: Award },
-      { name: 'System Audit Logs', path: '/admin/audit-logs', icon: FileSpreadsheet },
+      { name: 'Quản lý Badges', path: '/badges', icon: Award },
+      { name: 'System Audit Logs', path: '/audit-logs', icon: FileSpreadsheet },
       { name: 'AI Moderation & Scan', path: '/admin/ai-moderation', icon: Cpu },
     ]},
     { title: 'Staff Governance', items: [
-      { name: 'Quản trị User Accounts', path: '/staff/accounts', icon: Users },
-      { name: 'Duyệt KYC Verification', path: '/staff/verification', icon: ShieldAlert },
-      { name: 'System Health Dashboard', path: '/staff/health', icon: Activity },
+      { name: 'Quản trị User Accounts', path: '/users', icon: Users },
+      { name: 'Duyệt KYC Verification', path: '/verifications', icon: ShieldAlert },
+      { name: 'System Health Dashboard', path: '/health', icon: Activity },
     ]},
   ];
 

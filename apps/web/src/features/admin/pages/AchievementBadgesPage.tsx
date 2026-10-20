@@ -16,7 +16,7 @@ import {
   Users,
   Loader2,
 } from 'lucide-react';
-import { DetailedBadge } from '../../../services/adminMockData';
+import { DetailedBadge } from '../../../types';
 import { useBadges, useCreateBadge, useDeleteBadge } from '../../../services/api';
 
 export const AchievementBadgesPage: React.FC = () => {

@@ -8,7 +8,7 @@ import {
   DetailedBadge,
   DetailedAuditLog,
   AISensitivityConfig
-} from '../adminMockData';
+} from '../../types';
 
 // Common pagination and response wrappers
 export interface ApiResponse<T> {

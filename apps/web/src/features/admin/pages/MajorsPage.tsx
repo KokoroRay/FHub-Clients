@@ -15,7 +15,7 @@ import {
   Download,
   Loader2,
 } from 'lucide-react';
-import { DetailedMajor } from '../../../services/adminMockData';
+import { DetailedMajor } from '../../../types';
 import { useMajors, useCreateMajor, useDeleteMajor } from '../../../services/api';
 
 export const MajorsPage: React.FC = () => {
