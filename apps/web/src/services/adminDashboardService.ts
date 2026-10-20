@@ -103,51 +103,43 @@ function getAdminHeaders(): HeadersInit {
 export async function fetchAdminDashboardStats(timeframe: 'Today' | '7 Days' | '30 Days' = 'Today'): Promise<AdminDashboardData> {
   const headers = getAdminHeaders();
 
-  // Primary: Call BE Aggregator endpoint
   try {
-    const res = await fetch(`${API_BASE_URL}/api/dashboard/stats?timeframe=${encodeURIComponent(timeframe)}`, {
-      method: 'GET',
-      headers,
-    });
-
-    if (res.ok) {
-      const json = await res.json();
-      if (json.data) {
-        return json.data as AdminDashboardData;
-      }
-    }
-  } catch (err) {
-    console.warn('[AdminDashboardService] Aggregator endpoint unreachable, falling back to parallel microservice aggregate', err);
-  }
-
-  // Secondary fallback: Parallel calls to individual microservices
-  try {
-    const [ticketsRes, accountsRes, logsRes, campusesRes, majorsRes, coursesRes] = await Promise.allSettled([
-      fetch(`${API_BASE_URL}/api/support-tickets?pageSize=10`, { headers }),
-      fetch(`${API_BASE_URL}/api/users?pageSize=1`, { headers }),
-      fetch(`${API_BASE_URL}/api/audit-logs?pageSize=5`, { headers }),
-      fetch(`${API_BASE_URL}/api/campuses`, { headers }),
-      fetch(`${API_BASE_URL}/api/majors`, { headers }),
-      fetch(`${API_BASE_URL}/api/courses`, { headers }),
+    const [
+      ticketsRes,
+      usersRes,
+      logsRes,
+      campusesRes,
+      majorsRes,
+      coursesRes,
+      materialsRes,
+      questionsRes,
+      workflowsRes
+    ] = await Promise.allSettled([
+      fetch(`${API_BASE_URL}/api/support-tickets?pageSize=20`, { headers }),
+      fetch(`${API_BASE_URL}/api/users?pageSize=100`, { headers }),
+      fetch(`${API_BASE_URL}/api/audit-logs?pageSize=10`, { headers }),
+      fetch(`${API_BASE_URL}/api/campuses?pageSize=50`, { headers }),
+      fetch(`${API_BASE_URL}/api/majors?pageSize=50`, { headers }),
+      fetch(`${API_BASE_URL}/api/courses?pageSize=50`, { headers }),
+      fetch(`${API_BASE_URL}/api/content/study-materials?pageSize=1`, { headers }),
+      fetch(`${API_BASE_URL}/api/content/questions?pageSize=1`, { headers }),
+      fetch(`${API_BASE_URL}/api/content/workflows?pageSize=1`, { headers }),
     ]);
 
     let totalUsers = 0;
+    let usersList: any[] = [];
+    if (usersRes.status === 'fulfilled' && usersRes.value.ok) {
+      const data = await usersRes.value.json();
+      totalUsers = data?.data?.totalCount ?? (data?.data?.items?.length || (Array.isArray(data?.data) ? data.data.length : 0));
+      usersList = data?.data?.items || (Array.isArray(data?.data) ? data.data : []);
+    }
+
     let totalTickets = 0;
-    let totalCampuses = 0;
-    let totalMajors = 0;
-    let totalCourses = 0;
     let recentTickets: any[] = [];
-    let recentAuditLogs: any[] = [];
     let openCount = 0;
     let inProgressCount = 0;
     let resolvedCount = 0;
     let urgentTicketsCount = 0;
-
-    if (accountsRes.status === 'fulfilled' && accountsRes.value.ok) {
-      const data = await accountsRes.value.json();
-      totalUsers = data?.data?.totalCount ?? (data?.data?.items?.length || 0);
-    }
-
     if (ticketsRes.status === 'fulfilled' && ticketsRes.value.ok) {
       const data = await ticketsRes.value.json();
       totalTickets = data?.data?.totalCount ?? (data?.data?.items?.length || 0);
@@ -165,40 +157,114 @@ export async function fetchAdminDashboardStats(timeframe: 'Today' | '7 Days' | '
       urgentTicketsCount = items.filter((t: any) => t.priority === 'URGENT' || t.priority === 'HIGH').length;
     }
 
+    let campusesList: any[] = [];
+    let totalCampuses = 0;
     if (campusesRes.status === 'fulfilled' && campusesRes.value.ok) {
       const data = await campusesRes.value.json();
-      const list = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
-      if (list.length > 0) totalCampuses = list.length;
+      const list = data?.data?.items || (Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []));
+      campusesList = list;
+      totalCampuses = data?.data?.totalCount ?? list.length;
     }
 
+    let totalMajors = 0;
     if (majorsRes.status === 'fulfilled' && majorsRes.value.ok) {
       const data = await majorsRes.value.json();
       totalMajors = data?.data?.totalCount ?? (data?.data?.items?.length || (Array.isArray(data?.data) ? data.data.length : 0));
     }
 
+    let totalCourses = 0;
     if (coursesRes.status === 'fulfilled' && coursesRes.value.ok) {
       const data = await coursesRes.value.json();
       totalCourses = data?.data?.totalCount ?? (data?.data?.items?.length || 0);
     }
 
+    let totalMaterials = 0;
+    if (materialsRes.status === 'fulfilled' && materialsRes.value.ok) {
+      const data = await materialsRes.value.json();
+      totalMaterials = data?.data?.totalCount ?? (data?.data?.items?.length || 0);
+    }
+
+    let totalDiscussions = 0;
+    if (questionsRes.status === 'fulfilled' && questionsRes.value.ok) {
+      const data = await questionsRes.value.json();
+      totalDiscussions = data?.data?.totalCount ?? (data?.data?.items?.length || 0);
+    }
+
+    let totalWorkflows = 0;
+    if (workflowsRes.status === 'fulfilled' && workflowsRes.value.ok) {
+      const data = await workflowsRes.value.json();
+      totalWorkflows = data?.data?.totalCount ?? (data?.data?.items?.length || 0);
+    }
+
+    let recentAuditLogs: any[] = [];
     if (logsRes.status === 'fulfilled' && logsRes.value.ok) {
       const data = await logsRes.value.json();
-      const items = data?.data?.items || [];
-      recentAuditLogs = items.slice(0, 5).map((l: any) => ({
-        auditLogId: l.auditLogId,
-        timestamp: l.createdAt ? l.createdAt.replace('T', ' ').substring(11, 19) : '12:00:00',
-        performedBy: l.actorRole ? `${l.actorRole} #${l.actorAccountId || 1}` : 'System Admin',
-        action: l.actionType || 'MUTATION',
-        target: `${l.entityType || 'Record'} #${l.entityId || l.auditLogId}`,
-      }));
+      const items = data?.data?.items || (Array.isArray(data?.data) ? data.data : []);
+      if (Array.isArray(items)) {
+        recentAuditLogs = items.slice(0, 5).map((l: any) => ({
+          auditLogId: l.auditLogId,
+          timestamp: l.createdAt ? l.createdAt.replace('T', ' ').substring(11, 19) : '',
+          performedBy: l.actorRole ? `${l.actorRole} #${l.actorAccountId || 1}` : (l.userEmail || `User #${l.actorAccountId || l.userId || 1}`),
+          action: l.actionType || 'MUTATION',
+          target: `${l.entityType || 'Record'} #${l.entityId || l.auditLogId}`,
+        }));
+      }
+    }
+
+    // Real campus distribution based on actual users in database
+    const campusCounts: Record<string, number> = {};
+    usersList.forEach((u: any) => {
+      const code = (u.campusCode || u.campus || '').trim().toUpperCase();
+      if (code) {
+        campusCounts[code] = (campusCounts[code] || 0) + 1;
+      }
+    });
+
+    const campusDistribution = campusesList.map((c: any) => {
+      const code = (c.campusCode || '').trim().toUpperCase();
+      const name = c.campusName || code;
+      const count = campusCounts[code] || 0;
+      const percentage = totalUsers > 0 ? Math.round((count / totalUsers) * 100) : 0;
+      return {
+        campusCode: code,
+        campusName: name.includes('(') ? name : `${name} (${code})`,
+        studentsCount: count,
+        percentage,
+      };
+    });
+
+    const pendingTasks = [];
+    if (openCount > 0) {
+      pendingTasks.push({
+        title: `${openCount} Support Tickets Pending`,
+        description: `${urgentTicketsCount} urgent/high priority`,
+        actionLabel: 'Review',
+        targetUrl: '/tickets',
+      });
+    }
+    if (totalCourses > 0) {
+      pendingTasks.push({
+        title: `${totalCourses} Academic Courses`,
+        description: 'Synchronized with Taxonomy DB',
+        actionLabel: 'Inspect',
+        targetUrl: '/courses',
+      });
+    }
+    if (totalMajors > 0) {
+      pendingTasks.push({
+        title: `${totalMajors} Academic Majors`,
+        description: 'Curricula matrices active',
+        actionLabel: 'Manage',
+        targetUrl: '/majors',
+      });
     }
 
     return {
       topStats: {
         totalUsers,
-        usersDelta: '+12.4% vs last mo',
+        usersDelta: '+0% vs last mo',
         supportTickets: totalTickets,
-        ticketsQueueNote: `${openCount || totalTickets} in queue`,
+        ticketsQueueNote: `${openCount} in queue`,
         urgentTicketsCount,
         courseNodes: totalCourses,
         activeCampuses: totalCampuses,
@@ -206,52 +272,37 @@ export async function fetchAdminDashboardStats(timeframe: 'Today' | '7 Days' | '
       },
       userActivity: {
         activeUsers: totalUsers,
-        activeUsersDelta: '+5.2%',
+        activeUsersDelta: '+0%',
         newSignups: totalUsers,
-        newSignupsDelta: '+2.1%',
-        discussionsDailyAvg: 12,
+        newSignupsDelta: '+0%',
+        discussionsDailyAvg: totalDiscussions,
         timeframe,
       },
       ticketsQueue: {
-        openCount: openCount || totalTickets,
+        openCount,
         inProgressCount,
-        waitingCount: 0,
+        waitingCount: Math.max(0, totalTickets - (openCount + inProgressCount + resolvedCount)),
         resolvedCount,
-        recentTickets: recentTickets.length > 0 ? recentTickets : [
-          { ticketId: 1, title: 'No active support tickets pending', priority: 'Low', campus: 'ALL', timeAgo: 'Now' }
-        ],
+        recentTickets,
       },
       academicOverview: {
         campusesCount: totalCampuses,
         majorsCount: totalMajors,
         courseNodesCount: totalCourses,
-        materialsCount: 0,
-        discussionsCount: 0,
-        workflowsCount: 0,
+        materialsCount: totalMaterials,
+        discussionsCount: totalDiscussions,
+        workflowsCount: totalWorkflows,
       },
-      recentAuditLogs: recentAuditLogs.length > 0 ? recentAuditLogs : [
-        { auditLogId: 1, timestamp: '12:00:00', performedBy: 'System Admin', action: 'TAXONOMY_SYNC', target: 'PostgreSQL DB' }
-      ],
+      recentAuditLogs,
       systemStatus: {
-        databaseUptime: '99.98%',
-        apiClusterLatency: '18ms Latency',
+        databaseUptime: '100%',
+        apiClusterLatency: '0ms Latency',
         searchServiceStatus: 'Optimal',
-        cdnDeliveryUptime: '99.9% Uptime',
+        cdnDeliveryUptime: '100% Uptime',
         isHealthy: true,
       },
-      campusDistribution: [
-        { campusCode: 'HL', campusName: 'Hoa Lac (HL)', studentsCount: Math.ceil(totalUsers * 0.4), percentage: 40 },
-        { campusCode: 'HCM', campusName: 'Ho Chi Minh (HCM)', studentsCount: Math.ceil(totalUsers * 0.35), percentage: 35 },
-        { campusCode: 'DN', campusName: 'Da Nang (DN)', studentsCount: Math.ceil(totalUsers * 0.15), percentage: 15 },
-        { campusCode: 'CT', campusName: 'Can Tho (CT)', studentsCount: Math.ceil(totalUsers * 0.06), percentage: 6 },
-        { campusCode: 'QN', campusName: 'Quy Nhon (QN)', studentsCount: Math.ceil(totalUsers * 0.04), percentage: 4 },
-      ],
-      pendingTasks: [
-        { title: `${totalTickets} Support Tickets`, description: `${urgentTicketsCount} urgent priority`, actionLabel: 'Review', targetUrl: '/tickets' },
-        { title: `${totalCourses} Courses`, description: 'Synced with Taxonomy', actionLabel: 'Inspect', targetUrl: '/courses' },
-        { title: `${totalMajors} Academic Majors`, description: 'Curriculum matrices active', actionLabel: 'Manage', targetUrl: '/majors' },
-        { title: '7 Microservices SLA', description: 'Telemetry monitoring active', actionLabel: 'Details', targetUrl: '/health' },
-      ],
+      campusDistribution,
+      pendingTasks,
     };
   } catch (err) {
     console.error('Failed to aggregate dashboard stats:', err);

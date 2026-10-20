@@ -754,6 +754,16 @@ export const courseNodesApi = {
     }
   },
 
+  followCourse: async (id: number | string) => {
+    const res = await apiClient.post<any>(`/api/courses/${id}/follow`);
+    return res.data?.data ?? res.data;
+  },
+
+  unfollowCourse: async (id: number | string) => {
+    const res = await apiClient.delete<any>(`/api/courses/${id}/follow`);
+    return res.data?.data ?? res.data;
+  },
+
   deleteCourseNode: async (id: number | string) => {
     try {
       await apiClient.delete(`/api/courses/${id}`);
