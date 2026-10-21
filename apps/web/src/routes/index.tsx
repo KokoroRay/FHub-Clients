@@ -78,6 +78,20 @@ import { RegisterPage } from '../features/auth/RegisterPage';
 import { ForgotPasswordPage } from '../features/auth/ForgotPasswordPage';
 import { NotFoundPage } from '../features/common/NotFoundPage';
 
+// Landing & Public Pages (UC02)
+import { LandingPage } from '../features/landing/LandingPage';
+import { TechBlogPage } from '../features/landing/TechBlogPage';
+import { CourseRatingsPage } from '../features/landing/CourseRatingsPage';
+
+// Standardized Screenflow Auth Pages (UC01)
+import { CampusSelectionPage } from '../features/auth/CampusSelectionPage';
+import { AuthOptionsPage } from '../features/auth/AuthOptionsPage';
+import { FPTSSOPage } from '../features/auth/FPTSSOPage';
+import { EmailAuthPage } from '../features/auth/EmailAuthPage';
+import { EmailRegPage } from '../features/auth/EmailRegPage';
+import { OTPVerifyPage } from '../features/auth/OTPVerifyPage';
+import { ResetPasswordPage } from '../features/auth/ResetPasswordPage';
+
 /**
  * Subdomain Routes Definition (ops.fhub.com.vn / ops.localhost)
  * Clean URLs mapped directly to root:
@@ -247,18 +261,30 @@ const getMainPortalRoutes = () => [
     ],
   },
 
+  // Public Entry & Resources (UC02)
+  { path: '/landing', element: <LandingPage /> },
+  { path: '/tech-blog', element: <TechBlogPage /> },
+  { path: '/course-ratings', element: <CourseRatingsPage /> },
+
   // Auth Routes
   {
     path: '/',
     element: <AuthLayout />,
     children: [
-      { path: 'login', element: <LoginPage /> },
+      { path: 'campus-selection', element: <CampusSelectionPage /> },
+      { path: 'auth-options', element: <AuthOptionsPage /> },
+      { path: 'fpt-sso', element: <FPTSSOPage /> },
+      { path: 'email-auth', element: <EmailAuthPage /> },
+      { path: 'login', element: <EmailAuthPage /> },
       { path: 'admin-login', element: <AdminLoginPage /> },
       { path: 'admin/login', element: <AdminLoginPage /> },
       { path: 'ops-login', element: <AdminLoginPage /> },
       { path: 'ops/login', element: <AdminLoginPage /> },
-      { path: 'register', element: <RegisterPage /> },
+      { path: 'email-reg', element: <EmailRegPage /> },
+      { path: 'register', element: <EmailRegPage /> },
       { path: 'forgot-password', element: <ForgotPasswordPage /> },
+      { path: 'otp-verify', element: <OTPVerifyPage /> },
+      { path: 'reset-password', element: <ResetPasswordPage /> },
     ],
 
   },
