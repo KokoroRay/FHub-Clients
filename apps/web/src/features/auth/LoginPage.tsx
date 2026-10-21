@@ -4,6 +4,7 @@ import { Mail, Lock, ArrowRight, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { authApi } from '../../services/api/adminApi';
 import { User } from '../../types';
+import { validateFptEmail } from '../../utils/fptEmailValidator';
 
 export const LoginPage: React.FC = () => {
   const { login } = useAuth();
@@ -20,6 +21,14 @@ export const LoginPage: React.FC = () => {
     if (!email.trim()) {
       setErrorMessage('Vui lòng nhập email trường hoặc mã sinh viên.');
       return;
+    }
+    // Kiểm tra định dạng Email theo chính sách K18 / K19 của trường
+    if (email.trim().includes('@')) {
+      const emailCheck = validateFptEmail(email.trim());
+      if (!emailCheck.isValid) {
+        setErrorMessage(emailCheck.error || 'Email không đúng định dạng quy định của Trường Đại học FPT.');
+        return;
+      }
     }
     if (!password) {
       setErrorMessage('Vui lòng nhập mật khẩu.');
@@ -96,6 +105,26 @@ export const LoginPage: React.FC = () => {
   const handleGoogleSuccess = async (idToken: string) => {
     setIsLoading(true);
     setErrorMessage(null);
+
+    // Kiểm tra chính sách Email FPT từ ID Token phía Client
+    try {
+      const payloadBase64 = idToken.split('.')[1];
+      if (payloadBase64) {
+        const payloadJson = JSON.parse(atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/')));
+        const googleEmail = payloadJson.email || '';
+        if (googleEmail) {
+          const emailCheck = validateFptEmail(googleEmail);
+          if (!emailCheck.isValid) {
+            setErrorMessage(`Tài khoản Google (${googleEmail}) không hợp lệ: ${emailCheck.error}`);
+            setIsLoading(false);
+            return;
+          }
+        }
+      }
+    } catch {
+      // Bỏ qua nếu không parse được token client, để backend kiểm tra tiếp
+    }
+
     try {
       const result = await authApi.googleLogin(idToken);
       if (result.accessToken) {
