@@ -38,7 +38,7 @@ export const ResetPasswordPage: React.FC = () => {
       setIsSuccess(true);
 
       setTimeout(() => {
-        navigate('/email-auth');
+        navigate('/landing');
       }, 1500);
     } catch (err: any) {
       const msg = err.response?.data?.message || err.message || 'Không thể đặt lại mật khẩu. Vui lòng thử lại.';

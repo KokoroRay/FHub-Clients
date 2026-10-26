@@ -116,7 +116,7 @@ export const OTPVerifyPage: React.FC = () => {
         };
 
         login(userObj, result.accessToken, result.refreshToken);
-        navigate('/email-auth');
+        navigate('/landing');
       }
     } catch (err: any) {
       const msg = err.response?.data?.message || err.message || 'Mã xác thực không hợp lệ. Vui lòng thử lại.';
@@ -205,13 +205,19 @@ export const OTPVerifyPage: React.FC = () => {
             )}
           </div>
 
-          {/* Button: "Verify OTP" */}
+          {/* Button: "Verify OTP" for registration, "Confirm OTP" for password recovery */}
           <button
             type="submit"
             disabled={isLoading || otp.join('').length < 6}
             className="w-full py-3 px-4 rounded-xl text-xs font-bold text-white bg-[#0076D1] hover:bg-[#005DA7] transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
           >
-            <span>{isLoading ? 'ĐANG XÁC THỰC...' : 'Verify OTP'}</span>
+            <span>
+              {isLoading
+                ? 'ĐANG XÁC THỰC...'
+                : mode === 'forgot'
+                ? 'Confirm OTP'
+                : 'Verify OTP'}
+            </span>
           </button>
         </form>
       </div>

@@ -110,7 +110,7 @@ export const EmailRegPage: React.FC = () => {
         <div className="flex items-center justify-between">
           <button
             type="button"
-            onClick={() => navigate('/email-auth')}
+            onClick={() => navigate('/landing')}
             className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#0076D1] transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -289,13 +289,13 @@ export const EmailRegPage: React.FC = () => {
             </label>
           </div>
 
-          {/* Button: "Send OTP" */}
+          {/* Button: "Submit Registration" (Screen Flow Guest) */}
           <button
             type="submit"
             disabled={isLoading}
             className="w-full py-3 px-4 rounded-xl text-xs font-bold text-white bg-[#0076D1] hover:bg-[#005DA7] transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
           >
-            <span>{isLoading ? 'ĐANG GỬI MÃ...' : 'Send OTP'}</span>
+            <span>{isLoading ? 'ĐANG XỬ LÝ...' : 'Submit Registration'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>

@@ -48,7 +48,7 @@ export const ForgotPasswordPage: React.FC = () => {
         <div className="flex items-center justify-between">
           <button
             type="button"
-            onClick={() => navigate('/email-auth')}
+            onClick={() => navigate('/landing')}
             className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#0076D1] transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />

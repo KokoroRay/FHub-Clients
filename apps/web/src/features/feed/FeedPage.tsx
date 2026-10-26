@@ -18,6 +18,7 @@ import {
   BookOpen,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useCampusDetails } from '../../hooks/useCampusDetails';
 import { AskQuestionModal } from '../discussions/AskQuestionModal';
 import { QuestionPost } from '../../types';
 import { questionApi, articleApi, workflowApi, studyMaterialApi, courseReviewApi, ArticleListItem, WorkflowListItem, StudyMaterialListItem, CourseReviewListItem } from '../../services/api/contentApi';
@@ -26,7 +27,7 @@ import { notificationApi, NotificationItem } from '../../services/api/studentApi
 
 export const FeedPage: React.FC = () => {
   const { currentUser, currentCampus } = useAuth();
-  const campusDisplay = currentUser?.campus || currentCampus || 'FPT University';
+  const campusInfo = useCampusDetails(currentUser?.campus || currentCampus);
   const navigate = useNavigate();
 
   const [questionTab, setQuestionTab] = useState<'recent' | 'voted' | 'unanswered'>('recent');
@@ -139,9 +140,12 @@ export const FeedPage: React.FC = () => {
       {/* 3.A Welcome Header (Figma #86:118) */}
       <div className="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="space-y-1.5">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-[#0076D1] border border-blue-100">
+          <div
+            className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-[#0076D1] border border-blue-100 cursor-default"
+            title={`${campusInfo.fullName}${campusInfo.address ? `\nĐịa chỉ: ${campusInfo.address}` : ''}`}
+          >
             <span className="w-1.5 h-1.5 rounded-full bg-[#0076D1]" />
-            <span>Campus: {campusDisplay}</span>
+            <span>Campus: {campusInfo.shortName}</span>
           </div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">
             Welcome back to FHub

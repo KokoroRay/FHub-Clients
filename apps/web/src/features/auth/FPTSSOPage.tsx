@@ -165,7 +165,7 @@ export const FPTSSOPage: React.FC = () => {
 
           <button
             type="button"
-            onClick={() => navigate('/auth-options')}
+            onClick={() => navigate('/landing')}
             className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors flex items-center justify-center gap-2 cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
