@@ -68,7 +68,7 @@ export const FPTSSOPage: React.FC = () => {
       login(userObj, result.accessToken, result.refreshToken);
       navigate('/');
     } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || 'Xác thực FeID qua Google không thành công.';
+      const msg = err.response?.data?.message || err.message || 'Xác thực Google SSO không thành công.';
       setErrorMessage(msg);
     } finally {
       setIsLoading(false);
@@ -114,15 +114,15 @@ export const FPTSSOPage: React.FC = () => {
       <div className="bg-white rounded-2xl shadow-xl border border-slate-200/80 p-8 sm:p-10 space-y-6">
         {/* Brand Banner */}
         <div className="text-center space-y-3">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#F26522] to-[#D94F0F] text-white font-black text-xl flex items-center justify-center mx-auto shadow-md">
-            FeID
+          <div className="w-14 h-14 rounded-2xl bg-blue-50 text-[#0076D1] font-black text-xl flex items-center justify-center mx-auto shadow-md border border-blue-200">
+            <ShieldCheck className="w-8 h-8" />
           </div>
           <div>
             <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-              FPT University SSO
+              FPT University Google SSO
             </h1>
             <p className="text-xs text-slate-500 mt-1">
-              Cổng Đăng Nhập Tập Trung Giáo Dục FPT (FeID Gateway)
+              Cổng Đăng Nhập Xác Thực Google Đại Học FPT
             </p>
           </div>
         </div>

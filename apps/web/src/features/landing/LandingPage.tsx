@@ -284,7 +284,7 @@ export const LandingPage: React.FC = () => {
                   className="w-full py-2 px-3 rounded-xl text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 hover:bg-slate-100 transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <img src="https://www.google.com/favicon.ico" alt="Google" className="w-3.5 h-3.5" />
-                  <span>Đăng nhập với Google / FeID</span>
+                  <span>Đăng nhập với Google</span>
                 </button>
               </div>
             </form>

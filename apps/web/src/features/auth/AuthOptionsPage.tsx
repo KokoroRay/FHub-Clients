@@ -129,7 +129,7 @@ export const AuthOptionsPage: React.FC = () => {
             Authentication Options
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto">
-            Lựa chọn phương thức xác thực tài khoản phù hợp với khóa học của bạn tại Đại học FPT.
+            Lựa chọn phương thức xác thực tài khoản phù hợp tại Đại học FPT.
           </p>
           {selectedCampus && (
             <div className="inline-flex items-center gap-1.5 text-xs text-slate-600 bg-slate-100 px-3 py-1 rounded-lg font-semibold">
@@ -145,9 +145,9 @@ export const AuthOptionsPage: React.FC = () => {
           </div>
         )}
 
-        {/* 3 Main Authentication Buttons Matching Diagram */}
+        {/* Main Authentication Buttons */}
         <div className="space-y-3.5">
-          {/* Button 1: Google SSO (K18 trở về trước & Trực tiếp) */}
+          {/* Button 1: Continue with Google SSO */}
           <button
             type="button"
             onClick={triggerGoogleSSO}
@@ -163,10 +163,10 @@ export const AuthOptionsPage: React.FC = () => {
               </svg>
               <div>
                 <span className="block font-black text-sm text-slate-800 group-hover:text-[#0076D1] transition-colors">
-                  Login with Google
+                  Continue with Google
                 </span>
                 <span className="text-[11px] text-slate-500">
-                  Dành cho tài khoản @fpt.edu.vn (K18 trở về trước)
+                  Dành cho tài khoản Google trường học (@fpt.edu.vn, @fe.edu.vn)
                 </span>
               </div>
             </div>
@@ -175,31 +175,7 @@ export const AuthOptionsPage: React.FC = () => {
             </span>
           </button>
 
-          {/* Button 2: FeID Portal (K19 trở đi) */}
-          <button
-            type="button"
-            onClick={() => navigate('/fpt-sso')}
-            className="w-full p-4 rounded-xl border border-slate-200 hover:border-orange-400 bg-slate-50 hover:bg-orange-50/30 transition-all flex items-center justify-between group cursor-pointer shadow-xs"
-          >
-            <div className="flex items-center gap-3.5 text-left">
-              <div className="w-5 h-5 rounded-md bg-[#F26522] text-white flex items-center justify-center font-black text-[10px] shrink-0 shadow-xs">
-                FE
-              </div>
-              <div>
-                <span className="block font-black text-sm text-slate-800 group-hover:text-[#F26522] transition-colors">
-                  Login with FeID
-                </span>
-                <span className="text-[11px] text-slate-500">
-                  Cổng xác thực sinh viên FPT (K19 trở đi theo mẫu mới)
-                </span>
-              </div>
-            </div>
-            <span className="text-[11px] font-bold text-[#F26522] opacity-0 group-hover:opacity-100 transition-opacity">
-              Tiếp tục &rarr;
-            </span>
-          </button>
-
-          {/* Button 3: Continue with Email */}
+          {/* Button 2: Continue with Email */}
           <button
             type="button"
             onClick={() => navigate('/email-auth')}
