@@ -96,7 +96,12 @@ export const ReportContentModal: React.FC<ReportContentModalProps> = ({
 ${details.trim()}`,
       });
 
-      setCreatedTicketId((res as any)?.ticketId || `TCK-${Date.now().toString().slice(-6)}`);
+      setCreatedTicketId(
+        (res as any)?.ticketNumber ||
+          (res as any)?.supportTicketId ||
+          (res as any)?.ticketId ||
+          `TCK-${Date.now().toString().slice(-6)}`
+      );
     } catch (err: any) {
       console.warn('Backend ticket creation note:', err);
       // Even if offline/stub, simulate ticket created for seamless UX

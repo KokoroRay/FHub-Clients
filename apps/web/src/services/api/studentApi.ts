@@ -181,6 +181,51 @@ export interface StudentTicketDetail extends StudentTicketItem {
   }>;
 }
 
+const VALID_TICKET_CATEGORIES = new Set([
+  'ACCOUNT',
+  'ACADEMIC',
+  'CONTENT',
+  'TECHNICAL',
+  'VERIFICATION',
+  'REPORT',
+  'FEEDBACK',
+  'OTHER',
+]);
+
+function normalizeTicketCategory(raw: string): string {
+  const upper = (raw || '').trim().toUpperCase();
+  if (VALID_TICKET_CATEGORIES.has(upper)) return upper;
+  if (upper.includes('MATERIAL') || upper.includes('CONTENT')) {
+    return upper.includes('REPORT') ? 'REPORT' : 'CONTENT';
+  }
+  if (upper.includes('ACADEMIC') || upper.includes('CURRICULUM')) return 'ACADEMIC';
+  if (upper.includes('ACCOUNT') || upper.includes('SSO') || upper.includes('AUTH')) return 'ACCOUNT';
+  if (upper.includes('REVIEW') || upper.includes('FEEDBACK')) return 'FEEDBACK';
+  if (upper.includes('TECH') || upper.includes('BUG')) return 'TECHNICAL';
+  if (upper.includes('REPORT')) return 'REPORT';
+  if (upper.includes('VERIF')) return 'VERIFICATION';
+  return 'OTHER';
+}
+
+function normalizeStudentPriority(raw?: string): 'LOW' | 'NORMAL' | 'HIGH' {
+  const upper = (raw || 'NORMAL').trim().toUpperCase();
+  if (upper === 'LOW') return 'LOW';
+  if (upper === 'HIGH' || upper === 'URGENT') return 'HIGH';
+  return 'NORMAL';
+}
+
+function sanitizeTicketSubject(raw: string): string {
+  const cleaned = (raw || '')
+    .replace(/\[/g, '(')
+    .replace(/\]/g, ')')
+    .replace(/&/g, 'va')
+    .replace(/[^\p{L}\p{M}\p{N} .,\-_:()'"?!/]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const base = cleaned || 'Yeu cau ho tro sinh vien FHub';
+  return base.length < 5 ? `${base} - FHub` : base.slice(0, 300);
+}
+
 export const studentSupportTicketApi = {
   getMyTickets: async (params?: { status?: string; pageNumber?: number; pageSize?: number }): Promise<PagedResult<StudentTicketItem>> => {
     const res = await apiClient.get<ApiResponse<PagedResult<StudentTicketItem>>>('/api/student/support-tickets', { params });
@@ -193,11 +238,17 @@ export const studentSupportTicketApi = {
   },
 
   createTicket: async (payload: { title: string; category: string; description: string; priority?: string }): Promise<StudentTicketDetail> => {
+    const cleanDesc = (payload.description || '').trim();
+    const effectiveDescription =
+      cleanDesc.length >= 20
+        ? cleanDesc
+        : `${cleanDesc} (Yêu cầu hỗ trợ từ sinh viên trên hệ thống FHub)`.trim();
+
     const res = await apiClient.post<ApiResponse<StudentTicketDetail>>('/api/student/support-tickets', {
-      subject: payload.title,
-      category: payload.category,
-      description: payload.description,
-      priority: (payload.priority || 'NORMAL').toUpperCase(),
+      subject: sanitizeTicketSubject(payload.title),
+      category: normalizeTicketCategory(payload.category),
+      description: effectiveDescription,
+      priority: normalizeStudentPriority(payload.priority),
     });
     return res.data.data;
   },
@@ -210,8 +261,10 @@ export const studentSupportTicketApi = {
   },
 
   updateStatus: async (id: number | string, status: string): Promise<any> => {
+    const raw = (status || '').trim().toUpperCase().replace(/\s+/g, '_');
+    const normalizedStatus = raw === 'CLOSED' ? 'CLOSED' : 'OPEN';
     const res = await apiClient.patch<ApiResponse<any>>(`/api/student/support-tickets/${id}/status`, {
-      status: status.toUpperCase().replace(' ', '_'),
+      status: normalizedStatus,
     });
     return res.data.data;
   },

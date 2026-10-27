@@ -24,6 +24,7 @@ export const StudyMaterialDetailPage: React.FC = () => {
   const { currentUser } = useAuth();
 
   const [material, setMaterial] = useState<StudyMaterial | null>(null);
+  const [rawFileName, setRawFileName] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [downloadCount, setDownloadCount] = useState(0);
   const [isBookmarked, setIsBookmarked] = useState(false);
@@ -42,6 +43,7 @@ export const StudyMaterialDetailPage: React.FC = () => {
         const data = await studyMaterialApi.getMaterialById(id);
         if (isMounted && data) {
           const name = data.fileName || data.title || '';
+          setRawFileName(data.fileName || '');
           const ext = name.split('.').pop()?.toLowerCase();
           let resolvedFileType: 'PDF' | 'DOCX' | 'ZIP' | 'PPTX' | 'CODE' = 'PDF';
           if (data.materialType === 'LINK') resolvedFileType = 'CODE';
@@ -80,32 +82,28 @@ export const StudyMaterialDetailPage: React.FC = () => {
     return () => { isMounted = false; };
   }, [id]);
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!material) return;
-    setDownloadCount((prev) => prev + 1);
-    setDownloadSuccess(true);
 
-    if (material.downloadUrl && material.downloadUrl !== '#' && !material.downloadUrl.startsWith('blob:')) {
-      if (material.downloadUrl.startsWith('http://') || material.downloadUrl.startsWith('https://')) {
-        window.open(material.downloadUrl, '_blank');
-      } else {
-        const link = document.createElement('a');
-        link.href = material.downloadUrl;
-        link.setAttribute('download', '');
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      }
-    } else {
-      const link = document.createElement('a');
-      link.href = `/api/content/study-materials/${material.id}/download`;
-      link.setAttribute('download', '');
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+    if (
+      material.downloadUrl &&
+      (material.downloadUrl.startsWith('http://') || material.downloadUrl.startsWith('https://'))
+    ) {
+      window.open(material.downloadUrl, '_blank');
+      setDownloadCount((prev) => prev + 1);
+      setDownloadSuccess(true);
+      setTimeout(() => setDownloadSuccess(false), 3000);
+      return;
     }
 
-    setTimeout(() => setDownloadSuccess(false), 3000);
+    try {
+      await studyMaterialApi.downloadFile(material.id, rawFileName || material.title);
+      setDownloadCount((prev) => prev + 1);
+      setDownloadSuccess(true);
+      setTimeout(() => setDownloadSuccess(false), 3000);
+    } catch (err) {
+      alert('Không thể tải xuống tài liệu. Vui lòng thử lại hoặc kiểm tra trạng thái đăng nhập.');
+    }
   };
 
   const handleDelete = () => {

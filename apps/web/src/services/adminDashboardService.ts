@@ -74,7 +74,8 @@ export interface AdminDashboardData {
   }>;
 }
 
-const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || '';
+const rawDashboardBaseUrl = ((import.meta as any).env?.VITE_API_URL || '').trim().replace(/\/+$/, '');
+const API_BASE_URL = rawDashboardBaseUrl === '/api' ? '' : rawDashboardBaseUrl.replace(/\/api$/, '');
 
 function getAdminHeaders(): HeadersInit {
   const token = localStorage.getItem('fhub_token') || sessionStorage.getItem('fhub_token') || localStorage.getItem('access_token');

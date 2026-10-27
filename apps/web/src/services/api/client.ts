@@ -1,7 +1,8 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
 // Base API URL: uses Vite proxy in development or relative path / custom env URL
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+const rawBaseUrl = (import.meta.env.VITE_API_URL || '').trim().replace(/\/+$/, '');
+const API_BASE_URL = rawBaseUrl === '/api' ? '' : rawBaseUrl.replace(/\/api$/, '');
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
