@@ -14,6 +14,8 @@ import {
 import { SeriesModal } from './SeriesModal';
 import { Article, Series } from '../../types';
 import { articleApi, seriesApi } from '../../services/api/contentApi';
+import { voteApi, bookmarkApi } from '../../services/api/studentApi';
+import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 
 export const ArticleListPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'articles' | 'series'>('articles');
@@ -21,7 +23,9 @@ export const ArticleListPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'newest' | 'popular' | 'views'>('newest');
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
+  const [bookmarkMap, setBookmarkMap] = useState<Map<string, number | string>>(new Map());
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
+  const [likeScores, setLikeScores] = useState<Record<string, number>>({});
   const [isSeriesModalOpen, setIsSeriesModalOpen] = useState(false);
   const [apiArticles, setApiArticles] = useState<Article[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -56,6 +60,46 @@ export const ArticleListPage: React.FC = () => {
             createdAt: item.createdAt || new Date().toISOString(),
           }));
           setApiArticles(mapped);
+
+          // Synchronize bookmarks and votes from interaction service
+          try {
+            const [bList, myVotes] = await Promise.all([
+              bookmarkApi.getBookmarks('Article'),
+              voteApi.getMyVotes(),
+            ]);
+            const bMap = new Map<string, number | string>();
+            bList.forEach((b) => {
+              bMap.set(String(b.targetId), b.id);
+            });
+            setBookmarkMap(bMap);
+            setBookmarkedIds(new Set(Array.from(bMap.keys())));
+
+            const liked = new Set<string>();
+            myVotes.forEach((v) => {
+              if (v.targetType === 'ARTICLE' && v.voteValue === 1) {
+                liked.add(String(v.targetId));
+              }
+            });
+            setLikedIds(liked);
+
+            Promise.allSettled(
+              res.items.map(async (art: any) => {
+                const aId = String(art.articleId || art.id);
+                const stats = await voteApi.getStats('ARTICLE', aId);
+                return { aId, score: stats.score };
+              })
+            ).then((results) => {
+              setLikeScores((prev) => {
+                const next = { ...prev };
+                results.forEach((r: any) => {
+                  if (r.status === 'fulfilled' && r.value) {
+                    next[r.value.aId] = r.value.score;
+                  }
+                });
+                return next;
+              });
+            });
+          } catch {}
         }
       } catch (err) {
         setApiArticles([]);
@@ -105,26 +149,76 @@ export const ArticleListPage: React.FC = () => {
     return () => { isMounted = false; };
   }, [searchQuery]);
 
-  const toggleBookmark = (id: string, e: React.MouseEvent) => {
+  const toggleBookmark = async (id: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setBookmarkedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+    const isBookmarked = bookmarkedIds.has(id);
+    const existingBookmarkId = bookmarkMap.get(id);
+
+    if (isBookmarked && existingBookmarkId) {
+      setBookmarkedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      try {
+        await bookmarkApi.removeBookmark(existingBookmarkId);
+        setBookmarkMap((prev) => {
+          const next = new Map(prev);
+          next.delete(id);
+          return next;
+        });
+      } catch (err) {
+        console.warn('Failed to remove bookmark:', err);
+      }
+    } else {
+      setBookmarkedIds((prev) => new Set(prev).add(id));
+      const numId = Number(id.replace(/\D/g, '')) || 1;
+      try {
+        const res = await bookmarkApi.addBookmark('Article', numId);
+        const bId = res?.bookmark_id ?? res?.data?.bookmark_id ?? res?.id ?? Date.now();
+        setBookmarkMap((prev) => new Map(prev).set(id, bId));
+      } catch (err) {
+        console.warn('Failed to add bookmark:', err);
+      }
+    }
   };
 
-  const toggleLike = (id: string, e: React.MouseEvent) => {
+  const toggleLike = async (id: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    const isLiked = likedIds.has(id);
+    const numId = Number(id.replace(/\D/g, ''));
+    if (!numId) return;
+
     setLikedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
+      if (isLiked) next.delete(id);
       else next.add(id);
       return next;
     });
+    setLikeScores((prev) => ({
+      ...prev,
+      [id]: (prev[id] || 0) + (isLiked ? -1 : 1),
+    }));
+
+    try {
+      await voteApi.vote({
+        target_type: 'ARTICLE',
+        target_id: numId,
+        vote_value: isLiked ? -1 : 1,
+      });
+      const stats = await voteApi.getStats('ARTICLE', numId);
+      setLikeScores((prev) => ({ ...prev, [id]: stats.score }));
+      setLikedIds((prev) => {
+        const next = new Set(prev);
+        if (stats.myVoteValue === 1) next.add(id);
+        else next.delete(id);
+        return next;
+      });
+    } catch (err) {
+      console.warn('Failed to vote article:', err);
+    }
   };
 
   const categories = [
@@ -361,7 +455,7 @@ export const ArticleListPage: React.FC = () => {
                           <Heart
                             className={`w-3.5 h-3.5 ${isLiked ? 'fill-rose-500 text-rose-500' : ''}`}
                           />
-                          <span>{(art.likesCount || 0) + (likedIds.has(art.id) && !art.isLiked ? 1 : 0)}</span>
+                          <span>{likeScores[art.id] ?? (art.likesCount || 0)}</span>
                         </button>
                       </div>
                     </div>
@@ -376,17 +470,25 @@ export const ArticleListPage: React.FC = () => {
                         <ArrowRight className="w-3.5 h-3.5" />
                       </Link>
 
-                      <button
-                        onClick={(e) => toggleBookmark(art.id, e)}
-                        title={isBookmarked ? 'Unsave article' : 'Save article'}
-                        className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
-                      >
-                        <Bookmark
-                          className={`w-4 h-4 ${
-                            isBookmarked ? 'fill-[#0076D1] text-[#0076D1]' : ''
-                          }`}
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={(e) => toggleBookmark(art.id, e)}
+                          title={isBookmarked ? 'Unsave article' : 'Save article'}
+                          className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
+                        >
+                          <Bookmark
+                            className={`w-4 h-4 ${
+                              isBookmarked ? 'fill-[#0076D1] text-[#0076D1]' : ''
+                            }`}
+                          />
+                        </button>
+                        <ContentActionMenu
+                          targetType="ARTICLE"
+                          targetId={art.id}
+                          targetTitle={art.title}
+                          shareUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/articles/${art.id}`}
                         />
-                      </button>
+                      </div>
                     </div>
                   </div>
                 </div>

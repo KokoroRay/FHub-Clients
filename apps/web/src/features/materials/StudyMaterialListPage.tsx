@@ -15,12 +15,15 @@ import {
   ExternalLink,
   ArrowRight,
   Filter,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { courseNodesApi, CourseNodeListItem } from '../../services/api/adminApi';
 import { StudyMaterial } from '../../types';
 import { UploadStudyMaterialModal } from './UploadStudyMaterialModal';
 import { AddExternalLinkModal } from './AddExternalLinkModal';
 import { studyMaterialApi } from '../../services/api/contentApi';
+import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 
 export const StudyMaterialListPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -36,37 +39,62 @@ export const StudyMaterialListPage: React.FC = () => {
   const [materials, setMaterials] = useState<StudyMaterial[]>([]);
   const [availableCourses, setAvailableCourses] = useState<CourseNodeListItem[]>([]);
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 8;
 
   React.useEffect(() => {
-    courseNodesApi.getCourseNodes({ pageSize: 50 })
+    courseNodesApi.getCourseNodes({ pageSize: 300 })
       .then((res) => setAvailableCourses(res?.items || []))
       .catch(() => setAvailableCourses([]));
   }, []);
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedCourse, selectedType, sortBy]);
 
   React.useEffect(() => {
     const fetchMaterials = async () => {
       try {
         const res = await studyMaterialApi.getMaterials({
           search: searchQuery.trim() || undefined,
-          pageSize: 20,
+          pageSize: 100,
         });
         if (res && res.items) {
-          const mapped: StudyMaterial[] = res.items.map((item) => ({
-            id: String(item.studyMaterialId),
-            title: item.title,
-            description: item.description || 'Tài liệu học tập FHub',
-            courseCode: item.courseId ? `COURSE-${item.courseId}` : 'GEN',
-            fileType: (item.materialType === 'LINK' ? 'ZIP' : 'PDF') as any,
-            fileSizeMb: item.fileSizeBytes ? Number((item.fileSizeBytes / (1024 * 1024)).toFixed(1)) : 0,
-            downloadUrl: item.externalUrl || `/api/content/study-materials/${item.studyMaterialId}/download`,
-            downloadsCount: item.downloadCount || 0,
-            author: {
-              id: String(item.uploaderUserId),
-              fullName: 'Sinh viên FHub',
-            },
-            semesterUploaded: 'N/A',
-            createdAt: item.createdAt || new Date().toISOString(),
-          }));
+          const courseMap = new Map<number, string>();
+          availableCourses.forEach(c => {
+            const id = Number(c.courseNodeId ?? c.id);
+            const code = c.courseCode || c.code || '';
+            if (id && code) courseMap.set(id, code);
+          });
+          const mapped: StudyMaterial[] = res.items.map((item) => {
+            const resolvedCode = item.courseId ? (courseMap.get(Number(item.courseId)) || `COURSE-${item.courseId}`) : 'GEN';
+            const name = item.fileName || item.title || '';
+            const ext = name.split('.').pop()?.toLowerCase();
+            let resolvedFileType: 'PDF' | 'DOCX' | 'ZIP' | 'PPTX' | 'CODE' = 'PDF';
+            if (item.materialType === 'LINK') resolvedFileType = 'CODE';
+            else if (ext === 'pdf') resolvedFileType = 'PDF';
+            else if (ext === 'docx' || ext === 'doc') resolvedFileType = 'DOCX';
+            else if (ext === 'pptx' || ext === 'ppt') resolvedFileType = 'PPTX';
+            else if (['zip', 'rar', '7z'].includes(ext || '')) resolvedFileType = 'ZIP';
+            else if (['cs', 'java', 'py', 'sql', 'cpp', 'c', 'json', 'md', 'txt'].includes(ext || '')) resolvedFileType = 'CODE';
+
+            return {
+              id: String(item.studyMaterialId),
+              title: item.title,
+              description: item.description || 'Tài liệu học tập FHub',
+              courseCode: resolvedCode,
+              fileType: resolvedFileType,
+              fileSizeMb: item.fileSizeBytes ? Number((item.fileSizeBytes / (1024 * 1024)).toFixed(1)) : 0,
+              downloadUrl: item.externalUrl || `/api/content/study-materials/${item.studyMaterialId}/download`,
+              downloadsCount: item.downloadCount || 0,
+              author: {
+                id: String(item.uploaderUserId),
+                fullName: 'Sinh viên FHub',
+              },
+              semesterUploaded: 'N/A',
+              createdAt: item.createdAt || new Date().toISOString(),
+            };
+          });
           setMaterials(mapped);
         }
       } catch (err) {
@@ -74,7 +102,7 @@ export const StudyMaterialListPage: React.FC = () => {
       }
     };
     fetchMaterials();
-  }, [searchQuery]);
+  }, [searchQuery, availableCourses]);
 
   const toggleBookmark = (id: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -101,6 +129,9 @@ export const StudyMaterialListPage: React.FC = () => {
       if (sortBy === 'downloads') return b.downloadsCount - a.downloadsCount;
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
+
+  const totalPages = Math.ceil(filteredMaterials.length / pageSize) || 1;
+  const paginatedMaterials = filteredMaterials.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const getFileBadgeColor = (type: string) => {
     switch (type) {
@@ -176,11 +207,15 @@ export const StudyMaterialListPage: React.FC = () => {
             className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-[#0076D1] cursor-pointer"
           >
             <option value="ALL">All Courses</option>
-            {availableCourses.map((c) => (
-              <option key={c.code} value={c.code}>
-                {c.code} - {c.name}
-              </option>
-            ))}
+            {availableCourses.map((c) => {
+              const code = c.courseCode || c.code || '';
+              const id = c.courseNodeId ?? c.id ?? code;
+              return (
+                <option key={id} value={code}>
+                  {code} - {c.courseName || c.name || ''}
+                </option>
+              );
+            })}
           </select>
         </div>
 
@@ -214,7 +249,12 @@ export const StudyMaterialListPage: React.FC = () => {
 
       {/* Materials Two-Column Grid (Figma #101:3746) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {filteredMaterials.map((mat) => (
+        {paginatedMaterials.length === 0 ? (
+          <div className="col-span-full py-12 text-center text-slate-500 bg-white rounded-2xl border border-slate-200">
+            Không tìm thấy tài liệu phù hợp.
+          </div>
+        ) : (
+          paginatedMaterials.map((mat) => (
           <div
             key={mat.id}
             className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 flex flex-col justify-between hover:border-slate-300 transition-colors group"
@@ -235,17 +275,25 @@ export const StudyMaterialListPage: React.FC = () => {
                   </span>
                 </div>
 
-                <button
-                  onClick={(e) => toggleBookmark(mat.id, e)}
-                  className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
-                    bookmarkedIds.has(mat.id)
-                      ? 'bg-blue-50 border-blue-200 text-[#0076D1]'
-                      : 'border-transparent text-slate-400 hover:bg-slate-100'
-                  }`}
-                  title="Bookmark"
-                >
-                  <Bookmark className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={(e) => toggleBookmark(mat.id, e)}
+                    className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                      bookmarkedIds.has(mat.id)
+                        ? 'bg-blue-50 border-blue-200 text-[#0076D1]'
+                        : 'border-transparent text-slate-400 hover:bg-slate-100'
+                    }`}
+                    title="Bookmark"
+                  >
+                    <Bookmark className="w-4 h-4" />
+                  </button>
+                  <ContentActionMenu
+                    targetType="STUDY_MATERIAL"
+                    targetId={mat.id}
+                    targetTitle={mat.title}
+                    shareUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/materials/${mat.id}`}
+                  />
+                </div>
               </div>
 
               {/* Title & Description */}
@@ -279,8 +327,51 @@ export const StudyMaterialListPage: React.FC = () => {
               </Link>
             </div>
           </div>
-        ))}
+        ))
+        )}
       </div>
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4 px-4 bg-white rounded-2xl border border-slate-200/90 shadow-2xs">
+          <p className="text-xs text-slate-500">
+            Hiển thị <span className="font-semibold text-slate-700">{(currentPage - 1) * pageSize + 1}</span> -{' '}
+            <span className="font-semibold text-slate-700">{Math.min(currentPage * pageSize, filteredMaterials.length)}</span> trên tổng số{' '}
+            <span className="font-semibold text-slate-700">{filteredMaterials.length}</span> tài liệu
+          </p>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              title="Trang trước"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+              <button
+                key={pageNum}
+                onClick={() => setCurrentPage(pageNum)}
+                className={`w-8 h-8 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                  currentPage === pageNum
+                    ? 'bg-[#0076D1] text-white shadow-xs'
+                    : 'text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                {pageNum}
+              </button>
+            ))}
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              title="Trang kế tiếp"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Upload Modal */}
       <UploadStudyMaterialModal

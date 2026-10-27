@@ -6,6 +6,8 @@ import { SharedWorkflow } from '../../types';
 import { Modal } from '../../components/common/Modal';
 import { Button } from '../../components/common/Button';
 import { Input, Textarea, Select } from '../../components/common/Input';
+import { CourseSelect } from '../../components/common/CourseSelect';
+import { filterCompactCourses } from '../../utils/courseFilter';
 
 export interface CreateWorkflowModalProps {
   isOpen: boolean;
@@ -30,10 +32,11 @@ export const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
     let isMounted = true;
     const loadCourses = async () => {
       try {
-        const res = await courseNodesApi.getCourseNodes();
+        const res = await courseNodesApi.getCourseNodes({ pageSize: 150 });
         const items = (res as any)?.items || res || [];
         if (isMounted && Array.isArray(items) && items.length > 0) {
-          const mapped = items.map((c: any) => ({
+          const filtered = filterCompactCourses(items, currentUser);
+          const mapped = filtered.map((c: any) => ({
             code: c.code || c.courseCode,
             title: c.name || c.title || c.code,
           }));
@@ -156,11 +159,11 @@ export const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
         />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Select
-            label="Môn học áp dụng"
+          <CourseSelect
+            label="Môn học áp dụng *"
             value={courseCode}
-            onChange={(e) => setCourseCode(e.target.value)}
-            options={courses.map((c) => ({ value: c.code, label: `${c.code} - ${c.title}` }))}
+            onChange={(code) => setCourseCode(code)}
+            required
           />
           <Input
             label="Công nghệ / Tech Stack"

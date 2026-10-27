@@ -12,7 +12,7 @@ export const FPTSSOPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const GOOGLE_CLIENT_ID = '286107558257-opd8v8nqnogitdmkvidvei0h691rpr15.apps.googleusercontent.com';
+  const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 
   const handleGoogleSuccess = async (idToken: string) => {
     setIsLoading(true);
@@ -23,11 +23,10 @@ export const FPTSSOPage: React.FC = () => {
       const payloadBase64 = idToken.split('.')[1];
       if (payloadBase64) {
         const payloadJson = JSON.parse(atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/')));
-        const googleEmail = payloadJson.email || '';
+        const googleEmail = (payloadJson.email || '').trim().toLowerCase();
         if (googleEmail) {
-          const emailCheck = validateFptEmail(googleEmail);
-          if (!emailCheck.isValid) {
-            setErrorMessage(`Tài khoản Google (${googleEmail}) không hợp lệ: ${emailCheck.error}`);
+          if (!googleEmail.endsWith('@fpt.edu.vn')) {
+            setErrorMessage(`Chỉ tài khoản Google có đuôi email @fpt.edu.vn mới được phép đăng nhập hoặc đăng ký qua Google. (Email hiện tại: ${googleEmail})`);
             setIsLoading(false);
             return;
           }

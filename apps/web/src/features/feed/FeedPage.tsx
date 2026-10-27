@@ -23,10 +23,12 @@ import { AskQuestionModal } from '../discussions/AskQuestionModal';
 import { QuestionPost } from '../../types';
 import { questionApi, articleApi, workflowApi, studyMaterialApi, courseReviewApi, ArticleListItem, WorkflowListItem, StudyMaterialListItem, CourseReviewListItem } from '../../services/api/contentApi';
 import { courseNodesApi, CourseNodeListItem } from '../../services/api/adminApi';
-import { notificationApi, NotificationItem } from '../../services/api/studentApi';
+import { filterCompactCourses } from '../../utils/courseFilter';
+import { notificationApi, NotificationItem, voteApi } from '../../services/api/studentApi';
+import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 
 export const FeedPage: React.FC = () => {
-  const { currentUser, currentCampus } = useAuth();
+  const { currentUser, currentCampus, isAuthenticated } = useAuth();
   const campusInfo = useCampusDetails(currentUser?.campus || currentCampus);
   const navigate = useNavigate();
 
@@ -49,16 +51,61 @@ export const FeedPage: React.FC = () => {
     let isMounted = true;
     const loadQuestions = async () => {
       try {
-        const sortBy = questionTab === 'voted' ? 'upvotes' : questionTab === 'unanswered' ? 'unanswered' : 'created_at';
+        const sortBy = questionTab === 'voted' ? 'views' : 'newest';
         const res = await questionApi.getQuestions({ pageSize: 5, sortBy });
         if (isMounted) {
           const items = res?.items || [];
           setQuestions(items);
+
+          let myVotesMap: Record<string, number> = {};
+          if (isAuthenticated) {
+            try {
+              const myVotes = await voteApi.getMyVotes();
+              myVotes.forEach((v) => {
+                if (v.targetType === 'QUESTION') {
+                  myVotesMap[String(v.targetId)] = v.voteValue;
+                }
+              });
+            } catch {}
+          }
+
           const initialVotes: Record<string, { count: number; userVote: 'UP' | 'DOWN' | null }> = {};
           items.forEach((q: any) => {
-            initialVotes[String(q.questionId)] = { count: q.upvoteCount || 0, userVote: null };
+            const qId = String(q.questionId);
+            const myVote = myVotesMap[qId];
+            initialVotes[qId] = {
+              count: (q.upvoteCount || 0) - (q.downvoteCount || 0),
+              userVote: myVote === 1 ? 'UP' : myVote === -1 ? 'DOWN' : null,
+            };
           });
           setVotes(initialVotes);
+
+          // Synchronize accurate vote stats from interaction service
+          Promise.allSettled(
+            items.map(async (q: any) => {
+              const qId = String(q.questionId);
+              const stats = await voteApi.getStats('QUESTION', q.questionId);
+              return {
+                qId,
+                count: stats.score,
+                userVote: stats.myVoteValue === 1 ? ('UP' as const) : stats.myVoteValue === -1 ? ('DOWN' as const) : null,
+              };
+            })
+          ).then((results) => {
+            if (!isMounted) return;
+            setVotes((prev) => {
+              const updated = { ...prev };
+              results.forEach((res) => {
+                if (res.status === 'fulfilled' && res.value) {
+                  updated[res.value.qId] = {
+                    count: res.value.count,
+                    userVote: res.value.userVote,
+                  };
+                }
+              });
+              return updated;
+            });
+          });
         }
       } catch (err) {
         if (isMounted) setQuestions([]);
@@ -66,11 +113,36 @@ export const FeedPage: React.FC = () => {
     };
     loadQuestions();
     return () => { isMounted = false; };
-  }, [questionTab]);
+  }, [questionTab, isAuthenticated]);
 
   // 2. Fetch other sections from backend
   useEffect(() => {
     let isMounted = true;
+
+    // Courses Hub (Public) - Filtered by major preference for compact shortcut
+    courseNodesApi.getCourseNodes({ pageSize: 150 })
+      .then((res: any) => {
+        if (isMounted) {
+          const items: CourseNodeListItem[] = res?.items || [];
+          const filtered = filterCompactCourses<CourseNodeListItem>(items, currentUser);
+          setCourses(filtered.slice(0, 4));
+        }
+      })
+      .catch(() => { if (isMounted) setCourses([]); });
+
+    // Course Reviews (Public)
+    courseReviewApi.getReviews({ pageSize: 2 })
+      .then((res) => { if (isMounted) setEvaluations(res?.items || []); })
+      .catch(() => { if (isMounted) setEvaluations([]); });
+
+    // Protected student resources require authentication
+    if (!isAuthenticated) {
+      setWorkflows([]);
+      setArticles([]);
+      setMaterials([]);
+      setNotifications([]);
+      return;
+    }
 
     // Workflows
     workflowApi.getWorkflows({ pageSize: 2 })
@@ -87,40 +159,56 @@ export const FeedPage: React.FC = () => {
       .then((res) => { if (isMounted) setMaterials(res?.items || []); })
       .catch(() => { if (isMounted) setMaterials([]); });
 
-    // Courses Hub
-    courseNodesApi.getCourseNodes({ pageSize: 3 })
-      .then((res) => { if (isMounted) setCourses(res?.items || []); })
-      .catch(() => { if (isMounted) setCourses([]); });
-
-    // Course Reviews
-    courseReviewApi.getReviews({ pageSize: 2 })
-      .then((res) => { if (isMounted) setEvaluations(res?.items || []); })
-      .catch(() => { if (isMounted) setEvaluations([]); });
-
     // Notifications
     notificationApi.getNotifications({ pageSize: 2 })
       .then((res) => { if (isMounted) setNotifications(res || []); })
       .catch(() => { if (isMounted) setNotifications([]); });
 
     return () => { isMounted = false; };
-  }, []);
+  }, [isAuthenticated]);
 
-  const handleVote = (id: string, dir: 'UP' | 'DOWN') => {
-    setVotes((prev) => {
-      const current = prev[id] || { count: 0, userVote: null };
-      let newCount = current.count;
-      let newVote: 'UP' | 'DOWN' | null = dir;
+  const handleVote = async (id: string, dir: 'UP' | 'DOWN') => {
+    const numId = Number(id.replace(/\D/g, ''));
+    if (!numId) return;
 
-      if (current.userVote === dir) {
-        newVote = null;
-        newCount += dir === 'UP' ? -1 : 1;
-      } else if (current.userVote === null) {
-        newCount += dir === 'UP' ? 1 : -1;
-      } else {
-        newCount += dir === 'UP' ? 2 : -2;
-      }
-      return { ...prev, [id]: { count: newCount, userVote: newVote } };
-    });
+    const current = votes[id] || { count: 0, userVote: null };
+    let newCount = current.count;
+    let newVote: 'UP' | 'DOWN' | null = dir;
+
+    if (current.userVote === dir) {
+      newVote = null;
+      newCount += dir === 'UP' ? -1 : 1;
+    } else if (current.userVote === null) {
+      newCount += dir === 'UP' ? 1 : -1;
+    } else {
+      newCount += dir === 'UP' ? 2 : -2;
+    }
+
+    setVotes((prev) => ({
+      ...prev,
+      [id]: { count: newCount, userVote: newVote },
+    }));
+
+    try {
+      await voteApi.vote({
+        target_type: 'QUESTION',
+        target_id: numId,
+        vote_value: dir === 'UP' ? 1 : -1,
+      });
+      const stats = await voteApi.getStats('QUESTION', numId);
+      setVotes((prev) => ({
+        ...prev,
+        [id]: {
+          count: stats.score,
+          userVote: stats.myVoteValue === 1 ? 'UP' : stats.myVoteValue === -1 ? 'DOWN' : null,
+        },
+      }));
+    } catch (err) {
+      setVotes((prev) => ({
+        ...prev,
+        [id]: current,
+      }));
+    }
   };
 
   const toggleBookmark = (id: string) => {
@@ -349,8 +437,8 @@ export const FeedPage: React.FC = () => {
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
-            {questions.map((q) => {
-              const qId = String(q.questionId || q.id);
+            {questions.map((q, idx) => {
+              const qId = String(q.questionId || q.id || idx);
               const authorName = q.isAnonymous ? 'Ẩn danh FPTer' : (q.authorDisplayName || `User #${q.authorUserId || 1}`);
               const voteInfo = votes[qId] || { count: q.upvoteCount || 0, userVote: null };
               return (
@@ -392,6 +480,12 @@ export const FeedPage: React.FC = () => {
                           [Course #{q.courseId}]
                         </span>
                       )}
+                      <ContentActionMenu
+                        targetType="QUESTION"
+                        targetId={qId}
+                        targetTitle={q.title}
+                        shareUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/discussions/${qId}`}
+                      />
                     </div>
 
                     <Link
@@ -468,8 +562,8 @@ export const FeedPage: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-3">
-                {workflows.map((wf) => (
-                  <div key={wf.workflowId} className="p-3.5 rounded-xl border border-slate-100 hover:border-slate-200 bg-slate-50/40 transition-colors">
+                {workflows.map((wf, idx) => (
+                  <div key={wf.workflowId || (wf as any).id || idx} className="p-3.5 rounded-xl border border-slate-100 hover:border-slate-200 bg-slate-50/40 transition-colors">
                     <Link to={`/workflows/${wf.workflowId}`} className="font-bold text-xs text-slate-800 hover:text-blue-600 block leading-snug">
                       {wf.title}
                     </Link>
@@ -518,8 +612,8 @@ export const FeedPage: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-3">
-                {articles.map((art) => (
-                  <div key={art.articleId} className="p-3.5 rounded-xl border border-slate-100 hover:border-slate-200 bg-slate-50/40 transition-colors">
+                {articles.map((art, idx) => (
+                  <div key={art.articleId || (art as any).id || idx} className="p-3.5 rounded-xl border border-slate-100 hover:border-slate-200 bg-slate-50/40 transition-colors">
                     <Link to={`/articles/${art.articleId}`} className="font-bold text-xs text-slate-800 hover:text-blue-600 block leading-snug">
                       {art.title}
                     </Link>
@@ -581,8 +675,8 @@ export const FeedPage: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-2.5">
-                {materials.map((mat) => (
-                  <div key={mat.studyMaterialId} className="flex items-center justify-between p-2.5 rounded-xl border border-slate-100 bg-slate-50/40">
+                {materials.map((mat, idx) => (
+                  <div key={mat.studyMaterialId || (mat as any).id || idx} className="flex items-center justify-between p-2.5 rounded-xl border border-slate-100 bg-slate-50/40">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700">
                         {mat.materialType || 'DOC'}
@@ -630,24 +724,29 @@ export const FeedPage: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-2.5">
-                {courses.map((crs) => (
-                  <div key={crs.id} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50/40">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-blue-100 text-blue-800">
-                          {crs.code}
-                        </span>
-                        <h5 className="font-bold text-xs text-slate-800">{crs.name}</h5>
+                {courses.map((crs, idx) => {
+                  const crsId = crs.courseNodeId || (crs as any).id || idx;
+                  const crsCode = crs.courseCode || (crs as any).code || 'FPT';
+                  const crsName = crs.courseName || (crs as any).name || 'Môn học';
+                  return (
+                    <div key={crsId} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50/40">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-blue-100 text-blue-800">
+                            {crsCode}
+                          </span>
+                          <h5 className="font-bold text-xs text-slate-800">{crsName}</h5>
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          {crs.credits || 3} Tín chỉ • {crs.description || 'Chương trình đào tạo tiêu chuẩn FPT'}
+                        </p>
                       </div>
-                      <p className="text-[11px] text-slate-500 mt-0.5">
-                        {crs.credits || 3} Tín chỉ • {crs.description || 'Chương trình đào tạo tiêu chuẩn FPT'}
-                      </p>
+                      <Link to={`/courses/${crsCode}`} className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-blue-50 text-[#0076D1] border border-blue-200 shrink-0">
+                        View
+                      </Link>
                     </div>
-                    <Link to={`/courses/${crs.code}`} className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-blue-50 text-[#0076D1] border border-blue-200 shrink-0">
-                      View
-                    </Link>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -684,8 +783,8 @@ export const FeedPage: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-3">
-                {evaluations.map((ev) => (
-                  <div key={ev.courseReviewId} className="p-3.5 rounded-xl border border-slate-100 bg-slate-50/40">
+                {evaluations.map((ev, idx) => (
+                  <div key={ev.courseReviewId || (ev as any).id || idx} className="p-3.5 rounded-xl border border-slate-100 bg-slate-50/40">
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-50 text-blue-700">
                         Course #{ev.courseId}
@@ -764,19 +863,23 @@ export const FeedPage: React.FC = () => {
               </div>
             ) : (
               <div className="space-y-2.5">
-                {notifications.map((notif) => (
-                  <div key={notif.id} className="flex items-center justify-between p-3 rounded-xl bg-blue-50/50 border border-blue-100">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="w-2 h-2 rounded-full bg-[#0076D1] shrink-0" />
-                      <p className="text-xs text-slate-800 truncate">
-                        <strong>{notif.title}</strong>: {notif.message}
-                      </p>
+                {notifications.map((notif, idx) => {
+                  const notifId = (notif as any).notificationId || (notif as any).notification_id || notif.id || idx;
+                  const notifMsg = notif.message || (notif as any).body || '';
+                  return (
+                    <div key={notifId} className="flex items-center justify-between p-3 rounded-xl bg-blue-50/50 border border-blue-100">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="w-2 h-2 rounded-full bg-[#0076D1] shrink-0" />
+                        <p className="text-xs text-slate-800 truncate">
+                          <strong>{notif.title}</strong>{notifMsg ? `: ${notifMsg}` : ''}
+                        </p>
+                      </div>
+                      <span className="text-[10px] text-slate-400 shrink-0 ml-2">
+                        {notif.createdAt ? new Date(notif.createdAt).toLocaleDateString('vi-VN') : 'Gần đây'}
+                      </span>
                     </div>
-                    <span className="text-[10px] text-slate-400 shrink-0 ml-2">
-                      {notif.createdAt ? new Date(notif.createdAt).toLocaleDateString('vi-VN') : 'Gần đây'}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

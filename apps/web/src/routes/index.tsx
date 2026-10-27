@@ -185,6 +185,8 @@ const getMainPortalRoutes = () => [
       { path: 'materials/:id', element: <StudyMaterialDetailPage /> },
       { path: 'course-evaluations', element: <CourseEvaluationListPage /> },
       { path: 'course-evaluations/:id', element: <CourseEvaluationDetailPage /> },
+      { path: 'evaluations', element: <CourseEvaluationListPage /> },
+      { path: 'evaluations/:id', element: <CourseEvaluationDetailPage /> },
       { path: 'marketplace', element: <MarketplaceListPage /> },
       { path: 'marketplace/:id', element: <MarketplaceDetailPage /> },
       { path: 'profile', element: <ProfilePage /> },

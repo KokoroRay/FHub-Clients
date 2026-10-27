@@ -65,6 +65,22 @@ const FALLBACK_CAMPUSES: Record<
     city: 'Quy Nhơn',
     description: 'Cơ sở đào tạo Trường Đại học FPT tại Khu đô thị mới An Phú Thịnh, Quy Nhơn.',
   },
+  ALL: {
+    name: 'Tất cả phân hiệu FPT (Toàn quốc)',
+    fullName: 'Trường Đại học FPT - Toàn hệ thống (Global)',
+    shortName: 'FPT University (Toàn quốc)',
+    address: 'Hà Nội · TP. Hồ Chí Minh · Đà Nẵng · Cần Thơ · Quy Nhơn',
+    city: 'Toàn quốc',
+    description: 'Nền tảng sinh viên FPT kết nối tất cả phân hiệu trên toàn quốc.',
+  },
+  GLOBAL: {
+    name: 'Tất cả phân hiệu FPT (Toàn quốc)',
+    fullName: 'Trường Đại học FPT - Toàn hệ thống (Global)',
+    shortName: 'FPT University (Toàn quốc)',
+    address: 'Hà Nội · TP. Hồ Chí Minh · Đà Nẵng · Cần Thơ · Quy Nhơn',
+    city: 'Toàn quốc',
+    description: 'Nền tảng sinh viên FPT kết nối tất cả phân hiệu trên toàn quốc.',
+  },
 };
 
 /**
@@ -72,6 +88,7 @@ const FALLBACK_CAMPUSES: Record<
  */
 function getCampusShortName(code: string, dbName?: string, city?: string): string {
   const c = code.toUpperCase();
+  if (c === 'ALL' || c === 'GLOBAL') return 'FPT University (Toàn quốc)';
   if (c === 'HL' || c === 'HN') return 'FPT University Hòa Lạc';
   if (c === 'HCM') return 'FPT University HCM';
   if (c === 'DN') return 'FPT University Đà Nẵng';
@@ -113,6 +130,14 @@ export function useCampusDetails(campusCodeInput?: string): CampusDetailInfo {
     let isMounted = true;
 
     const loadFromDatabase = async () => {
+      const token = localStorage.getItem('fhub_token') || sessionStorage.getItem('fhub_token');
+      if (!token) {
+        if (isMounted) {
+          setCampusInfo((prev) => ({ ...prev, isLoading: false }));
+        }
+        return;
+      }
+
       try {
         const res = await campusesApi.getCampuses({ pageSize: 50 });
         const items = (res as any)?.items || res || [];

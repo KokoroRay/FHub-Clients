@@ -20,12 +20,13 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { EditProfileModal } from './EditProfileModal';
 import { profileApi, badgeApi, voteApi } from '../../services/api/studentApi';
+import { normalizeMediaUrl } from '../../utils/mediaUtils';
 
 
 
 export const ProfilePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { currentUser } = useAuth();
+  const { currentUser, updateUser } = useAuth();
 
   const isOwnProfile = !id || id === currentUser?.id || id === 'me';
 
@@ -158,10 +159,16 @@ export const ProfilePage: React.FC = () => {
       fullName: updated.fullName,
       campus: updated.campus,
       major: updated.major,
+      specialization: updated.specialization,
       bio: updated.bio,
       interests: updated.interests,
       avatarUrl: updated.avatarUrl,
     }));
+    updateUser({
+      fullName: updated.fullName,
+      avatarUrl: updated.avatarUrl,
+      campus: updated.campus,
+    });
   };
 
   return (
@@ -215,7 +222,7 @@ export const ProfilePage: React.FC = () => {
           {/* Avatar Initials Circle */}
           <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-[#0076D1] to-sky-400 flex items-center justify-center text-white font-bold text-2xl overflow-hidden shadow-xs shrink-0">
             {profileData.avatarUrl ? (
-              <img src={profileData.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+              <img src={normalizeMediaUrl(profileData.avatarUrl)} alt="Avatar" className="w-full h-full object-cover" />
             ) : (
               profileData.fullName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() || 'BQ'
             )}
@@ -454,14 +461,22 @@ export const ProfilePage: React.FC = () => {
             <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <h4 className="text-sm font-bold text-slate-800">Earned Badges</h4>
-                {userBadges.length > 0 && (
-                  <button 
-                    onClick={() => setActiveTab('badges')}
-                    className="text-xs font-semibold text-[#0076D1] hover:underline"
+                <div className="flex items-center gap-3">
+                  <Link
+                    to="/reputation-rules"
+                    className="text-xs font-semibold text-slate-500 hover:text-[#0076D1] hover:underline"
                   >
-                    View All ({userBadges.length})
-                  </button>
-                )}
+                    Reputation Rules
+                  </Link>
+                  {userBadges.length > 0 && (
+                    <button 
+                      onClick={() => setActiveTab('badges')}
+                      className="text-xs font-semibold text-[#0076D1] hover:underline"
+                    >
+                      View All ({userBadges.length})
+                    </button>
+                  )}
+                </div>
               </div>
 
               {userBadges.length === 0 ? (
@@ -641,6 +656,7 @@ export const ProfilePage: React.FC = () => {
           email: profileData.email,
           campus: profileData.campus,
           major: profileData.major,
+          specialization: (profileData as any).specialization,
           bio: profileData.bio,
           interests: profileData.interests,
           avatarUrl: profileData.avatarUrl,

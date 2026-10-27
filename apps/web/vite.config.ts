@@ -35,6 +35,7 @@ export default defineConfig({
       '/api/profiles': { target: 'http://localhost:5267', changeOrigin: true },
       '/api/profile': { target: 'http://localhost:5267', changeOrigin: true },
       '/api/content': { target: 'http://localhost:5121', changeOrigin: true },
+      '/storage': { target: 'http://localhost:5121', rewrite: (p) => p.replace(/^\/storage/, '/api/content/media'), changeOrigin: true },
       '/api/articles': { target: 'http://localhost:5121', rewrite: (p) => p.replace(/^\/api\/articles/, '/api/content/articles'), changeOrigin: true },
       '/api/workflows': { target: 'http://localhost:5121', rewrite: (p) => p.replace(/^\/api\/workflows/, '/api/content/workflows'), changeOrigin: true },
       '/api/study-materials': { target: 'http://localhost:5121', rewrite: (p) => p.replace(/^\/api\/study-materials/, '/api/content/study-materials'), changeOrigin: true },

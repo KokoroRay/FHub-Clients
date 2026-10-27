@@ -2,8 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Modal } from '../../components/common/Modal';
 import { Button } from '../../components/common/Button';
 import { Input, Textarea, Select } from '../../components/common/Input';
+import { CourseSelect } from '../../components/common/CourseSelect';
 import { courseNodesApi } from '../../services/api/adminApi';
 import { StudyMaterial } from '../../types';
+import { useAuth } from '../../context/AuthContext';
+import { filterCompactCourses } from '../../utils/courseFilter';
 
 export interface UpdateMaterialMetadataModalProps {
   isOpen: boolean;
@@ -18,34 +21,15 @@ export const UpdateMaterialMetadataModal: React.FC<UpdateMaterialMetadataModalPr
   onClose,
   onUpdated,
 }) => {
+  const { currentUser } = useAuth();
   const [title, setTitle] = useState(material.title);
   const [description, setDescription] = useState(material.description);
   const [courseCode, setCourseCode] = useState(material.courseCode);
-  const [courses, setCourses] = useState<Array<{ code: string; title: string }>>([]);
+  
   const [fileType, setFileType] = useState(material.fileType);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    let isMounted = true;
-    const loadCourses = async () => {
-      try {
-        const res = await courseNodesApi.getCourseNodes();
-        const items = (res as any)?.items || res || [];
-        if (isMounted && Array.isArray(items) && items.length > 0) {
-          setCourses(
-            items.map((c: any) => ({
-              code: c.code || c.courseCode,
-              title: c.name || c.title || c.code,
-            }))
-          );
-        }
-      } catch (err) {
-        console.warn('Failed to load courses in modal:', err);
-      }
-    };
-    loadCourses();
-    return () => { isMounted = false; };
-  }, []);
+  
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,18 +75,11 @@ export const UpdateMaterialMetadataModal: React.FC<UpdateMaterialMetadataModalPr
         />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Select
-            label="Môn học liên quan"
+          <CourseSelect
+            label="Môn học liên quan *"
             value={courseCode}
-            onChange={(e) => setCourseCode(e.target.value)}
-            options={
-              courses.length > 0
-                ? courses.map((c) => ({
-                    value: c.code,
-                    label: `${c.code} - ${c.title}`,
-                  }))
-                : [{ value: courseCode || '', label: courseCode || 'Đang tải môn học...' }]
-            }
+            onChange={(code) => setCourseCode(code)}
+            required
           />
           <Select
             label="Loại file"

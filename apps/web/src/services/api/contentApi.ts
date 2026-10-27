@@ -700,3 +700,34 @@ export const alumniApi = {
   },
 };
 
+// ─── 9. Content Media API ─────────────────────────────────────────────────────
+export interface StorageUploadResult {
+  storageKey: string;
+  publicUrl: string;
+  fileSizeBytes: number;
+  contentType: string;
+  fileName: string;
+}
+
+export const contentMediaApi = {
+  uploadMedia: async (file: File, resourceType: string = 'avatar', scopeId?: string): Promise<StorageUploadResult> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('resourceType', resourceType);
+    if (scopeId) formData.append('scopeId', scopeId);
+
+    const res = await apiClient.post<ApiResponse<StorageUploadResult>>('/api/content/media/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    const d = res.data.data;
+    const cleanPublicUrl = `/api/content/media/${(d.storageKey || '').replace(/^\/+/, '')}`;
+    return {
+      ...d,
+      publicUrl: cleanPublicUrl,
+    };
+  },
+};
+
+

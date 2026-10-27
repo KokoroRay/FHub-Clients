@@ -5,24 +5,58 @@ import type { ApiResponse, PagedResult } from './adminApi';
 // ─── 1. Bookmark API (Go Interaction Service) ─────────────────────────────────
 export interface BookmarkItem {
   id: number | string;
-  userId: number;
-  targetType: 'QUESTION' | 'ARTICLE' | 'WORKFLOW' | 'STUDY_MATERIAL';
+  bookmarkId?: number | string;
+  userId?: number;
+  targetType: 'QUESTION' | 'ARTICLE' | 'WORKFLOW' | 'STUDY_MATERIAL' | 'StudyMaterial' | string;
   targetId: number | string;
+  externalTargetId?: number | string;
   createdAt: string;
   title?: string;
   summary?: string;
+  note?: string;
 }
 
 export const bookmarkApi = {
   getBookmarks: async (type?: string): Promise<BookmarkItem[]> => {
-    const url = type && type !== 'ALL' ? `/api/bookmarks/filter?type=${type}` : '/api/bookmarks';
-    const res = await apiClient.get<BookmarkItem[] | ApiResponse<BookmarkItem[]>>(url);
-    const data = (res.data as any).data || res.data;
-    return Array.isArray(data) ? data : [];
+    let normalizedType = type;
+    if (type && type !== 'ALL') {
+      const t = type.toUpperCase();
+      if (t === 'MATERIAL' || t === 'STUDY_MATERIAL') normalizedType = 'StudyMaterial';
+      else if (t === 'QUESTION') normalizedType = 'Question';
+      else if (t === 'ARTICLE') normalizedType = 'Article';
+      else if (t === 'WORKFLOW') normalizedType = 'Workflow';
+      else if (t === 'ANSWER') normalizedType = 'Answer';
+    }
+    const url = normalizedType && normalizedType !== 'ALL' ? `/api/bookmarks/filter?type=${normalizedType}` : '/api/bookmarks';
+    const res = await apiClient.get<any>(url);
+    const data = (res.data as any)?.data || res.data || [];
+    if (!Array.isArray(data)) return [];
+    return data.map((b: any) => ({
+      id: b.bookmark_id ?? b.id ?? b.BookmarkId,
+      bookmarkId: b.bookmark_id ?? b.id ?? b.BookmarkId,
+      userId: b.engagement_account_id ?? b.user_id ?? b.userId,
+      targetType: (b.target_type || b.targetType || '').toUpperCase(),
+      targetId: b.external_target_id ?? b.target_id ?? b.targetId,
+      externalTargetId: b.external_target_id ?? b.target_id ?? b.targetId,
+      createdAt: b.created_at || b.createdAt || new Date().toISOString(),
+      note: b.note || '',
+    }));
   },
 
-  addBookmark: async (targetType: string, targetId: number | string): Promise<any> => {
-    const res = await apiClient.post('/api/bookmarks', { targetType, targetId });
+  addBookmark: async (targetType: string, targetId: number | string, note?: string): Promise<any> => {
+    let normalizedType = targetType;
+    const t = targetType.toUpperCase();
+    if (t === 'MATERIAL' || t === 'STUDY_MATERIAL') normalizedType = 'StudyMaterial';
+    else if (t === 'QUESTION') normalizedType = 'Question';
+    else if (t === 'ARTICLE') normalizedType = 'Article';
+    else if (t === 'WORKFLOW') normalizedType = 'Workflow';
+    else if (t === 'ANSWER') normalizedType = 'Answer';
+
+    const res = await apiClient.post('/api/bookmarks', {
+      target_type: normalizedType,
+      external_target_id: Number(targetId) || 1,
+      note: note || '',
+    });
     return res.data;
   },
 
@@ -202,15 +236,18 @@ export interface UserProfileDto {
 }
 
 export interface UserPreferencesDto {
-  feedTuning: {
-    preferMyMajor: boolean;
-    preferMyCampus: boolean;
-    showHotDiscussions: boolean;
+  feedTuning?: {
+    preferMyMajor?: boolean;
+    preferMyCampus?: boolean;
+    showHotDiscussions?: boolean;
   };
-  privacy: {
-    showEmail: boolean;
-    showActivity: boolean;
+  privacy?: {
+    showEmail?: boolean;
+    showActivity?: boolean;
+    profileVisibility?: string;
   };
+  feedPreferenceJson?: string;
+  [key: string]: any;
 }
 
 export const profileApi = {
@@ -283,7 +320,7 @@ export const profileApi = {
 
 // ─── 5. Vote API (Go Interaction Service) ─────────────────────────────────────
 export interface VoteRequest {
-  target_type: 'ARTICLE' | 'QUESTION' | 'COMMENT' | 'WORKFLOW' | 'STUDY_MATERIAL';
+  target_type: 'ARTICLE' | 'QUESTION' | 'COMMENT' | 'WORKFLOW' | 'STUDY_MATERIAL' | 'ANSWER';
   target_id: number | string;
   vote_value: 1 | -1;
 }
@@ -294,7 +331,7 @@ export interface VoteResponse {
   targetType: string;
   targetId: number;
   voteValue: number;
-  scoreDelta: number;
+  scoreDelta?: number;
   revokedAt?: string;
   createdAt: string;
   updatedAt: string;
@@ -306,16 +343,28 @@ export interface VoteStats {
   upvotes: number;
   downvotes: number;
   score: number;
+  myVoteValue?: number | null;
 }
 
 export const voteApi = {
   vote: async (payload: VoteRequest): Promise<VoteResponse> => {
-    const res = await apiClient.put<VoteResponse>('/api/votes', {
+    const res = await apiClient.put<any>('/api/votes', {
       target_type: payload.target_type,
       target_id: Number(payload.target_id) || 1,
       vote_value: payload.vote_value,
     });
-    return (res.data as any).data || res.data;
+    const d = (res.data as any).data || res.data;
+    return {
+      voteId: d.vote_id ?? d.voteId,
+      userId: d.user_id ?? d.userId,
+      targetType: d.target_type ?? d.targetType,
+      targetId: d.target_id ?? d.targetId,
+      voteValue: d.vote_value ?? d.voteValue,
+      scoreDelta: d.score_delta ?? d.scoreDelta ?? 0,
+      revokedAt: d.revoked_at ?? d.revokedAt,
+      createdAt: d.created_at ?? d.createdAt,
+      updatedAt: d.updated_at ?? d.updatedAt,
+    };
   },
 
   removeVote: async (targetType: string, targetId: number | string): Promise<void> => {
@@ -323,13 +372,33 @@ export const voteApi = {
   },
 
   getStats: async (targetType: string, targetId: number | string): Promise<VoteStats> => {
-    const res = await apiClient.get<VoteStats>(`/api/votes/stats/${targetType}/${targetId}`);
-    return (res.data as any).data || res.data;
+    const res = await apiClient.get<any>(`/api/votes/stats/${targetType}/${targetId}`);
+    const data = (res.data as any)?.data || res.data || {};
+    return {
+      targetType: data.target_type || data.targetType || targetType,
+      targetId: data.target_id || data.targetId || Number(targetId),
+      upvotes: data.upvote_count ?? data.upvotes ?? 0,
+      downvotes: data.downvote_count ?? data.downvotes ?? 0,
+      score: data.net_score ?? data.score ?? 0,
+      myVoteValue: data.my_vote_value ?? data.myVoteValue ?? null,
+    };
   },
 
   getMyVotes: async (): Promise<VoteResponse[]> => {
-    const res = await apiClient.get<VoteResponse[]>('/api/interactions/me/votes');
-    return (res.data as any).data || res.data || [];
+    const res = await apiClient.get<any[]>('/api/interactions/me/votes');
+    const items = (res.data as any)?.data || res.data || [];
+    if (!Array.isArray(items)) return [];
+    return items.map((d: any) => ({
+      voteId: d.vote_id ?? d.voteId,
+      userId: d.user_id ?? d.userId,
+      targetType: d.target_type ?? d.targetType ?? d.engagement_target?.target_type,
+      targetId: d.target_id ?? d.targetId ?? d.engagement_target?.external_target_id,
+      voteValue: d.vote_value ?? d.voteValue,
+      scoreDelta: d.score_delta ?? d.scoreDelta ?? 0,
+      revokedAt: d.revoked_at ?? d.revokedAt,
+      createdAt: d.created_at ?? d.createdAt,
+      updatedAt: d.updated_at ?? d.updatedAt,
+    }));
   },
 };
 

@@ -100,7 +100,7 @@ export const LoginPage: React.FC = () => {
     }
   };
 
-  const GOOGLE_CLIENT_ID = '286107558257-opd8v8nqnogitdmkvidvei0h691rpr15.apps.googleusercontent.com';
+  const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 
   const handleGoogleSuccess = async (idToken: string) => {
     setIsLoading(true);
@@ -111,11 +111,10 @@ export const LoginPage: React.FC = () => {
       const payloadBase64 = idToken.split('.')[1];
       if (payloadBase64) {
         const payloadJson = JSON.parse(atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/')));
-        const googleEmail = payloadJson.email || '';
+        const googleEmail = (payloadJson.email || '').trim().toLowerCase();
         if (googleEmail) {
-          const emailCheck = validateFptEmail(googleEmail);
-          if (!emailCheck.isValid) {
-            setErrorMessage(`Tài khoản Google (${googleEmail}) không hợp lệ: ${emailCheck.error}`);
+          if (!googleEmail.endsWith('@fpt.edu.vn')) {
+            setErrorMessage(`Chỉ tài khoản Google có đuôi email @fpt.edu.vn mới được phép đăng nhập hoặc đăng ký qua Google. (Email hiện tại: ${googleEmail})`);
             setIsLoading(false);
             return;
           }
@@ -174,27 +173,39 @@ export const LoginPage: React.FC = () => {
   };
 
   React.useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    script.onload = () => {
+    let isMounted = true;
+    const initGsi = () => {
+      if (!isMounted) return;
       if ((window as any).google?.accounts?.id) {
-        (window as any).google.accounts.id.initialize({
-          client_id: GOOGLE_CLIENT_ID,
-          callback: (response: any) => {
-            if (response.credential) {
-              handleGoogleSuccess(response.credential);
+        try {
+          (window as any).google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: (response: any) => {
+              if (response.credential) {
+                handleGoogleSuccess(response.credential);
+              }
             }
-          }
-        });
+          });
+        } catch {
+          // ignore
+        }
       }
     };
-    document.body.appendChild(script);
+
+    const existingScript = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
+    if (!existingScript) {
+      const script = document.createElement('script');
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      script.onload = initGsi;
+      document.body.appendChild(script);
+    } else {
+      initGsi();
+    }
+
     return () => {
-      if (document.body.contains(script)) {
-        document.body.removeChild(script);
-      }
+      isMounted = false;
     };
   }, []);
 

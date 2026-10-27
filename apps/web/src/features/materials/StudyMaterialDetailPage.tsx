@@ -16,6 +16,7 @@ import { studyMaterialApi } from '../../services/api/contentApi';
 import { useAuth } from '../../context/AuthContext';
 import { UpdateMaterialMetadataModal } from './UpdateMaterialMetadataModal';
 import { StudyMaterial } from '../../types';
+import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 
 export const StudyMaterialDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -40,12 +41,22 @@ export const StudyMaterialDetailPage: React.FC = () => {
         setIsLoading(true);
         const data = await studyMaterialApi.getMaterialById(id);
         if (isMounted && data) {
+          const name = data.fileName || data.title || '';
+          const ext = name.split('.').pop()?.toLowerCase();
+          let resolvedFileType: 'PDF' | 'DOCX' | 'ZIP' | 'PPTX' | 'CODE' = 'PDF';
+          if (data.materialType === 'LINK') resolvedFileType = 'CODE';
+          else if (ext === 'pdf') resolvedFileType = 'PDF';
+          else if (ext === 'docx' || ext === 'doc') resolvedFileType = 'DOCX';
+          else if (ext === 'pptx' || ext === 'ppt') resolvedFileType = 'PPTX';
+          else if (['zip', 'rar', '7z'].includes(ext || '')) resolvedFileType = 'ZIP';
+          else if (['cs', 'java', 'py', 'sql', 'cpp', 'c', 'json', 'md', 'txt'].includes(ext || '')) resolvedFileType = 'CODE';
+
           const mapped: StudyMaterial = {
             id: String(data.studyMaterialId),
             title: data.title,
             description: data.description || 'Tài liệu học tập',
             courseCode: data.courseId ? `COURSE-${data.courseId}` : 'GEN',
-            fileType: (data.materialType === 'LINK' ? 'ZIP' : 'PDF') as any,
+            fileType: resolvedFileType,
             fileSizeMb: data.fileSizeBytes ? Number((data.fileSizeBytes / (1024 * 1024)).toFixed(1)) : 0,
             downloadUrl: data.externalUrl || `/api/content/study-materials/${data.studyMaterialId}/download`,
             downloadsCount: data.downloadCount || 0,
@@ -74,15 +85,25 @@ export const StudyMaterialDetailPage: React.FC = () => {
     setDownloadCount((prev) => prev + 1);
     setDownloadSuccess(true);
 
-    const element = document.createElement('a');
-    const file = new Blob([`Content of ${material.title}\nCourse: ${material.courseCode}`], {
-      type: 'text/plain',
-    });
-    element.href = URL.createObjectURL(file);
-    element.download = material.title.endsWith('.pdf') ? material.title : `${material.title}.pdf`;
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
+    if (material.downloadUrl && material.downloadUrl !== '#' && !material.downloadUrl.startsWith('blob:')) {
+      if (material.downloadUrl.startsWith('http://') || material.downloadUrl.startsWith('https://')) {
+        window.open(material.downloadUrl, '_blank');
+      } else {
+        const link = document.createElement('a');
+        link.href = material.downloadUrl;
+        link.setAttribute('download', '');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } else {
+      const link = document.createElement('a');
+      link.href = `/api/content/study-materials/${material.id}/download`;
+      link.setAttribute('download', '');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
 
     setTimeout(() => setDownloadSuccess(false), 3000);
   };
@@ -167,6 +188,12 @@ export const StudyMaterialDetailPage: React.FC = () => {
             >
               <Bookmark className="w-4 h-4" />
             </button>
+            <ContentActionMenu
+              targetType="STUDY_MATERIAL"
+              targetId={material.id}
+              targetTitle={material.title}
+              shareUrl={typeof window !== 'undefined' ? window.location.href : ''}
+            />
 
             {currentUser?.id && String(currentUser.id) === String(material.author.id) && (
               <>

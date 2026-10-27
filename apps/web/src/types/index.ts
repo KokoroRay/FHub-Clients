@@ -7,7 +7,7 @@ export type UserRole =
   | 'Alumni'
   | 'Guest';
 
-export type CampusCode = 'HL' | 'HCM' | 'DN' | 'CT' | 'QN';
+export type CampusCode = 'HL' | 'HCM' | 'DN' | 'CT' | 'QN' | 'HN' | 'ALL' | 'GLOBAL';
 
 export interface Campus {
   id: string;
@@ -112,6 +112,7 @@ export interface Answer {
     role: UserRole;
     karma: number;
     campus?: string;
+    isAnonymous?: boolean;
   };
   content: string;
   upvotes: number;
@@ -149,6 +150,7 @@ export interface TechArticle {
     avatarUrl?: string;
     role: UserRole;
     campus?: string;
+    isAnonymous?: boolean;
   };
   readTimeMinutes: number;
   viewsCount: number;
@@ -184,6 +186,7 @@ export interface SharedWorkflow {
     avatarUrl?: string;
     role: UserRole;
     campus?: string;
+    isAnonymous?: boolean;
   };
   viewsCount: number;
   usageCount: number;

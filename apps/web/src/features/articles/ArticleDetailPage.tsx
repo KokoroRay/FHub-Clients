@@ -23,6 +23,9 @@ import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
 import { Textarea } from '../../components/common/Input';
 import { articleApi } from '../../services/api/contentApi';
+import { voteApi, bookmarkApi } from '../../services/api/studentApi';
+import { normalizeMediaUrl } from '../../utils/mediaUtils';
+import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 
 export const ArticleDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -59,6 +62,26 @@ export const ArticleDetailPage: React.FC = () => {
             },
           });
           setLikesCount(0);
+
+          const numId = Number(id.replace(/\D/g, ''));
+          if (numId) {
+            try {
+              const stats = await voteApi.getStats('ARTICLE', numId);
+              if (isMounted) {
+                setLikesCount(stats.score);
+                setIsLiked(stats.myVoteValue === 1);
+              }
+            } catch {}
+
+            try {
+              const bList = await bookmarkApi.getBookmarks('Article');
+              const found = bList.find((b) => Number(b.targetId) === numId);
+              if (found && isMounted) {
+                setIsBookmarked(true);
+                setBookmarkId(found.id);
+              }
+            } catch {}
+          }
         }
       } catch (err) {
         if (isMounted) setArticle(null);
@@ -73,14 +96,60 @@ export const ArticleDetailPage: React.FC = () => {
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(0);
   const [isBookmarked, setIsBookmarked] = useState(false);
+  const [bookmarkId, setBookmarkId] = useState<number | string | null>(null);
   const [isFollowingAuthor, setIsFollowingAuthor] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [comments, setComments] = useState<any[]>([]);
 
-  const toggleLike = () => {
-    setIsLiked(!isLiked);
-    setLikesCount((c) => (isLiked ? c - 1 : c + 1));
+  const toggleLike = async () => {
+    if (!id) return;
+    const numId = Number(id.replace(/\D/g, ''));
+    if (!numId) return;
+
+    const prevLiked = isLiked;
+    const prevCount = likesCount;
+    setIsLiked(!prevLiked);
+    setLikesCount(prevLiked ? prevCount - 1 : prevCount + 1);
+
+    try {
+      await voteApi.vote({
+        target_type: 'ARTICLE',
+        target_id: numId,
+        vote_value: prevLiked ? -1 : 1,
+      });
+      const stats = await voteApi.getStats('ARTICLE', numId);
+      setLikesCount(stats.score);
+      setIsLiked(stats.myVoteValue === 1);
+    } catch (err) {
+      setIsLiked(prevLiked);
+      setLikesCount(prevCount);
+    }
+  };
+
+  const toggleBookmark = async () => {
+    if (!id) return;
+    const numId = Number(id.replace(/\D/g, ''));
+    if (!numId) return;
+
+    if (isBookmarked && bookmarkId) {
+      try {
+        await bookmarkApi.removeBookmark(bookmarkId);
+        setIsBookmarked(false);
+        setBookmarkId(null);
+      } catch (err) {
+        console.warn('Failed to remove bookmark:', err);
+      }
+    } else {
+      try {
+        const res = await bookmarkApi.addBookmark('Article', numId);
+        setIsBookmarked(true);
+        const bId = res?.bookmark_id ?? res?.data?.bookmark_id ?? res?.id;
+        setBookmarkId(bId || Date.now());
+      } catch (err) {
+        console.warn('Failed to add bookmark:', err);
+      }
+    }
   };
 
   const copySnippet = (text: string) => {
@@ -176,7 +245,7 @@ export const ArticleDetailPage: React.FC = () => {
                 {/* Author Card Header */}
                 <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-3">
                   <div className="flex items-center gap-3">
-                    <img src={article.author.avatarUrl} alt={article.author.fullName} className="w-10 h-10 rounded-full object-cover ring-1 ring-slate-200" />
+                    <img src={normalizeMediaUrl(article.author.avatarUrl)} alt={article.author.fullName} className="w-10 h-10 rounded-full object-cover ring-1 ring-slate-200" />
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-sm text-slate-900 dark:text-slate-100">{article.author.fullName}</span>
@@ -208,14 +277,17 @@ export const ArticleDetailPage: React.FC = () => {
                     <Button
                       variant={isBookmarked ? 'secondary' : 'outline'}
                       size="sm"
-                      onClick={() => setIsBookmarked(!isBookmarked)}
+                      onClick={toggleBookmark}
                       leftIcon={<Bookmark className={`w-4 h-4 ${isBookmarked ? 'fill-blue-600 text-blue-600' : ''}`} />}
                     >
                       {isBookmarked ? 'Đã lưu' : 'Lưu'}
                     </Button>
-                    <Button variant="outline" size="sm" className="p-2">
-                      <Share2 className="w-4 h-4" />
-                    </Button>
+                    <ContentActionMenu
+                      targetType="ARTICLE"
+                      targetId={article.id}
+                      targetTitle={article.title}
+                      shareUrl={typeof window !== 'undefined' ? window.location.href : ''}
+                    />
                   </div>
                 </div>
               </div>
@@ -379,7 +451,14 @@ builder.Services.AddSingleton<IMemoryCacheProvider, MemoryCacheProvider>();`}</c
                           <span className="font-bold text-xs text-slate-900 dark:text-slate-100">{cmt.author.fullName}</span>
                           <Badge variant="neutral" size="sm">{cmt.author.campus}</Badge>
                         </div>
-                        <span className="text-[10px] text-slate-400">{cmt.createdAt}</span>
+                        <div className="flex items-center gap-1">
+                          <span className="text-[10px] text-slate-400">{cmt.createdAt}</span>
+                          <ContentActionMenu
+                            targetType="OTHER"
+                            targetId={cmt.id}
+                            targetTitle={`Bình luận của ${cmt.author?.fullName || 'Sinh viên'}`}
+                          />
+                        </div>
                       </div>
                       <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">{cmt.content}</p>
                     </div>
@@ -417,7 +496,7 @@ builder.Services.AddSingleton<IMemoryCacheProvider, MemoryCacheProvider>();`}</c
           <Card>
             <CardBody className="p-5 text-center space-y-3">
               <img
-                src={article.author.avatarUrl}
+                src={normalizeMediaUrl(article.author.avatarUrl)}
                 alt={article.author.fullName}
                 className="w-16 h-16 rounded-2xl mx-auto object-cover ring-2 ring-blue-500/30"
               />

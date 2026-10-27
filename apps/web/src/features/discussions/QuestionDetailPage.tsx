@@ -28,12 +28,17 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { questionApi, alumniApi } from '../../services/api/contentApi';
+import { voteApi, bookmarkApi } from '../../services/api/studentApi';
+import { courseNodesApi, semanticTagsApi } from '../../services/api/adminApi';
+import { normalizeMediaUrl } from '../../utils/mediaUtils';
 import { Answer, CommentItem, QuestionPost } from '../../types';
 import { Card, CardBody, CardHeader } from '../../components/common/Card';
 import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
 import { Textarea } from '../../components/common/Input';
+import { MarkdownPreview } from '../../components/common/MarkdownPreview';
 import { VotingStatsModal } from './VotingStatsModal';
+import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 
 export const QuestionDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -45,6 +50,7 @@ export const QuestionDetailPage: React.FC = () => {
   const [isLocked, setIsLocked] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
+  const [bookmarkId, setBookmarkId] = useState<number | string | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
   const [composerTab, setComposerTab] = useState<'write' | 'preview'>('write');
   const [isVotingStatsOpen, setIsVotingStatsOpen] = useState(false);
@@ -65,11 +71,36 @@ export const QuestionDetailPage: React.FC = () => {
         setIsLoading(true);
         const data = await questionApi.getQuestionById(numId);
         if (isMounted && data) {
+          let mappedCourseCode = data.courseId ? `COURSE-${data.courseId}` : undefined;
+          let mappedTags = ['fhub', 'qa'];
+
+          try {
+            const [cRes, tRes] = await Promise.all([
+              courseNodesApi.getCourseNodes({ pageSize: 100 }),
+              semanticTagsApi.getTags({ pageSize: 100 }),
+            ]);
+            const cItems = (cRes as any)?.items || cRes || [];
+            if (Array.isArray(cItems) && data.courseId) {
+              const found = cItems.find((c: any) => Number(c.id || c.courseNodeId) === Number(data.courseId));
+              if (found) mappedCourseCode = found.code || found.courseCode;
+            }
+            const tItems = (tRes as any)?.items || (tRes as any)?.data?.items || tRes || [];
+            if (Array.isArray(tItems) && data.semanticTagIds && data.semanticTagIds.length > 0) {
+              const tagMap: Record<number, string> = {};
+              tItems.forEach((t: any) => {
+                const tid = Number(t.semanticTagId || t.id);
+                const tname = (t.tagName || t.name || '').toLowerCase().trim();
+                if (tid && tname) tagMap[tid] = tname;
+              });
+              mappedTags = data.semanticTagIds.map((id: number) => tagMap[id] || `tag-${id}`);
+            }
+          } catch {}
+
           setQuestion({
             id: String(data.questionId),
             title: data.title,
             content: data.body,
-            courseCode: data.courseId ? `COURSE-${data.courseId}` : undefined,
+            courseCode: mappedCourseCode,
             author: {
               id: String(data.authorUserId || 'anon'),
               fullName: data.isAnonymous ? 'Ẩn danh FPTer' : (data.authorDisplayName || 'Sinh viên FHub'),
@@ -78,7 +109,7 @@ export const QuestionDetailPage: React.FC = () => {
               campus: '',
               isAnonymous: data.isAnonymous,
             },
-            tags: ['fhub', 'qa'],
+            tags: mappedTags,
             upvotes: data.upvoteCount || 0,
             downvotes: data.downvoteCount || 0,
             answersCount: data.answerCount || 0,
@@ -88,39 +119,76 @@ export const QuestionDetailPage: React.FC = () => {
             isPinned: data.isPinned || false,
             createdAt: data.createdAt,
           });
-          setUpvotes(data.upvoteCount || 0);
           setIsLocked(data.areCommentsLocked || false);
           setIsPinned(data.isPinned || false);
         }
 
+        // Fetch question vote stats from interaction service
+        try {
+          const qStats = await voteApi.getStats('QUESTION', numId);
+          if (isMounted) {
+            setUpvotes(qStats.score);
+            setUserVote(qStats.myVoteValue === 1 ? 'UP' : qStats.myVoteValue === -1 ? 'DOWN' : null);
+          }
+        } catch {
+          if (isMounted && data) {
+            setUpvotes((data.upvoteCount || 0) - (data.downvoteCount || 0));
+          }
+        }
+
+        // Fetch bookmark status for this question
+        try {
+          const bList = await bookmarkApi.getBookmarks('Question');
+          const found = bList.find((b) => Number(b.targetId) === numId);
+          if (found && isMounted) {
+            setIsBookmarked(true);
+            setBookmarkId(found.id);
+          }
+        } catch {}
+
+        // Fetch caller's active votes across platform
+        let myVotesMap: Record<string, number> = {};
+        try {
+          const myVotes = await voteApi.getMyVotes();
+          myVotes.forEach((v) => {
+            if (v.targetType === 'ANSWER') {
+              myVotesMap[String(v.targetId)] = v.voteValue;
+            }
+          });
+        } catch {}
+
         const answersData = await questionApi.getAnswers(numId);
         if (isMounted) {
-          const mappedAnswers: Answer[] = (answersData || []).map((ans) => ({
-            id: String(ans.answerId),
-            questionId: String(ans.questionId),
-            author: {
-              id: String(ans.authorUserId || 'usr'),
-              fullName: ans.isAnonymous ? 'Ẩn danh FPTer' : (ans.authorDisplayName || 'Sinh viên FHub'),
-              avatarUrl: '',
-              role: ans.isModeratorVerified ? 'Alumni' : 'Student',
-              karma: 0,
-              campus: '',
-            },
-            content: ans.body,
-            upvotes: ans.upvoteCount || 0,
-            downvotes: ans.downvoteCount || 0,
-            userVote: null,
-            isBestAnswer: ans.isBestAnswer || false,
-            isModVerified: ans.isModeratorVerified || false,
-            comments: (ans.comments || []).map((c: any) => ({
-              id: String(c.commentId),
-              parentId: String(ans.answerId),
-              author: { id: String(c.authorUserId || 'u'), fullName: c.authorDisplayName || 'Người dùng FHub' },
-              content: c.body,
-              createdAt: c.createdAt || 'Vừa xong',
-            })),
-            createdAt: ans.createdAt,
-          }));
+          const mappedAnswers: Answer[] = (answersData || []).map((ans) => {
+            const userVoteVal = myVotesMap[String(ans.answerId)];
+            return {
+              id: String(ans.answerId),
+              questionId: String(ans.questionId),
+              author: {
+                id: String(ans.authorUserId || 'usr'),
+                fullName: ans.isAnonymous ? 'Ẩn danh FPTer' : (ans.authorDisplayName || 'Sinh viên FHub'),
+                avatarUrl: '',
+                role: ans.isModeratorVerified ? 'Alumni' : 'Student',
+                karma: 0,
+                campus: '',
+                isAnonymous: ans.isAnonymous,
+              },
+              content: ans.body,
+              upvotes: (ans.upvoteCount || 0) - (ans.downvoteCount || 0),
+              downvotes: ans.downvoteCount || 0,
+              userVote: userVoteVal === 1 ? 'UP' : userVoteVal === -1 ? 'DOWN' : null,
+              isBestAnswer: ans.isBestAnswer || false,
+              isModVerified: ans.isModeratorVerified || false,
+              comments: (ans.comments || []).map((c: any) => ({
+                id: String(c.commentId),
+                parentId: String(ans.answerId),
+                author: { id: String(c.authorUserId || 'u'), fullName: c.authorDisplayName || 'Người dùng FHub' },
+                content: c.body,
+                createdAt: c.createdAt || 'Vừa xong',
+              })),
+              createdAt: ans.createdAt,
+            };
+          });
           setAnswers(mappedAnswers);
         }
       } catch (err) {
@@ -139,31 +207,116 @@ export const QuestionDetailPage: React.FC = () => {
   const [newAnswerContent, setNewAnswerContent] = useState('');
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
 
-  const handleVoteQuestion = (type: 'UP' | 'DOWN') => {
-    if (userVote === type) {
-      setUserVote(null);
-      setUpvotes((v) => (type === 'UP' ? v - 1 : v + 1));
+  const handleVoteQuestion = async (type: 'UP' | 'DOWN') => {
+    if (!id) return;
+    const numId = Number(id.replace(/\D/g, ''));
+    if (!numId) return;
+
+    const prevVote = userVote;
+    const prevScore = upvotes;
+
+    let nextVote: 'UP' | 'DOWN' | null = type;
+    let nextScore = prevScore;
+
+    if (prevVote === type) {
+      nextVote = null;
+      nextScore += type === 'UP' ? -1 : 1;
+    } else if (prevVote === null) {
+      nextScore += type === 'UP' ? 1 : -1;
     } else {
-      setUpvotes((v) => (type === 'UP' ? (userVote === 'DOWN' ? v + 2 : v + 1) : userVote === 'UP' ? v - 2 : v - 1));
-      setUserVote(type);
+      nextScore += type === 'UP' ? 2 : -2;
+    }
+
+    setUserVote(nextVote);
+    setUpvotes(nextScore);
+
+    try {
+      await voteApi.vote({
+        target_type: 'QUESTION',
+        target_id: numId,
+        vote_value: type === 'UP' ? 1 : -1,
+      });
+      const stats = await voteApi.getStats('QUESTION', numId);
+      setUpvotes(stats.score);
+      setUserVote(stats.myVoteValue === 1 ? 'UP' : stats.myVoteValue === -1 ? 'DOWN' : null);
+    } catch (err) {
+      setUserVote(prevVote);
+      setUpvotes(prevScore);
     }
   };
 
-  const handleVoteAnswer = (ansId: string, type: 'UP' | 'DOWN') => {
+  const toggleBookmark = async () => {
+    if (!id) return;
+    const numId = Number(id.replace(/\D/g, ''));
+    if (!numId) return;
+
+    if (isBookmarked && bookmarkId) {
+      try {
+        await bookmarkApi.removeBookmark(bookmarkId);
+        setIsBookmarked(false);
+        setBookmarkId(null);
+      } catch (err) {
+        console.warn('Failed to remove bookmark:', err);
+      }
+    } else {
+      try {
+        const res = await bookmarkApi.addBookmark('Question', numId);
+        setIsBookmarked(true);
+        const bId = res?.bookmark_id ?? res?.data?.bookmark_id ?? res?.id;
+        setBookmarkId(bId || Date.now());
+      } catch (err) {
+        console.warn('Failed to add bookmark:', err);
+      }
+    }
+  };
+
+  const handleVoteAnswer = async (ansId: string, type: 'UP' | 'DOWN') => {
+    const numAnsId = Number(ansId.replace(/\D/g, ''));
+    if (!numAnsId) return;
+
+    const currentAns = answers.find((a) => a.id === ansId);
+    const prevVote = currentAns?.userVote || null;
+    const prevScore = currentAns?.upvotes || 0;
+
+    let nextVote: 'UP' | 'DOWN' | null = type;
+    let nextScore = prevScore;
+
+    if (prevVote === type) {
+      nextVote = null;
+      nextScore += type === 'UP' ? -1 : 1;
+    } else if (prevVote === null) {
+      nextScore += type === 'UP' ? 1 : -1;
+    } else {
+      nextScore += type === 'UP' ? 2 : -2;
+    }
+
     setAnswers((prev) =>
-      prev.map((a) => {
-        if (a.id !== ansId) return a;
-        const current = a.userVote;
-        if (current === type) {
-          return { ...a, userVote: null, upvotes: type === 'UP' ? a.upvotes - 1 : a.upvotes + 1 };
-        }
-        return {
-          ...a,
-          userVote: type,
-          upvotes: type === 'UP' ? (current === 'DOWN' ? a.upvotes + 2 : a.upvotes + 1) : current === 'UP' ? a.upvotes - 2 : a.upvotes - 1,
-        };
-      })
+      prev.map((a) => (a.id === ansId ? { ...a, userVote: nextVote, upvotes: nextScore } : a))
     );
+
+    try {
+      await voteApi.vote({
+        target_type: 'ANSWER',
+        target_id: numAnsId,
+        vote_value: type === 'UP' ? 1 : -1,
+      });
+      const stats = await voteApi.getStats('ANSWER', numAnsId);
+      setAnswers((prev) =>
+        prev.map((a) =>
+          a.id === ansId
+            ? {
+                ...a,
+                upvotes: stats.score,
+                userVote: stats.myVoteValue === 1 ? 'UP' : stats.myVoteValue === -1 ? 'DOWN' : null,
+              }
+            : a
+        )
+      );
+    } catch (err) {
+      setAnswers((prev) =>
+        prev.map((a) => (a.id === ansId ? { ...a, userVote: prevVote, upvotes: prevScore } : a))
+      );
+    }
   };
 
   const handleMarkBestAnswer = async (ansId: string) => {
@@ -344,64 +497,63 @@ export const QuestionDetailPage: React.FC = () => {
 
             <div className="flex items-center justify-between gap-4 pt-2 border-b border-slate-100 dark:border-slate-800 pb-4 text-xs text-slate-500">
               <div className="flex items-center gap-2.5">
-                <img
-                  src={question.author.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
-                  alt={question.author.fullName}
-                  className="w-8 h-8 rounded-full object-cover"
-                />
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-bold text-slate-800 dark:text-slate-200">{question.author.fullName}</span>
-                    <Badge variant="neutral" size="sm">{question.author.campus || 'FU-HL'}</Badge>
+                {question.author.isAnonymous ? (
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-full bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 flex items-center justify-center font-bold border border-purple-200 dark:border-purple-800 shrink-0">
+                      <EyeOff className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold text-slate-800 dark:text-slate-200">Ẩn danh FPTer</span>
+                        <Badge variant="purple" size="sm">Tác giả ẩn danh</Badge>
+                      </div>
+                      <span className="text-[10px] text-slate-400">
+                        Đã hỏi: {new Date(question.createdAt).toLocaleDateString('vi-VN')} • Xem: {question.viewsCount} lượt
+                      </span>
+                    </div>
                   </div>
-                  <span className="text-[10px] text-slate-400">
-                    Đã hỏi: {new Date(question.createdAt).toLocaleDateString('vi-VN')} • Xem: {question.viewsCount} lượt
-                  </span>
-                </div>
+                ) : (
+                  <>
+                    <img
+                      src={normalizeMediaUrl(question.author.avatarUrl) || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
+                      alt={question.author.fullName}
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold text-slate-800 dark:text-slate-200">{question.author.fullName}</span>
+                        <Badge variant="neutral" size="sm">{question.author.campus || 'FU-HL'}</Badge>
+                      </div>
+                      <span className="text-[10px] text-slate-400">
+                        Đã hỏi: {new Date(question.createdAt).toLocaleDateString('vi-VN')} • Xem: {question.viewsCount} lượt
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="flex items-center gap-2">
                 <Button
                   size="sm"
                   variant={isBookmarked ? 'secondary' : 'outline'}
-                  onClick={() => setIsBookmarked(!isBookmarked)}
+                  onClick={toggleBookmark}
                   leftIcon={<Bookmark className={`w-3.5 h-3.5 ${isBookmarked ? 'fill-blue-600' : ''}`} />}
                 >
                   {isBookmarked ? 'Đã lưu' : 'Lưu'}
                 </Button>
-                <Button size="sm" variant="outline" className="p-2">
-                  <Share2 className="w-3.5 h-3.5" />
-                </Button>
+                <ContentActionMenu
+                  targetType="QUESTION"
+                  targetId={question.id}
+                  targetTitle={question.title}
+                  shareUrl={typeof window !== 'undefined' ? window.location.href : ''}
+                />
               </div>
             </div>
           </div>
 
-          {/* Question Content with Formatted Snippet */}
-          <div className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 space-y-4 leading-relaxed">
-            <p>{question.content}</p>
-
-            {/* Code Snippet Box with Copy Button */}
-            <div className="relative rounded-xl overflow-hidden bg-slate-900 text-slate-100 border border-slate-800 my-3 font-mono text-xs shadow-inner">
-              <div className="flex items-center justify-between px-4 py-2 bg-slate-950/80 border-b border-slate-800 text-[11px] text-slate-400">
-                <span className="font-semibold text-blue-400">C# • ASP.NET Core EF Configuration</span>
-                <button
-                  onClick={() =>
-                    copySnippet(`// Program.cs Configuration
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(connectionString));`)
-                  }
-                  className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer"
-                >
-                  <Copy className="w-3 h-3" />
-                  <span>{copiedCode ? 'Đã sao chép!' : 'Copy Code'}</span>
-                </button>
-              </div>
-              <pre className="p-4 overflow-x-auto text-slate-200">
-                <code>{`// Program.cs Configuration
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(connectionString));`}</code>
-              </pre>
-            </div>
+          {/* Question Content with Markdown rendering */}
+          <div className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+            <MarkdownPreview content={question.content} />
           </div>
 
           {/* Question Tags & Voting Action */}
@@ -492,15 +644,31 @@ builder.Services.AddDbContext<AppDbContext>(options =>
               {/* Answer Author */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <img src={ans.author.avatarUrl} alt={ans.author.fullName} className="w-8 h-8 rounded-full object-cover" />
+                  {ans.author.isAnonymous || !ans.author.avatarUrl ? (
+                    <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 flex items-center justify-center font-bold border border-purple-200 dark:border-purple-800 shrink-0">
+                      <EyeOff className="w-4 h-4" />
+                    </div>
+                  ) : (
+                    <img src={normalizeMediaUrl(ans.author.avatarUrl)} alt={ans.author.fullName} className="w-8 h-8 rounded-full object-cover" />
+                  )}
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100">{ans.author.fullName}</span>
-                      <Badge variant="purple" size="sm">{ans.author.role}</Badge>
-                      <Badge variant="neutral" size="sm">{ans.author.campus || 'FU-HL'}</Badge>
+                      <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100">
+                        {ans.author.fullName}
+                      </span>
+                      {ans.author.isAnonymous ? (
+                        <Badge variant="purple" size="sm">Ẩn danh</Badge>
+                      ) : (
+                        <>
+                          <Badge variant="purple" size="sm">{ans.author.role}</Badge>
+                          <Badge variant="neutral" size="sm">{ans.author.campus || 'FU-HL'}</Badge>
+                        </>
+                      )}
                     </div>
                     <span className="text-[10px] text-slate-400 font-medium">
-                      Karma: {ans.author.karma.toLocaleString()} pts • Trả lời: {new Date(ans.createdAt).toLocaleDateString('vi-VN')}
+                      {ans.author.isAnonymous
+                        ? `Trả lời: ${new Date(ans.createdAt).toLocaleDateString('vi-VN')}`
+                        : `Karma: ${ans.author.karma.toLocaleString()} pts • Trả lời: ${new Date(ans.createdAt).toLocaleDateString('vi-VN')}`}
                     </span>
                   </div>
                 </div>
@@ -520,8 +688,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
               </div>
 
               {/* Answer Content */}
-              <div className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 whitespace-pre-line leading-relaxed font-sans">
-                {ans.content}
+              <div className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-sans">
+                <MarkdownPreview content={ans.content} />
               </div>
 
               {/* Action Buttons on Answer */}
@@ -555,6 +723,11 @@ builder.Services.AddDbContext<AppDbContext>(options =>
                   >
                     {ans.isBestAnswer ? 'Hủy chọn Best Answer' : 'Chọn làm Best Answer'}
                   </Button>
+                  <ContentActionMenu
+                    targetType="ANSWER"
+                    targetId={ans.id}
+                    targetTitle={`Câu trả lời của ${ans.author?.fullName || 'Sinh viên'}`}
+                  />
                 </div>
               </div>
 
@@ -682,8 +855,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
               />
             </div>
           ) : (
-            <div className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl min-h-[160px] text-xs sm:text-sm text-slate-700 dark:text-slate-300 whitespace-pre-line">
-              {newAnswerContent || 'Chưa có nội dung để xem trước.'}
+            <div className="p-4 bg-slate-50 dark:bg-slate-800/40 rounded-xl min-h-[160px] text-xs sm:text-sm text-slate-700 dark:text-slate-300">
+              <MarkdownPreview content={newAnswerContent} />
             </div>
           )}
 
