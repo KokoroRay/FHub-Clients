@@ -17,7 +17,7 @@ import {
   ChevronRight,
   Loader2,
 } from 'lucide-react';
-import { DetailedCampus } from '../../../services/adminMockData';
+import { DetailedCampus } from '../../../types';
 import { useCampuses, useMajors } from '../../../services/api';
 
 export const CampusDetailPage: React.FC = () => {

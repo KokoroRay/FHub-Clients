@@ -3,10 +3,12 @@ import { Star, AlertCircle } from 'lucide-react';
 import { Modal } from '../../components/common/Modal';
 import { Button } from '../../components/common/Button';
 import { Input, Textarea, Select } from '../../components/common/Input';
+import { CourseSelect } from '../../components/common/CourseSelect';
 import { courseNodesApi } from '../../services/api/adminApi';
 import { useAuth } from '../../context/AuthContext';
 import { CourseReview } from '../../types';
 import { courseReviewApi } from '../../services/api/contentApi';
+import { filterCompactCourses } from '../../utils/courseFilter';
 
 export interface CreateCourseEvaluationModalProps {
   isOpen: boolean;
@@ -22,7 +24,7 @@ export const CreateCourseEvaluationModal: React.FC<CreateCourseEvaluationModalPr
   defaultCourseCode = '',
 }) => {
   const { currentUser } = useAuth();
-  const [courseCode, setCourseCode] = useState(defaultCourseCode);
+  const [courseCode, setCourseCode] = useState(defaultCourseCode ? defaultCourseCode.toUpperCase() : "");
   const [semesterTaken, setSemesterTaken] = useState('');
   const [lecturerName, setLecturerName] = useState('');
   const [rating, setRating] = useState(5);
@@ -31,23 +33,48 @@ export const CreateCourseEvaluationModal: React.FC<CreateCourseEvaluationModalPr
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [courses, setCourses] = useState<Array<{ code: string; title: string }>>([]);
+  const [courses, setCourses] = useState<Array<{ id: number; code: string; title: string; majorCode?: string }>>([]);
+
+  useEffect(() => {
+    if (defaultCourseCode) {
+      setCourseCode(defaultCourseCode.toUpperCase());
+    }
+  }, [defaultCourseCode, isOpen]);
 
   useEffect(() => {
     let isMounted = true;
     const loadCourses = async () => {
       try {
-        const res = await courseNodesApi.getCourseNodes();
+        const res = await courseNodesApi.getCourseNodes({ pageSize: 2000 });
         const items = (res as any)?.items || res || [];
         if (isMounted && Array.isArray(items) && items.length > 0) {
-          const mapped = items.map((c: any) => ({
-            code: c.code || c.courseCode,
-            title: c.name || c.title || c.code,
+          const filtered = filterCompactCourses(items, currentUser);
+          let mapped = filtered.map((c: any, index: number) => ({
+            id: Number(c.courseId ?? c.courseNodeId ?? c.id ?? index + 1),
+            code: (c.code || c.courseCode || '').toUpperCase(),
+            title: c.name || c.courseName || c.title || c.code,
+            majorCode: c.majorCode,
           }));
-          setCourses(mapped);
-          if (!courseCode && mapped[0]) {
+
+          if (defaultCourseCode) {
+            const normDef = defaultCourseCode.toUpperCase();
+            if (!mapped.some(c => c.code === normDef)) {
+              const fullMatch = items.find((c: any) => (c.code || c.courseCode || '').toUpperCase() === normDef);
+              mapped = [
+                {
+                  id: Number(fullMatch?.courseId ?? fullMatch?.courseNodeId ?? fullMatch?.id ?? 0),
+                  code: normDef,
+                  title: fullMatch?.name || fullMatch?.courseName || fullMatch?.title || normDef,
+                  majorCode: fullMatch?.majorCode,
+                },
+                ...mapped,
+              ];
+            }
+            setCourseCode(normDef);
+          } else if (!courseCode && mapped[0]) {
             setCourseCode(mapped[0].code);
           }
+          setCourses(mapped);
         }
       } catch (err) {
         console.warn('Failed to load courses in evaluation modal:', err);
@@ -55,7 +82,7 @@ export const CreateCourseEvaluationModal: React.FC<CreateCourseEvaluationModalPr
     };
     loadCourses();
     return () => { isMounted = false; };
-  }, [courseCode]);
+  }, [courseCode, currentUser]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,7 +94,8 @@ export const CreateCourseEvaluationModal: React.FC<CreateCourseEvaluationModalPr
     setErrorMessage(null);
     setIsSubmitting(true);
     try {
-      const courseNum = Number(courseCode.replace(/\D/g, '')) || 1;
+      const matched = courses.find((c) => c.code.toLowerCase() === courseCode.toLowerCase());
+      const courseNum = matched ? matched.id : (Number(courseCode.replace(/\D/g, '')) || 1);
       const parts = semesterTaken.trim().split(' ');
       const sem = parts[0]?.toUpperCase() || 'FA';
       const year = Number(parts[1]) || 2025;
@@ -158,14 +186,11 @@ export const CreateCourseEvaluationModal: React.FC<CreateCourseEvaluationModalPr
           </div>
         )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Select
+          <CourseSelect
             label="Môn học đánh giá *"
             value={courseCode}
-            onChange={(e) => setCourseCode(e.target.value)}
-            options={courses.map((c) => ({
-              value: c.code,
-              label: `${c.code} - ${c.title}`,
-            }))}
+            onChange={(code) => setCourseCode(code)}
+            required
           />
           <Input
             label="Kỳ học đã học *"

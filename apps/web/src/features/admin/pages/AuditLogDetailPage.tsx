@@ -15,7 +15,7 @@ import {
   ArrowRight,
   Loader2,
 } from 'lucide-react';
-import { DetailedAuditLog } from '../../../services/adminMockData';
+import { DetailedAuditLog } from '../../../types';
 import { useAuditLogDetail } from '../../../services/api';
 
 export const AuditLogDetailPage: React.FC = () => {

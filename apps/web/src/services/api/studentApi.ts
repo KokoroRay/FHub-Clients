@@ -5,24 +5,58 @@ import type { ApiResponse, PagedResult } from './adminApi';
 // ─── 1. Bookmark API (Go Interaction Service) ─────────────────────────────────
 export interface BookmarkItem {
   id: number | string;
-  userId: number;
-  targetType: 'QUESTION' | 'ARTICLE' | 'WORKFLOW' | 'STUDY_MATERIAL';
+  bookmarkId?: number | string;
+  userId?: number;
+  targetType: 'QUESTION' | 'ARTICLE' | 'WORKFLOW' | 'STUDY_MATERIAL' | 'StudyMaterial' | string;
   targetId: number | string;
+  externalTargetId?: number | string;
   createdAt: string;
   title?: string;
   summary?: string;
+  note?: string;
 }
 
 export const bookmarkApi = {
   getBookmarks: async (type?: string): Promise<BookmarkItem[]> => {
-    const url = type && type !== 'ALL' ? `/api/bookmarks/filter?type=${type}` : '/api/bookmarks';
-    const res = await apiClient.get<BookmarkItem[] | ApiResponse<BookmarkItem[]>>(url);
-    const data = (res.data as any).data || res.data;
-    return Array.isArray(data) ? data : [];
+    let normalizedType = type;
+    if (type && type !== 'ALL') {
+      const t = type.toUpperCase();
+      if (t === 'MATERIAL' || t === 'STUDY_MATERIAL') normalizedType = 'StudyMaterial';
+      else if (t === 'QUESTION') normalizedType = 'Question';
+      else if (t === 'ARTICLE') normalizedType = 'Article';
+      else if (t === 'WORKFLOW') normalizedType = 'Workflow';
+      else if (t === 'ANSWER') normalizedType = 'Answer';
+    }
+    const url = normalizedType && normalizedType !== 'ALL' ? `/api/bookmarks/filter?type=${normalizedType}` : '/api/bookmarks';
+    const res = await apiClient.get<any>(url);
+    const data = (res.data as any)?.data || res.data || [];
+    if (!Array.isArray(data)) return [];
+    return data.map((b: any) => ({
+      id: b.bookmark_id ?? b.id ?? b.BookmarkId,
+      bookmarkId: b.bookmark_id ?? b.id ?? b.BookmarkId,
+      userId: b.engagement_account_id ?? b.user_id ?? b.userId,
+      targetType: (b.target_type || b.targetType || '').toUpperCase(),
+      targetId: b.external_target_id ?? b.target_id ?? b.targetId,
+      externalTargetId: b.external_target_id ?? b.target_id ?? b.targetId,
+      createdAt: b.created_at || b.createdAt || new Date().toISOString(),
+      note: b.note || '',
+    }));
   },
 
-  addBookmark: async (targetType: string, targetId: number | string): Promise<any> => {
-    const res = await apiClient.post('/api/bookmarks', { targetType, targetId });
+  addBookmark: async (targetType: string, targetId: number | string, note?: string): Promise<any> => {
+    let normalizedType = targetType;
+    const t = targetType.toUpperCase();
+    if (t === 'MATERIAL' || t === 'STUDY_MATERIAL') normalizedType = 'StudyMaterial';
+    else if (t === 'QUESTION') normalizedType = 'Question';
+    else if (t === 'ARTICLE') normalizedType = 'Article';
+    else if (t === 'WORKFLOW') normalizedType = 'Workflow';
+    else if (t === 'ANSWER') normalizedType = 'Answer';
+
+    const res = await apiClient.post('/api/bookmarks', {
+      target_type: normalizedType,
+      external_target_id: Number(targetId) || 1,
+      note: note || '',
+    });
     return res.data;
   },
 
@@ -147,6 +181,51 @@ export interface StudentTicketDetail extends StudentTicketItem {
   }>;
 }
 
+const VALID_TICKET_CATEGORIES = new Set([
+  'ACCOUNT',
+  'ACADEMIC',
+  'CONTENT',
+  'TECHNICAL',
+  'VERIFICATION',
+  'REPORT',
+  'FEEDBACK',
+  'OTHER',
+]);
+
+function normalizeTicketCategory(raw: string): string {
+  const upper = (raw || '').trim().toUpperCase();
+  if (VALID_TICKET_CATEGORIES.has(upper)) return upper;
+  if (upper.includes('MATERIAL') || upper.includes('CONTENT')) {
+    return upper.includes('REPORT') ? 'REPORT' : 'CONTENT';
+  }
+  if (upper.includes('ACADEMIC') || upper.includes('CURRICULUM')) return 'ACADEMIC';
+  if (upper.includes('ACCOUNT') || upper.includes('SSO') || upper.includes('AUTH')) return 'ACCOUNT';
+  if (upper.includes('REVIEW') || upper.includes('FEEDBACK')) return 'FEEDBACK';
+  if (upper.includes('TECH') || upper.includes('BUG')) return 'TECHNICAL';
+  if (upper.includes('REPORT')) return 'REPORT';
+  if (upper.includes('VERIF')) return 'VERIFICATION';
+  return 'OTHER';
+}
+
+function normalizeStudentPriority(raw?: string): 'LOW' | 'NORMAL' | 'HIGH' {
+  const upper = (raw || 'NORMAL').trim().toUpperCase();
+  if (upper === 'LOW') return 'LOW';
+  if (upper === 'HIGH' || upper === 'URGENT') return 'HIGH';
+  return 'NORMAL';
+}
+
+function sanitizeTicketSubject(raw: string): string {
+  const cleaned = (raw || '')
+    .replace(/\[/g, '(')
+    .replace(/\]/g, ')')
+    .replace(/&/g, 'va')
+    .replace(/[^\p{L}\p{M}\p{N} .,\-_:()'"?!/]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const base = cleaned || 'Yeu cau ho tro sinh vien FHub';
+  return base.length < 5 ? `${base} - FHub` : base.slice(0, 300);
+}
+
 export const studentSupportTicketApi = {
   getMyTickets: async (params?: { status?: string; pageNumber?: number; pageSize?: number }): Promise<PagedResult<StudentTicketItem>> => {
     const res = await apiClient.get<ApiResponse<PagedResult<StudentTicketItem>>>('/api/student/support-tickets', { params });
@@ -159,11 +238,17 @@ export const studentSupportTicketApi = {
   },
 
   createTicket: async (payload: { title: string; category: string; description: string; priority?: string }): Promise<StudentTicketDetail> => {
+    const cleanDesc = (payload.description || '').trim();
+    const effectiveDescription =
+      cleanDesc.length >= 20
+        ? cleanDesc
+        : `${cleanDesc} (Yêu cầu hỗ trợ từ sinh viên trên hệ thống FHub)`.trim();
+
     const res = await apiClient.post<ApiResponse<StudentTicketDetail>>('/api/student/support-tickets', {
-      subject: payload.title,
-      category: payload.category,
-      description: payload.description,
-      priority: (payload.priority || 'NORMAL').toUpperCase(),
+      subject: sanitizeTicketSubject(payload.title),
+      category: normalizeTicketCategory(payload.category),
+      description: effectiveDescription,
+      priority: normalizeStudentPriority(payload.priority),
     });
     return res.data.data;
   },
@@ -176,8 +261,10 @@ export const studentSupportTicketApi = {
   },
 
   updateStatus: async (id: number | string, status: string): Promise<any> => {
+    const raw = (status || '').trim().toUpperCase().replace(/\s+/g, '_');
+    const normalizedStatus = raw === 'CLOSED' ? 'CLOSED' : 'OPEN';
     const res = await apiClient.patch<ApiResponse<any>>(`/api/student/support-tickets/${id}/status`, {
-      status: status.toUpperCase().replace(' ', '_'),
+      status: normalizedStatus,
     });
     return res.data.data;
   },
@@ -202,15 +289,18 @@ export interface UserProfileDto {
 }
 
 export interface UserPreferencesDto {
-  feedTuning: {
-    preferMyMajor: boolean;
-    preferMyCampus: boolean;
-    showHotDiscussions: boolean;
+  feedTuning?: {
+    preferMyMajor?: boolean;
+    preferMyCampus?: boolean;
+    showHotDiscussions?: boolean;
   };
-  privacy: {
-    showEmail: boolean;
-    showActivity: boolean;
+  privacy?: {
+    showEmail?: boolean;
+    showActivity?: boolean;
+    profileVisibility?: string;
   };
+  feedPreferenceJson?: string;
+  [key: string]: any;
 }
 
 export const profileApi = {
@@ -283,7 +373,7 @@ export const profileApi = {
 
 // ─── 5. Vote API (Go Interaction Service) ─────────────────────────────────────
 export interface VoteRequest {
-  target_type: 'ARTICLE' | 'QUESTION' | 'COMMENT' | 'WORKFLOW' | 'STUDY_MATERIAL';
+  target_type: 'ARTICLE' | 'QUESTION' | 'COMMENT' | 'WORKFLOW' | 'STUDY_MATERIAL' | 'ANSWER';
   target_id: number | string;
   vote_value: 1 | -1;
 }
@@ -294,7 +384,7 @@ export interface VoteResponse {
   targetType: string;
   targetId: number;
   voteValue: number;
-  scoreDelta: number;
+  scoreDelta?: number;
   revokedAt?: string;
   createdAt: string;
   updatedAt: string;
@@ -306,16 +396,28 @@ export interface VoteStats {
   upvotes: number;
   downvotes: number;
   score: number;
+  myVoteValue?: number | null;
 }
 
 export const voteApi = {
   vote: async (payload: VoteRequest): Promise<VoteResponse> => {
-    const res = await apiClient.put<VoteResponse>('/api/votes', {
+    const res = await apiClient.put<any>('/api/votes', {
       target_type: payload.target_type,
       target_id: Number(payload.target_id) || 1,
       vote_value: payload.vote_value,
     });
-    return (res.data as any).data || res.data;
+    const d = (res.data as any).data || res.data;
+    return {
+      voteId: d.vote_id ?? d.voteId,
+      userId: d.user_id ?? d.userId,
+      targetType: d.target_type ?? d.targetType,
+      targetId: d.target_id ?? d.targetId,
+      voteValue: d.vote_value ?? d.voteValue,
+      scoreDelta: d.score_delta ?? d.scoreDelta ?? 0,
+      revokedAt: d.revoked_at ?? d.revokedAt,
+      createdAt: d.created_at ?? d.createdAt,
+      updatedAt: d.updated_at ?? d.updatedAt,
+    };
   },
 
   removeVote: async (targetType: string, targetId: number | string): Promise<void> => {
@@ -323,13 +425,33 @@ export const voteApi = {
   },
 
   getStats: async (targetType: string, targetId: number | string): Promise<VoteStats> => {
-    const res = await apiClient.get<VoteStats>(`/api/votes/stats/${targetType}/${targetId}`);
-    return (res.data as any).data || res.data;
+    const res = await apiClient.get<any>(`/api/votes/stats/${targetType}/${targetId}`);
+    const data = (res.data as any)?.data || res.data || {};
+    return {
+      targetType: data.target_type || data.targetType || targetType,
+      targetId: data.target_id || data.targetId || Number(targetId),
+      upvotes: data.upvote_count ?? data.upvotes ?? 0,
+      downvotes: data.downvote_count ?? data.downvotes ?? 0,
+      score: data.net_score ?? data.score ?? 0,
+      myVoteValue: data.my_vote_value ?? data.myVoteValue ?? null,
+    };
   },
 
   getMyVotes: async (): Promise<VoteResponse[]> => {
-    const res = await apiClient.get<VoteResponse[]>('/api/interactions/me/votes');
-    return (res.data as any).data || res.data || [];
+    const res = await apiClient.get<any[]>('/api/interactions/me/votes');
+    const items = (res.data as any)?.data || res.data || [];
+    if (!Array.isArray(items)) return [];
+    return items.map((d: any) => ({
+      voteId: d.vote_id ?? d.voteId,
+      userId: d.user_id ?? d.userId,
+      targetType: d.target_type ?? d.targetType ?? d.engagement_target?.target_type,
+      targetId: d.target_id ?? d.targetId ?? d.engagement_target?.external_target_id,
+      voteValue: d.vote_value ?? d.voteValue,
+      scoreDelta: d.score_delta ?? d.scoreDelta ?? 0,
+      revokedAt: d.revoked_at ?? d.revokedAt,
+      createdAt: d.created_at ?? d.createdAt,
+      updatedAt: d.updated_at ?? d.updatedAt,
+    }));
   },
 };
 

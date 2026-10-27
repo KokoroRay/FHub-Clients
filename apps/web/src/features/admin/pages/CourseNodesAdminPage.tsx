@@ -19,7 +19,7 @@ import {
   Pencil,
   RefreshCw,
 } from 'lucide-react';
-import { DetailedCourseNode } from '../../../services/adminMockData';
+import { DetailedCourseNode } from '../../../types';
 import { useCourseNodes, useCreateCourseNode, useUpdateCourseNode, useDeleteCourseNode } from '../../../services/api';
 
 export const CourseNodesAdminPage: React.FC = () => {

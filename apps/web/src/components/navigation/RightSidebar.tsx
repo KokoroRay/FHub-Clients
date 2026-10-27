@@ -8,14 +8,15 @@ import {
   Flame,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useCampusDetails } from '../../hooks/useCampusDetails';
 
 export const RightSidebar: React.FC = () => {
   const { currentUser, currentCampus } = useAuth();
+  const campusInfo = useCampusDetails(currentUser?.campus || currentCampus);
 
   const studentName = currentUser?.fullName || 'Sinh viên FHub';
   const studentId = currentUser?.studentId || '';
   const avatarInitials = studentName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'SV';
-  const campusDisplay = currentUser?.campus || currentCampus || 'N/A';
   const majorDisplay = (currentUser as any)?.majorName || (currentUser as any)?.major || 'N/A';
   const semesterDisplay = (currentUser as any)?.term || (currentUser as any)?.semester || 'N/A';
 
@@ -63,7 +64,12 @@ export const RightSidebar: React.FC = () => {
         <div className="pt-2.5 border-t border-slate-100 space-y-1.5 text-xs">
           <div className="flex items-center justify-between gap-2">
             <span className="text-slate-400 shrink-0">Campus:</span>
-            <span className="font-medium text-slate-700 truncate text-right">{campusDisplay}</span>
+            <span
+              className="font-medium text-slate-700 truncate text-right cursor-default"
+              title={`${campusInfo.fullName}${campusInfo.address ? `\nĐịa chỉ: ${campusInfo.address}` : ''}`}
+            >
+              {campusInfo.shortName}
+            </span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-slate-400">Major:</span>

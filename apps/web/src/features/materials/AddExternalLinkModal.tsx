@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link2, Globe, AlertCircle } from 'lucide-react';
 import { Modal } from '../../components/common/Modal';
 import { Button } from '../../components/common/Button';
-import { Input, Textarea, Select } from '../../components/common/Input';
-import { courseNodesApi } from '../../services/api/adminApi';
+import { Input, Textarea } from '../../components/common/Input';
+import { CourseSelect } from '../../components/common/CourseSelect';
+import { CourseNodeListItem } from '../../services/api/adminApi';
+import { studyMaterialApi } from '../../services/api/contentApi';
 import { StudyMaterial } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 
@@ -22,34 +24,12 @@ export const AddExternalLinkModal: React.FC<AddExternalLinkModalProps> = ({
   const [title, setTitle] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
   const [courseCode, setCourseCode] = useState('');
-  const [courses, setCourses] = useState<Array<{ code: string; title: string }>>([]);
+  const [selectedCourse, setSelectedCourse] = useState<CourseNodeListItem | undefined>(undefined);
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    let isMounted = true;
-    const loadCourses = async () => {
-      try {
-        const res = await courseNodesApi.getCourseNodes();
-        const items = (res as any)?.items || res || [];
-        if (isMounted && Array.isArray(items) && items.length > 0) {
-          const mapped = items.map((c: any) => ({
-            code: c.code || c.courseCode,
-            title: c.name || c.title || c.code,
-          }));
-          setCourses(mapped);
-          if (mapped[0]) setCourseCode(mapped[0].code);
-        }
-      } catch (err) {
-        console.warn('Failed to load courses in modal:', err);
-      }
-    };
-    loadCourses();
-    return () => { isMounted = false; };
-  }, []);
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
       setErrorMessage('Vui lòng nhập tiêu đề tài liệu.');
@@ -67,32 +47,48 @@ export const AddExternalLinkModal: React.FC<AddExternalLinkModalProps> = ({
 
     setErrorMessage(null);
     setIsSubmitting(true);
-    setTimeout(() => {
-      const newMat: StudyMaterial = {
-        id: `mat-${Date.now()}`,
+
+    try {
+      const courseIdNum = Number(selectedCourse?.courseNodeId ?? selectedCourse?.id);
+      const effectiveCourseId = (courseIdNum && courseIdNum > 0) ? courseIdNum : 1;
+
+      const created = await studyMaterialApi.addExternalLink({
+        courseId: effectiveCourseId,
         title: title.trim(),
-        description: description.trim() || cleanUrl,
-        courseCode,
+        externalUrl: cleanUrl,
+        description: description.trim() || undefined,
+      });
+
+      const newMat: StudyMaterial = {
+        id: String(created.studyMaterialId),
+        title: created.title,
+        description: created.description || cleanUrl,
+        courseCode: courseCode || selectedCourse?.courseCode || selectedCourse?.code || `COURSE-${created.courseId}`,
         fileType: 'CODE',
         fileSizeMb: 0,
         downloadUrl: cleanUrl,
         downloadsCount: 0,
         author: {
-          id: currentUser?.id || '',
-          fullName: currentUser?.fullName || '',
+          id: currentUser?.id || String(created.uploaderUserId),
+          fullName: currentUser?.fullName || 'Sinh viên FHub',
           avatarUrl: currentUser?.avatarUrl,
         },
         semesterUploaded: '',
-        createdAt: new Date().toISOString(),
+        createdAt: created.createdAt || new Date().toISOString(),
       };
+
       onAdded(newMat);
-      setIsSubmitting(false);
       setTitle('');
       setLinkUrl('');
       setDescription('');
       setErrorMessage(null);
       onClose();
-    }, 400);
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi thêm liên kết tài liệu.';
+      setErrorMessage(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -136,23 +132,19 @@ export const AddExternalLinkModal: React.FC<AddExternalLinkModalProps> = ({
           required
         />
 
-        <Select
+        <CourseSelect
           label="Môn học liên quan *"
           value={courseCode}
-          onChange={(e) => setCourseCode(e.target.value)}
-          options={
-            courses.length > 0
-              ? courses.map((c) => ({
-                  value: c.code,
-                  label: `${c.code} - ${c.title}`,
-                }))
-              : [{ value: '', label: 'Đang tải hoặc chưa có môn học' }]
-          }
+          onChange={(code, course) => {
+            setCourseCode(code);
+            setSelectedCourse(course);
+          }}
+          required
         />
 
         <Textarea
-          label="Ghi chú & Hướng dẫn truy cập"
-          placeholder="Tài liệu này mở quyền xem công khai hay cần xin quyền..."
+          label="Mô tả & Hướng dẫn truy cập"
+          placeholder="Mô tả chi tiết tài liệu, lưu ý khi truy cập..."
           rows={3}
           value={description}
           onChange={(e) => setDescription(e.target.value)}

@@ -8,7 +8,7 @@ import {
   DetailedBadge,
   DetailedAuditLog,
   AISensitivityConfig
-} from '../adminMockData';
+} from '../../types';
 
 // Common pagination and response wrappers
 export interface ApiResponse<T> {
@@ -686,7 +686,9 @@ export const courseNodesApi = {
       if (data && Array.isArray(data.items)) {
         data.items = data.items.map((c: any) => ({
           ...c,
-          id: c.courseNodeId ?? c.id,
+          id: c.courseId ?? c.courseNodeId ?? c.id,
+          courseId: c.courseId ?? c.courseNodeId ?? c.id,
+          courseNodeId: c.courseId ?? c.courseNodeId ?? c.id,
           code: c.courseCode ?? c.code,
           name: c.courseName ?? c.name,
           title: c.courseName ?? c.title,
@@ -695,7 +697,9 @@ export const courseNodesApi = {
       } else if (Array.isArray(data)) {
         return data.map((c: any) => ({
           ...c,
-          id: c.courseNodeId ?? c.id,
+          id: c.courseId ?? c.courseNodeId ?? c.id,
+          courseId: c.courseId ?? c.courseNodeId ?? c.id,
+          courseNodeId: c.courseId ?? c.courseNodeId ?? c.id,
           code: c.courseCode ?? c.code,
           name: c.courseName ?? c.name,
           title: c.courseName ?? c.title,

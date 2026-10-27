@@ -12,10 +12,12 @@ import {
   HelpCircle, 
   ExternalLink,
   RotateCcw,
-  Loader2
+  Loader2,
+  BookOpen
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { profileApi } from '../../services/api/studentApi';
+import { getHideOutOfMajorCompactSetting, setHideOutOfMajorCompactSetting } from '../../utils/courseFilter';
 
 export const ProfileSettingsPage: React.FC = () => {
   const { currentUser } = useAuth();
@@ -26,6 +28,7 @@ export const ProfileSettingsPage: React.FC = () => {
   const [themeMode, setThemeMode] = useState<'light' | 'dark' | 'system'>('light');
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [inAppNotifications, setInAppNotifications] = useState(true);
+  const [hideOutOfMajorCompact, setHideOutOfMajorCompact] = useState<boolean>(getHideOutOfMajorCompactSetting);
 
   // Privacy & Visibility (Figma #93:4441)
   const [profileVisibility, setProfileVisibility] = useState<'public' | 'community'>('public');
@@ -50,19 +53,59 @@ export const ProfileSettingsPage: React.FC = () => {
   ]);
 
   const [isSaved, setIsSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
+    // 1. Load from localStorage cache first
+    try {
+      const localPrefsStr = localStorage.getItem('fhub_user_preferences');
+      if (localPrefsStr) {
+        const p = JSON.parse(localPrefsStr);
+        if (p.language) setLanguage(p.language);
+        if (p.defaultFeed) setDefaultFeed(p.defaultFeed);
+        if (p.themeMode) setThemeMode(p.themeMode);
+        if (typeof p.emailNotifications === 'boolean') setEmailNotifications(p.emailNotifications);
+        if (typeof p.inAppNotifications === 'boolean') setInAppNotifications(p.inAppNotifications);
+        if (typeof p.hideOutOfMajorCompact === 'boolean') setHideOutOfMajorCompact(p.hideOutOfMajorCompact);
+        if (p.profileVisibility) setProfileVisibility(p.profileVisibility);
+        if (typeof p.showAcademicInfo === 'boolean') setShowAcademicInfo(p.showAcademicInfo);
+        if (typeof p.allowDirectMessages === 'boolean') setAllowDirectMessages(p.allowDirectMessages);
+        if (typeof p.showContributionActivity === 'boolean') setShowContributionActivity(p.showContributionActivity);
+        if (Array.isArray(p.mutedTags)) setMutedTags(p.mutedTags);
+      }
+    } catch {}
+
+    // 2. Sync from backend API
     const fetchUserPrefs = async () => {
       try {
-        const prefs = await profileApi.getMyPreferences();
+        const prefs: any = await profileApi.getMyPreferences();
         if (prefs) {
           if (prefs.privacy) {
-            setShowContributionActivity(prefs.privacy.showActivity ?? true);
+            if (typeof prefs.privacy.showActivity === 'boolean') {
+              setShowContributionActivity(prefs.privacy.showActivity);
+            }
+            if (prefs.privacy.profileVisibility) {
+              setProfileVisibility(prefs.privacy.profileVisibility.toLowerCase() as any);
+            }
+          }
+          if (prefs.feedPreferenceJson) {
+            try {
+              const feedObj = JSON.parse(prefs.feedPreferenceJson);
+              if (feedObj.language) setLanguage(feedObj.language);
+              if (feedObj.defaultFeed) setDefaultFeed(feedObj.defaultFeed);
+              if (feedObj.themeMode) setThemeMode(feedObj.themeMode);
+              if (typeof feedObj.emailNotifications === 'boolean') setEmailNotifications(feedObj.emailNotifications);
+              if (typeof feedObj.inAppNotifications === 'boolean') setInAppNotifications(feedObj.inAppNotifications);
+              if (typeof feedObj.hideOutOfMajorCompact === 'boolean') {
+                setHideOutOfMajorCompact(feedObj.hideOutOfMajorCompact);
+                setHideOutOfMajorCompactSetting(feedObj.hideOutOfMajorCompact);
+              }
+            } catch {}
           }
         }
       } catch (err) {
-        console.warn('Could not load preferences from Profile API, using defaults:', err);
+        console.warn('Could not load preferences from Profile API, using defaults/cached:', err);
       }
     };
 
@@ -116,7 +159,29 @@ export const ProfileSettingsPage: React.FC = () => {
   };
 
   const handleSaveChanges = async () => {
+    setIsSaving(true);
     try {
+      // 1. Immediately persist compact course setting into localStorage
+      setHideOutOfMajorCompactSetting(hideOutOfMajorCompact);
+
+      // 2. Persist all preferences into localStorage
+      const localPrefs = {
+        language,
+        defaultFeed,
+        themeMode,
+        emailNotifications,
+        inAppNotifications,
+        hideOutOfMajorCompact,
+        profileVisibility,
+        showAcademicInfo,
+        allowDirectMessages,
+        showContributionActivity,
+        mutedTags,
+        updatedAt: new Date().toISOString(),
+      };
+      localStorage.setItem('fhub_user_preferences', JSON.stringify(localPrefs));
+
+      // 3. Sync to backend Profile service
       await Promise.allSettled([
         profileApi.updatePrivacySettings({
           profileVisibility,
@@ -132,14 +197,16 @@ export const ProfileSettingsPage: React.FC = () => {
           inAppNotifications,
           showAcademicInfo,
           allowDirectMessages,
+          hideOutOfMajorCompact,
         })
       ]);
     } catch (err) {
       console.warn('Could not save settings to Profile service:', err);
+    } finally {
+      setIsSaving(false);
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 3500);
     }
-
-    setIsSaved(true);
-    setTimeout(() => setIsSaved(false), 3000);
   };
 
   const handleResetDefaults = () => {
@@ -274,6 +341,32 @@ export const ProfileSettingsPage: React.FC = () => {
                   checked={inAppNotifications}
                   onChange={(e) => setInAppNotifications(e.target.checked)}
                   className="w-4 h-4 rounded text-[#0076D1] focus:ring-blue-200 border-slate-300 cursor-pointer"
+                />
+              </label>
+
+              <label className="flex items-start justify-between cursor-pointer group pt-3 border-t border-slate-100">
+                <div className="pr-4">
+                  <div className="flex items-center gap-1.5">
+                    <BookOpen className="w-3.5 h-3.5 text-[#0076D1]" />
+                    <span className="text-xs font-semibold text-slate-800 group-hover:text-[#0076D1] transition-colors">
+                      Ẩn môn ngoài ngành trong danh sách thu gọn (Hide out-of-major courses in compact views)
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                    Tự động ẩn các môn học không thuộc chuyên ngành của bạn ({currentUser?.major || 'Ngành của bạn'}) trên các widget tóm tắt và hộp thoại chọn môn nhanh (không có bộ lọc). Trang Course Hub đầy đủ vẫn hiển thị toàn bộ chương trình đào tạo để bạn tự do tìm kiếm.
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={hideOutOfMajorCompact}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setHideOutOfMajorCompact(checked);
+                    setHideOutOfMajorCompactSetting(checked);
+                    setIsSaved(true);
+                    setTimeout(() => setIsSaved(false), 2000);
+                  }}
+                  className="w-4 h-4 rounded text-[#0076D1] focus:ring-blue-200 border-slate-300 cursor-pointer mt-0.5"
                 />
               </label>
             </div>
@@ -521,24 +614,47 @@ export const ProfileSettingsPage: React.FC = () => {
           </div>
 
           {/* Bottom Action Bar */}
-          <div className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 shadow-xs">
-            <span className="text-xs text-slate-400">
-              All changes are saved to your cloud profile.
-            </span>
-            <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-white rounded-2xl border border-slate-200 shadow-xs gap-3">
+            <div className="flex items-center gap-2">
+              {isSaved ? (
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 animate-in fade-in">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  Đã lưu tất cả thay đổi thành công!
+                </span>
+              ) : (
+                <span className="text-xs text-slate-400">
+                  Tất cả thay đổi sẽ được cập nhật vào hồ sơ đám mây của bạn.
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
               <button
                 type="button"
                 onClick={handleResetDefaults}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
+                disabled={isSaving}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors disabled:opacity-50 cursor-pointer"
               >
-                Reset to Defaults
+                Khôi phục mặc định
               </button>
               <button
                 type="button"
                 onClick={handleSaveChanges}
-                className="px-5 py-2 text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700 rounded-xl shadow-xs transition-colors"
+                disabled={isSaving}
+                className="inline-flex items-center gap-2 px-5 py-2 text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700 disabled:bg-blue-400 rounded-xl shadow-xs transition-colors cursor-pointer"
               >
-                Save Changes
+                {isSaving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Đang lưu...</span>
+                  </>
+                ) : isSaved ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Đã lưu!</span>
+                  </>
+                ) : (
+                  <span>Lưu thay đổi</span>
+                )}
               </button>
             </div>
           </div>

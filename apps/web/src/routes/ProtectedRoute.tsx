@@ -13,8 +13,8 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles, ch
   const location = useLocation();
 
   if (!isAuthenticated) {
-    // If not logged in, enforce login screen (like Facebook)
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    // If not logged in, enforce landing entry per guest screenflow
+    return <Navigate to="/landing" state={{ from: location }} replace />;
   }
 
   if (allowedRoles && !allowedRoles.includes(currentRole)) {

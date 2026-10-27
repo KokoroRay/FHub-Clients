@@ -9,6 +9,7 @@ interface AuthContextType {
   switchRole: (role: UserRole) => void;
   login: (user: User, token?: string, refreshToken?: string) => void;
   logout: () => void;
+  updateUser: (fields: Partial<User>) => void;
   isAuthenticated: boolean;
 }
 
@@ -86,6 +87,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCurrentUser(null);
   };
 
+  const updateUser = (fields: Partial<User>) => {
+    if (!currentUser) return;
+    const updated = { ...currentUser, ...fields };
+    localStorage.setItem('fhub_user', JSON.stringify(updated));
+    setCurrentUser(updated);
+    if (fields.campus) {
+      setCurrentCampus(fields.campus);
+    }
+  };
+
   const isAuthenticated = !!(currentUser && (localStorage.getItem('fhub_token') || sessionStorage.getItem('fhub_token')));
 
   return (
@@ -98,6 +109,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         switchRole,
         login,
         logout,
+        updateUser,
         isAuthenticated,
       }}
     >

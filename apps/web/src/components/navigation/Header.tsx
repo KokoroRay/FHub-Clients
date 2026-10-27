@@ -22,6 +22,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { campusesApi } from '../../services/api/adminApi';
 import { notificationApi, NotificationItem } from '../../services/api/studentApi';
+import { normalizeMediaUrl } from '../../utils/mediaUtils';
 import { Dropdown } from '../common/Dropdown';
 import { Button } from '../common/Button';
 import { Badge } from '../common/Badge';
@@ -82,6 +83,8 @@ export const Header: React.FC = () => {
   React.useEffect(() => {
     let isMounted = true;
     const fetchCampuses = async () => {
+      const token = localStorage.getItem('fhub_token') || sessionStorage.getItem('fhub_token');
+      if (!token) return;
       try {
         const res = await campusesApi.getCampuses();
         const items = (res as any)?.items || res || [];
@@ -97,7 +100,7 @@ export const Header: React.FC = () => {
     };
     fetchCampuses();
     return () => { isMounted = false; };
-  }, []);
+  }, [currentUser]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,7 +109,40 @@ export const Header: React.FC = () => {
     }
   };
 
-  const currentCampusObj = campuses.find((c) => c.code === currentCampus) || { code: currentCampus || 'FPTU', name: 'FPT University' };
+  const allCampusesList = campuses.length > 0 ? campuses : [
+    { code: 'HL', name: 'ĐH FPT Hà Nội (Hòa Lạc)' },
+    { code: 'HCM', name: 'ĐH FPT TP. Hồ Chí Minh' },
+    { code: 'DN', name: 'ĐH FPT Đà Nẵng' },
+    { code: 'CT', name: 'ĐH FPT Cần Thơ' },
+    { code: 'QN', name: 'ĐH FPT Quy Nhơn' },
+  ];
+
+  const currentCampusObj = (currentCampus === 'ALL' || (currentCampus as any) === 'GLOBAL')
+    ? { code: 'Global', name: 'Toàn quốc (Tất cả cơ sở)' }
+    : allCampusesList.find((c) => c.code === currentCampus) || { code: currentCampus || 'HL', name: 'FPT University' };
+
+  const campusDropdownItems = [
+    {
+      id: 'ALL',
+      label: (
+        <div className="flex flex-col">
+          <span className="font-semibold text-xs text-[#0076D1]">Toàn quốc (Global)</span>
+          <span className="text-[10px] text-slate-400">Tất cả phân hiệu FPT</span>
+        </div>
+      ),
+      onClick: () => setCurrentCampus('ALL' as any),
+    },
+    ...allCampusesList.map((c) => ({
+      id: c.code,
+      label: (
+        <div className="flex flex-col">
+          <span className="font-semibold text-xs">{c.name}</span>
+          <span className="text-[10px] text-slate-400">Campus {c.code}</span>
+        </div>
+      ),
+      onClick: () => setCurrentCampus(c.code as any),
+    })),
+  ];
 
   const createMenu = [
     {
@@ -198,16 +234,7 @@ export const Header: React.FC = () => {
                   <ChevronDown className="w-3 h-3 text-slate-400" />
                 </button>
               }
-              items={campuses.map((c) => ({
-                id: c.code,
-                label: (
-                  <div className="flex flex-col">
-                    <span className="font-semibold text-xs">{c.name}</span>
-                    <span className="text-[10px] text-slate-400">Campus {c.code}</span>
-                  </div>
-                ),
-                onClick: () => setCurrentCampus(c.code as any),
-              }))}
+              items={campusDropdownItems}
             />
           </div>
         </div>
@@ -302,11 +329,17 @@ export const Header: React.FC = () => {
               <Dropdown
                 trigger={
                   <div className="flex items-center gap-2 pl-1 cursor-pointer">
-                    <img
-                      src={currentUser.avatarUrl}
-                      alt={currentUser.fullName}
-                      className="w-8 h-8 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700"
-                    />
+                    {currentUser.avatarUrl ? (
+                      <img
+                        src={normalizeMediaUrl(currentUser.avatarUrl)}
+                        alt={currentUser.fullName}
+                        className="w-8 h-8 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-[#0076D1] text-white flex items-center justify-center font-bold text-xs ring-1 ring-slate-200 dark:ring-slate-700 shrink-0">
+                        {currentUser.fullName?.charAt(0)?.toUpperCase() || 'U'}
+                      </div>
+                    )}
                     <div className="hidden sm:flex flex-col text-left">
                       <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate max-w-[120px]">
                         {currentUser.fullName}

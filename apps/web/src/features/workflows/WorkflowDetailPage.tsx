@@ -10,6 +10,7 @@ import {
   Share2,
 } from 'lucide-react';
 import { workflowApi } from '../../services/api/contentApi';
+import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 import { Card, CardBody } from '../../components/common/Card';
 import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
@@ -129,9 +130,12 @@ export const WorkflowDetailPage: React.FC = () => {
               <Button variant="primary" leftIcon={<Play className="w-4 h-4" />}>
                 Áp dụng Workflow
               </Button>
-              <Button variant="outline" className="p-2.5">
-                <Share2 className="w-4 h-4" />
-              </Button>
+              <ContentActionMenu
+                targetType="WORKFLOW"
+                targetId={workflow.id}
+                targetTitle={workflow.title}
+                shareUrl={typeof window !== 'undefined' ? window.location.href : ''}
+              />
             </div>
           </div>
 

@@ -16,7 +16,7 @@ import {
   SlidersHorizontal,
   Loader2,
 } from 'lucide-react';
-import { DetailedCampus } from '../../../services/adminMockData';
+import { DetailedCampus } from '../../../types';
 import { useCampuses, useCreateCampus } from '../../../services/api';
 
 export const CampusesPage: React.FC = () => {

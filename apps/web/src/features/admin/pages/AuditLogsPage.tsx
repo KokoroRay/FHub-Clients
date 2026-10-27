@@ -15,7 +15,7 @@ import {
   Sparkles,
   Loader2,
 } from 'lucide-react';
-import { DetailedAuditLog } from '../../../services/adminMockData';
+import { DetailedAuditLog } from '../../../types';
 import { useAuditLogs } from '../../../services/api';
 import { auditLogsApi } from '../../../services/api/adminApi';
 

@@ -11,12 +11,20 @@ import {
   RotateCcw,
   Radio,
   Eye,
+  EyeOff,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { QuestionPost } from '../../types';
 import { AskQuestionModal } from './AskQuestionModal';
 import { questionApi } from '../../services/api/contentApi';
+import { voteApi } from '../../services/api/studentApi';
+import { courseNodesApi, semanticTagsApi } from '../../services/api/adminApi';
+import { useAuth } from '../../context/AuthContext';
+import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 
 export const QuestionListPage: React.FC = () => {
+  const { currentCampus } = useAuth();
   const [searchParams] = useSearchParams();
   const initialTag = searchParams.get('tag');
   const shouldOpenCreate = searchParams.get('action') === 'create';
@@ -29,6 +37,50 @@ export const QuestionListPage: React.FC = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(shouldOpenCreate);
   const [questions, setQuestions] = useState<QuestionPost[]>([]);
   const [votesState, setVotesState] = useState<Record<string, { score: number; userVote: 'UP' | 'DOWN' | null }>>({});
+  const [availableCourses, setAvailableCourses] = useState<Array<{ id: number; code: string; title: string }>>([]);
+  const [tagsMap, setTagsMap] = useState<Record<number, string>>({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadMetadata = async () => {
+      try {
+        const cRes = await courseNodesApi.getCourseNodes({ pageSize: 100 });
+        const cItems = (cRes as any)?.items || cRes || [];
+        if (isMounted && Array.isArray(cItems)) {
+          setAvailableCourses(
+            cItems.map((c: any, idx: number) => {
+              const idNum = Number(c.id ?? c.courseNodeId ?? c.courseId);
+              return {
+                id: Number.isFinite(idNum) ? idNum : idx + 1,
+                code: c.code || c.courseCode || `C-${idx + 1}`,
+                title: c.name || c.title || c.code || `Course ${idx + 1}`,
+              };
+            })
+          );
+        }
+      } catch {}
+
+      try {
+        const tRes = await semanticTagsApi.getTags({ pageSize: 100 });
+        const tItems = (tRes as any)?.items || (tRes as any)?.data?.items || tRes || [];
+        if (isMounted && Array.isArray(tItems)) {
+          const map: Record<number, string> = {};
+          tItems.forEach((t: any) => {
+            const id = Number(t.semanticTagId || t.id);
+            const name = (t.tagName || t.name || '').toLowerCase().trim();
+            if (id && name) map[id] = name;
+          });
+          setTagsMap(map);
+        }
+      } catch {}
+    };
+    loadMetadata();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -36,35 +88,91 @@ export const QuestionListPage: React.FC = () => {
       try {
         const res = await questionApi.getQuestions({
           search: searchQuery.trim() || undefined,
-          sortBy: sortBy === 'upvoted' ? 'upvotes' : sortBy === 'answers' ? 'answers' : 'created_at',
+          sortBy: sortBy === 'upvoted' ? 'views' : sortBy === 'answers' ? 'answers' : 'newest',
           pageSize: 50,
         });
         if (isMounted) {
           const items = res?.items || [];
-          const mapped: QuestionPost[] = items.map((item) => ({
-            id: String(item.questionId),
-            title: item.title,
-            content: item.body,
-            courseCode: item.courseId ? `COURSE-${item.courseId}` : undefined,
-            author: {
-              id: String(item.authorUserId || 'anon'),
-              fullName: item.isAnonymous ? 'Ẩn danh FPTer' : (item.authorDisplayName || 'Sinh viên FHub'),
-              role: 'Student',
-              karma: 0,
-              campus: '',
-              isAnonymous: item.isAnonymous,
-            },
-            tags: item.semanticTagIds?.map((t) => `tag-${t}`) || ['qa'],
-            upvotes: item.upvoteCount || 0,
-            downvotes: item.downvoteCount || 0,
-            answersCount: item.answerCount || 0,
-            viewsCount: item.viewCount || 0,
-            isSolved: item.hasBestAnswer || item.status === 'RESOLVED',
-            isLocked: item.areCommentsLocked || false,
-            isPinned: item.isPinned || false,
-            createdAt: item.createdAt || new Date().toISOString(),
-          }));
+          const mapped: QuestionPost[] = items.map((item) => {
+            const matchedCourse = availableCourses.find((c) => c.id === item.courseId);
+            const courseCode = matchedCourse ? matchedCourse.code : (item.courseId ? `COURSE-${item.courseId}` : undefined);
+            const tags = (item.semanticTagIds && item.semanticTagIds.length > 0)
+              ? item.semanticTagIds.map((t) => tagsMap[t] || `tag-${t}`)
+              : ['qa'];
+
+            return {
+              id: String(item.questionId),
+              title: item.title,
+              content: item.body,
+              courseCode,
+              author: {
+                id: String(item.authorUserId || 'anon'),
+                fullName: item.isAnonymous ? 'Ẩn danh FPTer' : (item.authorDisplayName || 'Sinh viên FHub'),
+                role: 'Student',
+                karma: 0,
+                campus: '',
+                isAnonymous: item.isAnonymous,
+              },
+              tags,
+              upvotes: item.upvoteCount || 0,
+              downvotes: item.downvoteCount || 0,
+              answersCount: item.answerCount || 0,
+              viewsCount: item.viewCount || 0,
+              isSolved: item.hasBestAnswer || item.status === 'RESOLVED',
+              isLocked: item.areCommentsLocked || false,
+              isPinned: item.isPinned || false,
+              createdAt: item.createdAt || new Date().toISOString(),
+            };
+          });
           setQuestions(mapped);
+
+          let myVotesMap: Record<string, number> = {};
+          try {
+            const myVotes = await voteApi.getMyVotes();
+            myVotes.forEach((v) => {
+              if (v.targetType === 'QUESTION') {
+                myVotesMap[String(v.targetId)] = v.voteValue;
+              }
+            });
+          } catch {}
+
+          const initialVotesState: Record<string, { score: number; userVote: 'UP' | 'DOWN' | null }> = {};
+          items.forEach((item) => {
+            const qId = String(item.questionId);
+            const myVote = myVotesMap[qId];
+            initialVotesState[qId] = {
+              score: (item.upvoteCount || 0) - (item.downvoteCount || 0),
+              userVote: myVote === 1 ? 'UP' : myVote === -1 ? 'DOWN' : null,
+            };
+          });
+          setVotesState(initialVotesState);
+
+          // Synchronize accurate vote stats from interaction service
+          Promise.allSettled(
+            items.map(async (item) => {
+              const qId = String(item.questionId);
+              const stats = await voteApi.getStats('QUESTION', item.questionId);
+              return {
+                qId,
+                score: stats.score,
+                userVote: stats.myVoteValue === 1 ? ('UP' as const) : stats.myVoteValue === -1 ? ('DOWN' as const) : null,
+              };
+            })
+          ).then((results) => {
+            if (!isMounted) return;
+            setVotesState((prev) => {
+              const updated = { ...prev };
+              results.forEach((res) => {
+                if (res.status === 'fulfilled' && res.value) {
+                  updated[res.value.qId] = {
+                    score: res.value.score,
+                    userVote: res.value.userVote,
+                  };
+                }
+              });
+              return updated;
+            });
+          });
         }
       } catch (err) {
         if (isMounted) setQuestions([]);
@@ -82,9 +190,12 @@ export const QuestionListPage: React.FC = () => {
     return Array.from(set);
   }, [questions]);
 
-  const handleVote = (id: string, dir: 'UP' | 'DOWN', e: React.MouseEvent) => {
+  const handleVote = async (id: string, dir: 'UP' | 'DOWN', e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    const numId = Number(id.replace(/\D/g, ''));
+    if (!numId) return;
+
     const current = votesState[id] || {
       score: questions.find((q) => q.id === id)?.upvotes || 0,
       userVote: questions.find((q) => q.id === id)?.userVote || null,
@@ -108,7 +219,32 @@ export const QuestionListPage: React.FC = () => {
       ...prev,
       [id]: { score: newScore, userVote: newVote },
     }));
+
+    try {
+      await voteApi.vote({
+        target_type: 'QUESTION',
+        target_id: numId,
+        vote_value: dir === 'UP' ? 1 : -1,
+      });
+      const stats = await voteApi.getStats('QUESTION', numId);
+      setVotesState((prev) => ({
+        ...prev,
+        [id]: {
+          score: stats.score,
+          userVote: stats.myVoteValue === 1 ? 'UP' : stats.myVoteValue === -1 ? 'DOWN' : null,
+        },
+      }));
+    } catch (err) {
+      setVotesState((prev) => ({
+        ...prev,
+        [id]: current,
+      }));
+    }
   };
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusTab, selectedCourse, selectedTopic, sortBy]);
 
   const resetFilters = () => {
     setSearchQuery('');
@@ -121,6 +257,13 @@ export const QuestionListPage: React.FC = () => {
   const filteredQuestions = useMemo(() => {
     return questions
       .filter((q) => {
+        // Campus Filter: If a specific campus is selected in Header (not ALL/GLOBAL), filter by author campus
+        if (currentCampus && currentCampus !== 'ALL' && (currentCampus as any) !== 'GLOBAL') {
+          if (q.author.campus && q.author.campus.toUpperCase() !== currentCampus.toUpperCase()) {
+            return false;
+          }
+        }
+
         const matchSearch =
           q.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
           q.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -135,8 +278,11 @@ export const QuestionListPage: React.FC = () => {
             : q.answersCount === 0;
 
         const matchCourse =
-          selectedCourse === 'ALL' ||
-          (q.courseCode && q.courseCode.toLowerCase() === selectedCourse.toLowerCase());
+          selectedCourse === 'ALL'
+            ? true
+            : selectedCourse === 'NONE'
+            ? !q.courseCode
+            : Boolean(q.courseCode && q.courseCode.toLowerCase() === selectedCourse.toLowerCase());
 
         const matchTopic =
           selectedTopic === 'ALL' || q.tags.includes(selectedTopic);
@@ -154,7 +300,10 @@ export const QuestionListPage: React.FC = () => {
         }
         return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
-  }, [questions, searchQuery, statusTab, selectedCourse, selectedTopic, sortBy, votesState]);
+  }, [questions, searchQuery, statusTab, selectedCourse, selectedTopic, sortBy, votesState, currentCampus]);
+
+  const totalPages = Math.ceil(filteredQuestions.length / pageSize) || 1;
+  const paginatedQuestions = filteredQuestions.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
     <div className="space-y-6">
@@ -237,12 +386,13 @@ export const QuestionListPage: React.FC = () => {
                 onChange={(e) => setSelectedCourse(e.target.value)}
                 className="w-full appearance-none bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#0076D1] cursor-pointer"
               >
-                <option value="ALL">All Courses</option>
-                <option value="PRN211">PRN211</option>
-                <option value="PRN221">PRN221</option>
-                <option value="SWP391">SWP391</option>
-                <option value="DBI202">DBI202</option>
-                <option value="PRM392">PRM392</option>
+                <option value="ALL">Tất cả môn học</option>
+                <option value="NONE">Chung (Không môn học)</option>
+                {availableCourses.map((c, idx) => (
+                  <option key={`${c.code || 'course'}-${c.id ?? idx}`} value={c.code}>
+                    {c.code}
+                  </option>
+                ))}
               </select>
               <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
             </div>
@@ -306,12 +456,12 @@ export const QuestionListPage: React.FC = () => {
 
       {/* 4. Questions List Container (Figma #87:1035) */}
       <div className="space-y-3.5">
-        {filteredQuestions.length === 0 ? (
+        {paginatedQuestions.length === 0 ? (
           <div className="p-12 text-center text-slate-400 text-xs bg-white rounded-xl border border-slate-200">
             No questions found matching your criteria. Be the first to ask!
           </div>
         ) : (
-          filteredQuestions.map((q) => {
+          paginatedQuestions.map((q) => {
             const currentScore = votesState[q.id]?.score ?? q.upvotes;
             const currentUserVote = votesState[q.id]?.userVote ?? q.userVote;
 
@@ -366,13 +516,17 @@ export const QuestionListPage: React.FC = () => {
                   {/* Tags row */}
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      {q.courseCode && (
+                      {q.courseCode ? (
                         <Link
                           to={`/courses/${q.courseCode}`}
                           className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-blue-50 text-[#0076D1] border border-blue-100 hover:bg-blue-100 transition-colors"
                         >
                           {q.courseCode}
                         </Link>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-500 border border-slate-200/60">
+                          Chung
+                        </span>
                       )}
                       {q.tags.map((tag) => (
                         <button
@@ -409,20 +563,33 @@ export const QuestionListPage: React.FC = () => {
                   {/* Metadata row */}
                   <div className="pt-2 flex items-center justify-between gap-3 text-xs text-slate-400">
                     <div className="flex items-center gap-2">
-                      {q.author.avatarUrl ? (
-                        <img
-                          src={q.author.avatarUrl}
-                          alt={q.author.fullName}
-                          className="w-5 h-5 rounded-full object-cover"
-                        />
+                      {q.author.isAnonymous ? (
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-5 h-5 rounded-full bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 flex items-center justify-center font-bold border border-purple-200 dark:border-purple-800">
+                            <EyeOff className="w-3 h-3" />
+                          </div>
+                          <span className="font-semibold text-purple-700 dark:text-purple-300 text-xs">
+                            Ẩn danh FPTer
+                          </span>
+                        </div>
                       ) : (
-                        <div className="w-5 h-5 rounded-full bg-blue-100 text-[#0076D1] flex items-center justify-center font-bold text-[10px]">
-                          {q.author.fullName.substring(0, 2).toUpperCase()}
+                        <div className="flex items-center gap-1.5">
+                          {q.author.avatarUrl ? (
+                            <img
+                              src={q.author.avatarUrl}
+                              alt={q.author.fullName}
+                              className="w-5 h-5 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-5 h-5 rounded-full bg-blue-100 text-[#0076D1] flex items-center justify-center font-bold text-[10px]">
+                              {q.author.fullName.substring(0, 2).toUpperCase()}
+                            </div>
+                          )}
+                          <span className="font-semibold text-slate-700 dark:text-slate-300">
+                            @{q.author.fullName.toLowerCase().replace(/\s+/g, '_')}
+                          </span>
                         </div>
                       )}
-                      <span className="font-semibold text-slate-700">
-                        @{q.author.fullName.toLowerCase().replace(/\s+/g, '_')}
-                      </span>
                       <span>·</span>
                       <span>
                         {new Date(q.createdAt).toLocaleDateString('en-US', {
@@ -432,9 +599,17 @@ export const QuestionListPage: React.FC = () => {
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-1 text-slate-400">
-                      <Eye className="w-3.5 h-3.5" />
-                      <span>{q.viewsCount} views</span>
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1 text-slate-400">
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>{q.viewsCount} views</span>
+                      </div>
+                      <ContentActionMenu
+                        targetType="QUESTION"
+                        targetId={q.id}
+                        targetTitle={q.title}
+                        shareUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/discussions/${q.id}`}
+                      />
                     </div>
                   </div>
                 </div>
@@ -443,6 +618,48 @@ export const QuestionListPage: React.FC = () => {
           })
         )}
       </div>
+
+            {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4 px-4 bg-white rounded-2xl border border-slate-200/90 shadow-2xs">
+          <p className="text-xs text-slate-500">
+            Hiển thị <span className="font-semibold text-slate-700">{(currentPage - 1) * pageSize + 1}</span> -{' '}
+            <span className="font-semibold text-slate-700">{Math.min(currentPage * pageSize, filteredQuestions.length)}</span> trên tổng số{' '}
+            <span className="font-semibold text-slate-700">{filteredQuestions.length}</span> câu hỏi
+          </p>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              title="Trang trước"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+              <button
+                key={pageNum}
+                onClick={() => setCurrentPage(pageNum)}
+                className={`w-8 h-8 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                  currentPage === pageNum
+                    ? 'bg-[#0076D1] text-white shadow-xs'
+                    : 'text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                {pageNum}
+              </button>
+            ))}
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              title="Trang kế tiếp"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Ask Question Modal */}
       <AskQuestionModal

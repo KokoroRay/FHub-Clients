@@ -180,12 +180,12 @@ export const SupportTicketsPage: React.FC = () => {
 
   const handleCreateTicketSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newTitle.trim().length < 8) {
-      setCreateErrorMessage('Tiêu đề yêu cầu hỗ trợ cần tối thiểu 8 ký tự.');
+    if (newTitle.trim().length < 5) {
+      setCreateErrorMessage('Tiêu đề yêu cầu hỗ trợ cần tối thiểu 5 ký tự.');
       return;
     }
-    if (newDescription.trim().length < 15) {
-      setCreateErrorMessage('Mô tả chi tiết sự cố cần tối thiểu 15 ký tự để đội ngũ hỗ trợ tiếp nhận chính xác.');
+    if (newDescription.trim().length < 20) {
+      setCreateErrorMessage('Mô tả chi tiết sự cố cần tối thiểu 20 ký tự để đội ngũ hỗ trợ tiếp nhận chính xác.');
       return;
     }
 
@@ -376,7 +376,7 @@ export const SupportTicketsPage: React.FC = () => {
               ) : (
                 <button
                   type="button"
-                  onClick={() => handleUpdateStatus('In Progress')}
+                  onClick={() => handleUpdateStatus('Open')}
                   className="px-3.5 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-colors"
                 >
                   Reopen Ticket

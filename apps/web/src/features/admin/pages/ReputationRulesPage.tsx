@@ -13,7 +13,7 @@ import {
   Sparkles,
   Loader2,
 } from 'lucide-react';
-import { ReputationRule } from '../../../services/adminMockData';
+import { ReputationRule } from '../../../types';
 import { useReputationRules, useCreateReputationRule, useUpdateReputationRule } from '../../../services/api';
 
 export const ReputationRulesPage: React.FC = () => {

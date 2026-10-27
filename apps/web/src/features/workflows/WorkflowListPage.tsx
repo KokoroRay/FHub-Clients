@@ -16,6 +16,7 @@ import {
 import { SharedWorkflow } from '../../types';
 import { CreateWorkflowModal } from './CreateWorkflowModal';
 import { workflowApi } from '../../services/api/contentApi';
+import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 
 export const WorkflowListPage: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -243,17 +244,25 @@ export const WorkflowListPage: React.FC = () => {
                       </span>
                     </div>
 
-                    <button
-                      onClick={(e) => toggleBookmark(wf.id, e)}
-                      title={isBookmarked ? 'Unsave workflow' : 'Save workflow'}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
-                    >
-                      <Bookmark
-                        className={`w-4 h-4 ${
-                          isBookmarked ? 'fill-[#0076D1] text-[#0076D1]' : ''
-                        }`}
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={(e) => toggleBookmark(wf.id, e)}
+                        title={isBookmarked ? 'Unsave workflow' : 'Save workflow'}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
+                      >
+                        <Bookmark
+                          className={`w-4 h-4 ${
+                            isBookmarked ? 'fill-[#0076D1] text-[#0076D1]' : ''
+                          }`}
+                        />
+                      </button>
+                      <ContentActionMenu
+                        targetType="WORKFLOW"
+                        targetId={wf.id}
+                        targetTitle={wf.title}
+                        shareUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/workflows/${wf.id}`}
                       />
-                    </button>
+                    </div>
                   </div>
 
                   {/* Title & Description */}

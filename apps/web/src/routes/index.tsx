@@ -67,25 +67,30 @@ import {
   StaffAccountsAdminPage,
 } from '../features/admin/pages';
 
-// Admin & Staff Governance (Legacy / Domain Portal)
-import { CampusManagementPage } from '../features/admin/CampusManagementPage';
-import { MajorManagementPage } from '../features/admin/MajorManagementPage';
-import { CourseNodeManagementPage } from '../features/admin/CourseNodeManagementPage';
-import { TopicManagementPage } from '../features/admin/TopicManagementPage';
+// Admin & Staff Governance Pages
 import { RolePolicyManagementPage } from '../features/admin/RolePolicyManagementPage';
-import { StaffManagementPage } from '../features/admin/StaffManagementPage';
-import { BadgeReputationPage } from '../features/admin/BadgeReputationPage';
-import { SystemAuditLogsPage } from '../features/admin/SystemAuditLogsPage';
 import { AIModerationPage } from '../features/admin/AIModerationPage';
-import { UserAccountsPage } from '../features/staff/UserAccountsPage';
 import { VerificationQueuePage } from '../features/staff/VerificationQueuePage';
-import { SystemHealthDashboardPage } from '../features/staff/SystemHealthDashboardPage';
 
 // Auth Pages
 import { LoginPage } from '../features/auth/LoginPage';
 import { RegisterPage } from '../features/auth/RegisterPage';
 import { ForgotPasswordPage } from '../features/auth/ForgotPasswordPage';
 import { NotFoundPage } from '../features/common/NotFoundPage';
+
+// Landing & Public Pages (UC02)
+import { LandingPage } from '../features/landing/LandingPage';
+import { TechBlogPage } from '../features/landing/TechBlogPage';
+import { CourseRatingsPage } from '../features/landing/CourseRatingsPage';
+
+// Standardized Screenflow Auth Pages (UC01)
+import { CampusSelectionPage } from '../features/auth/CampusSelectionPage';
+import { AuthOptionsPage } from '../features/auth/AuthOptionsPage';
+import { FPTSSOPage } from '../features/auth/FPTSSOPage';
+import { EmailAuthPage } from '../features/auth/EmailAuthPage';
+import { EmailRegPage } from '../features/auth/EmailRegPage';
+import { OTPVerifyPage } from '../features/auth/OTPVerifyPage';
+import { ResetPasswordPage } from '../features/auth/ResetPasswordPage';
 
 /**
  * Subdomain Routes Definition (ops.fhub.com.vn / ops.localhost)
@@ -180,6 +185,8 @@ const getMainPortalRoutes = () => [
       { path: 'materials/:id', element: <StudyMaterialDetailPage /> },
       { path: 'course-evaluations', element: <CourseEvaluationListPage /> },
       { path: 'course-evaluations/:id', element: <CourseEvaluationDetailPage /> },
+      { path: 'evaluations', element: <CourseEvaluationListPage /> },
+      { path: 'evaluations/:id', element: <CourseEvaluationDetailPage /> },
       { path: 'marketplace', element: <MarketplaceListPage /> },
       { path: 'marketplace/:id', element: <MarketplaceDetailPage /> },
       { path: 'profile', element: <ProfilePage /> },
@@ -235,39 +242,51 @@ const getMainPortalRoutes = () => [
     ],
   },
 
-  // Admin & Staff Governance Layout (Legacy compatibility)
+  // Admin & Staff Governance Legacy Redirects
   {
     path: '/',
     element: <AdminLayout />,
     children: [
-      { path: 'admin/campus', element: <CampusManagementPage /> },
-      { path: 'admin/majors', element: <MajorManagementPage /> },
-      { path: 'admin/courses', element: <CourseNodeManagementPage /> },
-      { path: 'admin/course-nodes', element: <Navigate to="/admin/courses" replace /> },
-      { path: 'admin/topics', element: <TopicManagementPage /> },
+      { path: 'admin/campus', element: <Navigate to="/campuses" replace /> },
+      { path: 'admin/majors', element: <Navigate to="/majors" replace /> },
+      { path: 'admin/courses', element: <Navigate to="/courses" replace /> },
+      { path: 'admin/course-nodes', element: <Navigate to="/courses" replace /> },
+      { path: 'admin/topics', element: <Navigate to="/tags" replace /> },
       { path: 'admin/roles-policies', element: <RolePolicyManagementPage /> },
-      { path: 'admin/staff-accounts', element: <StaffManagementPage /> },
-      { path: 'admin/badges', element: <BadgeReputationPage /> },
-      { path: 'admin/audit-logs', element: <SystemAuditLogsPage /> },
+      { path: 'admin/staff-accounts', element: <Navigate to="/staff" replace /> },
+      { path: 'admin/badges', element: <Navigate to="/badges" replace /> },
+      { path: 'admin/audit-logs', element: <Navigate to="/audit-logs" replace /> },
       { path: 'admin/ai-moderation', element: <AIModerationPage /> },
-      { path: 'staff/accounts', element: <UserAccountsPage /> },
-      { path: 'staff/verification', element: <VerificationQueuePage /> },
-      { path: 'staff/health', element: <SystemHealthDashboardPage /> },
+      { path: 'staff/accounts', element: <Navigate to="/users" replace /> },
+      { path: 'staff/verification', element: <Navigate to="/verifications" replace /> },
+      { path: 'staff/health', element: <Navigate to="/health" replace /> },
     ],
   },
+
+  // Public Entry & Resources (UC02)
+  { path: '/landing', element: <LandingPage /> },
+  { path: '/tech-blog', element: <TechBlogPage /> },
+  { path: '/course-ratings', element: <CourseRatingsPage /> },
 
   // Auth Routes
   {
     path: '/',
     element: <AuthLayout />,
     children: [
-      { path: 'login', element: <LoginPage /> },
+      { path: 'campus-selection', element: <CampusSelectionPage /> },
+      { path: 'auth-options', element: <AuthOptionsPage /> },
+      { path: 'fpt-sso', element: <FPTSSOPage /> },
+      { path: 'email-auth', element: <Navigate to="/landing" replace /> },
+      { path: 'login', element: <Navigate to="/landing" replace /> },
       { path: 'admin-login', element: <AdminLoginPage /> },
       { path: 'admin/login', element: <AdminLoginPage /> },
       { path: 'ops-login', element: <AdminLoginPage /> },
       { path: 'ops/login', element: <AdminLoginPage /> },
-      { path: 'register', element: <RegisterPage /> },
+      { path: 'email-reg', element: <EmailRegPage /> },
+      { path: 'register', element: <EmailRegPage /> },
       { path: 'forgot-password', element: <ForgotPasswordPage /> },
+      { path: 'otp-verify', element: <OTPVerifyPage /> },
+      { path: 'reset-password', element: <ResetPasswordPage /> },
     ],
 
   },

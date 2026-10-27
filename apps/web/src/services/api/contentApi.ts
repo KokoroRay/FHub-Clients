@@ -269,6 +269,38 @@ export const studyMaterialApi = {
   getDownloadUrl: (id: number | string): string => {
     return `/api/content/study-materials/${id}/download`;
   },
+
+  downloadFile: async (id: number | string, fallbackFileName?: string): Promise<void> => {
+    const res = await apiClient.get<Blob>(`/api/content/study-materials/${id}/download`, {
+      responseType: 'blob',
+    });
+
+    let resolvedName = fallbackFileName || `material-${id}`;
+    const disposition = res.headers['content-disposition'];
+    if (typeof disposition === 'string') {
+      const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+      const plainMatch = disposition.match(/filename="?([^";]+)"?/i);
+      if (utf8Match && utf8Match[1]) {
+        resolvedName = decodeURIComponent(utf8Match[1].trim());
+      } else if (plainMatch && plainMatch[1]) {
+        resolvedName = plainMatch[1].trim();
+      }
+    }
+
+    const rawContentType = res.headers['content-type'];
+    const mimeType = typeof rawContentType === 'string' ? rawContentType : 'application/octet-stream';
+    const blob = new Blob([res.data], { type: mimeType });
+    const blobUrl = window.URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.setAttribute('download', resolvedName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 5000);
+  },
 };
 
 // ─── 4. News Management API (School Representative) ──────────────────────────
@@ -699,4 +731,35 @@ export const alumniApi = {
     return res.data.data;
   },
 };
+
+// ─── 9. Content Media API ─────────────────────────────────────────────────────
+export interface StorageUploadResult {
+  storageKey: string;
+  publicUrl: string;
+  fileSizeBytes: number;
+  contentType: string;
+  fileName: string;
+}
+
+export const contentMediaApi = {
+  uploadMedia: async (file: File, resourceType: string = 'avatar', scopeId?: string): Promise<StorageUploadResult> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('resourceType', resourceType);
+    if (scopeId) formData.append('scopeId', scopeId);
+
+    const res = await apiClient.post<ApiResponse<StorageUploadResult>>('/api/content/media/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    const d = res.data.data;
+    const cleanPublicUrl = `/api/content/media/${(d.storageKey || '').replace(/^\/+/, '')}`;
+    return {
+      ...d,
+      publicUrl: cleanPublicUrl,
+    };
+  },
+};
+
 

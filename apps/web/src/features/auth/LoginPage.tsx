@@ -4,6 +4,7 @@ import { Mail, Lock, ArrowRight, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { authApi } from '../../services/api/adminApi';
 import { User } from '../../types';
+import { validateFptEmail } from '../../utils/fptEmailValidator';
 
 export const LoginPage: React.FC = () => {
   const { login } = useAuth();
@@ -20,6 +21,14 @@ export const LoginPage: React.FC = () => {
     if (!email.trim()) {
       setErrorMessage('Vui lòng nhập email trường hoặc mã sinh viên.');
       return;
+    }
+    // Kiểm tra định dạng Email theo chính sách K18 / K19 của trường
+    if (email.trim().includes('@')) {
+      const emailCheck = validateFptEmail(email.trim());
+      if (!emailCheck.isValid) {
+        setErrorMessage(emailCheck.error || 'Email không đúng định dạng quy định của Trường Đại học FPT.');
+        return;
+      }
     }
     if (!password) {
       setErrorMessage('Vui lòng nhập mật khẩu.');
@@ -91,11 +100,30 @@ export const LoginPage: React.FC = () => {
     }
   };
 
-  const GOOGLE_CLIENT_ID = '286107558257-opd8v8nqnogitdmkvidvei0h691rpr15.apps.googleusercontent.com';
+  const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 
   const handleGoogleSuccess = async (idToken: string) => {
     setIsLoading(true);
     setErrorMessage(null);
+
+    // Kiểm tra chính sách Email FPT từ ID Token phía Client
+    try {
+      const payloadBase64 = idToken.split('.')[1];
+      if (payloadBase64) {
+        const payloadJson = JSON.parse(atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/')));
+        const googleEmail = (payloadJson.email || '').trim().toLowerCase();
+        if (googleEmail) {
+          if (!googleEmail.endsWith('@fpt.edu.vn')) {
+            setErrorMessage(`Chỉ tài khoản Google có đuôi email @fpt.edu.vn mới được phép đăng nhập hoặc đăng ký qua Google. (Email hiện tại: ${googleEmail})`);
+            setIsLoading(false);
+            return;
+          }
+        }
+      }
+    } catch {
+      // Bỏ qua nếu không parse được token client, để backend kiểm tra tiếp
+    }
+
     try {
       const result = await authApi.googleLogin(idToken);
       if (result.accessToken) {
@@ -145,27 +173,39 @@ export const LoginPage: React.FC = () => {
   };
 
   React.useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    script.onload = () => {
+    let isMounted = true;
+    const initGsi = () => {
+      if (!isMounted) return;
       if ((window as any).google?.accounts?.id) {
-        (window as any).google.accounts.id.initialize({
-          client_id: GOOGLE_CLIENT_ID,
-          callback: (response: any) => {
-            if (response.credential) {
-              handleGoogleSuccess(response.credential);
+        try {
+          (window as any).google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: (response: any) => {
+              if (response.credential) {
+                handleGoogleSuccess(response.credential);
+              }
             }
-          }
-        });
+          });
+        } catch {
+          // ignore
+        }
       }
     };
-    document.body.appendChild(script);
+
+    const existingScript = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
+    if (!existingScript) {
+      const script = document.createElement('script');
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+      script.defer = true;
+      script.onload = initGsi;
+      document.body.appendChild(script);
+    } else {
+      initGsi();
+    }
+
     return () => {
-      if (document.body.contains(script)) {
-        document.body.removeChild(script);
-      }
+      isMounted = false;
     };
   }, []);
 

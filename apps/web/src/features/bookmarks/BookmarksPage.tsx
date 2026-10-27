@@ -55,7 +55,10 @@ export const BookmarksPage: React.FC = () => {
         if (isMounted) {
           if (res && res.length > 0) {
             const mapped: BookmarkItem[] = res.map((b) => {
-              const typeLower = (b.targetType?.toLowerCase() || 'article') as 'question' | 'article' | 'material' | 'workflow';
+              const rawType = (b.targetType || '').toLowerCase();
+              const typeLower = (rawType === 'studymaterial' || rawType === 'material')
+                ? 'material'
+                : (rawType as 'question' | 'article' | 'material' | 'workflow');
               const colorMap: Record<string, string> = {
                 question: 'bg-blue-50 text-[#0076D1] border-blue-100',
                 article: 'bg-emerald-50 text-emerald-700 border-emerald-100',

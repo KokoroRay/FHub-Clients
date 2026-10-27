@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { UploadCloud, FileText, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Modal } from '../../components/common/Modal';
 import { Button } from '../../components/common/Button';
 import { Input, Textarea, Select } from '../../components/common/Input';
-import { courseNodesApi } from '../../services/api/adminApi';
+import { CourseSelect } from '../../components/common/CourseSelect';
+import { CourseNodeListItem } from '../../services/api/adminApi';
+import { studyMaterialApi } from '../../services/api/contentApi';
 import { StudyMaterial } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 
@@ -22,35 +24,14 @@ export const UploadStudyMaterialModal: React.FC<UploadStudyMaterialModalProps> =
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [courseCode, setCourseCode] = useState('');
-  const [courses, setCourses] = useState<Array<{ code: string; title: string }>>([]);
+  const [selectedCourse, setSelectedCourse] = useState<CourseNodeListItem | undefined>(undefined);
+  
   const [fileType, setFileType] = useState<'PDF' | 'DOCX' | 'ZIP' | 'PPTX' | 'CODE'>('PDF');
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileSizeMb, setFileSizeMb] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    let isMounted = true;
-    const loadCourses = async () => {
-      try {
-        const res = await courseNodesApi.getCourseNodes();
-        const items = (res as any)?.items || res || [];
-        if (isMounted && Array.isArray(items) && items.length > 0) {
-          const mapped = items.map((c: any) => ({
-            code: c.code || c.courseCode,
-            title: c.name || c.title || c.code,
-          }));
-          setCourses(mapped);
-          if (mapped[0]) setCourseCode(mapped[0].code);
-        }
-      } catch (err) {
-        console.warn('Failed to load courses in modal:', err);
-      }
-    };
-    loadCourses();
-    return () => { isMounted = false; };
-  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -67,12 +48,18 @@ export const UploadStudyMaterialModal: React.FC<UploadStudyMaterialModalProps> =
       if (!title) {
         setTitle(file.name.replace(/\.[^/.]+$/, ''));
       }
+      const ext = file.name.split('.').pop()?.toLowerCase();
+      if (ext === 'pdf') setFileType('PDF');
+      else if (ext === 'docx' || ext === 'doc') setFileType('DOCX');
+      else if (ext === 'pptx' || ext === 'ppt') setFileType('PPTX');
+      else if (['zip', 'rar', '7z'].includes(ext || '')) setFileType('ZIP');
+      else if (['cs', 'java', 'py', 'sql', 'cpp', 'c', 'json', 'md', 'txt'].includes(ext || '')) setFileType('CODE');
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedFileName) {
+    if (!selectedFile) {
       setErrorMessage('Vui lòng chọn một tập tin tài liệu từ thiết bị.');
       return;
     }
@@ -88,44 +75,51 @@ export const UploadStudyMaterialModal: React.FC<UploadStudyMaterialModalProps> =
     setErrorMessage(null);
     setIsSubmitting(true);
 
-    if (selectedFile) {
-      const formData = new FormData();
-      formData.append('File', selectedFile);
-      formData.append('CourseId', '1');
-      formData.append('Title', title.trim());
-      if (description.trim()) {
-        formData.append('Description', description.trim());
-      }
-      import('../../services/api/contentApi').then(({ studyMaterialApi }) => {
-        studyMaterialApi.uploadFile(formData).catch((err) => console.warn('Backend material upload notice:', err));
-      });
-    }
+    try {
+      const courseIdNum = Number(selectedCourse?.courseNodeId ?? selectedCourse?.id);
+      const effectiveCourseId = (courseIdNum && courseIdNum > 0) ? courseIdNum : 1;
 
-    const newMat: StudyMaterial = {
-      id: `mat-${Date.now()}`,
-      title: title.trim(),
-      description: description.trim(),
-      courseCode,
-      fileType,
-      fileSizeMb: fileSizeMb || 0,
-      downloadUrl: '#',
-      downloadsCount: 0,
-      author: {
-        id: currentUser?.id || '',
-        fullName: currentUser?.fullName || '',
-        avatarUrl: currentUser?.avatarUrl,
-      },
-      semesterUploaded: '',
-      createdAt: new Date().toISOString(),
-    };
-    onUploaded(newMat);
-    setIsSubmitting(false);
-    setTitle('');
-    setDescription('');
-    setSelectedFileName(null);
-    setSelectedFile(null);
-    setErrorMessage(null);
-    onClose();
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('courseId', String(effectiveCourseId));
+      formData.append('title', title.trim());
+      if (description.trim()) {
+        formData.append('description', description.trim());
+      }
+
+      const created = await studyMaterialApi.uploadFile(formData);
+
+      const newMat: StudyMaterial = {
+        id: String(created.studyMaterialId),
+        title: created.title,
+        description: created.description || description.trim() || 'Tài liệu học tập FHub',
+        courseCode: courseCode || selectedCourse?.courseCode || selectedCourse?.code || `COURSE-${created.courseId}`,
+        fileType: fileType,
+        fileSizeMb: created.fileSizeBytes ? Number((created.fileSizeBytes / (1024 * 1024)).toFixed(1)) : fileSizeMb,
+        downloadUrl: `/api/content/study-materials/${created.studyMaterialId}/download`,
+        downloadsCount: created.downloadCount || 0,
+        author: {
+          id: currentUser?.id || String(created.uploaderUserId),
+          fullName: currentUser?.fullName || 'Sinh viên FHub',
+          avatarUrl: currentUser?.avatarUrl,
+        },
+        semesterUploaded: '',
+        createdAt: created.createdAt || new Date().toISOString(),
+      };
+
+      onUploaded(newMat);
+      setTitle('');
+      setDescription('');
+      setSelectedFileName(null);
+      setSelectedFile(null);
+      setErrorMessage(null);
+      onClose();
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi tải lên tài liệu.';
+      setErrorMessage(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -159,7 +153,7 @@ export const UploadStudyMaterialModal: React.FC<UploadStudyMaterialModalProps> =
             type="file"
             onChange={handleFileChange}
             className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-            accept=".pdf,.docx,.zip,.pptx,.cs,.java,.sql"
+            accept=".pdf,.docx,.doc,.pptx,.ppt,.xlsx,.xls,.zip,.rar,.7z,.cs,.java,.py,.cpp,.c,.sql,.json,.md,.txt"
           />
           <UploadCloud className="w-9 h-9 mx-auto text-[#0076D1]" />
           {selectedFileName ? (
@@ -174,7 +168,7 @@ export const UploadStudyMaterialModal: React.FC<UploadStudyMaterialModalProps> =
               <p className="font-bold text-xs text-slate-800">
                 Kéo thả file vào đây hoặc <span className="text-[#0076D1] underline">chọn file từ máy tính</span>
               </p>
-              <p className="text-[11px] text-slate-400 mt-1">Hỗ trợ PDF, DOCX, ZIP, PPTX, Source Code (Tối đa 50MB)</p>
+              <p className="text-[11px] text-slate-400 mt-1">Hỗ trợ PDF, Word, PowerPoint, Excel, ZIP, RAR, Source Code (Tối đa 50MB)</p>
             </div>
           )}
         </div>
@@ -188,18 +182,14 @@ export const UploadStudyMaterialModal: React.FC<UploadStudyMaterialModalProps> =
         />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Select
+          <CourseSelect
             label="Môn học liên quan *"
             value={courseCode}
-            onChange={(e) => setCourseCode(e.target.value)}
-            options={
-              courses.length > 0
-                ? courses.map((c) => ({
-                    value: c.code,
-                    label: `${c.code} - ${c.title}`,
-                  }))
-                : [{ value: '', label: 'Đang tải hoặc chưa có môn học' }]
-            }
+            onChange={(code, course) => {
+              setCourseCode(code);
+              setSelectedCourse(course);
+            }}
+            required
           />
           <Select
             label="Loại file (Format) *"
@@ -207,10 +197,10 @@ export const UploadStudyMaterialModal: React.FC<UploadStudyMaterialModalProps> =
             onChange={(e) => setFileType(e.target.value as any)}
             options={[
               { value: 'PDF', label: 'PDF Document (.pdf)' },
-              { value: 'DOCX', label: 'Word Document (.docx)' },
-              { value: 'ZIP', label: 'Archive / Project Source (.zip)' },
-              { value: 'PPTX', label: 'Slide Presentation (.pptx)' },
-              { value: 'CODE', label: 'Source Code File (.cs, .sql, .java)' },
+              { value: 'DOCX', label: 'Word Document (.docx, .doc)' },
+              { value: 'ZIP', label: 'Archive / Compressed (.zip, .rar, .7z)' },
+              { value: 'PPTX', label: 'Slide Presentation (.pptx, .ppt)' },
+              { value: 'CODE', label: 'Source Code File (.cs, .java, .py, .sql, .cpp, .c)' },
             ]}
           />
         </div>
