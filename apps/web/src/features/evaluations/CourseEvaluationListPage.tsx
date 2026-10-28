@@ -18,8 +18,10 @@ import { CourseReview } from '../../types';
 import { CreateCourseEvaluationModal } from './CreateCourseEvaluationModal';
 import { courseReviewApi, CourseReviewListItem } from '../../services/api/contentApi';
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const CourseEvaluationListPage: React.FC = () => {
+  const { t } = useLanguage();
   const [searchParams] = useSearchParams();
   const courseFromUrl = searchParams.get('course') || searchParams.get('courseCode');
   const [evaluations, setEvaluations] = useState<(CourseReview & { courseTitle?: string; shortReview?: string })[]>([]);
@@ -239,16 +241,16 @@ export const CourseEvaluationListPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-black text-[#181C22] tracking-tight">
-              Course Evaluations
+            <h1 className="text-2xl font-black text-[#181C22] dark:text-slate-100 tracking-tight">
+              {t('Course Evaluations')}
             </h1>
             <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-[#0076D1] border border-blue-100 flex items-center gap-1">
               <Sparkles className="w-3 h-3 text-[#0076D1]" />
-              <span>{filteredEvaluations.length} Đánh giá thực tế</span>
+              <span>{filteredEvaluations.length} {t('evaluations.realReviews', 'Đánh giá thực tế')}</span>
             </span>
           </div>
-          <p className="text-xs sm:text-sm text-[#404753] mt-1">
-            Tổng hợp nhận xét, mức độ khó, khối lượng học và bí kíp qua môn (Survival Tips) thực tế từ sinh viên.
+          <p className="text-xs sm:text-sm text-[#404753] dark:text-slate-400 mt-1">
+            {t('Student reviews, difficulty levels, workload ratings, and survival tips.')}
           </p>
         </div>
 
@@ -257,12 +259,12 @@ export const CourseEvaluationListPage: React.FC = () => {
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-[#0076D1] hover:bg-[#005DA7] transition-all shadow-xs cursor-pointer shrink-0"
         >
           <Plus className="w-4 h-4" />
-          <span>Viết đánh giá môn học</span>
+          <span>{t('evaluations.writeEvaluation', 'Viết đánh giá môn học')}</span>
         </button>
       </div>
 
       {/* 2. Search and Filters Inline Toolbar */}
-      <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs p-3.5 space-y-3">
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/90 dark:border-slate-800 shadow-2xs p-3.5 space-y-3">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
           {/* Search Input */}
           <div className="relative md:col-span-6">
@@ -271,8 +273,8 @@ export const CourseEvaluationListPage: React.FC = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
-              placeholder="Tìm theo mã môn (SWP391, PRN231, DBI202...), giảng viên hoặc nội dung review..."
-              className="w-full bg-[#F8F9FF] border border-slate-200 rounded-lg pl-10 pr-4 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0076D1]/20 focus:border-[#0076D1]"
+              placeholder={t('Search by course code, lecturer, or review content...')}
+              className="w-full bg-[#F8F9FF] dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg pl-10 pr-4 py-2 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0076D1]/20 focus:border-[#0076D1]"
             />
           </div>
 
@@ -281,9 +283,9 @@ export const CourseEvaluationListPage: React.FC = () => {
             <select
               value={selectedCourse}
               onChange={(e) => handleCourseChange(e.target.value)}
-              className="w-full appearance-none bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#0076D1] cursor-pointer"
+              className="w-full appearance-none bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#0076D1] cursor-pointer"
             >
-              <option value="ALL">Tất cả môn học (All Courses)</option>
+              <option value="ALL">{t('evaluations.allCourses', 'Tất cả môn học (All Courses)')}</option>
               {availableCourseOptions.map((code) => (
                 <option key={code} value={code}>
                   {code} - {getCourseTitle(code)}
@@ -298,11 +300,11 @@ export const CourseEvaluationListPage: React.FC = () => {
             <select
               value={sortBy}
               onChange={(e) => handleSortChange(e.target.value as any)}
-              className="w-full appearance-none bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#0076D1] cursor-pointer"
+              className="w-full appearance-none bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#0076D1] cursor-pointer"
             >
-              <option value="newest">Sắp xếp: Mới nhất</option>
-              <option value="highest">Sắp xếp: Điểm đánh giá cao nhất</option>
-              <option value="helpful">Sắp xếp: Được bình chọn hữu ích nhất</option>
+              <option value="newest">{t('evaluations.sortNewest', 'Sắp xếp: Mới nhất')}</option>
+              <option value="highest">{t('evaluations.sortHighest', 'Sắp xếp: Điểm đánh giá cao nhất')}</option>
+              <option value="helpful">{t('evaluations.sortHelpful', 'Sắp xếp: Được bình chọn hữu ích nhất')}</option>
             </select>
             <ChevronDown className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           </div>
@@ -311,24 +313,22 @@ export const CourseEvaluationListPage: React.FC = () => {
 
       {/* 3. Evaluation Cards Grid */}
       {isLoading ? (
-        <div className="p-16 text-center text-slate-400 text-xs bg-white rounded-xl border border-slate-200 space-y-2">
+        <div className="p-16 text-center text-slate-400 text-xs bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
           <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p>Đang tải dữ liệu đánh giá thực tế từ hệ thống...</p>
+          <p>{t('Đang tải dữ liệu đánh giá thực tế từ hệ thống...')}</p>
         </div>
       ) : paginatedEvaluations.length === 0 ? (
-        <div className="p-12 text-center bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-3">
+        <div className="p-12 text-center bg-white dark:bg-slate-900 rounded-xl border border-slate-200/90 dark:border-slate-800 shadow-2xs space-y-3">
           <div className="w-12 h-12 rounded-full bg-blue-50 text-[#0076D1] flex items-center justify-center mx-auto">
             <GraduationCap className="w-6 h-6" />
           </div>
-          <h3 className="text-base font-bold text-slate-800">
+          <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">
             {selectedCourse !== 'ALL'
-              ? `Chưa có đánh giá nào cho môn ${selectedCourse}`
-              : 'Chưa có bài đánh giá nào khớp với tiêu chí tìm kiếm'}
+              ? `${t('Chưa có đánh giá nào cho môn này')} (${selectedCourse})`
+              : t('No reviews found matching criteria')}
           </h3>
-          <p className="text-xs text-slate-500 max-w-md mx-auto">
-            {selectedCourse !== 'ALL'
-              ? `Hãy là sinh viên đầu tiên chia sẻ kinh nghiệm, độ khó và bí kíp qua môn ${selectedCourse} cho các bạn cùng khóa!`
-              : 'Hãy chia sẻ trải nghiệm môn học của bạn để giúp đỡ cộng đồng sinh viên FPT!'}
+          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+            {t('Hãy chia sẻ trải nghiệm môn học của bạn để giúp đỡ cộng đồng sinh viên FPT!')}
           </p>
           <button
             type="button"
@@ -336,7 +336,7 @@ export const CourseEvaluationListPage: React.FC = () => {
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#0076D1] hover:bg-[#005DA7] transition-all cursor-pointer shadow-xs"
           >
             <Plus className="w-4 h-4" />
-            <span>Viết đánh giá môn {selectedCourse !== 'ALL' ? selectedCourse : ''} ngay</span>
+            <span>{t('Viết đánh giá môn học')} {selectedCourse !== 'ALL' ? selectedCourse : ''}</span>
           </button>
         </div>
       ) : (
@@ -398,35 +398,35 @@ export const CourseEvaluationListPage: React.FC = () => {
 
                     {/* Gauges for Workload & Difficulty */}
                     <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
-                      <div className="p-2 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-between">
-                        <span className="text-slate-500">Độ khó:</span>
-                        <span className="font-bold text-slate-800">
-                          {ev.difficultyRating || 3}/5 {ev.difficultyRating >= 4 ? '🔥 Khá khó' : '⚡ Vừa sức'}
+                      <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                        <span className="text-slate-500 dark:text-slate-400">{t('evaluations.difficulty', 'Độ khó')}:</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-200">
+                          {ev.difficultyRating || 3}/5 {ev.difficultyRating >= 4 ? t('evaluations.diffChallenging', 'Khá khó') : t('evaluations.diffModerate', 'Vừa sức')}
                         </span>
                       </div>
-                      <div className="p-2 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-between">
-                        <span className="text-slate-500">Khối lượng:</span>
-                        <span className="font-bold text-slate-800">
-                          {ev.workloadRating || 3}/5 {ev.workloadRating >= 4 ? '📚 Nhiều bài tập' : '📝 Vừa phải'}
+                      <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                        <span className="text-slate-500 dark:text-slate-400">{t('evaluations.workload', 'Khối lượng')}:</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-200">
+                          {ev.workloadRating || 3}/5 {ev.workloadRating >= 4 ? t('evaluations.workloadHeavy', 'Nhiều bài tập') : t('evaluations.workloadManageable', 'Vừa phải')}
                         </span>
                       </div>
                     </div>
 
                     {/* Survival Tips Highlight */}
                     {ev.shortReview && (
-                      <div className="text-xs font-medium text-slate-800 italic bg-[#F8F9FF] p-2.5 rounded-lg border border-slate-100 leading-relaxed">
-                        💡 <strong>Kinh nghiệm:</strong> {ev.shortReview}
+                      <div className="text-xs font-medium text-slate-800 dark:text-slate-200 italic bg-[#F8F9FF] dark:bg-slate-800/60 p-2.5 rounded-lg border border-slate-100 dark:border-slate-700 leading-relaxed">
+                        💡 <strong>{t('evaluations.survivalTips', 'Kinh nghiệm')}:</strong> {ev.shortReview}
                       </div>
                     )}
 
                     {/* Comment Excerpt */}
-                    <p className="text-xs text-[#404753] line-clamp-3 leading-relaxed">
+                    <p className="text-xs text-[#404753] dark:text-slate-300 line-clamp-3 leading-relaxed">
                       {ev.comment}
                     </p>
                   </div>
 
                   {/* Student Meta & Card Action */}
-                  <div className="pt-4 border-t border-slate-100 mt-4 space-y-2.5">
+                  <div className="pt-4 border-t border-slate-100 dark:border-slate-800 mt-4 space-y-2.5">
                     <div className="flex items-center justify-between text-xs">
                       {/* Student Meta */}
                       <div className="flex items-center gap-2">
@@ -437,17 +437,17 @@ export const CourseEvaluationListPage: React.FC = () => {
                             className="w-6 h-6 rounded-full object-cover"
                           />
                         ) : (
-                          <div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-[10px]">
+                          <div className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 font-bold text-[10px]">
                             <User className="w-3 h-3" />
                           </div>
                         )}
                         <div>
-                          <span className="font-bold text-slate-800 block leading-tight">
-                            {ev.reviewer.fullName}
+                          <span className="font-bold text-slate-800 dark:text-slate-200 block leading-tight">
+                            {ev.reviewer.fullName.includes('#') ? `${t('common.student', 'Sinh viên')} #${ev.reviewer.fullName.split('#')[1]}` : t(ev.reviewer.fullName)}
                           </span>
                           <span className="text-[10px] text-slate-400">
-                            {new Date(ev.createdAt).toLocaleDateString('vi-VN')}
-                            {ev.semesterTaken && ` · Học kỳ ${ev.semesterTaken}`}
+                            {new Date(ev.createdAt).toLocaleDateString()}
+                            {ev.semesterTaken && ` · ${t('common.term', 'Học kỳ')} ${ev.semesterTaken}`}
                             {ev.lecturerName && ` · ${ev.lecturerName}`}
                           </span>
                         </div>
@@ -459,12 +459,12 @@ export const CourseEvaluationListPage: React.FC = () => {
                         onClick={(e) => handleVoteHelpful(ev.id, e)}
                         className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold cursor-pointer transition-colors ${
                           isVoted
-                            ? 'bg-blue-50 border-blue-200 text-[#0076D1]'
-                            : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                            ? 'bg-blue-50 dark:bg-blue-950/60 border-blue-200 dark:border-blue-800 text-[#0076D1]'
+                            : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
                         }`}
                       >
                         <ThumbsUp className="w-3 h-3" />
-                        <span>Hữu ích ({ev.upvotes})</span>
+                        <span>{t('evaluations.helpful', 'Hữu ích')} ({ev.upvotes})</span>
                       </button>
                     </div>
 
@@ -474,7 +474,7 @@ export const CourseEvaluationListPage: React.FC = () => {
                         to={`/courses/${ev.courseCode}`}
                         className="inline-flex items-center gap-1 text-xs font-bold text-[#0076D1] hover:text-[#005DA7] transition-colors"
                       >
-                        <span>Vào Course Hub môn này</span>
+                        <span>{t('evaluations.goToCourseHub', 'Vào Course Hub môn này')}</span>
                         <ArrowRight className="w-3.5 h-3.5" />
                       </Link>
                     </div>
@@ -488,10 +488,10 @@ export const CourseEvaluationListPage: React.FC = () => {
           {totalPages > 1 && (
             <div className="bg-white rounded-xl p-4 border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="text-xs text-slate-600">
-                Hiển thị <span className="font-bold text-slate-900">{(currentPage - 1) * pageSize + 1}</span> -{' '}
-                <span className="font-bold text-slate-900">{Math.min(currentPage * pageSize, totalCount)}</span> trong tổng số{' '}
-                <span className="font-bold text-[#0076D1]">{totalCount}</span> bài đánh giá{' '}
-                <span className="text-slate-400 font-normal">(Trang {currentPage} / {totalPages})</span>
+                {t('common.showing', 'Hiển thị')} <span className="font-bold text-slate-900">{(currentPage - 1) * pageSize + 1}</span> -{' '}
+                <span className="font-bold text-slate-900">{Math.min(currentPage * pageSize, totalCount)}</span> {t('common.of', 'trong tổng số')}{' '}
+                <span className="font-bold text-[#0076D1]">{totalCount}</span> {t('evaluations.reviewsCount', 'bài đánh giá')}{' '}
+                <span className="text-slate-400 font-normal">({t('common.page', 'Trang')} {currentPage} / {totalPages})</span>
               </div>
 
               <div className="flex items-center gap-1.5">
@@ -500,7 +500,7 @@ export const CourseEvaluationListPage: React.FC = () => {
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage <= 1}
                   className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                  title="Trang trước"
+                  title={t('common.previousPage', 'Trang trước')}
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
@@ -531,7 +531,7 @@ export const CourseEvaluationListPage: React.FC = () => {
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage >= totalPages}
                   className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                  title="Trang sau"
+                  title={t('common.nextPage', 'Trang sau')}
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>

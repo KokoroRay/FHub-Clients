@@ -13,7 +13,6 @@ import {
   Code,
   FileText,
   Upload,
-  ShoppingBag,
   Shield,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -168,12 +167,6 @@ export const Header: React.FC = () => {
       label: t('header.uploadMaterial', 'Tải lên tài liệu học tập'),
       icon: <Upload className="w-4 h-4 text-amber-500" />,
       onClick: () => navigate('/materials?action=upload'),
-    },
-    {
-      id: 'create-listing',
-      label: t('nav.marketplace', 'Đăng tin Marketplace'),
-      icon: <ShoppingBag className="w-4 h-4 text-rose-500" />,
-      onClick: () => navigate('/marketplace?action=create'),
     },
   ];
 

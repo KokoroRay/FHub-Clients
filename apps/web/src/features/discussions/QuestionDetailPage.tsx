@@ -27,6 +27,7 @@ import {
   BarChart2,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { questionApi, alumniApi } from '../../services/api/contentApi';
 import { voteApi, bookmarkApi } from '../../services/api/studentApi';
 import { courseNodesApi, semanticTagsApi } from '../../services/api/adminApi';
@@ -41,6 +42,7 @@ import { VotingStatsModal } from './VotingStatsModal';
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 
 export const QuestionDetailPage: React.FC = () => {
+  const { t } = useLanguage();
   const { id } = useParams<{ id: string }>();
   const { currentUser, currentRole } = useAuth();
 
@@ -432,7 +434,7 @@ export const QuestionDetailPage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="p-12 text-center text-slate-400 text-xs">
-        Đang tải thông tin câu hỏi...
+        {t('Loading...')}
       </div>
     );
   }
@@ -440,10 +442,10 @@ export const QuestionDetailPage: React.FC = () => {
   if (!question) {
     return (
       <div className="p-12 text-center space-y-4 bg-white rounded-2xl border border-slate-200">
-        <h3 className="text-lg font-bold text-slate-800">Không tìm thấy câu hỏi</h3>
+        <h3 className="text-lg font-bold text-slate-800">{t('No data found')}</h3>
         <p className="text-xs text-slate-500">Câu hỏi này không tồn tại hoặc đã bị xóa.</p>
         <Link to="/discussions" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700">
-          <ArrowLeft className="w-4 h-4" /> Quay lại danh sách câu hỏi
+          <ArrowLeft className="w-4 h-4" /> {t('Back to Discussions')}
         </Link>
       </div>
     );
@@ -482,8 +484,8 @@ export const QuestionDetailPage: React.FC = () => {
                   </Badge>
                 </Link>
               )}
-              {isPinned && <Badge variant="warning" size="sm">Ghim đầu mục</Badge>}
-              {isLocked && <Badge variant="danger" size="sm" icon={<Lock className="w-3 h-3" />}>Đã khóa</Badge>}
+              {isPinned && <Badge variant="warning" size="sm">{t('Pinned')}</Badge>}
+              {isLocked && <Badge variant="danger" size="sm" icon={<Lock className="w-3 h-3" />}>{t('Closed')}</Badge>}
               {question.isSolved && (
                 <Badge variant="success" size="sm" icon={<CheckCircle2 className="w-3 h-3" />}>
                   Đã giải quyết
@@ -504,8 +506,8 @@ export const QuestionDetailPage: React.FC = () => {
                     </div>
                     <div>
                       <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-slate-800 dark:text-slate-200">Ẩn danh FPTer</span>
-                        <Badge variant="purple" size="sm">Tác giả ẩn danh</Badge>
+                        <span className="font-bold text-slate-800 dark:text-slate-200">{t('Anonymous FPTer')}</span>
+                        <Badge variant="purple" size="sm">{t('Anonymous Author')}</Badge>
                       </div>
                       <span className="text-[10px] text-slate-400">
                         Đã hỏi: {new Date(question.createdAt).toLocaleDateString('vi-VN')} • Xem: {question.viewsCount} lượt
@@ -539,7 +541,7 @@ export const QuestionDetailPage: React.FC = () => {
                   onClick={toggleBookmark}
                   leftIcon={<Bookmark className={`w-3.5 h-3.5 ${isBookmarked ? 'fill-blue-600' : ''}`} />}
                 >
-                  {isBookmarked ? 'Đã lưu' : 'Lưu'}
+                  {isBookmarked ? t('Bookmarks') : t('Save')}
                 </Button>
                 <ContentActionMenu
                   targetType="QUESTION"
@@ -597,7 +599,7 @@ export const QuestionDetailPage: React.FC = () => {
                 title="View Voting Stats Detail"
               >
                 <BarChart2 className="w-3.5 h-3.5" />
-                <span>Voting Stats</span>
+                <span>{t('Voting Stats')}</span>
               </button>
             </div>
           </div>
@@ -613,7 +615,7 @@ export const QuestionDetailPage: React.FC = () => {
             </div>
             <div>
               <h4 className="font-extrabold text-sm text-emerald-900 dark:text-emerald-200">
-                Accepted Best Answer by Author
+                {t('Accepted Best Answer by Author')}
               </h4>
               <p className="text-xs text-emerald-700 dark:text-emerald-300">
                 Câu trả lời chính xác đã giải quyết được vấn đề • Đã cộng +50 Karma cho tác giả
@@ -630,7 +632,7 @@ export const QuestionDetailPage: React.FC = () => {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-black text-slate-900 dark:text-slate-100">
-            {answers.length} Câu trả lời
+            {answers.length} {t('Answers')}
           </h2>
           <span className="text-xs text-slate-400">Sắp xếp theo: Điểm cao nhất</span>
         </div>
@@ -721,7 +723,7 @@ export const QuestionDetailPage: React.FC = () => {
                     onClick={() => handleMarkBestAnswer(ans.id)}
                     leftIcon={<CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
                   >
-                    {ans.isBestAnswer ? 'Hủy chọn Best Answer' : 'Chọn làm Best Answer'}
+                    {ans.isBestAnswer ? t('Cancel') : t('Best Answer')}
                   </Button>
                   <ContentActionMenu
                     targetType="ANSWER"
@@ -751,7 +753,7 @@ export const QuestionDetailPage: React.FC = () => {
               <div className="flex items-center gap-2 pt-2">
                 <input
                   type="text"
-                  placeholder="Viết phản hồi ngắn cho câu trả lời này..."
+                  placeholder={t('Write a reply to the support team...')}
                   value={commentInputs[ans.id] || ''}
                   onChange={(e) => setCommentInputs({ ...commentInputs, [ans.id]: e.target.value })}
                   className="flex-1 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-600"
@@ -770,7 +772,7 @@ export const QuestionDetailPage: React.FC = () => {
         <CardHeader>
           <div className="flex items-center justify-between">
             <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">
-              Câu trả lời của bạn
+              {t('Your Answer')}
             </h3>
             <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg">
               <button
@@ -871,7 +873,7 @@ export const QuestionDetailPage: React.FC = () => {
               leftIcon={<Send className="w-3.5 h-3.5" />}
               className="shadow-xs"
             >
-              Gửi câu trả lời (+15 Karma)
+              {t('Submit Answer')} (+15 Karma)
             </Button>
           </div>
         </>

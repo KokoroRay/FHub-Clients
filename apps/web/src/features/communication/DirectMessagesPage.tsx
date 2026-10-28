@@ -16,6 +16,7 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface Message {
   id: string;
@@ -50,6 +51,7 @@ import { directMessageApi } from '../../services/api/studentApi';
 
 export const DirectMessagesPage: React.FC = () => {
   const { currentUser } = useAuth();
+  const { t } = useLanguage();
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [activeConvId, setActiveConvId] = useState<string>('');
   const [messages, setMessages] = useState<Record<string, Message[]>>({});
@@ -223,15 +225,15 @@ export const DirectMessagesPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-[#181C22]">Messages</h1>
+            <h1 className="text-2xl font-bold text-[#181C22]">{t('messages.title', 'Messages')}</h1>
             {unreadTotal > 0 && (
               <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#EBF5FF] text-[#0076D1] border border-[#BFDBFE]">
-                {unreadTotal} unread
+                {unreadTotal} {t('messages.unread', 'unread')}
               </span>
             )}
           </div>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Real-time peer discussions, course study groups, and assignment mentorship.
+            {t('messages.subtitle', 'Real-time peer discussions, course study groups, and assignment mentorship.')}
           </p>
         </div>
 
@@ -242,7 +244,7 @@ export const DirectMessagesPage: React.FC = () => {
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors shadow-xs self-start sm:self-auto"
           >
             <Ban className="w-3.5 h-3.5 text-red-500" />
-            <span>Blocked Users ({blockedUsers.length})</span>
+            <span>{t('messages.blockedUsers', 'Blocked Users')} ({blockedUsers.length})</span>
           </button>
         )}
       </div>
@@ -257,7 +259,7 @@ export const DirectMessagesPage: React.FC = () => {
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
-                placeholder="Search messages, peers, or courses..."
+                placeholder={t('messages.searchPlaceholder', 'Search messages, peers, or courses...')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#0076D1]"
@@ -269,13 +271,13 @@ export const DirectMessagesPage: React.FC = () => {
           <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
             {loading ? (
               <div className="p-8 text-center text-slate-400">
-                <p className="text-xs">Đang tải cuộc trò chuyện...</p>
+                <p className="text-xs">{t('messages.loading', 'Đang tải cuộc trò chuyện...')}</p>
               </div>
             ) : filteredConversations.length === 0 ? (
               <div className="p-8 text-center text-slate-400">
                 <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                <p className="text-xs font-medium">Chưa có cuộc trò chuyện nào</p>
-                <p className="text-[11px] text-slate-400 mt-1">Các tin nhắn trực tiếp với bạn học sẽ xuất hiện ở đây.</p>
+                <p className="text-xs font-medium">{t('messages.emptyTitle', 'Chưa có cuộc trò chuyện nào')}</p>
+                <p className="text-[11px] text-slate-400 mt-1">{t('messages.emptyDesc', 'Các tin nhắn trực tiếp với bạn học sẽ xuất hiện ở đây.')}</p>
               </div>
             ) : (
               filteredConversations.map((conv) => {
@@ -367,13 +369,13 @@ export const DirectMessagesPage: React.FC = () => {
                       </span>
                     </div>
                     <div className="flex items-center gap-2 text-[11px] text-slate-400">
-                      <span className="text-emerald-600 font-semibold">{activeConv.statusText}</span>
+                      <span className="text-emerald-600 font-semibold">{t(activeConv.statusText) || activeConv.statusText}</span>
                       <span>•</span>
                       <span className="truncate">{activeConv.role}</span>
                       <span>•</span>
                       <span className="inline-flex items-center gap-0.5 text-slate-400">
                         <ShieldCheck className="w-3 h-3 text-emerald-500" />
-                        Encrypted
+                        {t('messages.encrypted', 'Encrypted')}
                       </span>
                     </div>
                   </div>
@@ -397,7 +399,7 @@ export const DirectMessagesPage: React.FC = () => {
                         className="w-full px-3 py-2 text-left text-xs text-red-600 hover:bg-red-50 flex items-center gap-2 font-semibold"
                       >
                         <Ban className="w-3.5 h-3.5" />
-                        <span>{activeConv.isBlocked ? 'Unblock Peer' : 'Block Peer'}</span>
+                        <span>{activeConv.isBlocked ? t('messages.unblockPeer', 'Unblock Peer') : t('messages.blockPeer', 'Block Peer')}</span>
                       </button>
                     </div>
                   )}
@@ -411,7 +413,7 @@ export const DirectMessagesPage: React.FC = () => {
                     Re: <strong className="text-slate-800">{activeConv.taskTitle}</strong>
                   </span>
                   <a href="/courses" className="text-[#0076D1] font-bold hover:underline shrink-0 ml-2">
-                    View Task
+                    {t('messages.viewTask', 'View Task')}
                   </a>
                 </div>
               )}
@@ -420,7 +422,7 @@ export const DirectMessagesPage: React.FC = () => {
               <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-slate-50/30">
                 <div className="text-center">
                   <span className="inline-block px-3 py-1 rounded-full text-[10px] font-mono text-slate-400 bg-white border border-slate-200 shadow-2xs">
-                    Today, October 24
+                    {t('messages.today', 'Today')}
                   </span>
                 </div>
 
@@ -461,7 +463,7 @@ export const DirectMessagesPage: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => handleDeleteMessage(msg.id)}
-                            title="Delete message"
+                            title={t('messages.deleteMessage', 'Delete message')}
                             className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 transition-opacity ml-1"
                           >
                             <Trash2 className="w-3 h-3" />
@@ -476,12 +478,12 @@ export const DirectMessagesPage: React.FC = () => {
               {/* Suggestions Quick Chips */}
               <div className="px-5 py-2.5 bg-white border-t border-slate-100 flex items-center gap-2 overflow-x-auto">
                 <span className="font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">
-                  SUGGESTIONS:
+                  {t('messages.suggestions', 'SUGGESTIONS:')}
                 </span>
                 {[
-                  "I'm stuck on async/await",
-                  "Can we do a quick call?",
-                  "Thanks for your help!",
+                  t('messages.sugg1', "I'm stuck on async/await"),
+                  t('messages.sugg2', "Can we do a quick call?"),
+                  t('messages.sugg3', "Thanks for your help!"),
                 ].map((sugg) => (
                   <button
                     key={sugg}
@@ -507,7 +509,7 @@ export const DirectMessagesPage: React.FC = () => {
                         handleSendMessage();
                       }
                     }}
-                    placeholder="Type a message... (Press Enter to send, Shift + Enter for new line)"
+                    placeholder={t('messages.composerPlaceholder', 'Type a message... (Press Enter to send, Shift + Enter for new line)')}
                     className="w-full p-3 pr-24 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#0076D1] resize-none"
                   />
                   <div className="absolute right-3 bottom-3 flex items-center gap-2">
@@ -520,23 +522,23 @@ export const DirectMessagesPage: React.FC = () => {
                       disabled={!inputText.trim()}
                       className="px-4 py-1.5 text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700 disabled:opacity-40 rounded-lg shadow-xs transition-colors flex items-center gap-1.5"
                     >
-                      <span>Send</span>
+                      <span>{t('messages.send', 'Send')}</span>
                       <Send className="w-3 h-3" />
                     </button>
                   </div>
                 </div>
 
                 <div className="mt-2 flex items-center justify-between text-[11px] text-slate-400">
-                  <span>FHub Academic Communication Guidelines apply.</span>
-                  <span>Replies typically within 15 minutes.</span>
+                  <span>{t('messages.guidelines', 'FHub Academic Communication Guidelines apply.')}</span>
+                  <span>{t('messages.replySla', 'Replies typically within 15 minutes.')}</span>
                 </div>
               </div>
             </>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-400">
               <MessageSquare className="w-12 h-12 mb-3 text-slate-300 stroke-1" />
-              <p className="text-sm font-semibold text-slate-600">Chọn cuộc trò chuyện</p>
-              <p className="text-xs text-slate-400 mt-1">Chọn một cuộc trò chuyện từ danh sách bên trái để bắt đầu nhắn tin.</p>
+              <p className="text-sm font-semibold text-slate-600">{t('messages.selectTitle', 'Chọn cuộc trò chuyện')}</p>
+              <p className="text-xs text-slate-400 mt-1">{t('messages.selectDesc', 'Chọn một cuộc trò chuyện từ danh sách bên trái để bắt đầu nhắn tin.')}</p>
             </div>
           )}
         </div>
@@ -549,7 +551,7 @@ export const DirectMessagesPage: React.FC = () => {
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
                 <Ban className="w-4 h-4 text-red-500" />
-                <span>Blocked Peers</span>
+                <span>{t('messages.blockedPeers', 'Blocked Peers')}</span>
               </h3>
               <button
                 type="button"
@@ -561,7 +563,7 @@ export const DirectMessagesPage: React.FC = () => {
             </div>
 
             <p className="text-xs text-slate-500">
-              Blocked peers cannot view your online presence or message you directly.
+              {t('messages.blockedPeersDesc', 'Blocked peers cannot view your online presence or message you directly.')}
             </p>
 
             <div className="divide-y divide-slate-100 max-h-60 overflow-y-auto">
@@ -577,7 +579,7 @@ export const DirectMessagesPage: React.FC = () => {
                     className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors"
                   >
                     <Unlock className="w-3 h-3" />
-                    <span>Unblock</span>
+                    <span>{t('messages.unblock', 'Unblock')}</span>
                   </button>
                 </div>
               ))}

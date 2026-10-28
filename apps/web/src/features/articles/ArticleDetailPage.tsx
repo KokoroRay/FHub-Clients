@@ -19,6 +19,7 @@ import {
   Send,
 } from 'lucide-react';
 import { Card, CardBody, CardHeader } from '../../components/common/Card';
+import { useLanguage } from '../../context/LanguageContext';
 import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
 import { Textarea } from '../../components/common/Input';
@@ -28,6 +29,7 @@ import { normalizeMediaUrl } from '../../utils/mediaUtils';
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 
 export const ArticleDetailPage: React.FC = () => {
+  const { t } = useLanguage();
   const { id } = useParams<{ id: string }>();
   const [article, setArticle] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -181,7 +183,7 @@ export const ArticleDetailPage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="p-12 text-center text-slate-400 text-xs">
-        Đang tải bài viết...
+        {t('Loading...')}
       </div>
     );
   }
@@ -189,10 +191,10 @@ export const ArticleDetailPage: React.FC = () => {
   if (!article) {
     return (
       <div className="p-12 text-center space-y-4 bg-white rounded-2xl border border-slate-200">
-        <h3 className="text-lg font-bold text-slate-800">Không tìm thấy bài viết</h3>
+        <h3 className="text-lg font-bold text-slate-800">{t('No data found')}</h3>
         <p className="text-xs text-slate-500">Bài viết này không tồn tại hoặc đã bị gỡ bỏ.</p>
         <Link to="/articles" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700">
-          <ArrowLeft className="w-4 h-4" /> Quay lại danh sách bài viết
+          <ArrowLeft className="w-4 h-4" /> {t('Back to Articles')}
         </Link>
       </div>
     );
@@ -347,7 +349,7 @@ builder.Services.AddSingleton<IMemoryCacheProvider, MemoryCacheProvider>();`)
                         className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer"
                       >
                         <Copy className="w-3 h-3" />
-                        <span>{copiedCode ? 'Đã copy!' : 'Copy'}</span>
+                        <span>{copiedCode ? t('Copied') : t('Copy Link')}</span>
                       </button>
                     </div>
                     <pre className="p-4 overflow-x-auto text-slate-200">
@@ -415,7 +417,7 @@ builder.Services.AddSingleton<IMemoryCacheProvider, MemoryCacheProvider>();`}</c
             <CardHeader>
               <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <MessageSquare className="w-4 h-4 text-blue-600" />
-                <span>Thảo luận & Bình luận ({comments.length})</span>
+                <span>{t('Conversation & Updates')} ({comments.length})</span>
               </h3>
             </CardHeader>
             <CardBody className="p-6 space-y-5">
@@ -435,7 +437,7 @@ builder.Services.AddSingleton<IMemoryCacheProvider, MemoryCacheProvider>();`}</c
                     disabled={!commentText.trim()}
                     leftIcon={<Send className="w-3.5 h-3.5" />}
                   >
-                    Gửi bình luận
+                    {t('Send Reply')}
                   </Button>
                 </div>
               </form>
@@ -476,7 +478,7 @@ builder.Services.AddSingleton<IMemoryCacheProvider, MemoryCacheProvider>();`}</c
             <CardHeader className="p-4 pb-2.5">
               <h4 className="font-bold text-xs text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
                 <ListFilter className="w-4 h-4 text-blue-600" />
-                <span>Mục lục bài viết (TOC)</span>
+                <span>{t('Table of Contents')}</span>
               </h4>
             </CardHeader>
             <CardBody className="p-4 pt-0 space-y-1.5 text-xs">
@@ -510,7 +512,7 @@ builder.Services.AddSingleton<IMemoryCacheProvider, MemoryCacheProvider>();`}</c
               <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-around text-xs">
                 <div>
                   <div className="font-bold text-slate-900 dark:text-slate-100">8</div>
-                  <div className="text-[10px] text-slate-400">Bài viết</div>
+                  <div className="text-[10px] text-slate-400">{t('Articles')}</div>
                 </div>
                 <div>
                   <div className="font-bold text-blue-600">2,890</div>
@@ -518,7 +520,7 @@ builder.Services.AddSingleton<IMemoryCacheProvider, MemoryCacheProvider>();`}</c
                 </div>
                 <div>
                   <div className="font-bold text-slate-900 dark:text-slate-100">450</div>
-                  <div className="text-[10px] text-slate-400">Followers</div>
+                  <div className="text-[10px] text-slate-400">{t('Followers')}</div>
                 </div>
               </div>
             </CardBody>

@@ -24,8 +24,10 @@ import { UploadStudyMaterialModal } from './UploadStudyMaterialModal';
 import { AddExternalLinkModal } from './AddExternalLinkModal';
 import { studyMaterialApi } from '../../services/api/contentApi';
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const StudyMaterialListPage: React.FC = () => {
+  const { t } = useLanguage();
   const [searchParams] = useSearchParams();
   const shouldOpenUpload = searchParams.get('action') === 'upload';
   const shouldOpenAddLink = searchParams.get('action') === 'add-link';
@@ -151,28 +153,28 @@ export const StudyMaterialListPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header (Figma #101:3694) */}
-      <div className="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200/90 dark:border-slate-800 shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-              Study Materials
+            <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
+              {t('Study Materials')}
             </h1>
             <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-[#0076D1] border border-blue-100">
-              {filteredMaterials.length} Items
+              {filteredMaterials.length} {t('common.materialsCount', 'tài liệu')}
             </span>
           </div>
-          <p className="text-xs text-slate-500">
-            Find useful resources, lecture notes, exam banks, and cheat sheets shared by the community.
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {t('Find useful resources, lecture notes, exam banks, and cheat sheets shared by the community.')}
           </p>
         </div>
 
         <div className="flex items-center gap-2.5 shrink-0">
           <button
             onClick={() => setIsAddLinkOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
           >
             <Link2 className="w-4 h-4 text-slate-500" />
-            <span>Add External Link</span>
+            <span>{t('Add External Link')}</span>
           </button>
 
           <button
@@ -180,13 +182,13 @@ export const StudyMaterialListPage: React.FC = () => {
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#0076D1] hover:bg-[#005DA7] transition-all shadow-md cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>Upload File</span>
+            <span>{t('Upload File')}</span>
           </button>
         </div>
       </div>
 
       {/* Search & Refinement Toolbar (Figma #101:3710) */}
-      <div className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs grid grid-cols-1 md:grid-cols-12 gap-3">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/90 dark:border-slate-800 shadow-2xs grid grid-cols-1 md:grid-cols-12 gap-3">
         {/* Search */}
         <div className="relative md:col-span-5">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -194,8 +196,8 @@ export const StudyMaterialListPage: React.FC = () => {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search study materials..."
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0076D1]/20 focus:border-[#0076D1]"
+            placeholder={t('Search study materials...')}
+            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#0076D1]/20 focus:border-[#0076D1]"
           />
         </div>
 
@@ -204,9 +206,9 @@ export const StudyMaterialListPage: React.FC = () => {
           <select
             value={selectedCourse}
             onChange={(e) => setSelectedCourse(e.target.value)}
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-[#0076D1] cursor-pointer"
+            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#0076D1] cursor-pointer"
           >
-            <option value="ALL">All Courses</option>
+            <option value="ALL">{t('All Courses')}</option>
             {availableCourses.map((c) => {
               const code = c.courseCode || c.code || '';
               const id = c.courseNodeId ?? c.id ?? code;
@@ -224,13 +226,13 @@ export const StudyMaterialListPage: React.FC = () => {
           <select
             value={selectedType}
             onChange={(e) => setSelectedType(e.target.value)}
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-[#0076D1] cursor-pointer"
+            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#0076D1] cursor-pointer"
           >
-            <option value="ALL">All Types</option>
-            <option value="PDF">PDF Documents</option>
-            <option value="DOCX">Word Documents</option>
-            <option value="ZIP">Zip Archives</option>
-            <option value="CODE">Source Code</option>
+            <option value="ALL">{t('All Types')}</option>
+            <option value="PDF">PDF</option>
+            <option value="DOCX">DOCX</option>
+            <option value="ZIP">ZIP</option>
+            <option value="CODE">CODE</option>
           </select>
         </div>
 
@@ -239,10 +241,10 @@ export const StudyMaterialListPage: React.FC = () => {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-[#0076D1] cursor-pointer"
+            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#0076D1] cursor-pointer"
           >
-            <option value="downloads">Most Downloaded</option>
-            <option value="newest">Newest First</option>
+            <option value="downloads">{t('materials.sortDownloads', 'Lượt tải nhiều nhất')}</option>
+            <option value="newest">{t('materials.sortNewest', 'Mới nhất')}</option>
           </select>
         </div>
       </div>
@@ -250,8 +252,8 @@ export const StudyMaterialListPage: React.FC = () => {
       {/* Materials Two-Column Grid (Figma #101:3746) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {paginatedMaterials.length === 0 ? (
-          <div className="col-span-full py-12 text-center text-slate-500 bg-white rounded-2xl border border-slate-200">
-            Không tìm thấy tài liệu phù hợp.
+          <div className="col-span-full py-12 text-center text-slate-500 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
+            {t('Không tìm thấy tài liệu học tập nào.')}
           </div>
         ) : (
           paginatedMaterials.map((mat) => (
@@ -313,7 +315,7 @@ export const StudyMaterialListPage: React.FC = () => {
             {/* Footer */}
             <div className="pt-4 mt-3 border-t border-slate-100 flex items-center justify-between text-xs">
               <div className="text-[11px] text-slate-400">
-                <span>By <strong className="text-slate-700">{mat.author.fullName}</strong></span>
+                <span>{t('common.by', 'Đăng bởi')} <strong className="text-slate-700">{t(mat.author.fullName)}</strong></span>
                 <span className="mx-1">•</span>
                 <span>{mat.fileSizeMb} MB</span>
               </div>
@@ -322,7 +324,7 @@ export const StudyMaterialListPage: React.FC = () => {
                 to={`/materials/${mat.id}`}
                 className="text-xs font-bold text-[#0076D1] hover:underline flex items-center gap-1"
               >
-                <span>View Details</span>
+                <span>{t('common.viewDetails', 'Xem chi tiết')}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
@@ -335,16 +337,16 @@ export const StudyMaterialListPage: React.FC = () => {
       {totalPages > 1 && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4 px-4 bg-white rounded-2xl border border-slate-200/90 shadow-2xs">
           <p className="text-xs text-slate-500">
-            Hiển thị <span className="font-semibold text-slate-700">{(currentPage - 1) * pageSize + 1}</span> -{' '}
-            <span className="font-semibold text-slate-700">{Math.min(currentPage * pageSize, filteredMaterials.length)}</span> trên tổng số{' '}
-            <span className="font-semibold text-slate-700">{filteredMaterials.length}</span> tài liệu
+            {t('common.showing', 'Hiển thị')} <span className="font-semibold text-slate-700">{(currentPage - 1) * pageSize + 1}</span> -{' '}
+            <span className="font-semibold text-slate-700">{Math.min(currentPage * pageSize, filteredMaterials.length)}</span> {t('common.of', 'trên tổng số')}{' '}
+            <span className="font-semibold text-slate-700">{filteredMaterials.length}</span> {t('common.materialsCount', 'tài liệu')}
           </p>
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
               className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-              title="Trang trước"
+              title={t('common.previousPage', 'Trang trước')}
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -365,7 +367,7 @@ export const StudyMaterialListPage: React.FC = () => {
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
               className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-              title="Trang kế tiếp"
+              title={t('common.nextPage', 'Trang kế tiếp')}
             >
               <ChevronRight className="w-4 h-4" />
             </button>

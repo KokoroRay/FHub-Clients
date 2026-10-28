@@ -4,6 +4,7 @@ import { Button } from '../../components/common/Button';
 import { Badge } from '../../components/common/Badge';
 import { Table, Column } from '../../components/common/Table';
 import { Modal } from '../../components/common/Modal';
+import { useLanguage } from '../../context/LanguageContext';
 
 import { userManagementApi } from '../../services/api/adminApi';
 
@@ -19,6 +20,7 @@ interface VerificationRequest {
 }
 
 export const VerificationQueuePage: React.FC = () => {
+  const { t } = useLanguage();
   const [requests, setRequests] = useState<VerificationRequest[]>([
     {
       id: 'req-1',
@@ -122,7 +124,7 @@ export const VerificationQueuePage: React.FC = () => {
         <div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
             <ShieldAlert className="w-6 h-6 text-[#2563eb]" />
-            <span>Hàng đợi duyệt xác minh danh tính (KYC Queue)</span>
+            <span>{t('Duyệt xác minh KYC')}</span>
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Xử lý duyệt thẻ sinh viên thủ công để cấp quyền thành viên chính thức FHub (Governance Service).

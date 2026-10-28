@@ -7,7 +7,7 @@ import {
   TechArticle,
   SharedWorkflow,
   StudyMaterial,
-  MarketplaceListing,
+
   CourseReview,
   Conversation,
   SystemNotification,
@@ -633,51 +633,6 @@ export const mockMaterials: StudyMaterial[] = [
   },
 ];
 
-export const mockMarketplaceListings: MarketplaceListing[] = [
-  {
-    id: 'm1',
-    title: 'Bàn phím cơ FL-Esports MK870 Custom Switch Kailh Box White',
-    description: 'Bàn phím cơ gõ cực êm tay cho dân code, layout 87 phím tiện bỏ balo đi học trên campus. Đầy đủ phụ kiện cáp Type-C.',
-    price: 850000,
-    currency: 'VND',
-    category: 'Electronics',
-    condition: 'LIKE NEW',
-    status: 'AVAILABLE',
-    images: ['https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=600&auto=format&fit=crop&q=80'],
-    campus: 'HL',
-    seller: {
-      id: 'usr-2',
-      fullName: 'Trần Thị B',
-      avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
-      studentId: 'HE172109',
-      contactPhone: '0987654321',
-      contactEmail: 'tranb.he172109@fpt.edu.vn',
-    },
-    viewsCount: 238,
-    createdAt: '2026-03-14T11:00:00Z',
-  },
-  {
-    id: 'm2',
-    title: 'Trọn bộ Giáo trình CSD201 + MAS291 + PRN211 in màu đẹp',
-    description: 'Mình đã pass môn nên nhượng lại cho bạn nào cần tài liệu bản cứng để take note khi lên lớp học.',
-    price: 150000,
-    currency: 'VND',
-    category: 'Books',
-    condition: 'GOOD',
-    status: 'AVAILABLE',
-    images: ['https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=600&auto=format&fit=crop&q=80'],
-    campus: 'HL',
-    seller: {
-      id: 'usr-1',
-      fullName: 'Nguyễn Văn A',
-      studentId: 'HE163421',
-      contactPhone: '0912345678',
-      contactEmail: 'nguyenvana.se@fpt.edu.vn',
-    },
-    viewsCount: 195,
-    createdAt: '2026-03-15T08:30:00Z',
-  },
-];
 
 export const mockCourseReviews: CourseReview[] = [
   {
@@ -801,5 +756,5 @@ export const mockHealthStatuses: ServiceHealthStatus[] = [
   { serviceName: 'Interaction Service', status: 'HEALTHY', uptimePercentage: 99.99, latencyMs: 15, lastChecked: '1 phút trước' },
   { serviceName: 'Storage Service', status: 'HEALTHY', uptimePercentage: 99.85, latencyMs: 45, lastChecked: '1 phút trước' },
   { serviceName: 'Governance Service', status: 'HEALTHY', uptimePercentage: 100.0, latencyMs: 20, lastChecked: '1 phút trước' },
-  { serviceName: 'Marketplace Service', status: 'HEALTHY', uptimePercentage: 99.90, latencyMs: 28, lastChecked: '1 phút trước' },
+
 ];

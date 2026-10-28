@@ -17,9 +17,11 @@ import {
   Loader2,
 } from 'lucide-react';
 import { DetailedCampus } from '../../../types';
+import { useLanguage } from '../../../context/LanguageContext';
 import { useCampuses, useCreateCampus } from '../../../services/api';
 
 export const CampusesPage: React.FC = () => {
+  const { t } = useLanguage();
   const { data: campusesData, isLoading, refetch } = useCampuses();
   const createCampusMutation = useCreateCampus();
 
@@ -126,7 +128,7 @@ export const CampusesPage: React.FC = () => {
             <span className="text-blue-600">CAMPUS PARTITIONS</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            Campus Partition & Node Registry
+            {t('Campus Partition & Node Registry')}
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
             Manage all 5 regional FPT University campuses, Edge DC partition nodes, and Glocal routing.
@@ -139,7 +141,7 @@ export const CampusesPage: React.FC = () => {
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Add Campus Node</span>
+            <span>{t('Add Campus Node')}</span>
           </button>
         </div>
       </div>

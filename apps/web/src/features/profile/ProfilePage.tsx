@@ -18,6 +18,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { EditProfileModal } from './EditProfileModal';
 import { profileApi, badgeApi, voteApi } from '../../services/api/studentApi';
 import { normalizeMediaUrl } from '../../utils/mediaUtils';
@@ -27,6 +28,7 @@ import { normalizeMediaUrl } from '../../utils/mediaUtils';
 export const ProfilePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { currentUser, updateUser } = useAuth();
+  const { t } = useLanguage();
 
   const isOwnProfile = !id || id === currentUser?.id || id === 'me';
 
@@ -177,12 +179,12 @@ export const ProfilePage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[#181C22]">
-            {isOwnProfile ? 'My Profile' : profileData.fullName}
+            {isOwnProfile ? t('profile.myProfile', 'My Profile') : profileData.fullName}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
             {isOwnProfile 
-              ? 'View your personal information and community activity.' 
-              : `${profileData.role} · ${profileData.major} · FPT University`}
+              ? t('profile.subtitle', 'View your personal information and community activity.') 
+              : `${t(profileData.role) || profileData.role} · ${t(profileData.major) || profileData.major} · FPT University`}
           </p>
         </div>
 
@@ -194,7 +196,7 @@ export const ProfilePage: React.FC = () => {
                 onClick={() => setIsEditModalOpen(true)}
                 className="px-4 py-2 bg-[#0076D1] hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors"
               >
-                Edit Profile
+                {t('profile.editProfile', 'Edit Profile')}
               </button>
               <Link
                 to="/settings"
@@ -210,7 +212,7 @@ export const ProfilePage: React.FC = () => {
               className="px-4 py-2 bg-[#0076D1] hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors inline-flex items-center gap-1.5"
             >
               <MessageSquare className="w-4 h-4" />
-              <span>Message</span>
+              <span>{t('profile.message', 'Message')}</span>
             </Link>
           )}
         </div>
@@ -234,14 +236,14 @@ export const ProfilePage: React.FC = () => {
                 {profileData.fullName}
               </h2>
               <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-semibold bg-amber-50 text-amber-800 border border-amber-200">
-                {profileData.role}
+                {t(profileData.role) || profileData.role}
               </span>
               <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono text-slate-600 bg-slate-100 border border-slate-200">
-                {profileData.studentId}
+                {profileData.studentId === 'Chưa cập nhật' ? t('profile.notUpdated', 'Chưa cập nhật') : profileData.studentId}
               </span>
             </div>
             <p className="text-xs text-slate-600 leading-relaxed max-w-2xl">
-              {profileData.bio}
+              {profileData.bio === 'Chưa có thông tin giới thiệu.' ? t('profile.defaultBio', 'Chưa có thông tin giới thiệu.') : profileData.bio}
             </p>
           </div>
         </div>
@@ -250,7 +252,7 @@ export const ProfilePage: React.FC = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 rounded-xl bg-slate-50/70 border border-slate-100">
           <div>
             <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-              EMAIL
+              {t('profile.email', 'EMAIL')}
             </span>
             <span className="text-xs font-semibold text-slate-800 truncate block mt-0.5">
               {profileData.email}
@@ -259,7 +261,7 @@ export const ProfilePage: React.FC = () => {
 
           <div>
             <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-              COMMUNITY
+              {t('profile.community', 'COMMUNITY')}
             </span>
             <span className="text-xs font-semibold text-slate-800 truncate block mt-0.5">
               {profileData.community}
@@ -268,16 +270,16 @@ export const ProfilePage: React.FC = () => {
 
           <div>
             <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-              MAJOR
+              {t('profile.major', 'MAJOR')}
             </span>
             <span className="text-xs font-semibold text-slate-800 truncate block mt-0.5">
-              {profileData.major}
+              {profileData.major === 'Chuyên ngành' ? t('profile.defaultMajor', 'Chuyên ngành') : profileData.major}
             </span>
           </div>
 
           <div>
             <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-              CAMPUS / STATUS
+              {t('profile.campusStatus', 'CAMPUS / STATUS')}
             </span>
             <span className="text-xs font-semibold text-slate-800 truncate block mt-0.5">
               {profileData.campus}
@@ -291,14 +293,14 @@ export const ProfilePage: React.FC = () => {
         {/* Card 1 */}
         <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-xs">
           <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-            ARTICLES PUBLISHED
+            {t('profile.articlesPublished', 'ARTICLES PUBLISHED')}
           </span>
           <div className="flex items-baseline justify-between mt-2">
             <span className="text-3xl font-extrabold text-[#181C22]">
               {profileData.stats.articlesPublished}
             </span>
             <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
-              {profileData.stats.articlesSubtext}
+              {profileData.stats.articlesPublished} {t('profile.articlesCount', 'bài viết')}
             </span>
           </div>
         </div>
@@ -306,14 +308,14 @@ export const ProfilePage: React.FC = () => {
         {/* Card 2 */}
         <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-xs">
           <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-            STUDY MATERIALS SHARED
+            {t('profile.materialsShared', 'STUDY MATERIALS SHARED')}
           </span>
           <div className="flex items-baseline justify-between mt-2">
             <span className="text-3xl font-extrabold text-[#181C22]">
               {profileData.stats.studyMaterialsShared}
             </span>
             <span className="text-xs font-semibold text-[#0076D1] bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
-              {profileData.stats.materialsSubtext}
+              {profileData.stats.studyMaterialsShared} {t('profile.downloadsCount', 'lượt tải')}
             </span>
           </div>
         </div>
@@ -321,14 +323,14 @@ export const ProfilePage: React.FC = () => {
         {/* Card 3 */}
         <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-xs">
           <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-            COURSE REVIEWS WRITTEN
+            {t('profile.reviewsWritten', 'COURSE REVIEWS WRITTEN')}
           </span>
           <div className="flex items-baseline justify-between mt-2">
             <span className="text-3xl font-extrabold text-[#181C22]">
               {profileData.stats.courseReviewsWritten}
             </span>
             <span className="text-xs font-semibold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100">
-              {profileData.stats.reviewsSubtext}
+              {profileData.stats.courseReviewsWritten} {t('profile.reviewsCount', 'đánh giá')}
             </span>
           </div>
         </div>
@@ -338,34 +340,34 @@ export const ProfilePage: React.FC = () => {
       <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-4">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div>
-            <h3 className="text-base font-bold text-[#181C22]">About Me</h3>
-            <p className="text-xs text-slate-400">Academic Profile Info</p>
+            <h3 className="text-base font-bold text-[#181C22]">{t('profile.aboutMe', 'About Me')}</h3>
+            <p className="text-xs text-slate-400">{t('profile.academicInfo', 'Academic Profile Info')}</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-              MEMBER SINCE
+              {t('profile.memberSince', 'MEMBER SINCE')}
             </span>
             <span className="text-xs font-semibold text-slate-800 block mt-0.5">
-              {profileData.memberSince}
+              {profileData.memberSince === 'Gần đây' ? t('profile.recent', 'Gần đây') : profileData.memberSince}
             </span>
           </div>
 
           <div>
             <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-              STUDENT STATUS
+              {t('profile.studentStatus', 'STUDENT STATUS')}
             </span>
             <span className="text-xs font-semibold text-slate-800 block mt-0.5">
-              {profileData.status}
+              {profileData.status === 'Sinh viên FPTU' ? t('profile.defaultStatus', 'Sinh viên FPTU') : profileData.status}
             </span>
           </div>
         </div>
 
         <div className="pt-2">
           <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-2">
-            ACADEMIC & TECH INTERESTS
+            {t('profile.interests', 'ACADEMIC & TECH INTERESTS')}
           </span>
           <div className="flex flex-wrap gap-2">
             {profileData.interests.map((tag) => (
@@ -389,11 +391,11 @@ export const ProfilePage: React.FC = () => {
         {/* Tab Buttons */}
         <div className="flex items-center gap-2 border-b border-slate-200 pb-2 overflow-x-auto">
           {[
-            { id: 'overview', label: 'Overview' },
-            { id: 'questions', label: `Questions (${questions.length})` },
-            { id: 'answers', label: `Answers (${answers.length})` },
-            { id: 'badges', label: `Badges (${userBadges.length})` },
-            { id: 'votes', label: `Vote History (${userVoteHistory.length})` },
+            { id: 'overview', label: t('profile.tabOverview', 'Overview') },
+            { id: 'questions', label: `${t('profile.tabQuestions', 'Questions')} (${questions.length})` },
+            { id: 'answers', label: `${t('profile.tabAnswers', 'Answers')} (${answers.length})` },
+            { id: 'badges', label: `${t('profile.tabBadges', 'Badges')} (${userBadges.length})` },
+            { id: 'votes', label: `${t('profile.tabVotes', 'Vote History')} (${userVoteHistory.length})` },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -414,20 +416,20 @@ export const ProfilePage: React.FC = () => {
           <div className="space-y-4">
             <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h4 className="text-sm font-bold text-slate-800">Recent Contributions</h4>
+                <h4 className="text-sm font-bold text-slate-800">{t('profile.recentContributions', 'Recent Contributions')}</h4>
                 {questions.length > 0 && (
                   <button 
                     onClick={() => setActiveTab('questions')}
                     className="text-xs font-semibold text-[#0076D1] hover:underline"
                   >
-                    View All
+                    {t('View All')}
                   </button>
                 )}
               </div>
 
               {questions.length === 0 ? (
                 <div className="py-6 text-center text-xs text-slate-400">
-                  Chưa có hoạt động đóng góp nào gần đây.
+                  {t('profile.emptyContributions', 'Chưa có hoạt động đóng góp nào gần đây.')}
                 </div>
               ) : (
                 <div className="divide-y divide-slate-100">
@@ -441,11 +443,11 @@ export const ProfilePage: React.FC = () => {
                           <span className="font-mono text-slate-700 bg-slate-100 px-1.5 py-0.2 rounded font-semibold">
                             {q.course}
                           </span>
-                          <span>{q.votes} votes</span>
-                          <span>{q.answers} answers</span>
+                          <span>{q.votes} {t('votes')}</span>
+                          <span>{q.answers} {t('answers')}</span>
                           {q.isSolved && (
                             <span className="text-emerald-700 font-semibold bg-emerald-50 px-1.5 py-0.2 rounded">
-                              Accepted Solution
+                              {t('profile.acceptedSolution', 'Accepted Solution')}
                             </span>
                           )}
                         </div>
@@ -460,20 +462,20 @@ export const ProfilePage: React.FC = () => {
             {/* Badges Preview */}
             <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h4 className="text-sm font-bold text-slate-800">Earned Badges</h4>
+                <h4 className="text-sm font-bold text-slate-800">{t('profile.earnedBadges', 'Earned Badges')}</h4>
                 <div className="flex items-center gap-3">
                   <Link
                     to="/reputation-rules"
                     className="text-xs font-semibold text-slate-500 hover:text-[#0076D1] hover:underline"
                   >
-                    Reputation Rules
+                    {t('profile.reputationRules', 'Reputation Rules')}
                   </Link>
                   {userBadges.length > 0 && (
                     <button 
                       onClick={() => setActiveTab('badges')}
                       className="text-xs font-semibold text-[#0076D1] hover:underline"
                     >
-                      View All ({userBadges.length})
+                      {t('View All')} ({userBadges.length})
                     </button>
                   )}
                 </div>
@@ -481,14 +483,14 @@ export const ProfilePage: React.FC = () => {
 
               {userBadges.length === 0 ? (
                 <div className="py-6 text-center text-xs text-slate-400">
-                  Chưa có huy hiệu thành tích nào. Hãy tích cực hoạt động để nhận huy hiệu!
+                  {t('profile.emptyBadges', 'Chưa có huy hiệu thành tích nào. Hãy tích cực hoạt động để nhận huy hiệu!')}
                 </div>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {userBadges.map((b) => (
                     <div key={b.id} className={`p-3.5 rounded-xl border text-center space-y-1.5 ${b.color}`}>
                       <span className="text-2xl">{b.icon}</span>
-                      <h5 className="text-xs font-bold">{b.name}</h5>
+                      <h5 className="text-xs font-bold">{t(b.name) || b.name}</h5>
                       <p className="text-[10px] opacity-75">{b.earnedDate}</p>
                     </div>
                   ))}
@@ -503,7 +505,7 @@ export const ProfilePage: React.FC = () => {
           <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs">
             {questions.length === 0 ? (
               <div className="py-10 text-center text-xs text-slate-400">
-                Chưa có câu hỏi nào được tạo.
+                {t('profile.emptyQuestions', 'Chưa có câu hỏi nào được tạo.')}
               </div>
             ) : (
               <div className="divide-y divide-slate-100">
@@ -519,14 +521,14 @@ export const ProfilePage: React.FC = () => {
                         </Link>
                       </div>
                       <div className="flex items-center gap-3 text-xs text-slate-500">
-                        <span>{q.votes} upvotes</span>
+                        <span>{q.votes} {t('votes')}</span>
                         <span>•</span>
-                        <span>{q.answers} replies</span>
+                        <span>{q.answers} {t('answers')}</span>
                         {q.isSolved && (
                           <>
                             <span>•</span>
                             <span className="text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
-                              Solved
+                              {t('Solved')}
                             </span>
                           </>
                         )}
@@ -545,7 +547,7 @@ export const ProfilePage: React.FC = () => {
           <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs">
             {answers.length === 0 ? (
               <div className="py-10 text-center text-xs text-slate-400">
-                Chưa có câu trả lời nào.
+                {t('profile.emptyAnswers', 'Chưa có câu trả lời nào.')}
               </div>
             ) : (
               <div className="divide-y divide-slate-100">
@@ -557,13 +559,13 @@ export const ProfilePage: React.FC = () => {
                           {a.course}
                         </span>
                         <h5 className="text-xs font-bold text-slate-800">
-                          Answered on: <span className="hover:text-[#0076D1] cursor-pointer">{a.questionTitle}</span>
+                          {t('profile.answeredOn', 'Answered on:')} <span className="hover:text-[#0076D1] cursor-pointer">{a.questionTitle}</span>
                         </h5>
                       </div>
                       {a.isBestAnswer && (
                         <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
                           <Sparkles className="w-3 h-3 text-emerald-600" />
-                          Best Answer
+                          {t('profile.bestAnswer', 'Best Answer')}
                         </span>
                       )}
                     </div>
@@ -571,7 +573,7 @@ export const ProfilePage: React.FC = () => {
                       "{a.excerpt}"
                     </p>
                     <div className="flex items-center gap-3 text-[11px] text-slate-400">
-                      <span className="font-semibold text-slate-600">{a.upvotes} helpful upvotes</span>
+                      <span className="font-semibold text-slate-600">{a.upvotes} {t('profile.helpfulUpvotes', 'helpful upvotes')}</span>
                       <span>•</span>
                       <span>{a.time}</span>
                     </div>
@@ -587,7 +589,7 @@ export const ProfilePage: React.FC = () => {
           <div>
             {userBadges.length === 0 ? (
               <div className="bg-white rounded-2xl p-10 border border-slate-100 shadow-xs text-center text-xs text-slate-400">
-                Chưa có huy hiệu nào được trao.
+                {t('profile.emptyBadges', 'Chưa có huy hiệu nào được trao.')}
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -598,11 +600,11 @@ export const ProfilePage: React.FC = () => {
                     </div>
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <h4 className="text-sm font-bold text-slate-800">{b.name}</h4>
-                        <span className="text-[10px] text-slate-400 font-mono">Earned {b.earnedDate}</span>
+                        <h4 className="text-sm font-bold text-slate-800">{t(b.name) || b.name}</h4>
+                        <span className="text-[10px] text-slate-400 font-mono">{t('profile.earned', 'Earned')} {b.earnedDate}</span>
                       </div>
                       <p className="text-xs text-slate-500 leading-relaxed">
-                        {b.description}
+                        {t(b.description) || b.description}
                       </p>
                     </div>
                   </div>
@@ -617,7 +619,7 @@ export const ProfilePage: React.FC = () => {
           <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs">
             {userVoteHistory.length === 0 ? (
               <div className="py-10 text-center text-xs text-slate-400">
-                Chưa có lịch sử bình chọn nào.
+                {t('profile.emptyVotes', 'Chưa có lịch sử bình chọn nào.')}
               </div>
             ) : (
               <div className="divide-y divide-slate-100">

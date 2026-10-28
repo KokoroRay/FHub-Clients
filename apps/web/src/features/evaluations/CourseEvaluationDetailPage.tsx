@@ -14,6 +14,7 @@ import {
   Edit3,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { courseReviewApi } from '../../services/api/contentApi';
 
 interface ReviewDetail {
@@ -46,6 +47,7 @@ interface ReviewComment {
 }
 
 export const CourseEvaluationDetailPage: React.FC = () => {
+  const { t } = useLanguage();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
@@ -137,10 +139,10 @@ export const CourseEvaluationDetailPage: React.FC = () => {
           to="/course-evaluations"
           className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#0076D1] transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" /> Quay lại danh sách đánh giá
+          <ArrowLeft className="w-4 h-4" /> {t('Back to Reviews')}
         </Link>
         <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-12 text-center text-xs text-slate-400">
-          Đang tải thông tin đánh giá...
+          {t('Loading...')}
         </div>
       </div>
     );
@@ -153,17 +155,17 @@ export const CourseEvaluationDetailPage: React.FC = () => {
           to="/course-evaluations"
           className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#0076D1] transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" /> Quay lại danh sách đánh giá
+          <ArrowLeft className="w-4 h-4" /> {t('Back to Reviews')}
         </Link>
         <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-12 text-center">
           <BookOpen className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-          <h3 className="text-sm font-bold text-slate-700 mb-1">Không tìm thấy đánh giá</h3>
+          <h3 className="text-sm font-bold text-slate-700 mb-1">{t('No data found')}</h3>
           <p className="text-xs text-slate-400 mb-4">Bài đánh giá môn học này không tồn tại hoặc đã bị xóa.</p>
           <button
             onClick={() => navigate('/course-evaluations')}
             className="px-4 py-2 bg-[#0076D1] hover:bg-[#005DA7] text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
           >
-            Về trang đánh giá
+            {t('Back to Reviews')}
           </button>
         </div>
       </div>
@@ -178,7 +180,7 @@ export const CourseEvaluationDetailPage: React.FC = () => {
           to="/course-evaluations"
           className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#0076D1] transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" /> Quay lại danh sách đánh giá
+          <ArrowLeft className="w-4 h-4" /> {t('Back to Reviews')}
         </Link>
       </div>
 
@@ -196,7 +198,7 @@ export const CourseEvaluationDetailPage: React.FC = () => {
               <h1 className="text-xl font-bold text-slate-900">{evaluation.title}</h1>
             </div>
             <p className="text-xs text-slate-500">
-              Môn học: <strong className="text-slate-800">{evaluation.courseTitle}</strong> • Giảng viên:{' '}
+              {t('Course Hub')}: <strong className="text-slate-800">{evaluation.courseTitle}</strong> • Giảng viên:{' '}
               <strong className="text-slate-800">{evaluation.lecturerName}</strong>
             </p>
           </div>
@@ -235,9 +237,9 @@ export const CourseEvaluationDetailPage: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-6 text-slate-500 text-[11px]">
-            <span>Kỳ học: <strong className="text-slate-700">{evaluation.semesterTaken}</strong></span>
-            <span>Khối lượng: <strong className="text-slate-700">{evaluation.workloadRating}/5</strong></span>
-            <span>Độ khó PE: <strong className="text-slate-700">{evaluation.difficultyRating}/5</strong></span>
+            <span>{t('Semester')}: <strong className="text-slate-700">{evaluation.semesterTaken}</strong></span>
+            <span>{t('Workload')}: <strong className="text-slate-700">{evaluation.workloadRating}/5</strong></span>
+            <span>{t('Difficulty')}: <strong className="text-slate-700">{evaluation.difficultyRating}/5</strong></span>
           </div>
         </div>
 

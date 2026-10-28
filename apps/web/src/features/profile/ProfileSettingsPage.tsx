@@ -443,7 +443,7 @@ export const ProfileSettingsPage: React.FC = () => {
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed pl-5">
-                    Anyone in the university can view your questions, answers, and profile.
+                    {t('settings.privacyPublicDesc', 'Anyone in the university can view your questions, answers, and profile.')}
                   </p>
                 </div>
 
@@ -468,7 +468,7 @@ export const ProfileSettingsPage: React.FC = () => {
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed pl-5">
-                    Only verified classmates and faculty members can see full details.
+                    {t('settings.privacyCommunityDesc', 'Only verified classmates and faculty members can see full details.')}
                   </p>
                 </div>
               </div>
@@ -481,7 +481,7 @@ export const ProfileSettingsPage: React.FC = () => {
                     {t('settings.showAcademicInfo', 'Show Academic Information')}
                   </span>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Display your campus, major, and enrolled course badges.
+                    {t('settings.showAcademicDesc', 'Display your campus, major, and enrolled course badges.')}
                   </p>
                 </div>
                 <input
@@ -498,7 +498,7 @@ export const ProfileSettingsPage: React.FC = () => {
                     {t('settings.allowDirectMessages', 'Allow Direct Messages')}
                   </span>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Allow peer students and course mentors to send you direct messages.
+                    {t('settings.allowDMsDesc', 'Allow peer students and course mentors to send you direct messages.')}
                   </p>
                 </div>
                 <input
@@ -515,7 +515,7 @@ export const ProfileSettingsPage: React.FC = () => {
                     {t('settings.showContributionActivity', 'Show Contribution Activity')}
                   </span>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Show your solved questions, accepted answers, and karma badges on your public profile.
+                    {t('settings.showActivityDesc', 'Show your solved questions, accepted answers, and karma badges on your public profile.')}
                   </p>
                 </div>
                 <input
@@ -622,7 +622,7 @@ export const ProfileSettingsPage: React.FC = () => {
                       onClick={() => handleRevokeSession(s.id)}
                       className="text-xs font-semibold text-red-600 hover:text-red-700 hover:underline shrink-0 cursor-pointer"
                     >
-                      Revoke
+                      {t('settings.revoke', 'Revoke')}
                     </button>
                   )}
                 </div>
@@ -636,7 +636,7 @@ export const ProfileSettingsPage: React.FC = () => {
                   {t('settings.exportData', 'Export Personal Data')}
                 </h4>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                  Download a copy of your questions, answers, reviews, and preferences.
+                  {t('settings.exportDataDesc', 'Download a copy of your questions, answers, reviews, and preferences.')}
                 </p>
               </div>
               <button
@@ -704,48 +704,48 @@ export const ProfileSettingsPage: React.FC = () => {
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                <span>Account Safety Tips</span>
+                <span>{t('settings.safetyTipsTitle', 'Account Safety Tips')}</span>
               </h3>
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-mono text-slate-400 uppercase">Security</span>
+                <span className="text-[10px] font-mono text-slate-400 uppercase">{t('settings.security', 'Security')}</span>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300">
-                  High
+                  {t('settings.high', 'High')}
                 </span>
               </div>
             </div>
 
             <div className="space-y-4 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
               <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-700">
-                <p className="font-semibold text-slate-800 dark:text-slate-200 mb-1">Official University SSO</p>
+                <p className="font-semibold text-slate-800 dark:text-slate-200 mb-1">{t('settings.safetyTipsSSOTitle', 'Official University SSO')}</p>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                  Use your official university email (@fpt.edu.vn) to ensure two-factor authentication recovery and verified cohort access.
+                  {t('settings.safetyTipsSSODesc', 'Use your official university email (@fpt.edu.vn) to ensure two-factor authentication recovery and verified cohort access.')}
                 </p>
               </div>
 
               <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-700">
-                <p className="font-semibold text-slate-800 dark:text-slate-200 mb-1">Direct Messages & Mentorship</p>
+                <p className="font-semibold text-slate-800 dark:text-slate-200 mb-1">{t('settings.safetyTipsDMsTitle', 'Direct Messages & Mentorship')}</p>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                  Keep direct messages enabled so course mentors and study groups can reach out for peer review and assignment collaboration.
+                  {t('settings.safetyTipsDMsDesc', 'Keep direct messages enabled so course mentors and study groups can reach out for peer review and assignment collaboration.')}
                 </p>
               </div>
 
               <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-700">
-                <p className="font-semibold text-slate-800 dark:text-slate-200 mb-1">Public Computer Hygiene</p>
+                <p className="font-semibold text-slate-800 dark:text-slate-200 mb-1">{t('settings.safetyTipsHygieneTitle', 'Public Computer Hygiene')}</p>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                  Review active sessions regularly and revoke permissions on public campus library workstations after completing study hours.
+                  {t('settings.safetyTipsHygieneDesc', 'Review active sessions regularly and revoke permissions on public campus library workstations after completing study hours.')}
                 </p>
               </div>
             </div>
 
             <div className="pt-3 border-t border-slate-100 dark:border-slate-800 text-center">
               <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
-                Need to delete your account or download your revision history?
+                {t('settings.deleteAccountNotice', 'Need to delete your account or download your revision history?')}
               </p>
               <a
                 href="/tickets"
                 className="inline-flex items-center gap-1 text-xs font-bold text-[#0076D1] dark:text-blue-400 hover:underline"
               >
-                <span>{t('nav.supportTickets', 'Contact Academic Support')}</span>
+                <span>{t('settings.contactSupportLink', 'Contact Academic Support')}</span>
                 <ExternalLink className="w-3 h-3" />
               </a>
             </div>

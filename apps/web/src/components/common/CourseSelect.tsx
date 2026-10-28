@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Search, Filter, Check, RefreshCw } from 'lucide-react';
 import { courseNodesApi, CourseNodeListItem } from '../../services/api/adminApi';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import {
   filterCompactCourses,
   getHideOutOfMajorCompactSetting,
@@ -40,6 +41,7 @@ export const CourseSelect: React.FC<CourseSelectProps> = ({
   id,
 }) => {
   const { currentUser } = useAuth();
+  const { t } = useLanguage();
   const [courses, setCourses] = useState<CourseNodeListItem[]>(cachedCourses || []);
   const [isLoading, setIsLoading] = useState<boolean>(!cachedCourses);
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -159,7 +161,7 @@ export const CourseSelect: React.FC<CourseSelectProps> = ({
       {/* Label and Quick-Filter Toggle Header */}
       <div className="flex items-center justify-between gap-2">
         <label htmlFor={selectId} className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-          {label} {required && !label.includes('*') && <span className="text-rose-500">*</span>}
+          {t(label)} {required && !label.includes('*') && <span className="text-rose-500">*</span>}
         </label>
 
         {/* Quick Filter Toggle Button */}
@@ -171,13 +173,13 @@ export const CourseSelect: React.FC<CourseSelectProps> = ({
               ? 'bg-blue-50 text-[#0076D1] hover:bg-blue-100 border border-blue-200/60'
               : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200'
           }`}
-          title="Bật/Tắt ẩn các môn ngoài chuyên ngành của bạn"
+          title={t('Bật/Tắt ẩn các môn ngoài chuyên ngành của bạn')}
         >
           <Filter className="w-3 h-3" />
           <span>
             {isFilterMajor
-              ? `Lọc ngành ${majorCode} (${majorFilteredCourses.length})`
-              : `Hiện tất cả (${courses.length})`}
+              ? `${t('Lọc ngành')} ${majorCode} (${majorFilteredCourses.length})`
+              : `${t('Hiện tất cả')} (${courses.length})`}
           </span>
         </button>
       </div>
@@ -189,7 +191,7 @@ export const CourseSelect: React.FC<CourseSelectProps> = ({
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Gõ để lọc nhanh mã môn (ví dụ: SWP, PRN, DBI...)"
+          placeholder={t('Gõ để lọc nhanh mã môn (ví dụ: SWP, PRN, DBI...)')}
           className="w-full bg-[#F8F9FF] border border-slate-200 dark:border-slate-700 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-600"
         />
         {searchQuery && (
@@ -219,11 +221,11 @@ export const CourseSelect: React.FC<CourseSelectProps> = ({
           disabled ? 'opacity-60 cursor-not-allowed' : ''
         }`}
       >
-        {allowEmpty && <option value="">{emptyLabel}</option>}
+        {allowEmpty && <option value="">{t(emptyLabel)}</option>}
         {isLoading ? (
-          <option value="">Đang tải danh mục 1,148 môn học FPT...</option>
+          <option value="">{t('Đang tải danh mục 1,148 môn học FPT...')}</option>
         ) : displayedCourses.length === 0 ? (
-          <option value="">Không tìm thấy môn học nào khớp với "{searchQuery}"</option>
+          <option value="">{t('Không tìm thấy môn học nào khớp với')} "{searchQuery}"</option>
         ) : (
           displayedCourses.map((c) => {
             const code = (c.code || c.courseCode || '').toUpperCase();

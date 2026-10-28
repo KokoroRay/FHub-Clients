@@ -200,7 +200,7 @@ export const mockAdminUsers: AdminUser[] = [
     status: 'ACTIVE',
     verifiedAt: '2025-09-01T08:00:00Z',
     twoFactorEnabled: true,
-    inlinePolicies: ['STUDENT_DEFAULT', 'MARKETPLACE_SELLER'],
+    inlinePolicies: ['STUDENT_DEFAULT'],
     assignedRoles: ['Student', 'Peer Tutor'],
     badges: [
       { id: 'b1', name: 'Code Champion', description: 'Đạt hơn 50 lời giải đáp hữu ích', icon: 'Code', tier: 'GOLD', category: 'CONTRIBUTOR', earnedAt: '2026-01-15' },
@@ -1023,7 +1023,7 @@ export const mockDetailedSupportTickets: SupportTicket[] = [
   {
     id: 't-102',
     ticketCode: 'TKT-2026-092',
-    title: 'Báo cáo gian lận tài liệu bản quyền môn SWP391 trên Marketplace',
+    title: 'Báo cáo vi phạm bản quyền tài liệu ôn thi môn SWP391',
     category: 'HARASSMENT',
     status: 'OPEN',
     priority: 'URGENT',

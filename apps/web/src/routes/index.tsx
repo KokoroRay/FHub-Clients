@@ -25,8 +25,6 @@ import { StudyMaterialListPage } from '../features/materials/StudyMaterialListPa
 import { StudyMaterialDetailPage } from '../features/materials/StudyMaterialDetailPage';
 import { CourseEvaluationListPage } from '../features/evaluations/CourseEvaluationListPage';
 import { CourseEvaluationDetailPage } from '../features/evaluations/CourseEvaluationDetailPage';
-import { MarketplaceListPage } from '../features/marketplace/MarketplaceListPage';
-import { MarketplaceDetailPage } from '../features/marketplace/MarketplaceDetailPage';
 
 // Profile & Communication & Support
 import { ProfilePage } from '../features/profile/ProfilePage';
@@ -188,8 +186,6 @@ const getMainPortalRoutes = () => [
       { path: 'course-evaluations/:id', element: <CourseEvaluationDetailPage /> },
       { path: 'evaluations', element: <CourseEvaluationListPage /> },
       { path: 'evaluations/:id', element: <CourseEvaluationDetailPage /> },
-      { path: 'marketplace', element: <MarketplaceListPage /> },
-      { path: 'marketplace/:id', element: <MarketplaceDetailPage /> },
       { path: 'profile', element: <ProfilePage /> },
       { path: 'profile/:id', element: <ProfilePage /> },
       { path: 'settings', element: <ProfileSettingsPage /> },

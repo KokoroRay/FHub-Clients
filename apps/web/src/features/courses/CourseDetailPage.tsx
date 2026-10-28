@@ -31,9 +31,11 @@ import { Card, CardBody, CardHeader } from '../../components/common/Card';
 import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
 import { Tabs } from '../../components/common/Tabs';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const CourseDetailPage: React.FC = () => {
   const { code } = useParams<{ code: string }>();
+  const { t } = useLanguage();
 
   const [course, setCourse] = useState<CourseNodeListItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -216,41 +218,41 @@ export const CourseDetailPage: React.FC = () => {
       : 3.8;
 
   const getDifficultyLabel = (diff: number) => {
-    if (diff <= 2) return 'Tương đối nhẹ';
-    if (diff <= 3.5) return 'Trung bình';
-    if (diff <= 4.2) return 'Khá nặng & thử thách';
-    return 'Rất nặng / Căng thẳng';
+    if (diff <= 2) return t('courses.diffRelativelyEasy', 'Tương đối nhẹ');
+    if (diff <= 3.5) return t('courses.diffModerate', 'Trung bình');
+    if (diff <= 4.2) return t('courses.diffChallenging', 'Khá nặng & thử thách');
+    return t('courses.diffVeryDemanding', 'Rất nặng / Căng thẳng');
   };
 
   const getWorkloadLabel = (workload: number) => {
-    if (workload <= 2) return 'Ít bài tập';
-    if (workload <= 3.5) return 'Vừa phải (4-6h/tuần)';
-    return 'Nhiều đồ án (8-12h/tuần)';
+    if (workload <= 2) return t('courses.workloadLight', 'Ít bài tập');
+    if (workload <= 3.5) return t('courses.workloadManageable', 'Vừa phải (4-6h/tuần)');
+    return t('courses.workloadHeavy', 'Nhiều đồ án (8-12h/tuần)');
   };
 
   const tabs = [
-    { id: 'overview', label: 'Tổng quan & Đề cương', icon: <BookOpen className="w-4 h-4" /> },
+    { id: 'overview', label: t('courses.tabOverview', 'Tổng quan & Đề cương'), icon: <BookOpen className="w-4 h-4" /> },
     {
       id: 'discussions',
-      label: 'Hỏi đáp & Thảo luận',
+      label: t('courses.tabDiscussions', 'Hỏi đáp & Thảo luận'),
       count: courseQuestions.length,
       icon: <MessageSquare className="w-4 h-4" />,
     },
     {
       id: 'materials',
-      label: 'Tài liệu học tập',
+      label: t('courses.tabMaterials', 'Tài liệu học tập'),
       count: courseMaterials.length,
       icon: <Download className="w-4 h-4" />,
     },
     {
       id: 'workflows',
-      label: 'Workflows thực hành',
+      label: t('courses.tabWorkflows', 'Workflows thực hành'),
       count: courseWorkflows.length,
       icon: <Workflow className="w-4 h-4" />,
     },
     {
       id: 'evaluations',
-      label: 'Course Evaluations',
+      label: t('courses.tabEvaluations', 'Course Evaluations'),
       count: courseReviews.length,
       icon: <Star className="w-4 h-4" />,
     },
@@ -265,7 +267,7 @@ export const CourseDetailPage: React.FC = () => {
         to="/courses"
         className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-blue-600 transition-colors"
       >
-        <ArrowLeft className="w-4 h-4" /> Quay lại Course Hub
+        <ArrowLeft className="w-4 h-4" /> {t('courses.backToCourseHub', 'Quay lại Course Hub')}
       </Link>
 
       {/* Hero Course Header (Figma #93:5039 Course Node Detail) */}
@@ -278,16 +280,16 @@ export const CourseDetailPage: React.FC = () => {
               </span>
               {course.majorCode && (
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-[#0076D1] border border-blue-100">
-                  {course.majorCode} Department
+                  {course.majorCode} {t('common.department', 'Department')}
                 </span>
               )}
               {course.semester && (
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
-                  Học kỳ {course.semester}
+                  {t('common.term', 'Học kỳ')} {course.semester}
                 </span>
               )}
               <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
-                {course.credits || 3} Tín chỉ
+                {course.credits || 3} {t('common.credits', 'Tín chỉ')}
               </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold text-[#181C22] tracking-tight leading-tight">
@@ -338,7 +340,7 @@ export const CourseDetailPage: React.FC = () => {
               ) : (
                 <Plus className="w-4 h-4" />
               )}
-              <span>{isFollowed ? 'Đang theo dõi' : 'Theo dõi môn'}</span>
+              <span>{isFollowed ? t('courses.following', 'Đang theo dõi') : t('courses.followCourse', 'Theo dõi môn')}</span>
             </button>
 
             {/* Direct Link to Course Evaluations (UC10) */}
@@ -347,14 +349,14 @@ export const CourseDetailPage: React.FC = () => {
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-blue-900 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-colors shadow-xs"
               title="Đóng góp đánh giá cho môn này trên chuyên trang Course Evaluations"
             >
-              <span>Đánh giá môn này</span>
+              <span>{t('courses.writeEvaluationForCourse', 'Đánh giá môn này')}</span>
             </Link>
 
             <button
               onClick={() => {
                 if (navigator.clipboard) {
                   navigator.clipboard.writeText(window.location.href);
-                  alert('Đã sao chép liên kết môn học vào bộ nhớ tạm!');
+                  alert(t('common.copiedToClipboard', 'Đã sao chép liên kết môn học vào bộ nhớ tạm!'));
                 }
               }}
               className="p-2 text-slate-500 hover:text-slate-800 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-colors shadow-xs cursor-pointer"
@@ -368,7 +370,7 @@ export const CourseDetailPage: React.FC = () => {
         {/* Quick Stats Row */}
         <div className="pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-600">
           <div className="flex items-center gap-2">
-            <span className="text-slate-400">Mã môn:</span>
+            <span className="text-slate-400">{t('common.courseCode', 'Mã môn')}:</span>
             <span className="font-bold text-[#0076D1] bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
               {course.code}
             </span>
@@ -381,16 +383,16 @@ export const CourseDetailPage: React.FC = () => {
               title="Xem tất cả đánh giá trên Course Evaluations"
             >
               <span>
-                Đánh giá: {avgRating > 0 ? `${avgRating.toFixed(1)}/5.0` : 'Chưa có'} ({courseReviews.length} lượt)
+                {t('common.rating', 'Đánh giá')}: {avgRating > 0 ? `${avgRating.toFixed(1)}/5.0` : t('courses.noRating', 'Chưa có')} ({courseReviews.length} {t('common.evaluationsCount', 'lượt')})
               </span>
               <span className="text-[11px] font-normal text-[#0076D1] group-hover:underline ml-1">
-                → Mở Course Evaluations
+                → {t('courses.openCourseEvaluations', 'Mở Course Evaluations')}
               </span>
             </Link>
 
             <span className="flex items-center gap-1.5 text-slate-600">
               <Users className="w-4 h-4 text-[#0076D1]" />{' '}
-              {followers.toLocaleString()} Sinh viên theo dõi
+              {followers.toLocaleString()} {t('courses.followers', 'Sinh viên theo dõi')}
             </span>
           </div>
         </div>

@@ -19,6 +19,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { studentSupportTicketApi, StudentTicketItem as ApiTicketItem } from '../../services/api/studentApi';
 
 const mapApiStatus = (status?: string): SupportTicketItem['status'] => {
@@ -67,6 +68,7 @@ interface SupportTicketItem {
 export const SupportTicketsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { currentUser } = useAuth();
+  const { t } = useLanguage();
 
   const [tickets, setTickets] = useState<SupportTicketItem[]>([]);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(id || null);
@@ -306,28 +308,28 @@ export const SupportTicketsPage: React.FC = () => {
   const getStatusBadge = (status: SupportTicketItem['status']) => {
     switch (status) {
       case 'In Progress':
-        return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">In Progress</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">{t('In Progress')}</span>;
       case 'Open':
-        return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-[#0076D1] border border-blue-200">Open</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-[#0076D1] border border-blue-200">{t('Pending')}</span>;
       case 'Resolved':
-        return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">Resolved</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">{t('Resolved')}</span>;
       case 'Closed':
       default:
-        return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">Closed</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">{t('Closed')}</span>;
     }
   };
 
   const getPriorityBadge = (priority: SupportTicketItem['priority']) => {
     switch (priority) {
       case 'Urgent':
-        return <span className="text-red-700 font-bold">Urgent</span>;
+        return <span className="text-red-700 font-bold">{t('Khẩn cấp') || 'Urgent'}</span>;
       case 'High':
-        return <span className="text-orange-700 font-bold">High</span>;
+        return <span className="text-orange-700 font-bold">{t('Cao') || 'High'}</span>;
       case 'Medium':
-        return <span className="text-amber-700 font-medium">Medium</span>;
+        return <span className="text-amber-700 font-medium">{t('Trung bình') || 'Medium'}</span>;
       case 'Low':
       default:
-        return <span className="text-slate-600">Low</span>;
+        return <span className="text-slate-600">{t('Thấp') || 'Low'}</span>;
     }
   };
 
@@ -343,7 +345,7 @@ export const SupportTicketsPage: React.FC = () => {
               className="inline-flex items-center gap-1 text-[#0076D1] font-semibold hover:underline"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back to Support Tickets</span>
+              <span>{t('tickets.back', 'Back to Support Tickets')}</span>
             </button>
             <span className="text-slate-300">/</span>
             <span className="text-slate-500">Ticket ID: <strong>{selectedTicket.ticketId}</strong></span>
@@ -359,7 +361,7 @@ export const SupportTicketsPage: React.FC = () => {
                 {getStatusBadge(selectedTicket.status)}
               </div>
               <p className="text-xs text-slate-500">
-                Opened in course resource hub under{' '}
+                {t('tickets.openedIn', 'Opened in course resource hub under')}{' '}
                 <span className="font-mono font-bold text-[#0076D1]">{selectedTicket.courseCode || 'GEN'}</span>
               </p>
             </div>
@@ -371,7 +373,7 @@ export const SupportTicketsPage: React.FC = () => {
                   onClick={() => handleUpdateStatus('Closed')}
                   className="px-3.5 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
                 >
-                  Close Ticket
+                  {t('tickets.closeTicket', 'Close Ticket')}
                 </button>
               ) : (
                 <button
@@ -379,7 +381,7 @@ export const SupportTicketsPage: React.FC = () => {
                   onClick={() => handleUpdateStatus('Open')}
                   className="px-3.5 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-colors"
                 >
-                  Reopen Ticket
+                  {t('tickets.reopenTicket', 'Reopen Ticket')}
                 </button>
               )}
             </div>
@@ -391,16 +393,16 @@ export const SupportTicketsPage: React.FC = () => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-5 border-b border-slate-100 text-xs">
               <div>
                 <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                  CATEGORY
+                  {t('tickets.category', 'CATEGORY')}
                 </span>
                 <span className="font-semibold text-slate-800 block mt-1">
-                  {selectedTicket.category}
+                  {t(selectedTicket.category) || selectedTicket.category}
                 </span>
               </div>
 
               <div>
                 <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                  PRIORITY
+                  {t('tickets.priority', 'PRIORITY')}
                 </span>
                 <div className="mt-1">
                   {getPriorityBadge(selectedTicket.priority)}
@@ -409,7 +411,7 @@ export const SupportTicketsPage: React.FC = () => {
 
               <div>
                 <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                  CREATED / UPDATED
+                  {t('tickets.createdUpdated', 'CREATED / UPDATED')}
                 </span>
                 <span className="text-slate-800 font-semibold block mt-1">
                   {selectedTicket.createdDate}
@@ -421,7 +423,7 @@ export const SupportTicketsPage: React.FC = () => {
 
               <div>
                 <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                  REPORTER
+                  {t('tickets.reporter', 'REPORTER')}
                 </span>
                 <div className="flex items-center gap-2 mt-1">
                   <div className="w-6 h-6 rounded-md bg-blue-50 text-[#0076D1] font-bold text-[10px] flex items-center justify-center border border-blue-100">
@@ -442,7 +444,7 @@ export const SupportTicketsPage: React.FC = () => {
             {/* Original Description */}
             <div className="space-y-2">
               <span className="block font-mono text-xs uppercase font-bold text-slate-500 tracking-wider">
-                ORIGINAL DESCRIPTION
+                {t('tickets.originalDesc', 'ORIGINAL DESCRIPTION')}
               </span>
               <div className="p-4 bg-slate-50/70 rounded-xl border border-slate-100 text-xs text-slate-700 leading-relaxed">
                 {selectedTicket.description}
@@ -454,13 +456,13 @@ export const SupportTicketsPage: React.FC = () => {
           <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-6">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-slate-800">Conversation & Updates</h3>
+                <h3 className="text-sm font-bold text-slate-800">{t('tickets.conversation', 'Conversation & Updates')}</h3>
                 <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-[#0076D1]">
-                  {selectedTicket.replies.length} messages
+                  {selectedTicket.replies.length} {t('tickets.messages', 'messages')}
                 </span>
               </div>
               <span className="text-xs font-mono text-slate-400">
-                Official Support Channel
+                {t('tickets.officialChannel', 'Official Support Channel')}
               </span>
             </div>
 
@@ -468,7 +470,7 @@ export const SupportTicketsPage: React.FC = () => {
             <div className="space-y-4">
               {selectedTicket.replies.length === 0 ? (
                 <p className="text-xs text-slate-400 italic py-2">
-                  No replies yet. The support desk will update this ticket within 24 hours.
+                  {t('tickets.noReplies', 'No replies yet. The support desk will update this ticket within 24 hours.')}
                 </p>
               ) : (
                 selectedTicket.replies.map((reply) => (
@@ -506,13 +508,13 @@ export const SupportTicketsPage: React.FC = () => {
             {/* Post An Update Composer */}
             <div className="pt-4 border-t border-slate-100 space-y-3">
               <span className="block font-mono text-xs uppercase font-bold text-slate-500 tracking-wider">
-                POST AN UPDATE
+                {t('tickets.postUpdate', 'POST AN UPDATE')}
               </span>
               <textarea
                 rows={3}
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
-                placeholder="Write a reply to the support team..."
+                placeholder={t('tickets.writeReplyPlaceholder', 'Write a reply to the support team...')}
                 className="w-full p-3 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#0076D1] resize-none"
               />
               <div className="flex items-center justify-between">
@@ -521,7 +523,7 @@ export const SupportTicketsPage: React.FC = () => {
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-600 hover:text-slate-900 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
                 >
                   <Paperclip className="w-3.5 h-3.5" />
-                  <span>Attach File</span>
+                  <span>{t('tickets.attachFile', 'Attach File')}</span>
                 </button>
 
                 <button
@@ -530,12 +532,12 @@ export const SupportTicketsPage: React.FC = () => {
                   disabled={!replyText.trim()}
                   className="px-4 py-2 text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700 disabled:opacity-50 rounded-xl shadow-xs transition-colors flex items-center gap-1.5"
                 >
-                  <span>Send Reply</span>
+                  <span>{t('tickets.sendReply', 'Send Reply')}</span>
                   <Send className="w-3 h-3" />
                 </button>
               </div>
               <p className="text-[11px] text-slate-400">
-                Replies are visible to FHub IT Helpdesk and course administrators.
+                {t('tickets.repliesNotice', 'Replies are visible to FHub IT Helpdesk and course administrators.')}
               </p>
             </div>
           </div>
@@ -547,28 +549,28 @@ export const SupportTicketsPage: React.FC = () => {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-bold text-[#181C22]">Support Helpdesk</h1>
+                <h1 className="text-2xl font-bold text-[#181C22] dark:text-slate-100">{t('tickets.title', 'Support Tickets')}</h1>
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#EBF5FF] text-[#0076D1] border border-[#BFDBFE]">
-                  {tickets.length} total tickets
+                  {tickets.length} {t('tickets.count', 'tickets')}
                 </span>
               </div>
-              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-                Submit academic inquiries, report resource issues, and track resolutions.
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+                {t('tickets.subtitle', 'Submit academic inquiries, report resource issues, and track resolutions.')}
               </p>
             </div>
 
             <button
               type="button"
               onClick={() => setIsCreateModalOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-[#0076D1] hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors self-start sm:self-auto"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[#0076D1] hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors self-start sm:self-auto cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              <span>Create Ticket</span>
+              <span>{t('tickets.createTicket', 'Create Ticket')}</span>
             </button>
           </div>
 
           {/* Filter Bar: Status Tabs + Search */}
-          <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-xs space-y-3">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-100 dark:border-slate-800 shadow-xs space-y-3">
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
               {(['All', 'Open', 'In Progress', 'Resolved', 'Closed'] as const).map(status => {
                 const count = status === 'All' 
@@ -578,15 +580,15 @@ export const SupportTicketsPage: React.FC = () => {
                   <button
                     key={status}
                     onClick={() => setActiveStatusFilter(status)}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
                       activeStatusFilter === status
                         ? 'bg-[#0076D1] text-white shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100'
                     }`}
                   >
-                    <span>{status}</span>
+                    <span>{t(status)}</span>
                     <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                      activeStatusFilter === status ? 'bg-blue-400 text-white' : 'bg-slate-200 text-slate-600'
+                      activeStatusFilter === status ? 'bg-blue-400 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
                     }`}>
                       {count}
                     </span>
@@ -595,67 +597,67 @@ export const SupportTicketsPage: React.FC = () => {
               })}
             </div>
 
-            <div className="relative pt-1 border-t border-slate-100">
+            <div className="relative pt-1 border-t border-slate-100 dark:border-slate-800">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
-                placeholder="Search tickets by title, category, course, or ID..."
+                placeholder={t('tickets.searchPlaceholder', 'Search tickets by title, id, or department...')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#0076D1]"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#0076D1] text-slate-800 dark:text-slate-100"
               />
             </div>
           </div>
 
           {/* Tickets Cards List */}
           {filteredTickets.length === 0 ? (
-            <div className="bg-white rounded-2xl p-12 text-center text-slate-400 border border-slate-100 shadow-xs">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl p-12 text-center text-slate-400 border border-slate-100 dark:border-slate-800 shadow-xs">
               <LifeBuoy className="w-10 h-10 mx-auto mb-3 opacity-30" />
-              <p className="text-sm font-semibold text-slate-700">No support tickets found</p>
-              <p className="text-xs text-slate-400 mt-1">Click "Create Ticket" to get help from the academic support desk.</p>
+              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('tickets.emptyTitle', 'No support tickets found')}</p>
+              <p className="text-xs text-slate-400 mt-1">{t('tickets.emptyDesc', 'Click "Create Ticket" to get help from the academic support desk.')}</p>
             </div>
           ) : (
             <div className="space-y-3.5">
-              {filteredTickets.map((t) => (
+              {filteredTickets.map((tItem) => (
                 <div
-                  key={t.id}
-                  onClick={() => setSelectedTicketId(t.id)}
+                  key={tItem.id}
+                  onClick={() => setSelectedTicketId(tItem.id)}
                   className="bg-white rounded-2xl p-5 border border-slate-100 shadow-xs hover:border-slate-200 transition-all cursor-pointer group flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                 >
                   <div className="space-y-1.5 flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-mono text-xs font-bold text-[#0076D1] bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
-                        {t.ticketId}
+                        {tItem.ticketId}
                       </span>
-                      {getStatusBadge(t.status)}
-                      {t.courseCode && (
+                      {getStatusBadge(tItem.status)}
+                      {tItem.courseCode && (
                         <span className="font-mono text-xs font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
-                          {t.courseCode}
+                          {tItem.courseCode}
                         </span>
                       )}
                       <span className="text-xs text-slate-400">
-                        {t.createdDate}
+                        {tItem.createdDate}
                       </span>
                     </div>
 
                     <h3 className="text-sm font-bold text-[#181C22] group-hover:text-[#0076D1] transition-colors truncate">
-                      {t.title}
+                      {tItem.title}
                     </h3>
 
                     <p className="text-xs text-slate-500 line-clamp-1">
-                      {t.description}
+                      {tItem.description}
                     </p>
                   </div>
 
                   <div className="flex items-center gap-4 text-xs text-slate-400 shrink-0 self-end sm:self-center">
                     <div className="text-right">
-                      <span className="block text-[11px] font-semibold text-slate-600">{t.category}</span>
-                      <span className="text-[10px] text-slate-400">Priority: {getPriorityBadge(t.priority)}</span>
+                      <span className="block text-[11px] font-semibold text-slate-600">{t(tItem.category) || tItem.category}</span>
+                      <span className="text-[10px] text-slate-400">{t('tickets.priorityLabel', 'Priority')}: {getPriorityBadge(tItem.priority)}</span>
                     </div>
 
                     <div className="flex items-center gap-1 px-2.5 py-1 bg-slate-50 rounded-lg text-slate-600 border border-slate-100">
                       <MessageSquare className="w-3.5 h-3.5" />
-                      <span>{t.replies.length}</span>
+                      <span>{tItem.replies.length}</span>
                     </div>
 
                     <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-[#0076D1] transition-colors" />
@@ -673,9 +675,9 @@ export const SupportTicketsPage: React.FC = () => {
           <div className="bg-white rounded-2xl shadow-xl border border-slate-100 max-w-xl w-full p-6 space-y-5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
-                <h2 className="text-lg font-bold text-[#181C22]">Create Support Ticket</h2>
+                <h2 className="text-lg font-bold text-[#181C22]">{t('tickets.modalTitle', 'Create Support Ticket')}</h2>
                 <p className="text-xs text-slate-500">
-                  Submit a request to the FHub academic helpdesk and curriculum moderation team.
+                  {t('tickets.modalDesc', 'Submit a request to the FHub academic helpdesk and curriculum moderation team.')}
                 </p>
               </div>
               <button
@@ -696,14 +698,14 @@ export const SupportTicketsPage: React.FC = () => {
               )}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Ticket Subject / Title <span className="text-red-500">*</span>
+                  {t('tickets.subjectLabel', 'Ticket Subject / Title')} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   required
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder="e.g. Study material link broken, SSO verification issue..."
+                  placeholder={t('tickets.subjectPlaceholder', 'e.g. Study material link broken, SSO verification issue...')}
                   className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#0076D1]"
                 />
               </div>
@@ -711,40 +713,40 @@ export const SupportTicketsPage: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Category
+                    {t('tickets.categoryLabel', 'Category')}
                   </label>
                   <select
                     value={newCategory}
                     onChange={(e) => setNewCategory(e.target.value)}
                     className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
                   >
-                    <option value="Study Materials">Study Materials</option>
-                    <option value="Academic Issue">Academic Issue</option>
-                    <option value="Account & SSO">Account & SSO</option>
-                    <option value="Course Review">Course Review</option>
-                    <option value="Technical Bug">Technical Bug</option>
+                    <option value="Study Materials">{t('tickets.catStudyMaterials', 'Study Materials')}</option>
+                    <option value="Academic Issue">{t('tickets.catAcademicIssue', 'Academic Issue')}</option>
+                    <option value="Account & SSO">{t('tickets.catAccountSSO', 'Account & SSO')}</option>
+                    <option value="Course Review">{t('tickets.catCourseReview', 'Course Review')}</option>
+                    <option value="Technical Bug">{t('tickets.catTechBug', 'Technical Bug')}</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Priority
+                    {t('tickets.priorityLabel', 'Priority')}
                   </label>
                   <select
                     value={newPriority}
                     onChange={(e) => setNewPriority(e.target.value as any)}
                     className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
                   >
-                    <option value="Low">Low</option>
-                    <option value="Medium">Medium</option>
-                    <option value="High">High</option>
-                    <option value="Urgent">Urgent</option>
+                    <option value="Low">{t('tickets.priorityLow', 'Low')}</option>
+                    <option value="Medium">{t('tickets.priorityMedium', 'Medium')}</option>
+                    <option value="High">{t('tickets.priorityHigh', 'High')}</option>
+                    <option value="Urgent">{t('tickets.priorityUrgent', 'Urgent')}</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Course Code
+                    {t('tickets.courseCodeLabel', 'Course Code')}
                   </label>
                   <input
                     type="text"
@@ -758,14 +760,14 @@ export const SupportTicketsPage: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Detailed Description <span className="text-red-500">*</span>
+                  {t('tickets.descriptionLabel', 'Detailed Description')} <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   rows={4}
                   required
                   value={newDescription}
                   onChange={(e) => setNewDescription(e.target.value)}
-                  placeholder="Describe the issue in detail, include syllabus week or error screenshot links..."
+                  placeholder={t('tickets.descriptionPlaceholder', 'Describe the issue in detail, include syllabus week or error screenshot links...')}
                   className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#0076D1] resize-none"
                 />
               </div>
@@ -776,13 +778,13 @@ export const SupportTicketsPage: React.FC = () => {
                   onClick={() => setIsCreateModalOpen(false)}
                   className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
                 >
-                  Cancel
+                  {t('tickets.cancel', 'Cancel')}
                 </button>
                 <button
                   type="submit"
                   className="px-5 py-2 text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700 rounded-xl shadow-xs transition-colors"
                 >
-                  Submit Ticket
+                  {t('tickets.submitTicket', 'Submit Ticket')}
                 </button>
               </div>
             </form>

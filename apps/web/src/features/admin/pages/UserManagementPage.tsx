@@ -23,6 +23,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { AdminUser } from '../../../types';
+import { useLanguage } from '../../../context/LanguageContext';
 import { 
   useGovernanceAccounts, 
   useUpdateUserAccountStatus, 
@@ -31,6 +32,7 @@ import {
 } from '../../../services/api';
 
 export const UserManagementPage: React.FC = () => {
+  const { t } = useLanguage();
   const [searchParams] = useSearchParams();
   const initialQuery = searchParams.get('q') || '';
   const [searchQuery, setSearchQuery] = useState(initialQuery);
@@ -195,7 +197,7 @@ export const UserManagementPage: React.FC = () => {
             <span className="text-blue-600">DIRECTORY & PERMISSIONS</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            User Accounts
+            {t('User Accounts')}
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
             Manage, verify, and monitor all FHub Community users across all campuses, roles, and academic tracks.
@@ -208,7 +210,7 @@ export const UserManagementPage: React.FC = () => {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 shadow-2xs transition-colors cursor-pointer"
           >
             <Download className="w-3.5 h-3.5 text-slate-500" />
-            <span>Export Users</span>
+            <span>{t('Export Users')}</span>
           </button>
 
           <button
@@ -216,7 +218,7 @@ export const UserManagementPage: React.FC = () => {
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
           >
             <UserPlus className="w-3.5 h-3.5" />
-            <span>Create User</span>
+            <span>{t('Create User')}</span>
           </button>
         </div>
       </div>
@@ -231,23 +233,23 @@ export const UserManagementPage: React.FC = () => {
       {/* 5 Top Summary Stat Boxes (Figma 55:4074) */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5">
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">TOTAL USERS</span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('TOTAL USERS')}</span>
           <p className="text-2xl font-bold text-slate-900 mt-1">{accountsData?.totalCount ?? usersList.length}</p>
         </div>
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">ACTIVE USERS</span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('ACTIVE USERS')}</span>
           <p className="text-2xl font-bold text-blue-600 mt-1">{usersList.filter(u => u.status === 'ACTIVE').length}</p>
         </div>
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">PENDING VERIFY</span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('PENDING VERIFY')}</span>
           <p className="text-2xl font-bold text-amber-600 mt-1">{usersList.filter(u => u.status === 'PENDING_VERIFICATION').length}</p>
         </div>
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">SUSPENDED</span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('SUSPENDED')}</span>
           <p className="text-2xl font-bold text-rose-600 mt-1">{usersList.filter(u => u.status === 'SUSPENDED').length}</p>
         </div>
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">MUTED USERS</span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('MUTED USERS')}</span>
           <p className="text-2xl font-bold text-slate-600 mt-1">{usersList.filter(u => u.status === 'MUTED').length}</p>
         </div>
       </div>
@@ -262,7 +264,7 @@ export const UserManagementPage: React.FC = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by student name, institutional email, student ID (e.g. QE183011), or username..."
+              placeholder={t('Search by student name, institutional email, student ID (e.g. QE183011), or username...')}
               className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
             />
           </div>
@@ -273,7 +275,7 @@ export const UserManagementPage: React.FC = () => {
             onChange={(e) => setSelectedCampus(e.target.value)}
             className="w-full md:w-40 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none cursor-pointer"
           >
-            <option value="ALL">All Campuses</option>
+            <option value="ALL">{t('All Campuses')}</option>
             <option value="HL">Hoa Lac (HL)</option>
             <option value="HCM">Ho Chi Minh (HCM)</option>
             <option value="DN">Da Nang (DN)</option>
@@ -287,7 +289,7 @@ export const UserManagementPage: React.FC = () => {
             onChange={(e) => setSelectedRole(e.target.value)}
             className="w-full md:w-36 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none cursor-pointer"
           >
-            <option value="ALL">All Roles</option>
+            <option value="ALL">{t('All Roles')}</option>
             <option value="Student">Student</option>
             <option value="Staff">Staff</option>
             <option value="Community Moderator">Moderator</option>
@@ -300,17 +302,17 @@ export const UserManagementPage: React.FC = () => {
             onChange={(e) => setSelectedStatus(e.target.value)}
             className="w-full md:w-36 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none cursor-pointer"
           >
-            <option value="ALL">All Statuses</option>
-            <option value="ACTIVE">Active</option>
-            <option value="PENDING_VERIFICATION">Pending Verify</option>
-            <option value="MUTED">Muted</option>
-            <option value="SUSPENDED">Suspended</option>
+            <option value="ALL">{t('All Status')}</option>
+            <option value="ACTIVE">{t('Active')}</option>
+            <option value="PENDING_VERIFICATION">{t('Pending Verification')}</option>
+            <option value="MUTED">{t('Muted')}</option>
+            <option value="SUSPENDED">{t('Suspended')}</option>
           </select>
 
           {/* More Filters button */}
           <button className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200/80 rounded-lg text-xs font-semibold text-slate-700 transition-colors">
             <SlidersHorizontal className="w-3.5 h-3.5 text-slate-500" />
-            <span>More Filters</span>
+            <span>{t('More Filters')}</span>
           </button>
         </div>
       </div>
@@ -319,7 +321,7 @@ export const UserManagementPage: React.FC = () => {
       {selectedUsers.length > 0 && (
         <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between text-xs text-blue-900 animate-fadeIn">
           <div className="flex items-center gap-2 font-semibold">
-            <span>{selectedUsers.length} user accounts selected</span>
+            <span>{selectedUsers.length} {t('user accounts selected')}</span>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -329,7 +331,7 @@ export const UserManagementPage: React.FC = () => {
               }}
               className="px-2.5 py-1 bg-rose-600 text-white rounded-lg font-semibold hover:bg-rose-700 cursor-pointer"
             >
-              Suspend Selected
+              {t('Suspend Selected')}
             </button>
             <button
               onClick={() => {
@@ -338,7 +340,7 @@ export const UserManagementPage: React.FC = () => {
               }}
               className="px-2.5 py-1 bg-amber-600 text-white rounded-lg font-semibold hover:bg-amber-700 cursor-pointer"
             >
-              Mute Selected
+              {t('Mute Selected')}
             </button>
           </div>
         </div>
@@ -553,7 +555,7 @@ export const UserManagementPage: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-fadeIn">
           <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full p-6 shadow-xl space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-slate-900">Create New Institutional Account</h2>
+              <h2 className="text-base font-bold text-slate-900">{t('Create New Institutional Account')}</h2>
               <button
                 onClick={() => setShowCreateModal(false)}
                 className="text-slate-400 hover:text-slate-600 cursor-pointer"
@@ -564,7 +566,7 @@ export const UserManagementPage: React.FC = () => {
 
             <form onSubmit={handleCreateUser} className="space-y-3">
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">Full Name:</label>
+                <label className="text-xs font-semibold text-slate-700">{t('Full Name:')}</label>
                 <input
                   type="text"
                   required
@@ -577,7 +579,7 @@ export const UserManagementPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700">Student/Staff ID:</label>
+                  <label className="text-xs font-semibold text-slate-700">{t('Student/Staff ID:')}</label>
                   <input
                     type="text"
                     placeholder="e.g. HE163421"
@@ -587,7 +589,7 @@ export const UserManagementPage: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700">Campus:</label>
+                  <label className="text-xs font-semibold text-slate-700">{t('Campus:')}</label>
                   <select
                     value={newCampus}
                     onChange={(e) => setNewCampus(e.target.value as any)}
@@ -603,7 +605,7 @@ export const UserManagementPage: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">Institutional Email (@fpt.edu.vn):</label>
+                <label className="text-xs font-semibold text-slate-700">{t('Institutional Email (@fpt.edu.vn):')}</label>
                 <input
                   type="email"
                   required
@@ -616,7 +618,7 @@ export const UserManagementPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700">Primary Role:</label>
+                  <label className="text-xs font-semibold text-slate-700">{t('Primary Role:')}</label>
                   <select
                     value={newRole}
                     onChange={(e) => setNewRole(e.target.value as any)}
@@ -629,7 +631,7 @@ export const UserManagementPage: React.FC = () => {
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700">Major Track:</label>
+                  <label className="text-xs font-semibold text-slate-700">{t('Major Track:')}</label>
                   <input
                     type="text"
                     placeholder="Software Engineering"
@@ -654,7 +656,7 @@ export const UserManagementPage: React.FC = () => {
                   className="px-4 py-2 rounded-lg bg-blue-600 text-white text-xs font-semibold cursor-pointer hover:bg-blue-700 disabled:opacity-50 flex items-center gap-1.5"
                 >
                   {createUserMutation.isPending && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                  <span>{createUserMutation.isPending ? 'Creating...' : 'Create Account'}</span>
+                  <span>{createUserMutation.isPending ? t('Creating...') : t('Create Account')}</span>
                 </button>
               </div>
             </form>

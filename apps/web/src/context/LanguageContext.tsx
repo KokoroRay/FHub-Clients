@@ -94,22 +94,51 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const t = useCallback(
     (keyOrPhrase: string, fallback?: string, params?: Record<string, string | number>): string => {
-      if (!keyOrPhrase) return '';
+      if (!keyOrPhrase || typeof keyOrPhrase !== 'string') return '';
+      const rawText = keyOrPhrase.trim();
 
       // 1. Direct translation key lookup
-      let result = translations[language]?.[keyOrPhrase];
+      let result = translations[language]?.[rawText];
 
-      // 2. Phrase-level lookup
+      // 2. Direct phrase lookup in current language
       if (!result) {
-        result = phraseTranslations[language]?.[keyOrPhrase];
+        result = phraseTranslations[language]?.[rawText];
       }
 
-      // 3. Fallback or key itself
+      // 3. Case-insensitive lookup in current language
+      if (!result) {
+        const lower = rawText.toLowerCase();
+        const foundKey = Object.keys(phraseTranslations[language] || {}).find(
+          (k) => k.toLowerCase() === lower
+        );
+        if (foundKey) {
+          result = phraseTranslations[language][foundKey];
+        }
+      }
+
+      // 4. Fallback phrase lookup if fallback text is in dictionary
+      if (!result && fallback && typeof fallback === 'string') {
+        const fallbackTrim = fallback.trim();
+        result =
+          translations[language]?.[fallbackTrim] ||
+          phraseTranslations[language]?.[fallbackTrim];
+        if (!result) {
+          const lowerFallback = fallbackTrim.toLowerCase();
+          const foundFallbackKey = Object.keys(phraseTranslations[language] || {}).find(
+            (k) => k.toLowerCase() === lowerFallback
+          );
+          if (foundFallbackKey) {
+            result = phraseTranslations[language][foundFallbackKey];
+          }
+        }
+      }
+
+      // 5. Fallback or key itself
       if (!result) {
         result = fallback !== undefined ? fallback : keyOrPhrase;
       }
 
-      // 4. Parameter substitution
+      // 5. Parameter substitution
       if (params && typeof result === 'string') {
         Object.entries(params).forEach(([k, v]) => {
           result = result!.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v));

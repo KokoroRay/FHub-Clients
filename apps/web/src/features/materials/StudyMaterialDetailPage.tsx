@@ -14,11 +14,13 @@ import {
 } from 'lucide-react';
 import { studyMaterialApi } from '../../services/api/contentApi';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { UpdateMaterialMetadataModal } from './UpdateMaterialMetadataModal';
 import { StudyMaterial } from '../../types';
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 
 export const StudyMaterialDetailPage: React.FC = () => {
+  const { t } = useLanguage();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
@@ -119,7 +121,7 @@ export const StudyMaterialDetailPage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="p-12 text-center text-slate-400 text-xs">
-        Đang tải thông tin tài liệu...
+        {t('Loading...')}
       </div>
     );
   }
@@ -127,10 +129,10 @@ export const StudyMaterialDetailPage: React.FC = () => {
   if (!material) {
     return (
       <div className="p-12 text-center space-y-4 bg-white rounded-2xl border border-slate-200">
-        <h3 className="text-lg font-bold text-slate-800">Không tìm thấy tài liệu</h3>
+        <h3 className="text-lg font-bold text-slate-800">{t('No data found')}</h3>
         <p className="text-xs text-slate-500">Tài liệu học tập này không tồn tại hoặc đã bị xóa.</p>
         <Link to="/materials" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700">
-          <ArrowLeft className="w-4 h-4" /> Quay lại danh sách tài liệu
+          <ArrowLeft className="w-4 h-4" /> {t('Back to Materials')}
         </Link>
       </div>
     );
@@ -144,7 +146,7 @@ export const StudyMaterialDetailPage: React.FC = () => {
           to="/materials"
           className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#0076D1] transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" /> Quay lại danh sách tài liệu
+          <ArrowLeft className="w-4 h-4" /> {t('Back to Materials')}
         </Link>
       </div>
 
@@ -200,7 +202,7 @@ export const StudyMaterialDetailPage: React.FC = () => {
                   className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
                 >
                   <Edit3 className="w-4 h-4 text-slate-500" />
-                  <span>Chỉnh sửa</span>
+                  <span>{t('Edit')}</span>
                 </button>
                 <button
                   onClick={handleDelete}
@@ -217,7 +219,7 @@ export const StudyMaterialDetailPage: React.FC = () => {
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs bg-[#0076D1] hover:bg-[#005DA7] text-white shadow-md transition-all cursor-pointer"
             >
               <Download className="w-4 h-4" />
-              <span>Tải tài liệu</span>
+              <span>{t('Download Material')}</span>
             </button>
           </div>
         </div>
@@ -231,26 +233,26 @@ export const StudyMaterialDetailPage: React.FC = () => {
 
         {/* Material Information */}
         <div className="space-y-4">
-          <h3 className="text-sm font-bold text-slate-900">Mô tả tài liệu</h3>
+          <h3 className="text-sm font-bold text-slate-900">{t('Description')}</h3>
           <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-line">
             {material.description}
           </p>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-slate-100 text-xs">
             <div className="space-y-1">
-              <span className="text-slate-400 block text-[11px]">Định dạng tệp</span>
+              <span className="text-slate-400 block text-[11px]">{t('File Format')}</span>
               <strong className="text-slate-800">{material.fileType}</strong>
             </div>
             <div className="space-y-1">
-              <span className="text-slate-400 block text-[11px]">Dung lượng</span>
+              <span className="text-slate-400 block text-[11px]">{t('File Size')}</span>
               <strong className="text-slate-800">{material.fileSizeMb || 0} MB</strong>
             </div>
             <div className="space-y-1">
-              <span className="text-slate-400 block text-[11px]">Lượt tải về</span>
+              <span className="text-slate-400 block text-[11px]">{t('Downloads')}</span>
               <strong className="text-[#0076D1]">{downloadCount} lượt</strong>
             </div>
             <div className="space-y-1">
-              <span className="text-slate-400 block text-[11px]">Ngày đăng tải</span>
+              <span className="text-slate-400 block text-[11px]">{t('Upload Date')}</span>
               <strong className="text-slate-800">
                 {new Date(material.createdAt).toLocaleDateString('vi-VN')}
               </strong>

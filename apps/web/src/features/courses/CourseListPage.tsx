@@ -14,8 +14,10 @@ import {
   Filter,
 } from 'lucide-react';
 import { courseNodesApi, majorsApi, CourseNodeListItem, MajorListItem } from '../../services/api/adminApi';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const CourseListPage: React.FC = () => {
+  const { t } = useLanguage();
   const [selectedMajor, setSelectedMajor] = useState<string>('ALL');
   const [selectedSemester, setSelectedSemester] = useState<string>('ALL');
   const [sortBy, setSortBy] = useState<'code' | 'rating' | 'popular'>('code');
@@ -148,21 +150,21 @@ export const CourseListPage: React.FC = () => {
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-black text-[#181C22] tracking-tight">
-              Course Hub
+              {t('nav.courseHub', 'Course Hub')}
             </h1>
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#D3E3FF] text-[#001C39]">
               <BookOpen className="w-3.5 h-3.5 text-[#0076D1]" />
-              <span>{filteredCourses.length.toLocaleString()} / {courses.length.toLocaleString()} môn học</span>
+              <span>{filteredCourses.length.toLocaleString()} / {courses.length.toLocaleString()} {t('courses.coursesCount', 'môn học')}</span>
             </span>
           </div>
           <p className="text-xs sm:text-sm text-[#404753] mt-1">
-            Không gian học tập & theo dõi môn học toàn trường FPT. Đăng ký theo dõi để nhận thông báo bài giảng, hỏi đáp và tài nguyên mới.
+            {t('courses.subtitle', 'Không gian học tập & theo dõi môn học toàn trường FPT. Đăng ký theo dõi để nhận thông báo bài giảng, hỏi đáp và tài nguyên mới.')}
           </p>
         </div>
 
         {/* Page size quick selector */}
         <div className="flex items-center gap-2 text-xs text-slate-500">
-          <span>Mỗi trang:</span>
+          <span>{t('courses.perPage', 'Mỗi trang')}:</span>
           <select
             value={pageSize}
             onChange={(e) => {
@@ -171,10 +173,10 @@ export const CourseListPage: React.FC = () => {
             }}
             className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-700 cursor-pointer focus:border-[#0076D1]"
           >
-            <option value={12}>12 môn</option>
-            <option value={24}>24 môn</option>
-            <option value={48}>48 môn</option>
-            <option value={96}>96 môn</option>
+            <option value={12}>12 {t('courses.coursesCount', 'môn')}</option>
+            <option value={24}>24 {t('courses.coursesCount', 'môn')}</option>
+            <option value={48}>48 {t('courses.coursesCount', 'môn')}</option>
+            <option value={96}>96 {t('courses.coursesCount', 'môn')}</option>
           </select>
         </div>
       </div>
@@ -188,7 +190,7 @@ export const CourseListPage: React.FC = () => {
             type="text"
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder="Tìm theo mã môn (PRN211, SWP391...) hoặc tên môn..."
+            placeholder={t('courses.searchPlaceholder', 'Tìm theo mã môn (PRN211, SWP391...) hoặc tên môn...')}
             className="w-full bg-[#F0F3FD] border border-slate-200 rounded-lg pl-10 pr-4 py-2 text-xs text-slate-800 placeholder-[#707785] focus:outline-none focus:ring-2 focus:ring-[#0076D1]/20 focus:border-[#0076D1] transition-all"
           />
         </div>
@@ -200,7 +202,7 @@ export const CourseListPage: React.FC = () => {
             onChange={(e) => handleMajorChange(e.target.value)}
             className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-[#0076D1] cursor-pointer"
           >
-            <option value="ALL">Tất cả ngành học (All Departments)</option>
+            <option value="ALL">{t('common.allMajors', 'Tất cả ngành học (All Departments)')}</option>
             {majors.map((m) => (
               <option key={m.code} value={m.code}>
                 {m.code} - {m.name}
@@ -216,10 +218,10 @@ export const CourseListPage: React.FC = () => {
             onChange={(e) => handleSemesterChange(e.target.value)}
             className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-[#0076D1] cursor-pointer"
           >
-            <option value="ALL">Tất cả học kỳ</option>
+            <option value="ALL">{t('common.allSemesters', 'Tất cả học kỳ')}</option>
             {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((s) => (
               <option key={s} value={String(s)}>
-                Học kỳ {s}
+                {t('common.term', 'Học kỳ')} {s}
               </option>
             ))}
           </select>
@@ -232,9 +234,9 @@ export const CourseListPage: React.FC = () => {
             onChange={(e) => handleSortChange(e.target.value as any)}
             className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-[#0076D1] cursor-pointer"
           >
-            <option value="code">Sắp xếp: Mã môn (A-Z)</option>
-            <option value="rating">Sắp xếp: Đánh giá cao nhất</option>
-            <option value="popular">Sắp xếp: Đông sinh viên nhất</option>
+            <option value="code">{t('courses.sortCode', 'Sắp xếp: Mã môn (A-Z)')}</option>
+            <option value="rating">{t('courses.sortRating', 'Sắp xếp: Đánh giá cao nhất')}</option>
+            <option value="popular">{t('courses.sortPopular', 'Sắp xếp: Đông sinh viên nhất')}</option>
           </select>
         </div>
       </div>
@@ -243,13 +245,13 @@ export const CourseListPage: React.FC = () => {
       {isLoading ? (
         <div className="p-16 text-center text-slate-400 text-xs bg-white rounded-2xl border border-slate-200 space-y-2">
           <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p>Đang tải danh mục hơn 1,000 môn học FPT University...</p>
+          <p>{t('Loading data...', 'Đang tải danh mục hơn 1,000 môn học FPT University...')}</p>
         </div>
       ) : paginatedCourses.length === 0 ? (
         <div className="p-16 text-center text-slate-400 text-xs bg-white rounded-2xl border border-slate-200 space-y-3">
           <BookOpen className="w-10 h-10 text-slate-300 mx-auto" />
-          <h3 className="text-sm font-bold text-slate-700">Không tìm thấy môn học nào phù hợp</h3>
-          <p className="text-xs text-slate-500">Hãy thử đổi từ khóa tìm kiếm hoặc bỏ bớt bộ lọc ngành/kỳ học.</p>
+          <h3 className="text-sm font-bold text-slate-700">{t('No data found', 'Không tìm thấy môn học nào phù hợp')}</h3>
+          <p className="text-xs text-slate-500">{t('Try adjusting your search or filters.', 'Hãy thử đổi từ khóa tìm kiếm hoặc bỏ bớt bộ lọc ngành/kỳ học.')}</p>
         </div>
       ) : (
         <>
@@ -302,13 +304,13 @@ export const CourseListPage: React.FC = () => {
 
                     {/* Metadata Row: Term, Credits, Rating */}
                     <div className="flex items-center gap-2 text-[11px] text-slate-500 font-medium pt-1">
-                      {c.semester && <span>Kỳ {c.semester}</span>}
+                      {c.semester && <span>{t('common.term', 'Kỳ')} {c.semester}</span>}
                       {c.semester && <span>•</span>}
-                      <span>{c.credits || 3} Tín chỉ</span>
+                      <span>{c.credits || 3} {t('common.credits', 'Tín chỉ')}</span>
                       <span>•</span>
                       <span className="flex items-center gap-1 text-amber-500 font-bold">
                         <Star className="w-3.5 h-3.5 fill-amber-400" />
-                        <span>{rating > 0 ? rating.toFixed(1) : 'Chưa có điểm'}</span>
+                        <span>{rating > 0 ? rating.toFixed(1) : t('courses.noRating', 'Chưa có điểm')}</span>
                       </span>
                     </div>
 
@@ -316,11 +318,11 @@ export const CourseListPage: React.FC = () => {
                     <div className="flex flex-wrap gap-1.5 pt-1">
                       {c.majorCode && (
                         <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-[#404753]">
-                          Ngành: {c.majorCode}
+                          {t('common.major', 'Ngành')}: {c.majorCode}
                         </span>
                       )}
                       <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-[#0076D1]">
-                        {(c.credits || 3) >= 4 ? 'Môn Chuyên Ngành' : 'Môn Cơ Sở'}
+                        {(c.credits || 3) >= 4 ? t('courses.specializedCourse', 'Môn Chuyên Ngành') : t('courses.coreCourse', 'Môn Cơ Sở')}
                       </span>
                     </div>
                   </div>
@@ -329,14 +331,14 @@ export const CourseListPage: React.FC = () => {
                   <div className="pt-4 mt-3 border-t border-slate-100 flex items-center justify-between">
                     <span className="text-[11px] text-slate-400 flex items-center gap-1">
                       <Users className="w-3.5 h-3.5 text-[#0076D1]" />
-                      <span>{enrolled.toLocaleString()} theo dõi</span>
+                      <span>{enrolled.toLocaleString()} {t('courses.followers', 'theo dõi')}</span>
                     </span>
 
                     <Link
                       to={`/courses/${c.code}`}
                       className="inline-flex items-center gap-1.5 text-xs font-bold text-[#0076D1] group-hover:underline"
                     >
-                      <span>Vào Course Hub</span>
+                      <span>{t('courses.viewCourseHub', 'Vào Course Hub')}</span>
                       <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                     </Link>
                   </div>
@@ -348,10 +350,10 @@ export const CourseListPage: React.FC = () => {
           {/* Full Pagination Bar */}
           <div className="bg-white rounded-xl p-4 border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="text-xs text-slate-600">
-              Hiển thị <span className="font-bold text-slate-900">{(currentPage - 1) * pageSize + 1}</span> -{' '}
-              <span className="font-bold text-slate-900">{Math.min(currentPage * pageSize, totalCount)}</span> trong tổng số{' '}
-              <span className="font-bold text-[#0076D1]">{totalCount.toLocaleString()}</span> môn học{' '}
-              <span className="text-slate-400 font-normal">(Trang {currentPage} / {totalPages})</span>
+              {t('common.showing', 'Hiển thị')} <span className="font-bold text-slate-900">{(currentPage - 1) * pageSize + 1}</span> -{' '}
+              <span className="font-bold text-slate-900">{Math.min(currentPage * pageSize, totalCount)}</span> {t('common.of', 'trong tổng số')}{' '}
+              <span className="font-bold text-[#0076D1]">{totalCount.toLocaleString()}</span> {t('courses.coursesCount', 'môn học')}{' '}
+              <span className="text-slate-400 font-normal">({t('common.page', 'Trang')} {currentPage} / {totalPages})</span>
             </div>
 
             <div className="flex items-center gap-1.5 flex-wrap">
@@ -364,7 +366,7 @@ export const CourseListPage: React.FC = () => {
                 }}
                 disabled={currentPage <= 1}
                 className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                title="Trang đầu"
+                title={t('common.firstPage', 'Trang đầu')}
               >
                 <ChevronsLeft className="w-4 h-4" />
               </button>
@@ -378,7 +380,7 @@ export const CourseListPage: React.FC = () => {
                 }}
                 disabled={currentPage <= 1}
                 className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                title="Trang trước"
+                title={t('common.previousPage', 'Trang trước')}
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
@@ -421,7 +423,7 @@ export const CourseListPage: React.FC = () => {
                 }}
                 disabled={currentPage >= totalPages}
                 className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                title="Trang sau"
+                title={t('common.nextPage', 'Trang sau')}
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -435,7 +437,7 @@ export const CourseListPage: React.FC = () => {
                 }}
                 disabled={currentPage >= totalPages}
                 className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                title="Trang cuối"
+                title={t('common.lastPage', 'Trang cuối')}
               >
                 <ChevronsRight className="w-4 h-4" />
               </button>

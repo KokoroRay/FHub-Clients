@@ -98,7 +98,7 @@ export const RightSidebar: React.FC = () => {
         <div className="flex items-center gap-2">
           <Sparkles className="w-3.5 h-3.5 text-slate-400" />
           <h4 className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-            {t('sidebar.trendingTags', 'COMMUNITY ACTIVITY')}
+            {t('sidebar.communityActivity', 'HOẠT ĐỘNG CỘNG ĐỒNG')}
           </h4>
         </div>
 
@@ -129,7 +129,7 @@ export const RightSidebar: React.FC = () => {
         <div className="flex items-center gap-2">
           <Tag className="w-3.5 h-3.5 text-slate-400" />
           <h4 className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-            {t('sidebar.communityGuidelines', 'PERSONAL SHORTCUTS')}
+            {t('sidebar.personalShortcuts', 'LỐI TẮT CỦA BẠN')}
           </h4>
         </div>
 

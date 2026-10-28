@@ -32,8 +32,10 @@ import {
   SemanticTagItemDto
 } from '../../services/api/adminApi';
 import { seriesApi } from '../../services/api/contentApi';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const ModeratorToolsPage: React.FC = () => {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'reports' | 'moderation' | 'warnings' | 'series' | 'tags'>('reports');
 
   // Reports Queue State
@@ -320,7 +322,7 @@ export const ModeratorToolsPage: React.FC = () => {
         <div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
             <ShieldCheck className="w-6 h-6 text-purple-600" />
-            <span>Community Moderator Control Desk</span>
+            <span>{t('Moderator Tools') || 'Community Moderator Control Desk'}</span>
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Bảng điều hành viên: Xử lý báo cáo vi phạm, Khóa/Mở thảo luận, Ghim bài viết, Ẩn nội dung và Cảnh cáo người dùng.

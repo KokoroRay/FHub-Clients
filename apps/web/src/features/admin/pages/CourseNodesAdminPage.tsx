@@ -20,9 +20,11 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { DetailedCourseNode } from '../../../types';
+import { useLanguage } from '../../../context/LanguageContext';
 import { useCourseNodes, useCreateCourseNode, useUpdateCourseNode, useDeleteCourseNode } from '../../../services/api';
 
 export const CourseNodesAdminPage: React.FC = () => {
+  const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMajor, setSelectedMajor] = useState('ALL');
   const [selectedSemester, setSelectedSemester] = useState('ALL');
@@ -298,7 +300,7 @@ export const CourseNodesAdminPage: React.FC = () => {
             title="Refresh courses"
           >
             <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${isRefetching ? 'animate-spin' : ''}`} />
-            <span>Refresh</span>
+            <span>{t('Refresh')}</span>
           </button>
 
           <button
@@ -306,7 +308,7 @@ export const CourseNodesAdminPage: React.FC = () => {
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Add Course</span>
+            <span>{t('Add New')}</span>
           </button>
         </div>
       </div>
@@ -336,7 +338,7 @@ export const CourseNodesAdminPage: React.FC = () => {
           onChange={(e) => handleMajorChange(e.target.value)}
           className="w-full md:w-44 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none cursor-pointer"
         >
-          <option value="ALL">All Majors</option>
+          <option value="ALL">{t('common.allMajors') || 'All Majors'}</option>
           <option value="SE">Software Engineering (SE)</option>
           <option value="IA">Information Assurance (IA)</option>
           <option value="AI">Artificial Intelligence (AI)</option>
@@ -348,7 +350,7 @@ export const CourseNodesAdminPage: React.FC = () => {
           onChange={(e) => handleSemesterChange(e.target.value)}
           className="w-full md:w-40 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none cursor-pointer"
         >
-          <option value="ALL">All Semesters</option>
+          <option value="ALL">{t('common.allSemesters') || 'All Semesters'}</option>
           {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((s) => (
             <option key={s} value={s.toString()}>
               Semester {s}

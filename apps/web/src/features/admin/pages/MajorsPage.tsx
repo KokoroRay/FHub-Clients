@@ -16,9 +16,11 @@ import {
   Loader2,
 } from 'lucide-react';
 import { DetailedMajor } from '../../../types';
+import { useLanguage } from '../../../context/LanguageContext';
 import { useMajors, useCreateMajor, useDeleteMajor } from '../../../services/api';
 
 export const MajorsPage: React.FC = () => {
+  const { t } = useLanguage();
   const { data: majorsData, isLoading, refetch } = useMajors();
   const createMajorMutation = useCreateMajor();
   const deleteMajorMutation = useDeleteMajor();
@@ -148,7 +150,7 @@ export const MajorsPage: React.FC = () => {
           className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
         >
           <Plus className="w-3.5 h-3.5" />
-          <span>Add Major Track</span>
+          <span>{t('Add New')}</span>
         </button>
       </div>
 
@@ -177,7 +179,7 @@ export const MajorsPage: React.FC = () => {
           onChange={(e) => setSelectedDept(e.target.value)}
           className="w-full md:w-56 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none cursor-pointer"
         >
-          <option value="ALL">All Departments</option>
+          <option value="ALL">{t('Tất cả') || 'All Departments'}</option>
           <option value="Công nghệ thông tin">Information Technology</option>
           <option value="An toàn thông tin">Information Assurance</option>
           <option value="Khoa học máy tính">Computer Science</option>

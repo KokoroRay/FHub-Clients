@@ -14,8 +14,10 @@ import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 import { Card, CardBody } from '../../components/common/Card';
 import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const WorkflowDetailPage: React.FC = () => {
+  const { t } = useLanguage();
   const { id } = useParams<{ id: string }>();
 
   const [workflow, setWorkflow] = useState<any | null>(null);
@@ -83,7 +85,7 @@ export const WorkflowDetailPage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="p-12 text-center text-slate-400 text-xs">
-        Đang tải workflow...
+        {t('Loading...')}
       </div>
     );
   }
@@ -91,10 +93,10 @@ export const WorkflowDetailPage: React.FC = () => {
   if (!workflow) {
     return (
       <div className="p-12 text-center space-y-4 bg-white rounded-2xl border border-slate-200">
-        <h3 className="text-lg font-bold text-slate-800">Không tìm thấy workflow</h3>
+        <h3 className="text-lg font-bold text-slate-800">{t('No data found')}</h3>
         <p className="text-xs text-slate-500">Workflow này không tồn tại hoặc đã bị gỡ bỏ.</p>
         <Link to="/workflows" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700">
-          <ArrowLeft className="w-4 h-4" /> Quay lại danh sách Workflows
+          <ArrowLeft className="w-4 h-4" /> {t('Back to Workflows')}
         </Link>
       </div>
     );
@@ -104,7 +106,7 @@ export const WorkflowDetailPage: React.FC = () => {
     <div className="space-y-6 w-full">
       {/* Back button */}
       <Link to="/workflows" className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-blue-600 transition-colors">
-        <ArrowLeft className="w-4 h-4" /> Quay lại danh sách Workflows
+        <ArrowLeft className="w-4 h-4" /> {t('Back to Workflows')}
       </Link>
 
       {/* Header Info */}
@@ -128,7 +130,7 @@ export const WorkflowDetailPage: React.FC = () => {
 
             <div className="flex items-center gap-2 shrink-0">
               <Button variant="primary" leftIcon={<Play className="w-4 h-4" />}>
-                Áp dụng Workflow
+                {t('Apply Workflow')}
               </Button>
               <ContentActionMenu
                 targetType="WORKFLOW"
@@ -162,10 +164,10 @@ export const WorkflowDetailPage: React.FC = () => {
         <div className="flex items-center justify-between">
           <h2 className="text-base font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
             <Terminal className="w-5 h-5 text-blue-600" />
-            <span>Các bước thực hiện chi tiết ({workflow.steps.length} bước)</span>
+            <span>{t('Steps Guide')} ({workflow.steps.length})</span>
           </h2>
           <span className="text-xs text-slate-400 font-medium">
-            Tiến độ: {completedSteps.length} / {workflow.steps.length} hoàn thành
+            {t('Progress')}: {completedSteps.length} / {workflow.steps.length} {t('Completed')}
           </span>
         </div>
 
@@ -200,7 +202,7 @@ export const WorkflowDetailPage: React.FC = () => {
                     </div>
 
                     <span className="text-xs font-mono text-slate-400">
-                      Step {step.stepNumber}
+                      {t('Step')} {step.stepNumber}
                     </span>
                   </div>
 
@@ -219,7 +221,7 @@ export const WorkflowDetailPage: React.FC = () => {
                           className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors cursor-pointer"
                         >
                           {copiedStep === step.stepNumber ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                          <span>{copiedStep === step.stepNumber ? 'Đã sao chép' : 'Sao chép'}</span>
+                          <span>{copiedStep === step.stepNumber ? t('Copied') : t('Copy Code')}</span>
                         </button>
                       </div>
                       <pre className="p-4 overflow-x-auto leading-relaxed">

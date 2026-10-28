@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLanguage } from '../../context/LanguageContext';
 
 export interface BadgeProps {
   children: React.ReactNode;
@@ -15,6 +16,8 @@ export const Badge: React.FC<BadgeProps> = ({
   icon,
   className = '',
 }) => {
+  const { t } = useLanguage();
+
   const sizeStyles = {
     sm: 'text-[11px] px-2 py-0.5 gap-1',
     md: 'text-xs px-2.5 py-0.5 gap-1.5',
@@ -32,12 +35,14 @@ export const Badge: React.FC<BadgeProps> = ({
     info: 'bg-sky-50 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300 font-semibold border border-sky-200/80 dark:border-sky-800',
   };
 
+  const translatedContent = typeof children === 'string' ? t(children) : children;
+
   return (
     <span
       className={`inline-flex items-center font-medium rounded-lg ${sizeStyles[size]} ${variantStyles[variant]} ${className}`}
     >
       {icon}
-      {children}
+      {translatedContent}
     </span>
   );
 };
