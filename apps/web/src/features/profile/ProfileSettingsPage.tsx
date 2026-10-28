@@ -2,41 +2,43 @@ import React, { useState, useEffect } from 'react';
 import { 
   Settings, 
   Eye, 
-  Bell, 
   Tag, 
   ShieldCheck, 
   Laptop, 
   Download, 
   X, 
   CheckCircle2, 
-  HelpCircle, 
   ExternalLink,
-  RotateCcw,
   Loader2,
-  BookOpen
+  BookOpen,
+  Sun,
+  Moon,
+  Globe
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage, SupportedLanguage } from '../../context/LanguageContext';
+import { useTheme, AppTheme } from '../../context/ThemeContext';
 import { profileApi } from '../../services/api/studentApi';
 import { getHideOutOfMajorCompactSetting, setHideOutOfMajorCompactSetting } from '../../utils/courseFilter';
 
 export const ProfileSettingsPage: React.FC = () => {
   const { currentUser } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
+  const { theme, setTheme } = useTheme();
 
-  // Feed & Interface Preferences (Figma #93:4384)
-  const [language, setLanguage] = useState<'en' | 'vi'>('en');
+  // Feed & Interface Preferences
   const [defaultFeed, setDefaultFeed] = useState<'global' | 'courses' | 'workflows'>('global');
-  const [themeMode, setThemeMode] = useState<'light' | 'dark' | 'system'>('light');
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [inAppNotifications, setInAppNotifications] = useState(true);
   const [hideOutOfMajorCompact, setHideOutOfMajorCompact] = useState<boolean>(getHideOutOfMajorCompactSetting);
 
-  // Privacy & Visibility (Figma #93:4441)
+  // Privacy & Visibility
   const [profileVisibility, setProfileVisibility] = useState<'public' | 'community'>('public');
   const [showAcademicInfo, setShowAcademicInfo] = useState(true);
   const [allowDirectMessages, setAllowDirectMessages] = useState(true);
   const [showContributionActivity, setShowContributionActivity] = useState(true);
 
-  // Muted Tags (Figma #93:4497)
+  // Muted Tags
   const [mutedTags, setMutedTags] = useState<string[]>([]);
   const [newTagInput, setNewTagInput] = useState('');
 
@@ -64,7 +66,9 @@ export const ProfileSettingsPage: React.FC = () => {
         const p = JSON.parse(localPrefsStr);
         if (p.language) setLanguage(p.language);
         if (p.defaultFeed) setDefaultFeed(p.defaultFeed);
-        if (p.themeMode) setThemeMode(p.themeMode);
+        if (p.themeMode && (p.themeMode === 'light' || p.themeMode === 'dark')) {
+          setTheme(p.themeMode);
+        }
         if (typeof p.emailNotifications === 'boolean') setEmailNotifications(p.emailNotifications);
         if (typeof p.inAppNotifications === 'boolean') setInAppNotifications(p.inAppNotifications);
         if (typeof p.hideOutOfMajorCompact === 'boolean') setHideOutOfMajorCompact(p.hideOutOfMajorCompact);
@@ -94,7 +98,9 @@ export const ProfileSettingsPage: React.FC = () => {
               const feedObj = JSON.parse(prefs.feedPreferenceJson);
               if (feedObj.language) setLanguage(feedObj.language);
               if (feedObj.defaultFeed) setDefaultFeed(feedObj.defaultFeed);
-              if (feedObj.themeMode) setThemeMode(feedObj.themeMode);
+              if (feedObj.themeMode && (feedObj.themeMode === 'light' || feedObj.themeMode === 'dark')) {
+                setTheme(feedObj.themeMode);
+              }
               if (typeof feedObj.emailNotifications === 'boolean') setEmailNotifications(feedObj.emailNotifications);
               if (typeof feedObj.inAppNotifications === 'boolean') setInAppNotifications(feedObj.inAppNotifications);
               if (typeof feedObj.hideOutOfMajorCompact === 'boolean') {
@@ -110,46 +116,54 @@ export const ProfileSettingsPage: React.FC = () => {
     };
 
     fetchUserPrefs();
-  }, []);
+  }, [setLanguage, setTheme]);
 
   const handleAddMutedTag = () => {
-    const clean = newTagInput.trim().replace(/^#/, '').toLowerCase();
-    if (clean && !mutedTags.includes(clean)) {
-      setMutedTags(prev => [...prev, clean]);
+    const trimmed = newTagInput.trim().replace(/^#/, '');
+    if (trimmed && !mutedTags.includes(trimmed)) {
+      setMutedTags([...mutedTags, trimmed]);
       setNewTagInput('');
     }
   };
 
   const handleRemoveMutedTag = (tagToRemove: string) => {
-    setMutedTags(prev => prev.filter(t => t !== tagToRemove));
+    setMutedTags(mutedTags.filter(t => t !== tagToRemove));
   };
 
   const handleRevokeSession = (sessionId: string) => {
-    setActiveSessions(prev => prev.filter(s => s.id !== sessionId));
+    setActiveSessions(activeSessions.filter(s => s.id !== sessionId));
   };
 
-  const handleExportData = async () => {
+  const handleExportData = () => {
     setIsExporting(true);
-    try {
-      await profileApi.exportData('JSON');
-    } catch (err) {
-      console.warn('Profile service export request deferred to client download:', err);
-    }
-
     setTimeout(() => {
       setIsExporting(false);
-      // Client-side JSON file download
-      const blob = new Blob([JSON.stringify({
-        user: (currentUser as any)?.fullName || (currentUser as any)?.name || 'Sinh viên FHub',
-        email: currentUser?.email || '',
-        exportDate: new Date().toISOString(),
-        settings: {
+      const exportPayload = {
+        exportedAt: new Date().toISOString(),
+        user: {
+          id: currentUser?.id,
+          fullName: currentUser?.fullName,
+          email: currentUser?.email,
+          studentId: currentUser?.studentId,
+          campus: currentUser?.campus,
+          major: currentUser?.major,
+          role: currentUser?.role,
+        },
+        preferences: {
           language,
+          theme,
           defaultFeed,
+          emailNotifications,
+          inAppNotifications,
+          hideOutOfMajorCompact,
           profileVisibility,
+          showAcademicInfo,
+          allowDirectMessages,
+          showContributionActivity,
           mutedTags,
         }
-      }, null, 2)], { type: 'application/json' });
+      };
+      const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -161,14 +175,12 @@ export const ProfileSettingsPage: React.FC = () => {
   const handleSaveChanges = async () => {
     setIsSaving(true);
     try {
-      // 1. Immediately persist compact course setting into localStorage
       setHideOutOfMajorCompactSetting(hideOutOfMajorCompact);
 
-      // 2. Persist all preferences into localStorage
       const localPrefs = {
         language,
         defaultFeed,
-        themeMode,
+        themeMode: theme,
         emailNotifications,
         inAppNotifications,
         hideOutOfMajorCompact,
@@ -181,7 +193,6 @@ export const ProfileSettingsPage: React.FC = () => {
       };
       localStorage.setItem('fhub_user_preferences', JSON.stringify(localPrefs));
 
-      // 3. Sync to backend Profile service
       await Promise.allSettled([
         profileApi.updatePrivacySettings({
           profileVisibility,
@@ -190,9 +201,9 @@ export const ProfileSettingsPage: React.FC = () => {
           showContributionHistory: showContributionActivity,
         }),
         profileApi.updateFeedPreferences({
-          language,
+          language: language as any,
           defaultFeed,
-          themeMode,
+          themeMode: theme as any,
           emailNotifications,
           inAppNotifications,
           showAcademicInfo,
@@ -212,7 +223,7 @@ export const ProfileSettingsPage: React.FC = () => {
   const handleResetDefaults = () => {
     setLanguage('vi');
     setDefaultFeed('global');
-    setThemeMode('light');
+    setTheme('light');
     setEmailNotifications(true);
     setInAppNotifications(true);
     setProfileVisibility('public');
@@ -226,134 +237,155 @@ export const ProfileSettingsPage: React.FC = () => {
     <div className="w-full pb-16 space-y-8">
       {/* Page Header */}
       <div>
-        <h1 className="text-2xl font-bold text-[#181C22]">Preferences & Privacy</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Manage your display settings, content tuning, and privacy controls.
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+          {t('settings.pageTitle', 'Preferences & Privacy')}
+        </h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          {t('settings.pageSubtitle', 'Manage your display settings, content tuning, and privacy controls.')}
         </p>
       </div>
 
       {isSaved && (
-        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-3 text-emerald-800 text-sm font-semibold shadow-xs animate-in fade-in">
-          <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-          <span>All changes were successfully updated to your cloud profile!</span>
+        <div className="p-4 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-2xl flex items-center gap-3 text-emerald-800 dark:text-emerald-300 text-sm font-semibold shadow-xs animate-in fade-in">
+          <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+          <span>{t('settings.savedSuccess', 'All changes were successfully updated to your cloud profile!')}</span>
         </div>
       )}
 
-      {/* Main 2-column Layout (Settings Content + Sidebar Tips) */}
+      {/* Main 2-column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left 2 Cols: Main Settings Sections */}
         <div className="lg:col-span-2 space-y-6">
 
-          {/* Section 1: Feed & Interface Preferences (Figma #93:4384) */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-5">
-            <div className="border-b border-slate-100 pb-4">
-              <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
+          {/* Section 1: Feed & Interface Preferences */}
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-100 dark:border-slate-800 shadow-xs space-y-5">
+            <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
+              <h2 className="text-base font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
                 <Settings className="w-4 h-4 text-[#0076D1]" />
-                <span>Feed & Interface Preferences</span>
+                <span>{t('settings.feedSectionTitle', 'Feed & Interface Preferences')}</span>
               </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Customize default views, language, and notification alert thresholds.
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                {t('settings.feedSectionDesc', 'Customize default views, language, and notification alert thresholds.')}
               </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Language Selection: 3 Languages (Việt, Anh, Nhật) */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Display Language
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
+                  <Globe className="w-3.5 h-3.5 text-[#0076D1]" />
+                  <span>{t('settings.displayLanguage', 'Display Language')}</span>
                 </label>
                 <select
                   value={language}
-                  onChange={(e) => setLanguage(e.target.value as any)}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#0076D1]"
+                  onChange={(e) => setLanguage(e.target.value as SupportedLanguage)}
+                  className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#0076D1] cursor-pointer"
                 >
-                  <option value="en">English (US)</option>
-                  <option value="vi">Tiếng Việt</option>
+                  <option value="vi">🇻🇳 Tiếng Việt (Vietnamese)</option>
+                  <option value="en">🇺🇸 English (US)</option>
+                  <option value="ja">🇯🇵 日本語 (Japanese)</option>
                 </select>
               </div>
 
+              {/* Default Feed */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Default Feed
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  {t('settings.defaultFeed', 'Default Feed')}
                 </label>
                 <select
                   value={defaultFeed}
                   onChange={(e) => setDefaultFeed(e.target.value as any)}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#0076D1]"
+                  className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#0076D1] cursor-pointer"
                 >
-                  <option value="global">Global Feed</option>
-                  <option value="courses">Course Hub</option>
-                  <option value="workflows">Curated Workflows</option>
+                  <option value="global">{t('settings.defaultFeedGlobal', 'Global Feed')}</option>
+                  <option value="courses">{t('settings.defaultFeedCourses', 'Course Hub')}</option>
+                  <option value="workflows">{t('settings.defaultFeedWorkflows', 'Curated Workflows')}</option>
                 </select>
               </div>
             </div>
 
+            {/* Theme Mode: 2 main themes (Light & Dark) */}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Theme Mode
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                {t('settings.themeMode', 'Theme Mode')}
               </label>
-              <div className="inline-flex bg-slate-100 p-1 rounded-xl text-xs font-medium border border-slate-200">
-                {(['light', 'dark', 'system'] as const).map((mode) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() => setThemeMode(mode)}
-                    className={`px-4 py-1.5 rounded-lg capitalize transition-colors ${
-                      themeMode === mode
-                        ? 'bg-white text-[#0076D1] font-bold shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    {mode}
-                  </button>
-                ))}
+              <div className="inline-flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-medium border border-slate-200 dark:border-slate-700">
+                {(['light', 'dark'] as const).map((mode) => {
+                  const isSelected = theme === mode;
+                  return (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setTheme(mode as AppTheme)}
+                      className={`inline-flex items-center gap-2 px-5 py-2 rounded-lg font-bold transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-white dark:bg-slate-700 text-[#0076D1] dark:text-blue-400 shadow-sm'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
+                      }`}
+                    >
+                      {mode === 'light' ? (
+                        <>
+                          <Sun className="w-3.5 h-3.5 text-amber-500" />
+                          <span>{t('settings.themeLight', 'Sáng (Light)')}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Moon className="w-3.5 h-3.5 text-indigo-400" />
+                          <span>{t('settings.themeDark', 'Tối (Dark)')}</span>
+                        </>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            <div className="space-y-3 pt-2 border-t border-slate-100">
+            {/* Notifications toggles */}
+            <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800">
               <label className="flex items-center justify-between cursor-pointer group">
                 <div>
-                  <span className="text-xs font-semibold text-slate-800 group-hover:text-[#0076D1] transition-colors">
-                    Email Notifications
+                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 group-hover:text-[#0076D1] transition-colors">
+                    {t('settings.emailNotifications', 'Email Notifications')}
                   </span>
-                  <p className="text-[11px] text-slate-500">
-                    Receive email digests and critical replies to your university mailbox.
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    {t('settings.emailNotificationsDesc', 'Receive email digests and critical replies to your university mailbox.')}
                   </p>
                 </div>
                 <input
                   type="checkbox"
                   checked={emailNotifications}
                   onChange={(e) => setEmailNotifications(e.target.checked)}
-                  className="w-4 h-4 rounded text-[#0076D1] focus:ring-blue-200 border-slate-300 cursor-pointer"
+                  className="w-4 h-4 rounded text-[#0076D1] focus:ring-blue-200 border-slate-300 dark:border-slate-600 cursor-pointer"
                 />
               </label>
 
               <label className="flex items-center justify-between cursor-pointer group">
                 <div>
-                  <span className="text-xs font-semibold text-slate-800 group-hover:text-[#0076D1] transition-colors">
-                    In-app Notifications
+                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 group-hover:text-[#0076D1] transition-colors">
+                    {t('settings.inAppNotifications', 'In-app Notifications')}
                   </span>
-                  <p className="text-[11px] text-slate-500">
-                    Sound & banner alerts for mentions, answers, and study group invitations.
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    {t('settings.inAppNotificationsDesc', 'Sound & banner alerts for mentions, answers, and study group invitations.')}
                   </p>
                 </div>
                 <input
                   type="checkbox"
                   checked={inAppNotifications}
                   onChange={(e) => setInAppNotifications(e.target.checked)}
-                  className="w-4 h-4 rounded text-[#0076D1] focus:ring-blue-200 border-slate-300 cursor-pointer"
+                  className="w-4 h-4 rounded text-[#0076D1] focus:ring-blue-200 border-slate-300 dark:border-slate-600 cursor-pointer"
                 />
               </label>
 
-              <label className="flex items-start justify-between cursor-pointer group pt-3 border-t border-slate-100">
+              <label className="flex items-start justify-between cursor-pointer group pt-3 border-t border-slate-100 dark:border-slate-800">
                 <div className="pr-4">
                   <div className="flex items-center gap-1.5">
                     <BookOpen className="w-3.5 h-3.5 text-[#0076D1]" />
-                    <span className="text-xs font-semibold text-slate-800 group-hover:text-[#0076D1] transition-colors">
-                      Ẩn môn ngoài ngành trong danh sách thu gọn (Hide out-of-major courses in compact views)
+                    <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 group-hover:text-[#0076D1] transition-colors">
+                      {t('settings.outOfMajorFilter', 'Ẩn môn ngoài ngành trong danh sách thu gọn')}
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
-                    Tự động ẩn các môn học không thuộc chuyên ngành của bạn ({currentUser?.major || 'Ngành của bạn'}) trên các widget tóm tắt và hộp thoại chọn môn nhanh (không có bộ lọc). Trang Course Hub đầy đủ vẫn hiển thị toàn bộ chương trình đào tạo để bạn tự do tìm kiếm.
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                    {t('settings.outOfMajorFilterDesc', 'Tự động rút gọn danh sách môn học theo đúng chuyên ngành hiện tại của bạn.')}
                   </p>
                 </div>
                 <input
@@ -366,27 +398,27 @@ export const ProfileSettingsPage: React.FC = () => {
                     setIsSaved(true);
                     setTimeout(() => setIsSaved(false), 2000);
                   }}
-                  className="w-4 h-4 rounded text-[#0076D1] focus:ring-blue-200 border-slate-300 cursor-pointer mt-0.5"
+                  className="w-4 h-4 rounded text-[#0076D1] focus:ring-blue-200 border-slate-300 dark:border-slate-600 cursor-pointer mt-0.5"
                 />
               </label>
             </div>
           </div>
 
-          {/* Section 2: Privacy & Visibility (Figma #93:4441) */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-5">
-            <div className="border-b border-slate-100 pb-4">
-              <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
+          {/* Section 2: Privacy & Visibility */}
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-100 dark:border-slate-800 shadow-xs space-y-5">
+            <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
+              <h2 className="text-base font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
                 <Eye className="w-4 h-4 text-[#0076D1]" />
-                <span>Privacy & Visibility</span>
+                <span>{t('settings.privacySectionTitle', 'Privacy & Visibility')}</span>
               </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Control who can see your academic details, badges, and contact you.
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                {t('settings.privacySectionDesc', 'Control who can see your academic details, badges, and contact you.')}
               </p>
             </div>
 
             <div className="space-y-3">
-              <label className="block text-xs font-semibold text-slate-700">
-                Profile Visibility
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                {t('settings.profileVisibility', 'Profile Visibility')}
               </label>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -394,8 +426,8 @@ export const ProfileSettingsPage: React.FC = () => {
                   onClick={() => setProfileVisibility('public')}
                   className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
                     profileVisibility === 'public'
-                      ? 'border-[#0076D1] bg-blue-50/40 ring-1 ring-[#0076D1]'
-                      : 'border-slate-200 bg-slate-50/50 hover:bg-slate-50'
+                      ? 'border-[#0076D1] bg-blue-50/40 dark:bg-blue-950/30 ring-1 ring-[#0076D1]'
+                      : 'border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/40 hover:bg-slate-50 dark:hover:bg-slate-800'
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-1">
@@ -406,9 +438,11 @@ export const ProfileSettingsPage: React.FC = () => {
                       onChange={() => setProfileVisibility('public')}
                       className="text-[#0076D1] focus:ring-blue-200"
                     />
-                    <span className="text-xs font-bold text-slate-800">Public</span>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                      {t('settings.visibilityPublic', 'Public')}
+                    </span>
                   </div>
-                  <p className="text-[11px] text-slate-500 leading-relaxed pl-5">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed pl-5">
                     Anyone in the university can view your questions, answers, and profile.
                   </p>
                 </div>
@@ -417,8 +451,8 @@ export const ProfileSettingsPage: React.FC = () => {
                   onClick={() => setProfileVisibility('community')}
                   className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
                     profileVisibility === 'community'
-                      ? 'border-[#0076D1] bg-blue-50/40 ring-1 ring-[#0076D1]'
-                      : 'border-slate-200 bg-slate-50/50 hover:bg-slate-50'
+                      ? 'border-[#0076D1] bg-blue-50/40 dark:bg-blue-950/30 ring-1 ring-[#0076D1]'
+                      : 'border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/40 hover:bg-slate-50 dark:hover:bg-slate-800'
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-1">
@@ -429,39 +463,41 @@ export const ProfileSettingsPage: React.FC = () => {
                       onChange={() => setProfileVisibility('community')}
                       className="text-[#0076D1] focus:ring-blue-200"
                     />
-                    <span className="text-xs font-bold text-slate-800">Community Members only</span>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                      {t('settings.visibilityCommunity', 'Community Members only')}
+                    </span>
                   </div>
-                  <p className="text-[11px] text-slate-500 leading-relaxed pl-5">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed pl-5">
                     Only verified classmates and faculty members can see full details.
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="space-y-3 pt-2 border-t border-slate-100">
+            <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800">
               <label className="flex items-center justify-between cursor-pointer group">
                 <div>
-                  <span className="text-xs font-semibold text-slate-800 group-hover:text-[#0076D1] transition-colors">
-                    Show Academic Information
+                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 group-hover:text-[#0076D1] transition-colors">
+                    {t('settings.showAcademicInfo', 'Show Academic Information')}
                   </span>
-                  <p className="text-[11px] text-slate-500">
-                    Display your campus (HCM), major (Software Engineering), and enrolled course badges.
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Display your campus, major, and enrolled course badges.
                   </p>
                 </div>
                 <input
                   type="checkbox"
                   checked={showAcademicInfo}
                   onChange={(e) => setShowAcademicInfo(e.target.checked)}
-                  className="w-4 h-4 rounded text-[#0076D1] focus:ring-blue-200 border-slate-300 cursor-pointer"
+                  className="w-4 h-4 rounded text-[#0076D1] focus:ring-blue-200 border-slate-300 dark:border-slate-600 cursor-pointer"
                 />
               </label>
 
               <label className="flex items-center justify-between cursor-pointer group">
                 <div>
-                  <span className="text-xs font-semibold text-slate-800 group-hover:text-[#0076D1] transition-colors">
-                    Allow Direct Messages
+                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 group-hover:text-[#0076D1] transition-colors">
+                    {t('settings.allowDirectMessages', 'Allow Direct Messages')}
                   </span>
-                  <p className="text-[11px] text-slate-500">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
                     Allow peer students and course mentors to send you direct messages.
                   </p>
                 </div>
@@ -469,16 +505,16 @@ export const ProfileSettingsPage: React.FC = () => {
                   type="checkbox"
                   checked={allowDirectMessages}
                   onChange={(e) => setAllowDirectMessages(e.target.checked)}
-                  className="w-4 h-4 rounded text-[#0076D1] focus:ring-blue-200 border-slate-300 cursor-pointer"
+                  className="w-4 h-4 rounded text-[#0076D1] focus:ring-blue-200 border-slate-300 dark:border-slate-600 cursor-pointer"
                 />
               </label>
 
               <label className="flex items-center justify-between cursor-pointer group">
                 <div>
-                  <span className="text-xs font-semibold text-slate-800 group-hover:text-[#0076D1] transition-colors">
-                    Show Contribution Activity
+                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 group-hover:text-[#0076D1] transition-colors">
+                    {t('settings.showContributionActivity', 'Show Contribution Activity')}
                   </span>
-                  <p className="text-[11px] text-slate-500">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
                     Show your solved questions, accepted answers, and karma badges on your public profile.
                   </p>
                 </div>
@@ -486,96 +522,96 @@ export const ProfileSettingsPage: React.FC = () => {
                   type="checkbox"
                   checked={showContributionActivity}
                   onChange={(e) => setShowContributionActivity(e.target.checked)}
-                  className="w-4 h-4 rounded text-[#0076D1] focus:ring-blue-200 border-slate-300 cursor-pointer"
+                  className="w-4 h-4 rounded text-[#0076D1] focus:ring-blue-200 border-slate-300 dark:border-slate-600 cursor-pointer"
                 />
               </label>
             </div>
           </div>
 
-          {/* Section 3: Muted Tags (Figma #93:4497) */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-4">
-            <div className="border-b border-slate-100 pb-3">
-              <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
+          {/* Section 3: Muted Tags */}
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-100 dark:border-slate-800 shadow-xs space-y-4">
+            <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h2 className="text-base font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
                 <Tag className="w-4 h-4 text-[#0076D1]" />
-                <span>Muted Tags</span>
+                <span>{t('settings.mutedTagsTitle', 'Muted Tags')}</span>
               </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Muted tags help reduce content you do not want to see in your feed.
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                {t('settings.mutedTagsDesc', 'Muted tags help reduce content you do not want to see in your feed.')}
               </p>
             </div>
 
-            {/* Existing Chips */}
             <div className="flex flex-wrap gap-2 pt-1">
               {mutedTags.map((tag) => (
                 <span
                   key={tag}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200"
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
                 >
                   <span>#{tag}</span>
                   <button
                     type="button"
                     onClick={() => handleRemoveMutedTag(tag)}
-                    className="p-0.5 text-slate-400 hover:text-red-600 rounded-full hover:bg-slate-200 transition-colors"
+                    className="p-0.5 text-slate-400 hover:text-red-600 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
                   >
                     <X className="w-3 h-3" />
                   </button>
                 </span>
               ))}
               {mutedTags.length === 0 && (
-                <p className="text-xs text-slate-400 italic">No muted tags active.</p>
+                <p className="text-xs text-slate-400 italic">
+                  {t('settings.noMutedTags', 'No muted tags active.')}
+                </p>
               )}
             </div>
 
-            {/* Add Tag Input */}
             <div className="flex items-center gap-2 pt-2">
               <input
                 type="text"
                 value={newTagInput}
                 onChange={(e) => setNewTagInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddMutedTag())}
-                placeholder="Add a tag (e.g. exams, gaming)..."
-                className="flex-1 px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#0076D1]"
+                placeholder={t('settings.addTagPlaceholder', 'Nhập tên thẻ tag rồi nhấn Thêm...')}
+                className="flex-1 px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#0076D1] text-slate-800 dark:text-slate-200"
               />
               <button
                 type="button"
                 onClick={handleAddMutedTag}
-                className="px-3.5 py-2 text-xs font-semibold text-[#0076D1] bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-xl transition-colors whitespace-nowrap"
+                className="px-3.5 py-2 text-xs font-semibold text-[#0076D1] dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800 rounded-xl transition-colors whitespace-nowrap cursor-pointer"
               >
-                + Add Tag
+                + {t('settings.addTagButton', 'Thêm thẻ')}
               </button>
             </div>
           </div>
 
-          {/* Section 4: Active Sessions & Security (Figma #93:4524) */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-4">
-            <div className="border-b border-slate-100 pb-3">
-              <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
+          {/* Section 4: Active Sessions & Security */}
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-100 dark:border-slate-800 shadow-xs space-y-4">
+            <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h2 className="text-base font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
                 <Laptop className="w-4 h-4 text-[#0076D1]" />
-                <span>Active Sessions & Security</span>
+                <span>{t('settings.activeSessionsTitle', 'Active Sessions & Security')}</span>
               </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Overview of devices currently logged into your FHub account.
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                {t('settings.activeSessionsDesc', 'Overview of devices currently logged into your FHub account.')}
               </p>
             </div>
 
             <div className="space-y-3">
               {activeSessions.map((s) => (
-                <div key={s.id} className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-3">
+                <div key={s.id} className="p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="p-2 rounded-lg bg-white border border-slate-200 text-slate-600 shrink-0">
+                    <div className="p-2 rounded-lg bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 shrink-0">
                       <Laptop className="w-4 h-4" />
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-slate-800 truncate">{s.device}</span>
+                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{s.device}</span>
                         {s.isCurrent && (
-                          <span className="px-1.5 py-0.2 text-[10px] font-semibold bg-emerald-100 text-emerald-800 rounded-md">
-                            Current
+                          <span className="px-1.5 py-0.2 text-[10px] font-semibold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 rounded-md">
+                            {t('settings.currentDevice', 'Current')}
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-slate-500 truncate">
-                        {s.location} · Last active: {s.lastActive} · IP: {s.ip}
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                        {s.location} · {t('settings.activeNow', 'Active now')} · IP: {s.ip}
                       </p>
                     </div>
                   </div>
@@ -584,7 +620,7 @@ export const ProfileSettingsPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => handleRevokeSession(s.id)}
-                      className="text-xs font-semibold text-red-600 hover:text-red-700 hover:underline shrink-0"
+                      className="text-xs font-semibold text-red-600 hover:text-red-700 hover:underline shrink-0 cursor-pointer"
                     >
                       Revoke
                     </button>
@@ -594,10 +630,12 @@ export const ProfileSettingsPage: React.FC = () => {
             </div>
 
             {/* Export Personal Data Box */}
-            <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h4 className="text-xs font-bold text-slate-800">Export Personal Data</h4>
-                <p className="text-[11px] text-slate-500">
+                <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                  {t('settings.exportData', 'Export Personal Data')}
+                </h4>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   Download a copy of your questions, answers, reviews, and preferences.
                 </p>
               </div>
@@ -605,25 +643,25 @@ export const ProfileSettingsPage: React.FC = () => {
                 type="button"
                 onClick={handleExportData}
                 disabled={isExporting}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-colors shadow-xs self-start sm:self-auto disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-colors shadow-xs self-start sm:self-auto disabled:opacity-50 cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
-                <span>{isExporting ? 'Preparing Archive...' : 'Export JSON Data'}</span>
+                <span>{isExporting ? t('settings.exporting', 'Preparing Archive...') : t('settings.exportData', 'Export JSON Data')}</span>
               </button>
             </div>
           </div>
 
           {/* Bottom Action Bar */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-white rounded-2xl border border-slate-200 shadow-xs gap-3">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs gap-3">
             <div className="flex items-center gap-2">
               {isSaved ? (
-                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 animate-in fade-in">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  Đã lưu tất cả thay đổi thành công!
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 animate-in fade-in">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  {t('settings.savedSuccess', 'Đã lưu tất cả thay đổi thành công!')}
                 </span>
               ) : (
                 <span className="text-xs text-slate-400">
-                  Tất cả thay đổi sẽ được cập nhật vào hồ sơ đám mây của bạn.
+                  {t('settings.savedSuccess', 'Tất cả thay đổi sẽ được cập nhật vào hồ sơ đám mây của bạn.')}
                 </span>
               )}
             </div>
@@ -632,9 +670,9 @@ export const ProfileSettingsPage: React.FC = () => {
                 type="button"
                 onClick={handleResetDefaults}
                 disabled={isSaving}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors disabled:opacity-50 cursor-pointer"
+                className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 cursor-pointer"
               >
-                Khôi phục mặc định
+                {t('settings.resetDefaults', 'Khôi phục mặc định')}
               </button>
               <button
                 type="button"
@@ -645,69 +683,69 @@ export const ProfileSettingsPage: React.FC = () => {
                 {isSaving ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Đang lưu...</span>
+                    <span>{t('settings.saving', 'Đang lưu...')}</span>
                   </>
                 ) : isSaved ? (
                   <>
                     <CheckCircle2 className="w-4 h-4" />
-                    <span>Đã lưu!</span>
+                    <span>{t('settings.savedSuccess', 'Đã lưu!')}</span>
                   </>
                 ) : (
-                  <span>Lưu thay đổi</span>
+                  <span>{t('settings.saveChanges', 'Lưu thay đổi')}</span>
                 )}
               </button>
             </div>
           </div>
         </div>
 
-        {/* Right 1 Col: Account Safety Tips (Figma #93:4567) */}
+        {/* Right 1 Col: Account Safety Tips */}
         <div className="space-y-6">
-          <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-100 dark:border-slate-800 shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-emerald-600" />
                 <span>Account Safety Tips</span>
               </h3>
               <div className="flex items-center gap-1.5">
                 <span className="text-[10px] font-mono text-slate-400 uppercase">Security</span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300">
                   High
                 </span>
               </div>
             </div>
 
-            <div className="space-y-4 text-xs text-slate-600 leading-relaxed">
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                <p className="font-semibold text-slate-800 mb-1">Official University SSO</p>
-                <p className="text-[11px] text-slate-500">
+            <div className="space-y-4 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-700">
+                <p className="font-semibold text-slate-800 dark:text-slate-200 mb-1">Official University SSO</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   Use your official university email (@fpt.edu.vn) to ensure two-factor authentication recovery and verified cohort access.
                 </p>
               </div>
 
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                <p className="font-semibold text-slate-800 mb-1">Direct Messages & Mentorship</p>
-                <p className="text-[11px] text-slate-500">
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-700">
+                <p className="font-semibold text-slate-800 dark:text-slate-200 mb-1">Direct Messages & Mentorship</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   Keep direct messages enabled so course mentors and study groups can reach out for peer review and assignment collaboration.
                 </p>
               </div>
 
-              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                <p className="font-semibold text-slate-800 mb-1">Public Computer Hygiene</p>
-                <p className="text-[11px] text-slate-500">
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-700">
+                <p className="font-semibold text-slate-800 dark:text-slate-200 mb-1">Public Computer Hygiene</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
                   Review active sessions regularly and revoke permissions on public campus library workstations after completing study hours.
                 </p>
               </div>
             </div>
 
-            <div className="pt-3 border-t border-slate-100 text-center">
-              <p className="text-xs text-slate-500 mb-2">
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 text-center">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
                 Need to delete your account or download your revision history?
               </p>
               <a
                 href="/tickets"
-                className="inline-flex items-center gap-1 text-xs font-bold text-[#0076D1] hover:underline"
+                className="inline-flex items-center gap-1 text-xs font-bold text-[#0076D1] dark:text-blue-400 hover:underline"
               >
-                <span>Contact Academic Support</span>
+                <span>{t('nav.supportTickets', 'Contact Academic Support')}</span>
                 <ExternalLink className="w-3 h-3" />
               </a>
             </div>

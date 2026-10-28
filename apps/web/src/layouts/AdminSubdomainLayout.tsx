@@ -19,20 +19,19 @@ import {
   MapPin,
   ChevronDown,
   ArrowUpRight,
-  Sparkles,
   LogOut,
-  RefreshCw,
-  SlidersHorizontal,
   Settings,
   HelpCircle,
-  Shield,
   CheckCircle2,
   Tag,
   Newspaper,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { Dropdown } from '../components/common/Dropdown';
 import { ErrorBoundary } from '../components/common/ErrorBoundary';
+import { ThemeToggle } from '../components/common/ThemeToggle';
+import { LanguageSwitcher } from '../components/common/LanguageSwitcher';
 import { setSubdomainMode } from '../utils/subdomain';
 import {
   useGovernanceAccounts,
@@ -45,6 +44,7 @@ import {
 
 export const AdminSubdomainLayout: React.FC = () => {
   const { currentUser, currentCampus, setCurrentCampus, logout } = useAuth();
+  const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPartition, setSelectedPartition] = useState<string>('ALL');
   const navigate = useNavigate();
@@ -100,72 +100,72 @@ export const AdminSubdomainLayout: React.FC = () => {
   const navGroups = isMod
     ? [
         {
-          title: 'MODERATION DESK',
+          title: t('nav.moderationDesk', 'MODERATION DESK'),
           items: [
-            { name: 'Content Moderation', path: '/moderation', icon: ShieldCheck, badge: 'Reports', badgeColor: 'bg-rose-100 text-rose-700' },
-            { name: 'Support Tickets', path: '/tickets', icon: LifeBuoy, badge: ticketsCount, badgeColor: 'bg-amber-100 text-amber-700' },
-            { name: 'Verification Queue', path: '/verifications', icon: CheckCircle2, badge: 'KYC', badgeColor: 'bg-blue-100 text-blue-700' },
-            { name: 'Semantic Tags', path: '/tags', icon: Tag },
-            { name: 'School News', path: '/news', icon: Newspaper, badge: 'School Rep', badgeColor: 'bg-blue-100 text-blue-700' },
+            { name: t('nav.contentModeration', 'Content Moderation'), path: '/moderation', icon: ShieldCheck, badge: 'Reports', badgeColor: 'bg-rose-100 text-rose-700' },
+            { name: t('nav.supportTickets', 'Support Tickets'), path: '/tickets', icon: LifeBuoy, badge: ticketsCount, badgeColor: 'bg-amber-100 text-amber-700' },
+            { name: t('nav.verificationQueue', 'Verification Queue'), path: '/verifications', icon: CheckCircle2, badge: 'KYC', badgeColor: 'bg-blue-100 text-blue-700' },
+            { name: t('nav.semanticTags', 'Semantic Tags'), path: '/tags', icon: Tag },
+            { name: t('nav.schoolNews', 'School News'), path: '/news', icon: Newspaper, badge: 'School Rep', badgeColor: 'bg-blue-100 text-blue-700' },
           ],
         },
         {
-          title: 'ACADEMIC REPOSITORY (READ ONLY)',
+          title: t('nav.academicTaxonomy', 'ACADEMIC REPOSITORY (READ ONLY)'),
           items: [
-            { name: 'Campuses', path: '/campuses', icon: Building2, badge: campusesCount, badgeColor: 'bg-slate-100 text-slate-600' },
-            { name: 'Majors', path: '/majors', icon: GraduationCap, badge: majorsCount, badgeColor: 'bg-slate-100 text-slate-600' },
-            { name: 'Specializations', path: '/specializations', icon: Network, badge: specializationsCount, badgeColor: 'bg-slate-100 text-slate-600' },
-            { name: 'Courses', path: '/courses', icon: BookOpen, badge: coursesCount, badgeColor: 'bg-slate-100 text-slate-600' },
+            { name: t('nav.campuses', 'Campuses'), path: '/campuses', icon: Building2, badge: campusesCount, badgeColor: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300' },
+            { name: t('nav.majors', 'Majors'), path: '/majors', icon: GraduationCap, badge: majorsCount, badgeColor: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300' },
+            { name: t('nav.specializations', 'Specializations'), path: '/specializations', icon: Network, badge: specializationsCount, badgeColor: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300' },
+            { name: t('nav.courses', 'Courses'), path: '/courses', icon: BookOpen, badge: coursesCount, badgeColor: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300' },
           ],
         },
         {
-          title: 'DIRECTORY',
+          title: t('nav.directory', 'DIRECTORY'),
           items: [
-            { name: 'User Directory', path: '/users', icon: Users, badge: usersCount, badgeColor: 'bg-slate-100 text-slate-600' },
+            { name: t('nav.userDirectory', 'User Directory'), path: '/users', icon: Users, badge: usersCount, badgeColor: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300' },
           ],
         },
       ]
     : [
         {
-          title: 'MAIN NAVIGATION',
+          title: t('nav.mainNavigation', 'MAIN NAVIGATION'),
           items: [
-            { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-            { name: 'Users', path: '/users', icon: Users, badge: usersCount, badgeColor: 'bg-slate-100 text-slate-600' },
-            { name: 'Support Tickets', path: '/tickets', icon: LifeBuoy, badge: ticketsCount, badgeColor: 'bg-amber-100 text-amber-700' },
-            { name: 'Reputation Rules', path: '/reputation', icon: Zap },
-            { name: 'Achievement Badges', path: '/badges', icon: Award },
+            { name: t('nav.dashboard', 'Dashboard'), path: '/', icon: LayoutDashboard },
+            { name: t('nav.users', 'Users'), path: '/users', icon: Users, badge: usersCount, badgeColor: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300' },
+            { name: t('nav.supportTickets', 'Support Tickets'), path: '/tickets', icon: LifeBuoy, badge: ticketsCount, badgeColor: 'bg-amber-100 text-amber-700' },
+            { name: t('nav.reputationRules', 'Reputation Rules'), path: '/reputation', icon: Zap },
+            { name: t('nav.achievementBadges', 'Achievement Badges'), path: '/badges', icon: Award },
           ],
         },
         {
-          title: 'MODERATION & GOVERNANCE',
+          title: t('nav.moderationDesk', 'MODERATION & GOVERNANCE'),
           items: [
-            { name: 'Content Moderation', path: '/moderation', icon: ShieldCheck, badge: 'Reports', badgeColor: 'bg-rose-100 text-rose-700' },
-            { name: 'Verification Queue', path: '/verifications', icon: CheckCircle2, badge: 'KYC', badgeColor: 'bg-blue-100 text-blue-700' },
-            { name: 'Semantic Tags', path: '/tags', icon: Tag },
+            { name: t('nav.contentModeration', 'Content Moderation'), path: '/moderation', icon: ShieldCheck, badge: 'Reports', badgeColor: 'bg-rose-100 text-rose-700' },
+            { name: t('nav.verificationQueue', 'Verification Queue'), path: '/verifications', icon: CheckCircle2, badge: 'KYC', badgeColor: 'bg-blue-100 text-blue-700' },
+            { name: t('nav.semanticTags', 'Semantic Tags'), path: '/tags', icon: Tag },
           ],
         },
         {
-          title: 'ACADEMIC TAXONOMY',
+          title: t('nav.academicTaxonomy', 'ACADEMIC TAXONOMY'),
           items: [
-            { name: 'Campuses', path: '/campuses', icon: Building2, badge: campusesCount, badgeColor: 'bg-slate-100 text-slate-600' },
-            { name: 'Majors', path: '/majors', icon: GraduationCap, badge: majorsCount, badgeColor: 'bg-slate-100 text-slate-600' },
-            { name: 'Specializations', path: '/specializations', icon: Network, badge: specializationsCount, badgeColor: 'bg-slate-100 text-slate-600' },
-            { name: 'Courses', path: '/courses', icon: BookOpen, badge: coursesCount, badgeColor: 'bg-slate-100 text-slate-600' },
+            { name: t('nav.campuses', 'Campuses'), path: '/campuses', icon: Building2, badge: campusesCount, badgeColor: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300' },
+            { name: t('nav.majors', 'Majors'), path: '/majors', icon: GraduationCap, badge: majorsCount, badgeColor: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300' },
+            { name: t('nav.specializations', 'Specializations'), path: '/specializations', icon: Network, badge: specializationsCount, badgeColor: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300' },
+            { name: t('nav.courses', 'Courses'), path: '/courses', icon: BookOpen, badge: coursesCount, badgeColor: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300' },
           ],
         },
         {
-          title: 'SYSTEM & PERSONNEL',
+          title: t('nav.systemPersonnel', 'SYSTEM & PERSONNEL'),
           items: [
-            { name: 'Staff Management', path: '/staff', icon: Users, badge: 'Admin', badgeColor: 'bg-amber-100 text-amber-800' },
-            { name: 'Audit Logs', path: '/audit-logs', icon: FileSpreadsheet, badge: 'Live', badgeColor: 'bg-emerald-100 text-emerald-700' },
-            { name: 'System Health', path: '/health', icon: Activity },
+            { name: t('nav.staffManagement', 'Staff Management'), path: '/staff', icon: Users, badge: 'Admin', badgeColor: 'bg-amber-100 text-amber-800' },
+            { name: t('nav.auditLogs', 'Audit Logs'), path: '/audit-logs', icon: FileSpreadsheet, badge: 'Live', badgeColor: 'bg-emerald-100 text-emerald-700' },
+            { name: t('nav.systemHealth', 'System Health'), path: '/health', icon: Activity },
           ],
         },
       ];
 
   const bottomNavItems = [
-    { name: 'Settings', path: '/settings', icon: Settings },
-    { name: 'Help & Docs', path: '/help', icon: HelpCircle },
+    { name: t('nav.settings', 'Settings'), path: '/settings', icon: Settings },
+    { name: t('nav.helpDocs', 'Help & Docs'), path: '/help', icon: HelpCircle },
   ];
 
   const handleGlobalSearch = (e: React.FormEvent) => {
@@ -183,13 +183,13 @@ export const AdminSubdomainLayout: React.FC = () => {
     `flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all group ${
       isActive
         ? 'bg-blue-600 text-white font-semibold shadow-xs'
-        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
+        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100/80 dark:hover:bg-slate-800/60'
     }`;
 
   return (
-    <div className="h-screen bg-[#f8fafc] text-slate-900 flex flex-col font-sans selection:bg-blue-100 selection:text-blue-700 overflow-hidden">
-      {/* Top Header (Figma Header) */}
-      <header className="sticky top-0 z-50 w-full bg-white border-b border-slate-200 shrink-0">
+    <div className="h-screen bg-[#f8fafc] dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans selection:bg-blue-100 selection:text-blue-700 overflow-hidden">
+      {/* Top Header */}
+      <header className="sticky top-0 z-50 w-full bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shrink-0">
         <div className="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
           {/* Brand Logo & Tag */}
           <div className="flex items-center gap-3 shrink-0">
@@ -202,19 +202,19 @@ export const AdminSubdomainLayout: React.FC = () => {
                 />
               </div>
               <div className="flex flex-col">
-                <span className="font-bold text-sm tracking-tight text-slate-900 flex items-center gap-1.5">
+                <span className="font-bold text-sm tracking-tight text-slate-900 dark:text-white flex items-center gap-1.5">
                   FHub Operations
                   <span
                     className={`text-[10px] px-1.5 py-0.2 rounded font-semibold border ${
                       isMod
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                        : 'bg-blue-50 text-blue-600 border-blue-200'
+                        ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
+                        : 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800'
                     }`}
                   >
-                    {isMod ? 'Moderator Desk' : 'Admin Console'}
+                    {isMod ? t('role.Community Moderator', 'Moderator Desk') : t('nav.adminConsole', 'Admin Console')}
                   </span>
                 </span>
-                <span className="text-[10px] text-slate-400 font-normal">
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal">
                   {isMod ? 'Content & Governance Desk' : 'Academic Platform Control'}
                 </span>
               </div>
@@ -229,28 +229,34 @@ export const AdminSubdomainLayout: React.FC = () => {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search users, tickets, courses, logs..."
-                className="w-full bg-slate-100/80 border border-slate-200 rounded-lg pl-9 pr-12 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                placeholder={t('header.searchPlaceholder', 'Search users, tickets, courses, logs...')}
+                className="w-full bg-slate-100/80 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg pl-9 pr-12 py-1.5 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
               />
-              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-400 bg-white px-1.5 py-0.5 rounded border border-slate-200 shadow-2xs">
-                Ctrl K
+              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-400 bg-white dark:bg-slate-700 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-600 shadow-2xs">
+                {t('header.ctrlK', 'Ctrl K')}
               </span>
             </div>
           </form>
 
           {/* Right Header Actions */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Theme Toggle Button */}
+            <ThemeToggle size="sm" />
+
+            {/* Language Selector Dropdown */}
+            <LanguageSwitcher variant="compact" />
+
             {/* Campus Switcher */}
             <Dropdown
               trigger={
-                <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200/70 transition-colors">
+                <button className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200/70 dark:hover:bg-slate-700 transition-colors cursor-pointer">
                   <MapPin className="w-3.5 h-3.5 text-blue-600" />
-                  <span>{selectedPartition === 'ALL' ? `All Campuses (${campusOptions.length} Nodes)` : `Campus: ${selectedPartition}`}</span>
+                  <span>{selectedPartition === 'ALL' ? `${t('header.allCampuses', 'All Campuses')} (${campusOptions.length})` : `Campus: ${selectedPartition}`}</span>
                   <ChevronDown className="w-3 h-3 text-slate-400" />
                 </button>
               }
               items={[
-                { id: 'ALL', label: `All Campuses (${campusOptions.length} Phân hiệu)`, onClick: () => setSelectedPartition('ALL') },
+                { id: 'ALL', label: `${t('header.allCampuses', 'All Campuses')} (${campusOptions.length} Phân hiệu)`, onClick: () => setSelectedPartition('ALL') },
                 ...campusOptions.map((c: any) => ({
                   id: c.code,
                   label: `${c.code} - ${c.name}`,
@@ -265,21 +271,21 @@ export const AdminSubdomainLayout: React.FC = () => {
             {/* Exit to Main Student Portal Button */}
             <button
               onClick={handleSwitchToMainPortal}
-              className="hidden sm:flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100/80 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer border border-blue-200/60"
-              title="Quay về Cổng sinh viên"
+              className="hidden sm:flex items-center gap-1 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100/80 dark:hover:bg-blue-900/50 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer border border-blue-200/60 dark:border-blue-800"
+              title={t('header.switchToMain', 'Quay về Cổng sinh viên')}
             >
-              <span>Student Portal</span>
+              <span>{t('header.studentPortal', 'Student Portal')}</span>
               <ArrowUpRight className="w-3.5 h-3.5" />
             </button>
 
             {/* Notification Bell */}
             <Link
               to="/tickets"
-              className="p-2 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition-colors relative"
-              title="Support Tickets"
+              className="p-2 text-slate-500 dark:text-slate-400 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors relative"
+              title={t('nav.supportTickets', 'Support Tickets')}
             >
               <Bell className="w-4 h-4" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-amber-500 rounded-full ring-2 ring-white" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-amber-500 rounded-full ring-2 ring-white dark:ring-slate-900" />
             </Link>
 
             {/* Admin Profile */}
@@ -289,23 +295,24 @@ export const AdminSubdomainLayout: React.FC = () => {
                   <img
                     src={currentUser?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'}
                     alt="Admin User"
-                    className="w-7 h-7 rounded-lg object-cover ring-1 ring-slate-200"
+                    className="w-7 h-7 rounded-lg object-cover ring-1 ring-slate-200 dark:ring-slate-700"
                   />
                   <div className="hidden xl:flex flex-col text-left">
-                    <span className="text-xs font-semibold text-slate-800">
+                    <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
                       {currentUser?.fullName || currentUser?.email?.split('@')[0] || 'Administrator'}
                     </span>
                     <span className="text-[10px] text-slate-400">
-                      {currentUser?.role || 'System Admin'}
+                      {t(`role.${currentUser?.role || 'Admin'}`, currentUser?.role || 'System Admin')}
                     </span>
                   </div>
                   <ChevronDown className="w-3 h-3 text-slate-400 hidden xl:block" />
                 </div>
               }
               items={[
-                { id: 'dash', label: 'Dashboard Control', icon: <LayoutDashboard className="w-4 h-4" />, onClick: () => navigate('/') },
-                { id: 'main-portal', label: 'Quay về Student Portal', icon: <ArrowUpRight className="w-4 h-4 text-blue-600" />, onClick: handleSwitchToMainPortal },
-                { id: 'logout', label: 'Đăng xuất', icon: <LogOut className="w-4 h-4 text-rose-500" />, danger: true, divider: true, onClick: logout },
+                { id: 'dash', label: t('nav.dashboard', 'Dashboard Control'), icon: <LayoutDashboard className="w-4 h-4" />, onClick: () => navigate('/') },
+                { id: 'settings', label: t('nav.settings', 'Preferences & Privacy'), icon: <Settings className="w-4 h-4" />, onClick: () => navigate('/settings') },
+                { id: 'main-portal', label: t('header.switchToMain', 'Quay về Student Portal'), icon: <ArrowUpRight className="w-4 h-4 text-blue-600" />, onClick: handleSwitchToMainPortal },
+                { id: 'logout', label: t('header.signOut', 'Đăng xuất'), icon: <LogOut className="w-4 h-4 text-rose-500" />, danger: true, divider: true, onClick: logout },
               ]}
             />
           </div>
@@ -314,12 +321,12 @@ export const AdminSubdomainLayout: React.FC = () => {
 
       {/* Main Layout Body (Sidebar + Content) */}
       <div className="w-full flex-1 flex overflow-hidden">
-        {/* Left Sidebar (Figma Aside) - Fixed/Locked Navigation */}
-        <aside className="w-60 shrink-0 hidden lg:flex flex-col justify-between bg-white border-r border-slate-200 h-full overflow-y-auto p-4 space-y-6">
+        {/* Left Sidebar */}
+        <aside className="w-60 shrink-0 hidden lg:flex flex-col justify-between bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 h-full overflow-y-auto p-4 space-y-6">
           <div className="space-y-6">
             {navGroups.map((group) => (
               <div key={group.title} className="space-y-1">
-                <h4 className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                <h4 className="px-3 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1.5">
                   {group.title}
                 </h4>
                 <nav className="space-y-0.5">
@@ -330,7 +337,7 @@ export const AdminSubdomainLayout: React.FC = () => {
                         {({ isActive }) => (
                           <>
                             <div className="flex items-center gap-2.5">
-                              <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-500 group-hover:text-slate-800'}`} />
+                              <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-slate-500 group-hover:text-slate-800 dark:group-hover:text-slate-200'}`} />
                               <span>{item.name}</span>
                             </div>
                             {item.badge && (
@@ -338,7 +345,7 @@ export const AdminSubdomainLayout: React.FC = () => {
                                 className={`text-[10px] px-1.5 py-0.2 rounded font-mono font-semibold ${
                                   isActive
                                     ? 'bg-white/20 text-white'
-                                    : item.badgeColor || 'bg-slate-100 text-slate-600'
+                                    : item.badgeColor || 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
                                 }`}
                               >
                                 {item.badge}
@@ -355,7 +362,7 @@ export const AdminSubdomainLayout: React.FC = () => {
           </div>
 
           {/* Bottom Navigation */}
-          <div className="pt-4 border-t border-slate-100 space-y-1">
+          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-1">
             {bottomNavItems.map((item) => {
               const Icon = item.icon;
               return (
@@ -372,11 +379,11 @@ export const AdminSubdomainLayout: React.FC = () => {
 
             <button
               onClick={handleSwitchToMainPortal}
-              className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 transition-all cursor-pointer"
+              className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100/80 dark:hover:bg-slate-800/60 transition-all cursor-pointer"
             >
               <div className="flex items-center gap-2.5">
                 <LogOut className="w-4 h-4 text-slate-500" />
-                <span>Exit to Community</span>
+                <span>{t('header.switchToMain', 'Exit to Community')}</span>
               </div>
               <ArrowUpRight className="w-3.5 h-3.5 text-slate-400" />
             </button>

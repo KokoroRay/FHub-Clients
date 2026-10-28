@@ -14,12 +14,16 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
+import { useLanguage } from '../../../context/LanguageContext';
+import { ThemeToggle } from '../../../components/common/ThemeToggle';
+import { LanguageSwitcher } from '../../../components/common/LanguageSwitcher';
 import { authApi } from '../../../services/api/adminApi';
 import { setSubdomainMode } from '../../../utils/subdomain';
 import { User } from '../../../types';
 
 export const AdminLoginPage: React.FC = () => {
   const { login } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -168,13 +172,17 @@ export const AdminLoginPage: React.FC = () => {
           </div>
         </div>
 
-        <button
-          onClick={() => setSubdomainMode('main')}
-          className="text-xs font-semibold text-slate-600 hover:text-blue-600 flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Về Cổng Sinh Viên</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <ThemeToggle size="sm" />
+          <LanguageSwitcher variant="compact" />
+          <button
+            onClick={() => setSubdomainMode('main')}
+            className="text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-blue-600 flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>{t('header.switchToMain', 'Về Cổng Sinh Viên')}</span>
+          </button>
+        </div>
       </header>
 
       {/* Main Login Form Container */}

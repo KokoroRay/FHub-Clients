@@ -18,6 +18,7 @@ import {
   BookOpen,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { useCampusDetails } from '../../hooks/useCampusDetails';
 import { AskQuestionModal } from '../discussions/AskQuestionModal';
 import { QuestionPost } from '../../types';
@@ -29,6 +30,7 @@ import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 
 export const FeedPage: React.FC = () => {
   const { currentUser, currentCampus, isAuthenticated } = useAuth();
+  const { t } = useLanguage();
   const campusInfo = useCampusDetails(currentUser?.campus || currentCampus);
   const navigate = useNavigate();
 
@@ -233,13 +235,13 @@ export const FeedPage: React.FC = () => {
             title={`${campusInfo.fullName}${campusInfo.address ? `\nĐịa chỉ: ${campusInfo.address}` : ''}`}
           >
             <span className="w-1.5 h-1.5 rounded-full bg-[#0076D1]" />
-            <span>Campus: {campusInfo.shortName}</span>
+            <span>{t('common.campus', 'Campus')}: {campusInfo.shortName}</span>
           </div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-            Welcome back to FHub
+            {t('auth.welcomeBack', 'Welcome back to FHub')}
           </h1>
           <p className="text-xs text-slate-500 max-w-xl leading-relaxed">
-            Learn, collaborate, share knowledge, and grow with your academic community.
+            {t('app.tagline', 'Learn, collaborate, share knowledge, and grow with your academic community.')}
           </p>
         </div>
 
@@ -380,7 +382,7 @@ export const FeedPage: React.FC = () => {
               <HelpCircle className="w-4 h-4" />
             </div>
             <h2 className="text-lg font-bold text-slate-900 tracking-tight">
-              Questions & Discussions
+              {t('nav.questions', 'Questions & Discussions')}
             </h2>
           </div>
 
@@ -393,7 +395,7 @@ export const FeedPage: React.FC = () => {
                   questionTab === 'recent' ? 'bg-white text-slate-900 shadow-2xs' : 'hover:text-slate-900'
                 }`}
               >
-                Recent
+                {t('feed.tabTrending', 'Recent')}
               </button>
               <button
                 onClick={() => setQuestionTab('voted')}
@@ -401,7 +403,7 @@ export const FeedPage: React.FC = () => {
                   questionTab === 'voted' ? 'bg-white text-slate-900 shadow-2xs' : 'hover:text-slate-900'
                 }`}
               >
-                Most Voted
+                {t('common.upvote', 'Most Voted')}
               </button>
               <button
                 onClick={() => setQuestionTab('unanswered')}
@@ -409,7 +411,7 @@ export const FeedPage: React.FC = () => {
                   questionTab === 'unanswered' ? 'bg-white text-slate-900 shadow-2xs' : 'hover:text-slate-900'
                 }`}
               >
-                Unanswered
+                {t('feed.tabUnanswered', 'Unanswered')}
               </button>
             </div>
 

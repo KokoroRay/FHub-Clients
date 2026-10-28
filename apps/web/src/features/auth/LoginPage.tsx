@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, ArrowRight, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { authApi } from '../../services/api/adminApi';
 import { User } from '../../types';
 import { validateFptEmail } from '../../utils/fptEmailValidator';
 
 export const LoginPage: React.FC = () => {
   const { login } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -241,10 +243,10 @@ export const LoginPage: React.FC = () => {
                 </span>
               </div>
               <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-                Welcome Back
+                {t('auth.welcomeBack', 'Welcome Back')}
               </h2>
               <p className="text-xs text-slate-500 mt-1">
-                Enter your university credentials to access your FHub workspace.
+                {t('auth.signInSubtitle', 'Enter your university credentials to access your FHub workspace.')}
               </p>
             </div>
 
@@ -285,7 +287,7 @@ export const LoginPage: React.FC = () => {
                 <div className="w-full border-t border-slate-200" />
               </div>
               <span className="relative px-3 bg-white text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                OR SIGN IN WITH EMAIL
+                {t('auth.signInTitle', 'OR SIGN IN WITH EMAIL')}
               </span>
             </div>
 
@@ -300,7 +302,7 @@ export const LoginPage: React.FC = () => {
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  University Email / Student ID
+                  {t('auth.email', 'University Email / Student ID')}
                 </label>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -318,13 +320,13 @@ export const LoginPage: React.FC = () => {
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="block text-xs font-bold text-slate-700">
-                    Password
+                    {t('auth.password', 'Password')}
                   </label>
                   <Link
                     to="/forgot-password"
                     className="text-xs font-semibold text-[#0076D1] hover:underline"
                   >
-                    Forgot password?
+                    {t('auth.forgotPassword', 'Forgot password?')}
                   </Link>
                 </div>
                 <div className="relative">
@@ -356,7 +358,7 @@ export const LoginPage: React.FC = () => {
                     onChange={(e) => setRememberMe(e.target.checked)}
                     className="w-4 h-4 rounded text-[#0076D1] border-slate-300 focus:ring-[#0076D1]"
                   />
-                  <span className="text-slate-600 font-medium">Remember me</span>
+                  <span className="text-slate-600 font-medium">{t('auth.rememberMe', 'Remember me')}</span>
                 </label>
 
                 <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
@@ -371,16 +373,16 @@ export const LoginPage: React.FC = () => {
                 disabled={isLoading}
                 className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-bold text-white bg-[#0076D1] hover:bg-[#005DA7] transition-all shadow-md hover:shadow-lg cursor-pointer disabled:opacity-50"
               >
-                <span>{isLoading ? 'SIGNING IN...' : 'SIGN IN'}</span>
+                <span>{isLoading ? t('common.loading', 'SIGNING IN...') : t('auth.signInBtn', 'SIGN IN')}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </form>
           </div>
 
           <div className="pt-6 text-center text-xs text-slate-500">
-            Don't have an account?{' '}
+            {t('auth.noAccount', "Don't have an account?")}{' '}
             <Link to="/register" className="font-bold text-[#0076D1] hover:underline">
-              Sign Up
+              {t('header.signUp', 'Sign Up')}
             </Link>
           </div>
         </div>

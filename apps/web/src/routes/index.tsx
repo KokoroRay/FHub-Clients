@@ -149,6 +149,7 @@ const getSubdomainRoutes = () => [
       { path: 'tags', element: <SemanticTagsPage /> },
       { path: 'staff', element: <StaffAccountsAdminPage /> },
       { path: 'news', element: <NewsManagementPage /> },
+      { path: 'settings', element: <ProfileSettingsPage /> },
     ],
   },
   {
@@ -239,6 +240,7 @@ const getMainPortalRoutes = () => [
       { path: 'verifications', element: <VerificationQueuePage /> },
       { path: 'tags', element: <SemanticTagsPage /> },
       { path: 'staff', element: <StaffAccountsAdminPage /> },
+      { path: 'settings', element: <ProfileSettingsPage /> },
     ],
   },
 

@@ -35,10 +35,12 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
+import { useLanguage } from '../../../context/LanguageContext';
 import { fetchAdminDashboardStats, AdminDashboardData } from '../../../services/adminDashboardService';
 
 export const AdminDashboardPage: React.FC = () => {
   const { currentUser } = useAuth();
+  const { t, language } = useLanguage();
   const [activityTimeframe, setActivityTimeframe] = useState<'Today' | '7 Days' | '30 Days'>('Today');
   const [showQuickActions, setShowQuickActions] = useState(false);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
@@ -148,12 +150,12 @@ export const AdminDashboardPage: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-              Welcome back, {currentUser?.fullName || 'Administrator'}
+              {t('auth.welcomeBack', 'Welcome back')}, {currentUser?.fullName || 'Administrator'}
               <CheckCircle2 className="w-5 h-5 text-blue-600 fill-blue-50" />
             </h1>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Monitor and manage the FHub Community platform across all academic nodes.
+            {t('admin.dashboardTitle', 'Monitor and manage the FHub Community platform across all academic nodes.')}
           </p>
         </div>
 

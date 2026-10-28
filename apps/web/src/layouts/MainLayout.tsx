@@ -11,7 +11,7 @@ export const MainLayout: React.FC = () => {
   const showRightSidebar = location.pathname === '/';
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] text-slate-900 flex flex-col font-sans selection:bg-blue-100 selection:text-blue-900">
+    <div className="min-h-screen bg-[#F8F9FA] dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans selection:bg-blue-100 selection:text-blue-900">
       <Header />
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-6 flex-1 w-full flex gap-6 items-start">
         <LeftSidebar />
