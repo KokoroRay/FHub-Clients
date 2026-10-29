@@ -292,10 +292,10 @@ export const CourseDetailPage: React.FC = () => {
                 {course.credits || 3} {t('common.credits', 'Tín chỉ')}
               </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-[#181C22] tracking-tight leading-tight">
+            <h1 className="text-2xl sm:text-3xl font-bold text-[#181C22] dark:text-slate-100 tracking-tight leading-tight">
               {course.name}
             </h1>
-            <p className="text-xs sm:text-sm text-slate-600 max-w-3xl leading-relaxed">
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-3xl leading-relaxed">
               {course.description ||
                 t('courses.defaultDesc', 'Chương trình đào tạo tiêu chuẩn của trường Đại học FPT.')}
             </p>
@@ -359,7 +359,7 @@ export const CourseDetailPage: React.FC = () => {
                   alert(t('common.copiedToClipboard', 'Đã sao chép liên kết môn học vào bộ nhớ tạm!'));
                 }
               }}
-              className="p-2 text-slate-500 hover:text-slate-800 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-colors shadow-xs cursor-pointer"
+              className="p-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-colors shadow-xs cursor-pointer"
               title={t('courses.shareCourseTooltip', 'Chia sẻ môn học')}
             >
               <Share2 className="w-4 h-4" />
@@ -368,7 +368,7 @@ export const CourseDetailPage: React.FC = () => {
         </div>
 
         {/* Quick Stats Row */}
-        <div className="pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-600">
+        <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-600 dark:text-slate-300">
           <div className="flex items-center gap-2">
             <span className="text-slate-400">{t('common.courseCode', 'Mã môn')}:</span>
             <span className="font-bold text-[#0076D1] bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
@@ -379,7 +379,7 @@ export const CourseDetailPage: React.FC = () => {
           <div className="flex items-center gap-6">
             <Link
               to={`/course-evaluations?course=${course.code}`}
-              className="flex items-center gap-1.5 font-bold text-slate-700 hover:text-[#0076D1] transition-colors group cursor-pointer"
+              className="flex items-center gap-1.5 font-bold text-slate-700 dark:text-slate-200 hover:text-[#0076D1] transition-colors group cursor-pointer"
               title={t('courses.viewAllEvaluationsTooltip', 'Xem tất cả đánh giá trên Course Evaluations')}
             >
               <span>
@@ -421,11 +421,11 @@ export const CourseDetailPage: React.FC = () => {
                       t('courses.curriculumNotice', `Môn học ${course.code} (${course.name}) thuộc chương trình đào tạo của Trường Đại học FPT.`).replace('{code}', course.code || '').replace('{name}', course.name || '')}
                   </p>
                   <div className="grid grid-cols-2 gap-3 pt-2 text-xs">
-                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                    <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
                       <span className="text-slate-400 block text-[10px]">
                         {t('courses.creditsCount', 'Số tín chỉ')}
                       </span>
-                      <strong className="text-slate-800 text-sm">
+                      <strong className="text-slate-800 dark:text-slate-100 text-sm">
                         {course.credits || 3} {t('common.credits', 'Tín chỉ')}
                       </strong>
                     </div>
@@ -699,7 +699,7 @@ export const CourseDetailPage: React.FC = () => {
 
               {/* Metrics Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5 pt-4 border-t border-amber-200/60 text-center">
-                <div className="bg-white/80 p-3 rounded-xl border border-amber-100">
+                <div className="bg-white/80 dark:bg-slate-800/80 p-3 rounded-xl border border-amber-100 dark:border-amber-900/40">
                   <span className="text-[11px] text-slate-500 block">
                     {t('courses.averageRating', 'Điểm trung bình')}
                   </span>

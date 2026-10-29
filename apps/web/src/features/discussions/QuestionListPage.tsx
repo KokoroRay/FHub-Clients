@@ -328,7 +328,7 @@ export const QuestionListPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-[#181C22] dark:text-slate-100 tracking-tight">
-            {t('Questions & Discussions')}
+            {t('discussions.title', 'Hỏi đáp & Thảo luận')}
           </h1>
           <p className="text-xs sm:text-sm text-[#404753] dark:text-slate-400 mt-1">
             {t('discussions.subtitle', 'Hỏi đáp bài tập, trao đổi kinh nghiệm thi PE/FE, đồ án Capstone & thảo luận đa chuyên ngành.')}
@@ -424,7 +424,7 @@ export const QuestionListPage: React.FC = () => {
                 <option value="ALL">{t('discussions.allTopics', 'Tất cả chủ đề / Thẻ tag')}</option>
                 {allTopics.map((tItem) => (
                   <option key={tItem} value={tItem}>
-                    #{tItem}
+                    #{t(tItem)}
                   </option>
                 ))}
               </select>
@@ -542,7 +542,7 @@ export const QuestionListPage: React.FC = () => {
                         </Link>
                       ) : (
                         <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-500 border border-slate-200/60">
-                          {t('Chung')}
+                          {t('common.general', 'Chung')}
                         </span>
                       )}
                       {q.tags.map((tag) => (
@@ -551,7 +551,7 @@ export const QuestionListPage: React.FC = () => {
                           onClick={() => setSelectedTopic(tag)}
                           className="px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-[#0076D1] transition-colors cursor-pointer"
                         >
-                          #{tag}
+                          #{t(tag)}
                         </button>
                       ))}
                     </div>

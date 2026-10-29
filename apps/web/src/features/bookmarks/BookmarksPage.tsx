@@ -214,7 +214,7 @@ export const BookmarksPage: React.FC = () => {
           {/* Bookmarks List Container */}
           {loading ? (
             <div className="bg-white dark:bg-slate-900 rounded-2xl p-12 text-center text-slate-400 border border-slate-100 dark:border-slate-800 shadow-xs">
-              <p className="text-xs">{t('Đang tải danh sách dấu trang...')}</p>
+              <p className="text-xs">{t('bookmarks.loading', 'Đang tải danh sách dấu trang...')}</p>
             </div>
           ) : filteredBookmarks.length === 0 ? (
             <div className="bg-white dark:bg-slate-900 rounded-2xl p-12 text-center text-slate-400 border border-slate-100 dark:border-slate-800 shadow-xs">

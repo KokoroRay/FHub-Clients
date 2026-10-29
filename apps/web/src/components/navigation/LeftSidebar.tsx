@@ -45,10 +45,10 @@ export const LeftSidebar: React.FC = () => {
   ];
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all group ${
+    `flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all group ${
       isActive
-        ? 'bg-[#0076D1] text-white shadow-xs'
-        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100/80 dark:hover:bg-slate-800/60'
+        ? 'bg-[#0076D1] text-white shadow-xs dark:bg-[#3a3b3c] dark:text-white dark:font-bold'
+        : 'bg-transparent text-slate-600 dark:text-[#b0b3b8] hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-[#333333] dark:bg-transparent'
     }`;
 
   return (

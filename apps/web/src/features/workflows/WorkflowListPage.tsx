@@ -259,11 +259,11 @@ export const WorkflowListPage: React.FC = () => {
             </h1>
             <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-[#0076D1] border border-blue-100 flex items-center gap-1">
               <Sparkles className="w-3 h-3 text-[#0076D1]" />
-              <span>{filteredWorkflows.length} Quy trình</span>
+              <span>{filteredWorkflows.length} {t('workflows.unit', 'Quy trình')}</span>
             </span>
           </div>
           <p className="text-xs sm:text-sm text-[#404753] dark:text-slate-400 mt-1">
-            Tổng hợp quy trình, biểu mẫu, lộ trình làm đồ án và phương pháp học tập chuẩn từ cộng đồng sinh viên các ngành FPT.
+            {t('workflows.pageSubtitle', 'Tổng hợp quy trình, biểu mẫu, lộ trình làm đồ án và phương pháp học tập chuẩn từ cộng đồng sinh viên các ngành FPT.')}
           </p>
         </div>
 
@@ -285,7 +285,7 @@ export const WorkflowListPage: React.FC = () => {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Tìm quy trình theo tiêu đề, mô tả, môn học (SWP, MKT, GRA, ECO, LAW...), công cụ hoặc kỹ năng..."
+            placeholder={t('workflows.searchPlaceholder', 'Tìm quy trình theo tiêu đề, mô tả, môn học (SWP, MKT, GRA, ECO, LAW...), công cụ hoặc kỹ năng...')}
             className="w-full bg-[#F8F9FF] dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg pl-10 pr-4 py-2.5 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0076D1]/20 focus:border-[#0076D1]"
           />
         </div>
@@ -299,10 +299,10 @@ export const WorkflowListPage: React.FC = () => {
               onChange={(e) => setSelectedTag(e.target.value)}
               className="w-full appearance-none bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#0076D1] cursor-pointer"
             >
-              <option value="ALL">Tất cả chủ đề & Thẻ tag ({allTags.length} thẻ theo DB)</option>
+              <option value="ALL">{t('workflows.allTopicsCount', 'Tất cả chủ đề & Thẻ tag')} ({allTags.length})</option>
               {allTags.map((tag) => (
                 <option key={tag.id} value={tag.name}>
-                  {tag.name}
+                  {t(tag.name)}
                 </option>
               ))}
             </select>
@@ -316,10 +316,10 @@ export const WorkflowListPage: React.FC = () => {
               onChange={(e) => setSelectedCourse(e.target.value)}
               className="w-full appearance-none bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#0076D1] cursor-pointer"
             >
-              <option value="ALL">Tất cả môn học (All Courses)</option>
+              <option value="ALL">{t('workflows.allCoursesDropdown', 'Tất cả môn học (All Courses)')}</option>
               {uniqueCourses.map((c) => (
                 <option key={c} value={c}>
-                  Môn: {c}
+                  {t('common.course', 'Môn')}: {c}
                 </option>
               ))}
             </select>
@@ -333,9 +333,9 @@ export const WorkflowListPage: React.FC = () => {
               onChange={(e) => setSortBy(e.target.value as any)}
               className="w-full appearance-none bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#0076D1] cursor-pointer"
             >
-              <option value="newest">Sắp xếp: Mới nhất</option>
-              <option value="most_used">Sắp xếp: Áp dụng nhiều nhất</option>
-              <option value="most_viewed">Sắp xếp: Lượt xem nhiều nhất</option>
+              <option value="newest">{t('workflows.sortNewest', 'Sắp xếp: Mới nhất')}</option>
+              <option value="most_used">{t('workflows.sortMostUsed', 'Sắp xếp: Áp dụng nhiều nhất')}</option>
+              <option value="most_viewed">{t('workflows.sortMostViewed', 'Sắp xếp: Lượt xem nhiều nhất')}</option>
             </select>
             <ChevronDown className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           </div>
@@ -347,7 +347,7 @@ export const WorkflowListPage: React.FC = () => {
         {isLoading ? (
           <div className="col-span-2 p-16 text-center text-slate-400 text-xs bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
             <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
-            <p>Đang tải dữ liệu quy trình từ hệ thống...</p>
+            <p>{t('workflows.loading', 'Đang tải dữ liệu quy trình từ hệ thống...')}</p>
           </div>
         ) : filteredWorkflows.length === 0 ? (
           <div className="col-span-2 p-12 text-center text-slate-400 text-xs bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
@@ -381,14 +381,14 @@ export const WorkflowListPage: React.FC = () => {
                         className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${theme.bg}`}
                       >
                         {theme.icon}
-                        <span>{wf.category || 'Học thuật'}</span>
+                        <span>{t(wf.category || 'Học thuật')}</span>
                       </span>
                       <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                         {wf.courseCode}
                       </span>
                       {wf.technology && (
                         <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-50 text-slate-500 border border-slate-200/60 dark:bg-slate-800 dark:text-slate-400">
-                          {wf.technology}
+                          {t(wf.technology)}
                         </span>
                       )}
                     </div>
@@ -396,7 +396,7 @@ export const WorkflowListPage: React.FC = () => {
                     <div className="flex items-center gap-1">
                       <button
                         onClick={(e) => toggleBookmark(wf.id, e)}
-                        title={isBookmarked ? 'Bỏ lưu quy trình' : 'Lưu quy trình'}
+                        title={isBookmarked ? t('workflows.unbookmark', 'Bỏ lưu quy trình') : t('workflows.bookmark', 'Lưu quy trình')}
                         className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
                       >
                         <Bookmark
@@ -435,7 +435,7 @@ export const WorkflowListPage: React.FC = () => {
                           key={tag}
                           className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-[#F8F9FF] dark:bg-slate-800 text-[#0076D1] border border-blue-100/60"
                         >
-                          #{tag}
+                          #{t(tag)}
                         </span>
                       ))}
                     </div>

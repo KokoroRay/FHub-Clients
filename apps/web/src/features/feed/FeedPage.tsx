@@ -228,7 +228,7 @@ export const FeedPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* 3.A Welcome Header (Figma #86:118) */}
-      <div className="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-[#272727] rounded-2xl p-6 border border-slate-200/90 dark:border-[#272727] hover:dark:border-[#444444] shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-colors">
         <div className="space-y-1.5">
           <div
             className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-[#0076D1] border border-blue-100 cursor-default"
@@ -246,7 +246,7 @@ export const FeedPage: React.FC = () => {
         </div>
 
         {/* Right user badge */}
-        <div className="flex items-center gap-3 bg-slate-50 p-2.5 px-4 rounded-xl border border-slate-100">
+        <div className="flex items-center gap-3 bg-slate-50 dark:bg-[#333333] p-2.5 px-4 rounded-xl border border-slate-100 dark:border-[#272727]">
           <div className="w-9 h-9 rounded-full bg-[#0076D1] text-white flex items-center justify-center font-bold text-xs ring-2 ring-blue-100 shrink-0">
             {currentUser?.avatarUrl ? (
               <img src={currentUser.avatarUrl} alt={studentName} className="w-full h-full rounded-full object-cover" />
@@ -270,7 +270,7 @@ export const FeedPage: React.FC = () => {
           {/* 1. Ask Question */}
           <button
             onClick={() => setIsAskModalOpen(true)}
-            className="h-[84px] p-2 flex flex-col items-center justify-between bg-white rounded-xl border border-slate-200/90 hover:border-blue-400 hover:shadow-xs transition-all text-center group cursor-pointer"
+            className="h-[84px] p-2 flex flex-col items-center justify-between bg-white dark:bg-[#272727] rounded-2xl border border-slate-200/90 dark:border-transparent hover:border-blue-400 dark:hover:border-[#444444] dark:hover:bg-[#333333] hover:shadow-xs transition-all text-center group cursor-pointer"
           >
             <div className="w-8 h-8 rounded-lg bg-blue-50 text-[#0076D1] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
               <HelpCircle className="w-4 h-4" />
@@ -283,7 +283,7 @@ export const FeedPage: React.FC = () => {
           {/* 2. New Workflow */}
           <button
             onClick={() => navigate('/workflows?action=create')}
-            className="h-[84px] p-2 flex flex-col items-center justify-between bg-white rounded-xl border border-slate-200/90 hover:border-indigo-400 hover:shadow-xs transition-all text-center group cursor-pointer"
+            className="h-[84px] p-2 flex flex-col items-center justify-between bg-white dark:bg-[#272727] rounded-2xl border border-slate-200/90 dark:border-transparent hover:border-indigo-400 dark:hover:border-[#444444] dark:hover:bg-[#333333] hover:shadow-xs transition-all text-center group cursor-pointer"
           >
             <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
               <Code className="w-4 h-4" />
@@ -296,7 +296,7 @@ export const FeedPage: React.FC = () => {
           {/* 3. Write Article */}
           <button
             onClick={() => navigate('/articles/create')}
-            className="h-[84px] p-2 flex flex-col items-center justify-between bg-white rounded-xl border border-slate-200/90 hover:border-emerald-400 hover:shadow-xs transition-all text-center group cursor-pointer"
+            className="h-[84px] p-2 flex flex-col items-center justify-between bg-white dark:bg-[#272727] rounded-2xl border border-slate-200/90 dark:border-transparent hover:border-emerald-400 dark:hover:border-[#444444] dark:hover:bg-[#333333] hover:shadow-xs transition-all text-center group cursor-pointer"
           >
             <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
               <FileText className="w-4 h-4" />
@@ -309,7 +309,7 @@ export const FeedPage: React.FC = () => {
           {/* 4. Write Course Evaluation */}
           <button
             onClick={() => navigate('/course-evaluations?action=create')}
-            className="h-[84px] p-2 flex flex-col items-center justify-between bg-white rounded-xl border border-slate-200/90 hover:border-amber-400 hover:shadow-xs transition-all text-center group cursor-pointer"
+            className="h-[84px] p-2 flex flex-col items-center justify-between bg-white dark:bg-[#272727] rounded-2xl border border-slate-200/90 dark:border-transparent hover:border-amber-400 dark:hover:border-[#444444] dark:hover:bg-[#333333] hover:shadow-xs transition-all text-center group cursor-pointer"
           >
             <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
               <Star className="w-4 h-4" />
@@ -322,7 +322,7 @@ export const FeedPage: React.FC = () => {
           {/* 5. Upload Study Material */}
           <button
             onClick={() => navigate('/materials?action=upload')}
-            className="h-[84px] p-2 flex flex-col items-center justify-between bg-white rounded-xl border border-slate-200/90 hover:border-rose-400 hover:shadow-xs transition-all text-center group cursor-pointer"
+            className="h-[84px] p-2 flex flex-col items-center justify-between bg-white dark:bg-[#272727] rounded-2xl border border-slate-200/90 dark:border-transparent hover:border-rose-400 dark:hover:border-[#444444] dark:hover:bg-[#333333] hover:shadow-xs transition-all text-center group cursor-pointer"
           >
             <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
               <Upload className="w-4 h-4" />
@@ -335,7 +335,7 @@ export const FeedPage: React.FC = () => {
           {/* 6. Add External Material Link */}
           <button
             onClick={() => navigate('/materials?action=add-link')}
-            className="h-[84px] p-2 flex flex-col items-center justify-between bg-white rounded-xl border border-slate-200/90 hover:border-purple-400 hover:shadow-xs transition-all text-center group cursor-pointer"
+            className="h-[84px] p-2 flex flex-col items-center justify-between bg-white dark:bg-[#272727] rounded-2xl border border-slate-200/90 dark:border-transparent hover:border-purple-400 dark:hover:border-[#444444] dark:hover:bg-[#333333] hover:shadow-xs transition-all text-center group cursor-pointer"
           >
             <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
               <Link2 className="w-4 h-4" />
@@ -348,7 +348,7 @@ export const FeedPage: React.FC = () => {
           {/* 7. New Conversation */}
           <button
             onClick={() => navigate('/messages')}
-            className="h-[84px] p-2 flex flex-col items-center justify-between bg-white rounded-xl border border-slate-200/90 hover:border-cyan-400 hover:shadow-xs transition-all text-center group cursor-pointer"
+            className="h-[84px] p-2 flex flex-col items-center justify-between bg-white dark:bg-[#272727] rounded-2xl border border-slate-200/90 dark:border-transparent hover:border-cyan-400 dark:hover:border-[#444444] dark:hover:bg-[#333333] hover:shadow-xs transition-all text-center group cursor-pointer"
           >
             <div className="w-8 h-8 rounded-lg bg-cyan-50 text-cyan-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
               <MessageSquare className="w-4 h-4" />
@@ -361,7 +361,7 @@ export const FeedPage: React.FC = () => {
           {/* 8. Create Support Ticket */}
           <button
             onClick={() => navigate('/tickets')}
-            className="h-[84px] p-2 flex flex-col items-center justify-between bg-white rounded-xl border border-slate-200/90 hover:border-slate-400 hover:shadow-xs transition-all text-center group cursor-pointer"
+            className="h-[84px] p-2 flex flex-col items-center justify-between bg-white dark:bg-[#272727] rounded-2xl border border-slate-200/90 dark:border-transparent hover:border-slate-400 dark:hover:border-[#444444] dark:hover:bg-[#333333] hover:shadow-xs transition-all text-center group cursor-pointer"
           >
             <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
               <LifeBuoy className="w-4 h-4" />
@@ -374,7 +374,7 @@ export const FeedPage: React.FC = () => {
       </div>
 
       {/* 3.C Questions & Discussions (Primary Feed Section) (Figma #86:196) */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
+      <div className="bg-white dark:bg-[#272727] rounded-2xl border border-slate-200/90 dark:border-transparent dark:hover:border-[#444444] shadow-2xs overflow-hidden transition-colors">
         {/* Section Header */}
         <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
@@ -388,11 +388,11 @@ export const FeedPage: React.FC = () => {
 
           <div className="flex items-center gap-3">
             {/* Sort Tabs */}
-            <div className="flex items-center bg-slate-100 p-0.5 rounded-lg text-xs font-semibold text-slate-600">
+            <div className="flex items-center bg-slate-100 dark:bg-[#2b2d32] p-0.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-[#949ba4]">
               <button
                 onClick={() => setQuestionTab('recent')}
                 className={`px-3 py-1 rounded-md transition-all cursor-pointer ${
-                  questionTab === 'recent' ? 'bg-white text-slate-900 shadow-2xs' : 'hover:text-slate-900'
+                  questionTab === 'recent' ? 'bg-white dark:bg-[#313338] text-slate-900 dark:text-[#f2f3f5] shadow-2xs font-bold' : 'hover:text-slate-900 dark:hover:text-[#f2f3f5]'
                 }`}
               >
                 {t('feed.tabTrending', 'Recent')}
@@ -400,7 +400,7 @@ export const FeedPage: React.FC = () => {
               <button
                 onClick={() => setQuestionTab('voted')}
                 className={`px-3 py-1 rounded-md transition-all cursor-pointer ${
-                  questionTab === 'voted' ? 'bg-white text-slate-900 shadow-2xs' : 'hover:text-slate-900'
+                  questionTab === 'voted' ? 'bg-white dark:bg-[#313338] text-slate-900 dark:text-[#f2f3f5] shadow-2xs font-bold' : 'hover:text-slate-900 dark:hover:text-[#f2f3f5]'
                 }`}
               >
                 {t('common.upvote', 'Most Voted')}
@@ -408,7 +408,7 @@ export const FeedPage: React.FC = () => {
               <button
                 onClick={() => setQuestionTab('unanswered')}
                 className={`px-3 py-1 rounded-md transition-all cursor-pointer ${
-                  questionTab === 'unanswered' ? 'bg-white text-slate-900 shadow-2xs' : 'hover:text-slate-900'
+                  questionTab === 'unanswered' ? 'bg-white dark:bg-[#313338] text-slate-900 dark:text-[#f2f3f5] shadow-2xs font-bold' : 'hover:text-slate-900 dark:hover:text-[#f2f3f5]'
                 }`}
               >
                 {t('feed.tabUnanswered', 'Unanswered')}
@@ -417,7 +417,7 @@ export const FeedPage: React.FC = () => {
 
             <button
               onClick={() => setIsAskModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-[#0076D1] hover:bg-[#005DA7] transition-colors cursor-pointer shadow-2xs shrink-0"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-[#0076D1] dark:bg-[#3b82f6] hover:bg-[#005DA7] dark:hover:bg-[#2563eb] transition-colors cursor-pointer shadow-2xs shrink-0"
             >
               <span>{t('feed.askQuestion', 'Ask Question')}</span>
             </button>
@@ -444,7 +444,7 @@ export const FeedPage: React.FC = () => {
               const authorName = q.isAnonymous ? t('common.anonymous', 'Ẩn danh FPTer') : (q.authorDisplayName || `User #${q.authorUserId || 1}`);
               const voteInfo = votes[qId] || { count: q.upvoteCount || 0, userVote: null };
               return (
-                <div key={qId} className="p-5 flex items-start gap-4 hover:bg-slate-50/60 transition-colors">
+                <div key={qId} className="p-5 flex items-start gap-4 border border-transparent dark:hover:border-[#444444] hover:bg-slate-50/60 dark:hover:bg-[#333333] rounded-xl transition-all">
                   {/* Vote Counter */}
                   <div className="flex flex-col items-center bg-slate-50 border border-slate-200/80 rounded-xl p-1 shrink-0">
                     <button

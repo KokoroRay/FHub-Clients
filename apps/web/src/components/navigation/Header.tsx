@@ -6,14 +6,10 @@ import {
   Bell,
   MapPin,
   ChevronDown,
-  User as UserIcon,
-  Settings,
-  LogOut,
   HelpCircle,
   Code,
   FileText,
   Upload,
-  Shield,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -24,9 +20,10 @@ import { Dropdown } from '../common/Dropdown';
 import { Button } from '../common/Button';
 import { ThemeToggle } from '../common/ThemeToggle';
 import { LanguageSwitcher } from '../common/LanguageSwitcher';
+import { UserAvatarDropdown } from './UserAvatarDropdown';
 
 export const Header: React.FC = () => {
-  const { currentUser, currentCampus, setCurrentCampus, logout } = useAuth();
+  const { currentUser, currentCampus, setCurrentCampus } = useAuth();
   const { t, language } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotifDrawer, setShowNotifDrawer] = useState(false);
@@ -170,47 +167,6 @@ export const Header: React.FC = () => {
     },
   ];
 
-  const isAdminOrStaff = currentUser?.role === 'Admin' || currentUser?.role === 'Staff' || currentUser?.role === 'Community Moderator';
-
-  const userMenu = [
-    {
-      id: 'profile',
-      label: t('nav.myProfile', 'My Profile'),
-      icon: <UserIcon className="w-4 h-4 text-blue-600" />,
-      onClick: () => navigate('/profile'),
-    },
-    {
-      id: 'settings',
-      label: t('nav.settings', 'Preferences & Privacy'),
-      icon: <Settings className="w-4 h-4 text-slate-600" />,
-      onClick: () => navigate('/settings'),
-    },
-    ...(isAdminOrStaff
-      ? [
-          {
-            id: 'admin-console',
-            label: t('nav.adminConsole', 'Admin Console'),
-            icon: <Shield className="w-4 h-4 text-indigo-600" />,
-            onClick: () => navigate('/admin-console'),
-          },
-        ]
-      : []),
-    {
-      id: 'tickets',
-      label: t('nav.supportTickets', 'Support Tickets'),
-      icon: <HelpCircle className="w-4 h-4 text-amber-600" />,
-      onClick: () => navigate('/tickets'),
-    },
-    {
-      id: 'logout',
-      label: t('header.signOut', 'Sign Out'),
-      icon: <LogOut className="w-4 h-4 text-rose-500" />,
-      danger: true,
-      divider: true,
-      onClick: logout,
-    },
-  ];
-
   return (
     <header className="sticky top-0 z-50 w-full bg-white dark:bg-slate-900 border-b border-slate-200/90 dark:border-slate-800 transition-colors shrink-0 shadow-2xs">
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
@@ -261,14 +217,8 @@ export const Header: React.FC = () => {
           </div>
         </form>
 
-        {/* Action Controls: Theme + Language + User */}
+        {/* Action Controls: User Actions */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Theme Toggle Button */}
-          <ThemeToggle size="md" />
-
-          {/* Language Selector Dropdown */}
-          <LanguageSwitcher variant="compact" />
-
           {currentUser ? (
             <>
               {/* Quick Create Dropdown */}
@@ -353,37 +303,13 @@ export const Header: React.FC = () => {
                 )}
               </div>
 
-              {/* User Avatar & Menu */}
-              <Dropdown
-                trigger={
-                  <div className="flex items-center gap-2 pl-1 cursor-pointer">
-                    {currentUser.avatarUrl ? (
-                      <img
-                        src={normalizeMediaUrl(currentUser.avatarUrl)}
-                        alt={currentUser.fullName}
-                        className="w-8 h-8 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700"
-                      />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-[#0076D1] text-white flex items-center justify-center font-bold text-xs ring-1 ring-slate-200 dark:ring-slate-700 shrink-0">
-                        {currentUser.fullName?.charAt(0)?.toUpperCase() || 'U'}
-                      </div>
-                    )}
-                    <div className="hidden sm:flex flex-col text-left">
-                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate max-w-[120px]">
-                        {currentUser.fullName}
-                      </span>
-                      <span className="text-[10px] text-slate-400 font-medium">
-                        {t(`role.${currentUser.role}`, currentUser.role)} {currentUser.studentId ? `· ${currentUser.studentId}` : ''}
-                      </span>
-                    </div>
-                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 hidden sm:block" />
-                  </div>
-                }
-                items={userMenu}
-              />
+              {/* User Avatar & Dropdown (Includes Liquid Glass Theme & Creative Language Switchers) */}
+              <UserAvatarDropdown />
             </>
           ) : (
             <div className="flex items-center gap-2">
+              <ThemeToggle size="sm" />
+              <LanguageSwitcher variant="compact" />
               <Link to="/login">
                 <Button variant="outline" size="sm">
                   {t('header.signIn', 'Sign In')}

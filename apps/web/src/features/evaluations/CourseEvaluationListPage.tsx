@@ -315,7 +315,7 @@ export const CourseEvaluationListPage: React.FC = () => {
       {isLoading ? (
         <div className="p-16 text-center text-slate-400 text-xs bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
           <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p>{t('Đang tải dữ liệu đánh giá thực tế từ hệ thống...')}</p>
+          <p>{t('evaluations.loading', 'Đang tải dữ liệu đánh giá thực tế từ hệ thống...')}</p>
         </div>
       ) : paginatedEvaluations.length === 0 ? (
         <div className="p-12 text-center bg-white dark:bg-slate-900 rounded-xl border border-slate-200/90 dark:border-slate-800 shadow-2xs space-y-3">

@@ -131,14 +131,14 @@ export const OfficialBroadcastsPage: React.FC = () => {
       {/* Broadcasts List */}
       <div className="space-y-4">
         {loading ? (
-          <div className="bg-white rounded-2xl p-12 text-center text-slate-400 border border-slate-100 shadow-xs">
-            <p className="text-xs">Đang tải thông báo chính thức...</p>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-12 text-center text-slate-400 border border-slate-100 dark:border-slate-800 shadow-xs">
+            <p className="text-xs">{t('broadcasts.loading', 'Đang tải thông báo chính thức...')}</p>
           </div>
         ) : broadcasts.length === 0 ? (
-          <div className="bg-white rounded-2xl p-12 text-center text-slate-400 border border-slate-100 shadow-xs">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-12 text-center text-slate-400 border border-slate-100 dark:border-slate-800 shadow-xs">
             <Megaphone className="w-10 h-10 mx-auto mb-2 opacity-30" />
-            <p className="text-sm font-semibold text-slate-700">Chưa có thông báo chính thức nào</p>
-            <p className="text-xs text-slate-400 mt-1">Các thông báo mới từ Nhà trường sẽ xuất hiện tại đây.</p>
+            <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t('broadcasts.emptyTitle', 'Chưa có thông báo chính thức nào')}</p>
+            <p className="text-xs text-slate-400 mt-1">{t('broadcasts.emptyDesc', 'Các thông báo mới từ Nhà trường sẽ xuất hiện tại đây.')}</p>
           </div>
         ) : (
           broadcasts.map((bc) => (

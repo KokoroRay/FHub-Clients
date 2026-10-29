@@ -371,7 +371,7 @@ export const ArticleListPage: React.FC = () => {
               >
                 {categories.map((c) => (
                   <option key={c} value={c}>
-                    {c === 'ALL' ? t('articles.allTagsOrCategories', 'Tất cả chủ đề / Thẻ tag') : c}
+                    {c === 'ALL' ? t('articles.allTagsOrCategories', 'Tất cả chủ đề / Thẻ tag') : t(c)}
                   </option>
                 ))}
               </select>
@@ -416,7 +416,7 @@ export const ArticleListPage: React.FC = () => {
                     {/* Top Row: Category pill & Date */}
                     <div className="flex items-center justify-between gap-2 text-xs">
                       <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-[#0076D1] border border-blue-100">
-                        {art.category || 'Development'}
+                        {t(art.category || 'Development')}
                       </span>
                       <span className="text-slate-400 text-[11px]">
                         {new Date(art.createdAt).toLocaleDateString('en-US', {

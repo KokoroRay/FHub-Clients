@@ -1,3 +1,4 @@
+import { useLanguage } from '../../context/LanguageContext';
 import React, { useState, useEffect } from 'react';
 import { Award, Zap, Shield, Search, ArrowRight, X, Sparkles, CheckCircle2 } from 'lucide-react';
 import { studentReputationApi } from '../../services/api/studentApi';
@@ -15,6 +16,7 @@ interface ReputationRuleItem {
 }
 
 export const StudentReputationRulesPage: React.FC = () => {
+  const { t } = useLanguage();
   const [rules, setRules] = useState<ReputationRuleItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<'ALL' | 'DISCUSSION' | 'CONTENT' | 'ACADEMIC' | 'PENALTY'>('ALL');
@@ -112,7 +114,7 @@ export const StudentReputationRulesPage: React.FC = () => {
       {/* Rules Grid */}
       {loading ? (
         <div className="bg-white rounded-2xl p-12 text-center text-slate-400 border border-slate-100 shadow-xs">
-          <p className="text-xs">Đang tải danh sách quy tắc uy tín...</p>
+          <p className="text-xs">{t('reputation.loading', 'Đang tải danh sách quy tắc uy tín...')}</p>
         </div>
       ) : filteredRules.length === 0 ? (
         <div className="bg-white rounded-2xl p-12 text-center text-slate-400 border border-slate-100 shadow-xs">

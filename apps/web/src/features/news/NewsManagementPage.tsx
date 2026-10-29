@@ -1,3 +1,4 @@
+import { useLanguage } from '../../context/LanguageContext';
 import React, { useState, useEffect } from 'react';
 import {
   Newspaper,
@@ -24,6 +25,7 @@ import { newsApi, ArticleListItem, ArticleDetailDto, ArticleRequest } from '../.
 import { useAuth } from '../../context/AuthContext';
 
 export const NewsManagementPage: React.FC = () => {
+  const { t } = useLanguage();
   const { currentUser } = useAuth();
   const [newsList, setNewsList] = useState<ArticleListItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -314,7 +316,7 @@ export const NewsManagementPage: React.FC = () => {
         </CardHeader>
         <CardBody className="p-0">
           {isLoading ? (
-            <div className="p-12 text-center text-xs text-slate-400">Đang tải danh sách tin tức...</div>
+            <div className="p-12 text-center text-xs text-slate-400">{t('news.loadingList', 'Đang tải danh sách tin tức...')}</div>
           ) : newsList.length === 0 ? (
             <div className="p-12 text-center text-xs text-slate-400">Chưa có bản tin nào. Bấm "Tạo bản tin mới" để bắt đầu.</div>
           ) : (
@@ -533,7 +535,7 @@ export const NewsManagementPage: React.FC = () => {
         footer={<Button variant="outline" onClick={() => setIsDetailOpen(false)}>Đóng</Button>}
       >
         {detailLoading ? (
-          <div className="p-8 text-center text-xs text-slate-400">Đang tải nội dung...</div>
+          <div className="p-8 text-center text-xs text-slate-400">{t('news.loadingContent', 'Đang tải nội dung...')}</div>
         ) : selectedDetail ? (
           <div className="space-y-4 text-xs">
             {selectedDetail.coverImageUrl && (

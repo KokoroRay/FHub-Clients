@@ -251,7 +251,7 @@ export const StudyMaterialListPage: React.FC = () => {
             <option value="ALL">{t('materials.allTags', 'Tất cả thẻ tag / Chủ đề')}</option>
             {allTags.map((tItem) => (
               <option key={tItem.id} value={tItem.name}>
-                {tItem.name}
+                {t(tItem.name)}
               </option>
             ))}
           </select>
@@ -295,7 +295,7 @@ export const StudyMaterialListPage: React.FC = () => {
           paginatedMaterials.map((mat) => (
           <div
             key={mat.id}
-            className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5 flex flex-col justify-between hover:border-slate-300 transition-colors group"
+            className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs p-5 flex flex-col justify-between hover:border-slate-300 dark:hover:border-slate-700 transition-colors group"
           >
             <div className="space-y-3">
               {/* Card Header */}
@@ -338,7 +338,7 @@ export const StudyMaterialListPage: React.FC = () => {
               <div>
                 <Link
                   to={`/materials/${mat.id}`}
-                  className="font-bold text-sm text-slate-900 group-hover:text-[#0076D1] transition-colors leading-snug line-clamp-1 block"
+                  className="font-bold text-sm text-slate-900 dark:text-slate-100 group-hover:text-[#0076D1] transition-colors leading-snug line-clamp-1 block"
                 >
                   {mat.title}
                 </Link>
@@ -351,7 +351,7 @@ export const StudyMaterialListPage: React.FC = () => {
             {/* Footer */}
             <div className="pt-4 mt-3 border-t border-slate-100 flex items-center justify-between text-xs">
               <div className="text-[11px] text-slate-400">
-                <span>{t('common.by', 'Đăng bởi')} <strong className="text-slate-700">{t(mat.author.fullName)}</strong></span>
+                <span>{t('common.by', 'Đăng bởi')} <strong className="text-slate-700 dark:text-slate-300">{t(mat.author.fullName)}</strong></span>
                 <span className="mx-1">•</span>
                 <span>{mat.fileSizeMb} MB</span>
               </div>
