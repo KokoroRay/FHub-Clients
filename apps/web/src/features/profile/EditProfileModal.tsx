@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLanguage } from '../../context/LanguageContext';
 import { X, Upload, CheckCircle2, Shield, Loader2, ChevronDown } from 'lucide-react';
 import { profileApi } from '../../services/api/studentApi';
 import { contentMediaApi } from '../../services/api/contentApi';
@@ -90,6 +91,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   initialData,
 }) => {
   if (!isOpen) return null;
+  const { t } = useLanguage();
 
   const [fullName, setFullName] = useState(initialData.fullName);
 
@@ -141,7 +143,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      setErrorMessage('Dung lượng ảnh đại diện không được vượt quá 5MB.');
+      setErrorMessage(t('profileEditModal.errorAvatarSize', 'Dung lượng ảnh đại diện không được vượt quá 5MB.'));
       return;
     }
     setErrorMessage(null);
@@ -179,7 +181,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName.trim()) {
-      setErrorMessage('Họ và tên không được để trống.');
+      setErrorMessage(t('profileEditModal.errorFullNameEmpty', 'Họ và tên không được để trống.'));
       return;
     }
     setErrorMessage(null);
@@ -230,9 +232,9 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
         {/* Modal Header */}
         <div className="sticky top-0 bg-white px-6 py-4 border-b border-slate-100 flex items-center justify-between z-10">
           <div>
-            <h2 className="text-lg font-bold text-[#181C22]">Chỉnh sửa hồ sơ cá nhân</h2>
+            <h2 className="text-lg font-bold text-[#181C22]">{t('profileEditModal.title', 'Chỉnh sửa hồ sơ cá nhân')}</h2>
             <p className="text-xs text-slate-500">
-              Cập nhật thông tin cá nhân và học thuật hiển thị trên toàn hệ thống FHub.
+              {t('profileEditModal.subtitle', 'Cập nhật thông tin cá nhân và học thuật hiển thị trên toàn hệ thống FHub.')}
             </p>
           </div>
           <button
@@ -248,7 +250,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
         {showSuccessToast && (
           <div className="mx-6 mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-2.5 text-emerald-800 text-xs font-semibold">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>Hồ sơ đã được cập nhật thành công và đồng bộ với hệ thống!</span>
+            <span>{t('profileEditModal.successToast', 'Hồ sơ đã được cập nhật thành công và đồng bộ với hệ thống!')}</span>
           </div>
         )}
 
@@ -276,14 +278,14 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
               )}
             </div>
             <div className="space-y-1.5">
-              <h3 className="text-xs font-bold text-slate-800">Ảnh đại diện (Avatar)</h3>
+              <h3 className="text-xs font-bold text-slate-800">{t('profileEditModal.avatarTitle', 'Ảnh đại diện (Avatar)')}</h3>
               <p className="text-[11px] text-slate-500">
-                PNG, JPG hoặc WebP tối đa 5MB. Ảnh đại diện rõ nét giúp bạn bè và giảng viên dễ nhận biết bạn trong thảo luận.
+                {t('profileEditModal.avatarDesc', 'PNG, JPG hoặc WebP tối đa 5MB. Ảnh đại diện rõ nét giúp bạn bè và giảng viên dễ nhận biết bạn trong thảo luận.')}
               </p>
               <div className="flex items-center gap-2 pt-1">
                 <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-[#0076D1] hover:bg-blue-100 border border-blue-200 rounded-lg text-xs font-semibold transition-colors">
                   <Upload className="w-3.5 h-3.5" />
-                  <span>{isUploadingPhoto ? 'Đang tải lên...' : 'Tải ảnh mới'}</span>
+                  <span>{isUploadingPhoto ? t('profileEditModal.uploadingPhoto', 'Đang tải lên...') : t('profileEditModal.uploadNewPhoto', 'Tải ảnh mới')}</span>
                   <input type="file" accept="image/*" className="hidden" disabled={isUploadingPhoto} onChange={handlePhotoUpload} />
                 </label>
                 {photoPreview && (
@@ -291,9 +293,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                     type="button"
                     onClick={handleRemovePhoto}
                     className="px-3 py-1.5 text-red-600 hover:bg-red-50 border border-transparent rounded-lg text-xs font-semibold transition-colors"
-                  >
-                    Gỡ ảnh
-                  </button>
+                  >{t('profileEditModal.removePhoto', 'Gỡ ảnh')}</button>
                 )}
               </div>
             </div>
@@ -302,7 +302,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
           {/* Full Name */}
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">
-              HỌ VÀ TÊN <span className="text-red-500">*</span>
+              {t('profileEditModal.fullNameLabel', 'HỌ VÀ TÊN')} <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -312,7 +312,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
               className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#0076D1]"
             />
             <p className="text-[11px] text-slate-400 mt-1">
-              Họ tên hiển thị công khai trên các câu hỏi Q&A, bài viết và đánh giá môn học.
+              {t('profileEditModal.fullNameHelp', 'Họ tên hiển thị công khai trên các câu hỏi Q&A, bài viết và đánh giá môn học.')}
             </p>
           </div>
 
@@ -320,11 +320,11 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="text-xs font-semibold text-slate-700">
-                EMAIL HỌC THUẬT FPT
+                {t('profileEditModal.emailLabel', 'EMAIL HỌC THUẬT FPT')}
               </label>
               <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
                 <Shield className="w-3 h-3 text-emerald-600" />
-                Xác thực FPT SSO
+                {t('profileEditModal.ssoVerified', 'Xác thực FPT SSO')}
               </span>
             </div>
             <input
@@ -334,7 +334,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
               className="w-full px-3 py-2 text-xs bg-slate-100 border border-slate-200 rounded-xl text-slate-500 cursor-not-allowed"
             />
             <p className="text-[11px] text-slate-400 mt-1">
-              Email trường cấp được liên kết trực tiếp với tài khoản SSO và không thể chỉnh sửa.
+              {t('profileEditModal.emailHelp', 'Email trường cấp được liên kết trực tiếp với tài khoản SSO và không thể chỉnh sửa.')}
             </p>
           </div>
 
@@ -343,7 +343,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
             {/* Campus Select */}
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                CƠ SỞ / PHÂN HIỆU <span className="text-red-500">*</span>
+                {t('profileEditModal.campusLabel', 'CƠ SỞ / PHÂN HIỆU')} <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <select
@@ -364,7 +364,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
             {/* Major Select */}
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                NGÀNH HỌC <span className="text-red-500">*</span>
+                {t('profileEditModal.majorLabel', 'NGÀNH HỌC')} <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <select
@@ -385,7 +385,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
             {/* Specialization Select */}
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                CHUYÊN NGÀNH HẸP
+                {t('profileEditModal.specializationLabel', 'CHUYÊN NGÀNH HẸP')}
               </label>
               <div className="relative">
                 <select
@@ -408,7 +408,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="text-xs font-semibold text-slate-700">
-                TIỂU SỬ BẢN THÂN (BIO)
+                {t('profileEditModal.bioLabel', 'TIỂU SỬ BẢN THÂN (BIO)')}
               </label>
               <span className={`text-[11px] font-mono ${bio.length > 300 ? 'text-red-600 font-bold' : 'text-slate-400'}`}>
                 {bio.length} / 300
@@ -419,18 +419,18 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
               maxLength={300}
               value={bio}
               onChange={(e) => setBio(e.target.value)}
-              placeholder="Sinh viên FPT đam mê lập trình, kiến trúc hệ thống và công nghệ mới..."
+              placeholder={t('profileEditModal.bioPlaceholder', 'Sinh viên FPT đam mê lập trình, kiến trúc hệ thống và công nghệ mới...')}
               className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#0076D1] resize-none"
             />
             <p className="text-[11px] text-slate-400 mt-0.5">
-              Đoạn giới thiệu ngắn xuất hiện trên thẻ tác giả của bạn trong các câu hỏi và bài viết.
+              {t('profileEditModal.bioHelp', 'Đoạn giới thiệu ngắn xuất hiện trên thẻ tác giả của bạn trong các câu hỏi và bài viết.')}
             </p>
           </div>
 
           {/* Academic & Tech Interests */}
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">
-              CHỦ ĐỀ & KỸ NĂNG QUAN TÂM
+              {t('profileEditModal.interestsLabel', 'CHỦ ĐỀ & KỸ NĂNG QUAN TÂM')}
             </label>
             <div className="flex flex-wrap gap-2 mb-2">
               {interests.map((tag) => (
@@ -455,16 +455,14 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 value={newInterest}
                 onChange={(e) => setNewInterest(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddInterest())}
-                placeholder="+ Thêm chủ đề (nhấn Enter)..."
+                placeholder={t('profileEditModal.interestPlaceholder', '+ Thêm chủ đề (nhấn Enter)...')}
                 className="flex-1 px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#0076D1]"
               />
               <button
                 type="button"
                 onClick={handleAddInterest}
                 className="px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
-              >
-                Thêm
-              </button>
+              >{t('profileEditModal.addInterestBtn', 'Thêm')}</button>
             </div>
           </div>
 
@@ -474,16 +472,12 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
               type="button"
               onClick={onClose}
               className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer"
-            >
-              Hủy bỏ
-            </button>
+            >{t('profileEditModal.cancelBtn', 'Hủy bỏ')}</button>
             <button
               type="submit"
               disabled={isUploadingPhoto}
               className="px-5 py-2 text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700 rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50"
-            >
-              Lưu thay đổi
-            </button>
+            >{t('profileEditModal.saveBtn', 'Lưu thay đổi')}</button>
           </div>
         </form>
       </div>

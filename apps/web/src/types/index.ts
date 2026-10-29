@@ -209,6 +209,7 @@ export interface StudyMaterial {
     avatarUrl?: string;
   };
   semesterUploaded: string;
+  tags?: string[];
   createdAt: string;
 }
 

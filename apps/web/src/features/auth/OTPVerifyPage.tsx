@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { KeyRound, ArrowLeft, ShieldCheck, RotateCcw } from 'lucide-react';
 import { authApi } from '../../services/api/adminApi';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { User } from '../../types';
 
 export const OTPVerifyPage: React.FC = () => {
@@ -10,6 +11,7 @@ export const OTPVerifyPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const mode = searchParams.get('mode') || 'forgot'; // 'forgot' or 'register'
   const { login } = useAuth();
+  const { t } = useLanguage();
 
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [timerSeconds, setTimerSeconds] = useState(60);
@@ -145,7 +147,7 @@ export const OTPVerifyPage: React.FC = () => {
             className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#0076D1] transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Back</span>
+            <span>{t('auth.back', 'Back')}</span>
           </button>
           <div className="flex items-center gap-1.5">
             <ShieldCheck className="w-4 h-4 text-[#0076D1]" />
@@ -155,7 +157,7 @@ export const OTPVerifyPage: React.FC = () => {
 
         <div className="text-center space-y-1">
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-            OTP Verification
+            {t('auth.otpTitle', 'OTP Verification')}
           </h1>
           <p className="text-xs text-slate-500">
             Nhập mã xác thực 6 chữ số đã được gửi tới:

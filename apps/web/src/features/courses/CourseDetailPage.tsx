@@ -179,7 +179,7 @@ export const CourseDetailPage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="p-12 text-center text-slate-400 text-xs">
-        Đang tải thông tin môn học...
+        {t('courses.loading', 'Đang tải thông tin môn học...')}
       </div>
     );
   }
@@ -187,12 +187,12 @@ export const CourseDetailPage: React.FC = () => {
   if (!course) {
     return (
       <div className="p-12 text-center text-slate-500 text-xs space-y-4">
-        <p>Không tìm thấy môn học yêu cầu.</p>
+        <p>{t('courses.notFound', 'Không tìm thấy môn học yêu cầu.')}</p>
         <Link
           to="/courses"
           className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#0076D1] text-white rounded-xl text-xs font-bold"
         >
-          <ArrowLeft className="w-4 h-4" /> Quay lại danh mục Course Hub
+          <ArrowLeft className="w-4 h-4" /> {t('courses.backToCourseHub', 'Quay lại danh mục Course Hub')}
         </Link>
       </div>
     );
@@ -297,7 +297,7 @@ export const CourseDetailPage: React.FC = () => {
             </h1>
             <p className="text-xs sm:text-sm text-slate-600 max-w-3xl leading-relaxed">
               {course.description ||
-                'Chương trình đào tạo tiêu chuẩn của trường Đại học FPT.'}
+                t('courses.defaultDesc', 'Chương trình đào tạo tiêu chuẩn của trường Đại học FPT.')}
             </p>
           </div>
 
@@ -347,7 +347,7 @@ export const CourseDetailPage: React.FC = () => {
             <Link
               to={`/course-evaluations?course=${course.code}&action=create`}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-blue-900 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-colors shadow-xs"
-              title="Đóng góp đánh giá cho môn này trên chuyên trang Course Evaluations"
+              title={t('courses.evaluationTooltip', 'Đóng góp đánh giá cho môn này trên chuyên trang Course Evaluations')}
             >
               <span>{t('courses.writeEvaluationForCourse', 'Đánh giá môn này')}</span>
             </Link>
@@ -360,7 +360,7 @@ export const CourseDetailPage: React.FC = () => {
                 }
               }}
               className="p-2 text-slate-500 hover:text-slate-800 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-colors shadow-xs cursor-pointer"
-              title="Chia sẻ môn học"
+              title={t('courses.shareCourseTooltip', 'Chia sẻ môn học')}
             >
               <Share2 className="w-4 h-4" />
             </button>
@@ -380,7 +380,7 @@ export const CourseDetailPage: React.FC = () => {
             <Link
               to={`/course-evaluations?course=${course.code}`}
               className="flex items-center gap-1.5 font-bold text-slate-700 hover:text-[#0076D1] transition-colors group cursor-pointer"
-              title="Xem tất cả đánh giá trên Course Evaluations"
+              title={t('courses.viewAllEvaluationsTooltip', 'Xem tất cả đánh giá trên Course Evaluations')}
             >
               <span>
                 {t('common.rating', 'Đánh giá')}: {avgRating > 0 ? `${avgRating.toFixed(1)}/5.0` : t('courses.noRating', 'Chưa có')} ({courseReviews.length} {t('common.evaluationsCount', 'lượt')})
@@ -412,29 +412,29 @@ export const CourseDetailPage: React.FC = () => {
                 <CardHeader>
                   <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-2">
                     <GraduationCap className="w-4 h-4 text-blue-600" />
-                    <span>Mục tiêu môn học & Đề cương</span>
+                    <span>{t('courses.outcomesAndSyllabus', 'Mục tiêu môn học & Đề cương')}</span>
                   </h3>
                 </CardHeader>
                 <CardBody className="p-5 text-xs sm:text-sm text-slate-600 dark:text-slate-300 space-y-3 leading-relaxed">
                   <p>
                     {course.description ||
-                      `Môn học ${course.code} (${course.name}) thuộc chương trình đào tạo của Trường Đại học FPT.`}
+                      t('courses.curriculumNotice', `Môn học ${course.code} (${course.name}) thuộc chương trình đào tạo của Trường Đại học FPT.`).replace('{code}', course.code || '').replace('{name}', course.name || '')}
                   </p>
                   <div className="grid grid-cols-2 gap-3 pt-2 text-xs">
                     <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
                       <span className="text-slate-400 block text-[10px]">
-                        Số tín chỉ
+                        {t('courses.creditsCount', 'Số tín chỉ')}
                       </span>
                       <strong className="text-slate-800 text-sm">
-                        {course.credits || 3} Tín chỉ
+                        {course.credits || 3} {t('common.credits', 'Tín chỉ')}
                       </strong>
                     </div>
                     <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
                       <span className="text-slate-400 block text-[10px]">
-                        Học kỳ gợi ý
+                        {t('courses.recommendedSemester', 'Học kỳ gợi ý')}
                       </span>
                       <strong className="text-slate-800 text-sm">
-                        Học kỳ {course.semester || 'N/A'}
+                        {course.semester ? `${t('common.term', 'Học kỳ')} ${course.semester}` : t('common.semesterNA', 'Học kỳ N/A')}
                       </strong>
                     </div>
                   </div>
@@ -447,7 +447,7 @@ export const CourseDetailPage: React.FC = () => {
               <Card>
                 <CardHeader>
                   <h4 className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100">
-                    Cơ cấu điểm & Thi cử
+                    {t('courses.gradingStructure', 'Cơ cấu điểm & Thi cử')}
                   </h4>
                 </CardHeader>
                 <CardBody className="p-5 space-y-3.5 text-xs">
@@ -456,23 +456,23 @@ export const CourseDetailPage: React.FC = () => {
                       Progress Tests & Lab
                     </span>
                     <span className="font-bold text-slate-900 dark:text-slate-100">
-                      Theo Syllabus
+                      {t('courses.asPerSyllabus', 'Theo Syllabus')}
                     </span>
                   </div>
                   <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
                     <span className="text-slate-600 dark:text-slate-400">
                       Practical Exam (PE)
                     </span>
-                    <span className="font-bold text-blue-600">Theo Syllabus</span>
+                    <span className="font-bold text-blue-600">{t('courses.asPerSyllabus', 'Theo Syllabus')}</span>
                   </div>
                   <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
                     <span className="text-slate-600 dark:text-slate-400">
                       Final Exam (FE)
                     </span>
-                    <span className="font-bold text-purple-600">Theo Syllabus</span>
+                    <span className="font-bold text-purple-600">{t('courses.asPerSyllabus', 'Theo Syllabus')}</span>
                   </div>
                   <div className="pt-1 flex items-center justify-between font-bold text-slate-900 dark:text-slate-100">
-                    <span>Điểm qua môn:</span>
+                    <span>{t('courses.passingGrade', 'Điểm qua môn')}:</span>
                     <span className="text-emerald-600 font-extrabold text-sm">
                       ≥ 5.0 / 10
                     </span>
@@ -488,28 +488,26 @@ export const CourseDetailPage: React.FC = () => {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-base text-slate-900 dark:text-slate-100">
-                Thảo luận & Hỏi đáp ({courseQuestions.length})
+                {t('courses.tabDiscussions', 'Hỏi đáp & Thảo luận')} ({courseQuestions.length})
               </h3>
               <Link to={`/discussions?action=create&course=${course.code}`}>
                 <Button
                   size="sm"
                   variant="primary"
                   leftIcon={<Plus className="w-4 h-4" />}
-                >
-                  Đặt câu hỏi môn này
-                </Button>
+                >{t('courses.askQuestionThisCourse', 'Đặt câu hỏi môn này')}</Button>
               </Link>
             </div>
             {courseQuestions.length === 0 ? (
               <div className="p-8 text-center text-slate-500 text-xs bg-white rounded-xl border border-slate-200 space-y-3">
-                <p>Chưa có câu hỏi thảo luận nào cho môn học này trong hệ thống.</p>
+                <p>{t('courses.noQuestionsYet', 'Chưa có câu hỏi thảo luận nào cho môn học này trong hệ thống.')}</p>
                 <Link to={`/discussions?action=create&course=${course.code}`}>
                   <Button
                     size="sm"
                     variant="outline"
                     leftIcon={<Plus className="w-4 h-4" />}
                   >
-                    Hãy là người đầu tiên đặt câu hỏi cho môn {course.code}
+                    {t('courses.beFirstToAsk', 'Hãy là người đầu tiên đặt câu hỏi cho môn')} {course.code}
                   </Button>
                 </Link>
               </div>
@@ -520,14 +518,12 @@ export const CourseDetailPage: React.FC = () => {
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-xs text-slate-800 dark:text-slate-200">
                         {q.isAnonymous
-                          ? 'Ẩn danh FPTer'
+                          ? t('common.anonymous', 'Ẩn danh FPTer')
                           : q.authorDisplayName ||
-                            `Sinh viên #${q.authorUserId || 1}`}
+                            `${t('common.studentNumber', 'Sinh viên')} #${q.authorUserId || 1}`}
                       </span>
                       {q.hasBestAnswer && (
-                        <Badge variant="success" size="sm">
-                          Đã có Best Answer
-                        </Badge>
+                        <Badge variant="success" size="sm">{t('courses.hasBestAnswer', 'Đã có Best Answer')}</Badge>
                       )}
                     </div>
                     <Link
@@ -551,28 +547,26 @@ export const CourseDetailPage: React.FC = () => {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-base text-slate-900 dark:text-slate-100">
-                Tài liệu & Đề thi môn {course.code} ({courseMaterials.length})
+                {t('courses.materialsHeading', 'Tài liệu & Đề thi môn')} {course.code} ({courseMaterials.length})
               </h3>
               <Link to={`/materials?action=upload&course=${course.code}`}>
                 <Button
                   size="sm"
                   variant="primary"
                   leftIcon={<Plus className="w-4 h-4" />}
-                >
-                  Đóng góp tài liệu
-                </Button>
+                >{t('courses.contributeMaterial', 'Đóng góp tài liệu')}</Button>
               </Link>
             </div>
             {courseMaterials.length === 0 ? (
               <div className="p-8 text-center text-slate-500 text-xs bg-white rounded-xl border border-slate-200 space-y-3">
-                <p>Chưa có tài liệu học tập nào cho môn {course.code}.</p>
+                <p>{t('courses.noMaterialsYet', 'Chưa có tài liệu học tập nào cho môn')} {course.code}.</p>
                 <Link to={`/materials?action=upload&course=${course.code}`}>
                   <Button
                     size="sm"
                     variant="outline"
                     leftIcon={<Plus className="w-4 h-4" />}
                   >
-                    Tải lên tài liệu đầu tiên cho môn {course.code}
+                    {t('courses.uploadFirstMaterial', 'Tải lên tài liệu đầu tiên cho môn')} {course.code}
                   </Button>
                 </Link>
               </div>
@@ -591,8 +585,8 @@ export const CourseDetailPage: React.FC = () => {
                         <p className="text-[11px] text-slate-500">
                           {m.fileSizeBytes
                             ? `${(m.fileSizeBytes / (1024 * 1024)).toFixed(1)} MB`
-                            : 'Tài liệu'}{' '}
-                          • {m.downloadCount || 0} lượt tải
+                            : t('materials.document', 'Tài liệu')}{' '}
+                          • {m.downloadCount || 0} {t('materials.downloadCount', 'lượt tải')}
                         </p>
                       </div>
                       <Link to={`/materials/${m.studyMaterialId}`}>
@@ -600,9 +594,7 @@ export const CourseDetailPage: React.FC = () => {
                           size="sm"
                           variant="secondary"
                           leftIcon={<FileDown className="w-4 h-4" />}
-                        >
-                          Chi tiết
-                        </Button>
+                        >{t('common.details', 'Chi tiết')}</Button>
                       </Link>
                     </CardBody>
                   </Card>
@@ -617,28 +609,26 @@ export const CourseDetailPage: React.FC = () => {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-base text-slate-900 dark:text-slate-100">
-                Workflows & Lộ trình thực hành ({courseWorkflows.length})
+                {t('courses.workflowsHeading', 'Workflows & Lộ trình thực hành')} ({courseWorkflows.length})
               </h3>
               <Link to={`/workflows?action=create&course=${course.code}`}>
                 <Button
                   size="sm"
                   variant="primary"
                   leftIcon={<Plus className="w-4 h-4" />}
-                >
-                  Chia sẻ Workflow
-                </Button>
+                >{t('courses.shareWorkflow', 'Chia sẻ Workflow')}</Button>
               </Link>
             </div>
             {courseWorkflows.length === 0 ? (
               <div className="p-8 text-center text-slate-500 text-xs bg-white rounded-xl border border-slate-200 space-y-3">
-                <p>Chưa có workflow nào cho môn học này.</p>
+                <p>{t('courses.noWorkflowsYet', 'Chưa có workflow nào cho môn học này.')}</p>
                 <Link to={`/workflows?action=create&course=${course.code}`}>
                   <Button
                     size="sm"
                     variant="outline"
                     leftIcon={<Plus className="w-4 h-4" />}
                   >
-                    Chia sẻ Workflow đầu tiên cho môn {course.code}
+                    {t('courses.shareFirstWorkflow', 'Chia sẻ Workflow đầu tiên cho môn')} {course.code}
                   </Button>
                 </Link>
               </div>
@@ -676,20 +666,17 @@ export const CourseDetailPage: React.FC = () => {
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-2">
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
-                      Chuyên trang Course Evaluations (UC10)
+                      {t('courses.evaluationsPortal', 'Chuyên trang Course Evaluations (UC10)')}
                     </span>
                     <span className="text-xs text-slate-500">
-                      • Đánh giá & Kinh nghiệm thực tế
+                      {t('courses.evaluationsExperience', '• Đánh giá & Kinh nghiệm thực tế')}
                     </span>
                   </div>
                   <h3 className="text-lg font-bold text-slate-900">
-                    Đánh giá môn học {course.code} trên Course Evaluations
+                    {t('courses.reviewsOnPortal', 'Đánh giá môn học')} {course.code} {t('courses.onPortal', 'trên Course Evaluations')}
                   </h3>
                   <p className="text-xs text-slate-600 max-w-2xl leading-relaxed">
-                    Hệ thống đánh giá môn học, xếp hạng độ khó, khối lượng bài
-                    tập, gợi ý giảng viên và mẹo qua môn được quản lý tập trung
-                    tại chuyên trang <strong>Course Evaluations</strong>. Bạn có
-                    thể tra cứu đầy đủ và đóng góp ý kiến của mình tại đó.
+                    {t('courses.evaluationsPortalDesc', 'Hệ thống đánh giá môn học, xếp hạng độ khó, khối lượng bài tập, gợi ý giảng viên và mẹo qua môn được quản lý tập trung tại chuyên trang Course Evaluations. Bạn có thể tra cứu đầy đủ và đóng góp ý kiến của mình tại đó.')}
                   </p>
                 </div>
 
@@ -698,14 +685,14 @@ export const CourseDetailPage: React.FC = () => {
                     to={`/course-evaluations?course=${course.code}`}
                     className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700 transition-colors shadow-xs"
                   >
-                    <span>Mở Course Evaluations</span>
+                    <span>{t('courses.openCourseEvaluations', 'Mở Course Evaluations')}</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                   <Link
                     to={`/course-evaluations?course=${course.code}&action=create`}
                     className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-blue-900 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-colors shadow-xs"
                   >
-                    <span>Viết đánh giá</span>
+                    <span>{t('courses.writeReview', 'Viết đánh giá')}</span>
                   </Link>
                 </div>
               </div>
@@ -714,7 +701,7 @@ export const CourseDetailPage: React.FC = () => {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5 pt-4 border-t border-amber-200/60 text-center">
                 <div className="bg-white/80 p-3 rounded-xl border border-amber-100">
                   <span className="text-[11px] text-slate-500 block">
-                    Điểm trung bình
+                    {t('courses.averageRating', 'Điểm trung bình')}
                   </span>
                   <div className="text-base font-extrabold text-amber-600 flex items-center justify-center gap-1 mt-0.5">
                     <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
@@ -722,14 +709,14 @@ export const CourseDetailPage: React.FC = () => {
                   </div>
                 </div>
                 <div className="bg-white/80 p-3 rounded-xl border border-amber-100">
-                  <span className="text-[11px] text-slate-500 block">Độ khó</span>
+                  <span className="text-[11px] text-slate-500 block">{t('courses.difficulty', 'Độ khó')}</span>
                   <span className="text-sm font-bold text-slate-800 block mt-0.5">
                     {getDifficultyLabel(avgDifficulty)}
                   </span>
                 </div>
                 <div className="bg-white/80 p-3 rounded-xl border border-amber-100">
                   <span className="text-[11px] text-slate-500 block">
-                    Khối lượng bài tập
+                    {t('courses.workload', 'Khối lượng bài tập')}
                   </span>
                   <span className="text-sm font-bold text-slate-800 block mt-0.5">
                     {getWorkloadLabel(avgWorkload)}
@@ -737,12 +724,12 @@ export const CourseDetailPage: React.FC = () => {
                 </div>
                 <div className="bg-white/80 p-3 rounded-xl border border-amber-100">
                   <span className="text-[11px] text-slate-500 block">
-                    Số đánh giá
+                    {t('courses.reviewsCount', 'Số đánh giá')}
                   </span>
                   <span className="text-sm font-bold text-[#0076D1] block mt-0.5">
                     {courseReviews.length > 0
-                      ? `${courseReviews.length} lượt review`
-                      : 'Đang cập nhật'}
+                      ? `${courseReviews.length}  ' + t('courses.reviewsSuffix', 'lượt review')`
+                      : t('courses.updating', 'Đang cập nhật')}
                   </span>
                 </div>
               </div>
@@ -752,13 +739,13 @@ export const CourseDetailPage: React.FC = () => {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h4 className="font-bold text-sm text-slate-900">
-                  Nhận xét & Kinh nghiệm tiêu biểu ({courseReviews.length})
+                  {t('courses.typicalReviews', 'Nhận xét & Kinh nghiệm tiêu biểu')} ({courseReviews.length})
                 </h4>
                 <Link
                   to={`/course-evaluations?course=${course.code}`}
                   className="text-xs font-semibold text-[#0076D1] hover:underline flex items-center gap-1"
                 >
-                  <span>Xem đầy đủ trên Course Evaluations</span>
+                  <span>{t('courses.viewFullOnPortal', 'Xem đầy đủ trên Course Evaluations')}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
@@ -766,7 +753,7 @@ export const CourseDetailPage: React.FC = () => {
               {courseReviews.length === 0 ? (
                 <div className="p-8 text-center text-slate-500 text-xs bg-white rounded-xl border border-slate-200 space-y-3">
                   <p>
-                    Chưa có đánh giá nào cho môn {course.code} trên hệ thống.
+                    {t('courses.noReviewsYet', 'Chưa có đánh giá nào cho môn')} {course.code} {t('courses.onSystem', 'trên hệ thống.')}
                   </p>
                   <Link
                     to={`/course-evaluations?course=${course.code}&action=create`}
@@ -775,7 +762,7 @@ export const CourseDetailPage: React.FC = () => {
                       size="sm"
                       variant="primary"
                     >
-                      Hãy là người đầu tiên đánh giá môn {course.code}
+                      {t('courses.beFirstToReview', 'Hãy là người đầu tiên đánh giá môn')} {course.code}
                     </Button>
                   </Link>
                 </div>
@@ -792,11 +779,11 @@ export const CourseDetailPage: React.FC = () => {
                             <div>
                               <span className="font-bold text-xs text-slate-800 dark:text-slate-200 block">
                                 {r.isAnonymous
-                                  ? 'Sinh viên ẩn danh'
-                                  : `Sinh viên #${r.authorUserId || 1}`}
+                                  ? t('common.anonymousStudent', 'Sinh viên ẩn danh')
+                                  : `${t('common.studentNumber', 'Sinh viên')} #${r.authorUserId || 1}`}
                               </span>
                               <span className="text-[10px] text-slate-400">
-                                Kỳ {r.semesterCode || 'FA24'} •{' '}
+                                {t('common.term', 'Kỳ')} {r.semesterCode || 'FA24'} •{' '}
                                 {new Date(r.createdAt).toLocaleDateString(
                                   'vi-VN'
                                 )}
@@ -816,7 +803,7 @@ export const CourseDetailPage: React.FC = () => {
                         {r.survivalTips && r.reviewContent && (
                           <div className="p-2.5 bg-blue-50/60 rounded-lg border border-blue-100 text-[11px] text-slate-600">
                             <strong className="text-[#0076D1]">
-                              Mẹo sống sót:{' '}
+                              {t('courses.survivalTipsLabel', 'Mẹo sống sót:')}{' '}
                             </strong>
                             <span>{r.survivalTips}</span>
                           </div>
@@ -824,13 +811,13 @@ export const CourseDetailPage: React.FC = () => {
 
                         <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
                           <span className="text-slate-400">
-                            Độ khó: {r.difficultyRating || 3}/5
+                            {t('courses.difficulty', 'Độ khó')}: {r.difficultyRating || 3}/5
                           </span>
                           <Link
                             to={`/course-evaluations?course=${course.code}`}
                             className="font-bold text-[#0076D1] hover:underline inline-flex items-center gap-0.5"
                           >
-                            <span>Xem trên Course Evaluations</span>
+                            <span>{t('courses.viewOnPortal', 'Xem trên Course Evaluations')}</span>
                             <ArrowRight className="w-3 h-3" />
                           </Link>
                         </div>

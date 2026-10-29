@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Search,
@@ -17,6 +17,14 @@ import { articleApi, seriesApi } from '../../services/api/contentApi';
 import { voteApi, bookmarkApi } from '../../services/api/studentApi';
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 import { useLanguage } from '../../context/LanguageContext';
+import {
+  loadAllSemanticTags,
+  getSemanticTagMap,
+  resolveTagNames,
+  resolveCategoryFromTags,
+  FALLBACK_ALL_TAGS,
+  SemanticTagItem,
+} from '../../utils/tagUtils';
 
 export const ArticleListPage: React.FC = () => {
   const { t } = useLanguage();
@@ -30,7 +38,21 @@ export const ArticleListPage: React.FC = () => {
   const [likeScores, setLikeScores] = useState<Record<string, number>>({});
   const [isSeriesModalOpen, setIsSeriesModalOpen] = useState(false);
   const [apiArticles, setApiArticles] = useState<Article[]>([]);
+  const [allTags, setAllTags] = useState<SemanticTagItem[]>(FALLBACK_ALL_TAGS);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Load all DB semantic tags on mount
+  useEffect(() => {
+    let isMounted = true;
+    loadAllSemanticTags().then((tags) => {
+      if (isMounted && tags && tags.length > 0) {
+        setAllTags(tags);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     const fetchArticles = async () => {
@@ -38,29 +60,38 @@ export const ArticleListPage: React.FC = () => {
       try {
         const res = await articleApi.getArticles({
           search: searchQuery.trim() || undefined,
-          pageSize: 20,
+          pageSize: 50,
         });
         if (res && res.items) {
-          const mapped: Article[] = res.items.map((item) => ({
-            id: String(item.articleId),
-            title: item.title,
-            summary: item.summary || item.title,
-            content: '',
-            coverImage: item.coverImageUrl || '',
-            category: 'Backend Development',
-            tags: ['dotnet', 'csharp', 'architecture'],
-            author: {
-              id: String(item.authorUserId || item.authorStaffId || 1),
-              fullName: item.authorStaffId ? 'FPT Faculty Staff' : 'Student Author',
-              role: item.authorStaffId ? 'Staff' : 'Student',
-              avatarUrl: '',
-            },
-            likesCount: 0,
-            bookmarksCount: 0,
-            viewsCount: 0,
-            readTimeMinutes: 3,
-            createdAt: item.createdAt || new Date().toISOString(),
-          }));
+          const tagMap = getSemanticTagMap(allTags);
+          const mapped: Article[] = res.items.map((item) => {
+            const tags = resolveTagNames(item.semanticTagIds, tagMap);
+            if (tags.length === 0) {
+              tags.push('Chia sẻ kinh nghiệm', 'Học thuật');
+            }
+            const category = resolveCategoryFromTags(item.semanticTagIds, tagMap) || tags[0] || 'Học thuật & Trải nghiệm';
+
+            return {
+              id: String(item.articleId),
+              title: item.title,
+              summary: item.summary || item.title,
+              content: '',
+              coverImage: item.coverImageUrl || '',
+              category,
+              tags,
+              author: {
+                id: String(item.authorUserId || item.authorStaffId || 1),
+                fullName: item.authorStaffId ? 'FPT Faculty Staff' : 'Student Author',
+                role: item.authorStaffId ? 'Staff' : 'Student',
+                avatarUrl: '',
+              },
+              likesCount: 0,
+              bookmarksCount: 0,
+              viewsCount: 0,
+              readTimeMinutes: Math.max(2, Math.ceil((item.summary || item.title).length / 120)),
+              createdAt: item.createdAt || new Date().toISOString(),
+            };
+          });
           setApiArticles(mapped);
 
           // Synchronize bookmarks and votes from interaction service
@@ -223,21 +254,16 @@ export const ArticleListPage: React.FC = () => {
     }
   };
 
-  const categories = [
-    'ALL',
-    'Development',
-    'UI/UX',
-    'Database',
-    'Career',
-    'Backend Development',
-    'Software Architecture',
-  ];
+  const categories = useMemo(() => {
+    return ['ALL', ...allTags.map((t) => t.name)];
+  }, [allTags]);
 
   const filteredArticles = allArticles
     .filter((art: Article) => {
       const matchCat =
         selectedCategory === 'ALL' ||
-        (art.category && art.category.toLowerCase() === selectedCategory.toLowerCase());
+        (art.category && art.category.toLowerCase() === selectedCategory.toLowerCase()) ||
+        (art.tags && art.tags.some((t) => t.toLowerCase() === selectedCategory.toLowerCase()));
       const matchSearch =
         art.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         art.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -269,7 +295,7 @@ export const ArticleListPage: React.FC = () => {
             </span>
           </div>
           <p className="text-xs sm:text-sm text-[#404753] dark:text-slate-400 mt-1">
-            {t('Curated academic write-ups, semester survival guides, and tech deep dives.')}
+            {t('articles.subtitle', 'Tổng hợp bài viết học thuật, kinh nghiệm học tập FPTU, tài liệu & hướng dẫn đa chuyên ngành.')}
           </p>
         </div>
 
@@ -304,7 +330,7 @@ export const ArticleListPage: React.FC = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t('Search articles...')}
+              placeholder={t('articles.searchPlaceholder', 'Tìm bài viết theo tiêu đề, tóm tắt, môn học, kỹ năng hoặc chuyên ngành...')}
               className="w-full bg-[#F8F9FF] dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg pl-10 pr-4 py-2.5 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0076D1]/20 focus:border-[#0076D1]"
             />
           </div>
@@ -345,7 +371,7 @@ export const ArticleListPage: React.FC = () => {
               >
                 {categories.map((c) => (
                   <option key={c} value={c}>
-                    {c === 'ALL' ? t('All Categories') : t(c)}
+                    {c === 'ALL' ? t('articles.allTagsOrCategories', 'Tất cả chủ đề / Thẻ tag') : c}
                   </option>
                 ))}
               </select>

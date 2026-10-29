@@ -1,3 +1,4 @@
+import { useLanguage } from '../../../context/LanguageContext';
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -20,6 +21,7 @@ import { useAuditLogs } from '../../../services/api';
 import { auditLogsApi } from '../../../services/api/adminApi';
 
 export const AuditLogsPage: React.FC = () => {
+  const { t } = useLanguage();
   const { data: logsData, isLoading, refetch } = useAuditLogs();
   const [logs, setLogs] = useState<DetailedAuditLog[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -88,7 +90,7 @@ export const AuditLogsPage: React.FC = () => {
             <span className="text-blue-600 text-[11px] font-bold">IMMUTABLE AUDIT LEDGER</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            System Audit Logs
+            {t('System Audit Logs', 'System Audit Logs')}
             <span className="flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
               <Lock className="w-3 h-3" /> SHA-256 SEALED
             </span>

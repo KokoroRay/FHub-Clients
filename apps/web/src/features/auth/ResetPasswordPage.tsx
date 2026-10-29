@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+import { useLanguage } from '../../context/LanguageContext';
 import { useNavigate } from 'react-router-dom';
 import { Lock, ArrowLeft, ArrowRight, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 import { authApi } from '../../services/api/adminApi';
 
 export const ResetPasswordPage: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -59,7 +61,7 @@ export const ResetPasswordPage: React.FC = () => {
             className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#0076D1] transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Back</span>
+            <span>{t('auth.back', 'Back')}</span>
           </button>
           <div className="flex items-center gap-1.5">
             <Lock className="w-4 h-4 text-[#0076D1]" />
@@ -69,10 +71,10 @@ export const ResetPasswordPage: React.FC = () => {
 
         <div className="text-center space-y-1">
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-            Reset Password
+            {t('auth.resetPasswordTitle', 'Reset Password')}
           </h1>
           <p className="text-xs text-slate-500">
-            Thiết lập mật khẩu mới cho tài khoản email <strong className="text-slate-800 font-mono">{email}</strong>
+            {t('auth.resetPasswordSubtitle', 'Thiết lập mật khẩu mới cho tài khoản email')} <strong className="text-slate-800 font-mono">{email}</strong>
           </p>
         </div>
 
@@ -92,7 +94,7 @@ export const ResetPasswordPage: React.FC = () => {
         <form onSubmit={handleConfirmNewPassword} className="space-y-4">
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1">
-              Mật Khẩu Mới *
+              {t('auth.newPasswordLabel', 'Mật Khẩu Mới *')}
             </label>
             <div className="relative">
               <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -116,7 +118,7 @@ export const ResetPasswordPage: React.FC = () => {
 
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1">
-              Xác Nhận Mật Khẩu Mới *
+              {t('auth.confirmPasswordLabel', 'Xác Nhận Mật Khẩu Mới *')}
             </label>
             <div className="relative">
               <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -137,7 +139,7 @@ export const ResetPasswordPage: React.FC = () => {
             disabled={isLoading || isSuccess}
             className="w-full py-3 px-4 rounded-xl text-xs font-bold text-white bg-[#0076D1] hover:bg-[#005DA7] transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
           >
-            <span>{isLoading ? 'ĐANG CẬP NHẬT...' : 'Confirm New Password'}</span>
+            <span>{isLoading ? t('auth.processing', 'ĐANG CẬP NHẬT...') : t('auth.confirmNewPasswordBtn', 'Confirm New Password')}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>

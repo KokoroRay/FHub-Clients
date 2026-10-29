@@ -28,7 +28,7 @@ import { normalizeMediaUrl } from '../../utils/mediaUtils';
 export const ProfilePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { currentUser, updateUser } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const isOwnProfile = !id || id === currentUser?.id || id === 'me';
 
@@ -114,7 +114,7 @@ export const ProfilePage: React.FC = () => {
               description: b.badge?.description || 'Huy hiệu thành tích cộng đồng FHub',
               icon: '🏅',
               color: 'bg-amber-50 text-amber-800 border-amber-200',
-              earnedDate: b.awarded_at ? new Date(b.awarded_at).toLocaleDateString('vi-VN') : 'Gần đây',
+              earnedDate: b.awarded_at ? new Date(b.awarded_at).toLocaleDateString(language === 'ja' ? 'ja-JP' : language === 'en' ? 'en-US' : 'vi-VN') : t('profile.recent', 'Gần đây'),
             }));
             setUserBadges(mapped);
           } else {
@@ -136,7 +136,7 @@ export const ProfilePage: React.FC = () => {
                 targetTitle: `${v.targetType} #${v.targetId}`,
                 type: v.targetType,
                 vote: v.voteValue > 0 ? 'Upvote (+1)' : 'Downvote (-1)',
-                date: v.createdAt ? new Date(v.createdAt).toLocaleDateString('vi-VN') : 'Gần đây',
+                date: v.createdAt ? new Date(v.createdAt).toLocaleDateString(language === 'ja' ? 'ja-JP' : language === 'en' ? 'en-US' : 'vi-VN') : t('profile.recent', 'Gần đây'),
                 author: 'FHub Member',
               }));
               setUserVoteHistory(mappedVotes);
@@ -422,7 +422,7 @@ export const ProfilePage: React.FC = () => {
                     onClick={() => setActiveTab('questions')}
                     className="text-xs font-semibold text-[#0076D1] hover:underline"
                   >
-                    {t('View All')}
+                    {t('common.viewAll', 'Xem tất cả')}
                   </button>
                 )}
               </div>
@@ -475,7 +475,7 @@ export const ProfilePage: React.FC = () => {
                       onClick={() => setActiveTab('badges')}
                       className="text-xs font-semibold text-[#0076D1] hover:underline"
                     >
-                      {t('View All')} ({userBadges.length})
+                      {t('common.viewAll', 'Xem tất cả')} ({userBadges.length})
                     </button>
                   )}
                 </div>

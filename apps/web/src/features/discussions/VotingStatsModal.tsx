@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLanguage } from '../../context/LanguageContext';
 import {
   ThumbsUp,
   ThumbsDown,
@@ -27,6 +28,7 @@ export const VotingStatsModal: React.FC<VotingStatsModalProps> = ({
   downvotesCount = 0,
 }) => {
   if (!isOpen) return null;
+  const { t } = useLanguage();
 
   const totalVotes = Math.max(1, upvotesCount + downvotesCount);
   const upvotePercent = upvotesCount + downvotesCount === 0 ? 0 : Math.round((upvotesCount / (upvotesCount + downvotesCount)) * 100);
@@ -57,7 +59,7 @@ export const VotingStatsModal: React.FC<VotingStatsModalProps> = ({
               <ArrowLeft className="w-4 h-4" />
             </button>
             <h3 className="text-base font-bold text-[#181C22]">
-              Voting Stats Detail
+              {t('votingStatsModal.title', 'Voting Stats Detail')}
             </h3>
           </div>
 
@@ -81,14 +83,14 @@ export const VotingStatsModal: React.FC<VotingStatsModalProps> = ({
                   </span>
                 )}
                 <span className="text-xs text-slate-400">
-                  Total {totalVotes} votes registered
+                  {t('common.total', 'Tổng')} {totalVotes} {t('votingStatsModal.totalVotesRegistered', 'lượt vote được ghi nhận')}
                 </span>
               </div>
 
               {question.isSolved && (
                 <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
                   <CheckCircle2 className="w-3 h-3" />
-                  <span>Verified Solution</span>
+                  <span>{t('votingStatsModal.verifiedSolution', 'Verified Solution')}</span>
                 </span>
               )}
             </div>
@@ -98,7 +100,7 @@ export const VotingStatsModal: React.FC<VotingStatsModalProps> = ({
             </h4>
 
             <div className="text-xs text-slate-500 flex items-center gap-2 pt-1">
-              <span>Asked by <strong className="text-slate-700">{question.author.fullName}</strong></span>
+              <span>{t('votingStatsModal.askedBy', 'Asked by')} <strong className="text-slate-700">{question.author.fullName}</strong></span>
               <span>·</span>
               <span>
                 {new Date(question.createdAt).toLocaleDateString('en-US', {
@@ -115,7 +117,7 @@ export const VotingStatsModal: React.FC<VotingStatsModalProps> = ({
             {/* UPVOTES */}
             <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-4 flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-emerald-800 tracking-wider">UPVOTES</span>
+                <span className="text-[11px] font-bold text-emerald-800 tracking-wider">{t('votingStatsModal.upvotesLabel', 'UPVOTES')}</span>
                 <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600">
                   <ThumbsUp className="w-4 h-4" />
                 </div>
@@ -128,7 +130,7 @@ export const VotingStatsModal: React.FC<VotingStatsModalProps> = ({
             {/* DOWNVOTES */}
             <div className="bg-rose-50/70 border border-rose-200 rounded-xl p-4 flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-rose-800 tracking-wider">DOWNVOTES</span>
+                <span className="text-[11px] font-bold text-rose-800 tracking-wider">{t('votingStatsModal.downvotesLabel', 'DOWNVOTES')}</span>
                 <div className="w-7 h-7 rounded-lg bg-rose-500/10 flex items-center justify-center text-rose-600">
                   <ThumbsDown className="w-4 h-4" />
                 </div>
@@ -141,7 +143,7 @@ export const VotingStatsModal: React.FC<VotingStatsModalProps> = ({
             {/* TOTAL VOTES */}
             <div className="bg-blue-50/70 border border-blue-200 rounded-xl p-4 flex flex-col justify-between">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-blue-800 tracking-wider">TOTAL</span>
+                <span className="text-[11px] font-bold text-blue-800 tracking-wider">{t('votingStatsModal.totalLabel', 'TOTAL')}</span>
                 <div className="w-7 h-7 rounded-lg bg-[#0076D1]/10 flex items-center justify-center text-[#0076D1]">
                   <BarChart3 className="w-4 h-4" />
                 </div>
@@ -155,9 +157,9 @@ export const VotingStatsModal: React.FC<VotingStatsModalProps> = ({
           {/* Vote Distribution Progress Bar (Figma #91:2990) */}
           <div className="bg-white rounded-xl border border-slate-200 p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <h5 className="font-bold text-xs text-[#181C22]">Vote Distribution</h5>
+              <h5 className="font-bold text-xs text-[#181C22]">{t('votingStatsModal.distributionTitle', 'Vote Distribution')}</h5>
               <span className="text-xs font-semibold text-emerald-700">
-                {upvotePercent}% Positive
+                {upvotePercent}% {t('votingStatsModal.positiveSuffix', 'Positive')}
               </span>
             </div>
 
@@ -188,13 +190,13 @@ export const VotingStatsModal: React.FC<VotingStatsModalProps> = ({
           {/* Vote History List (View Vote History List requirement) */}
           <div className="space-y-2.5">
             <h5 className="font-bold text-xs text-[#181C22] uppercase tracking-wider text-slate-500">
-              Recent Vote Audit Log
+              {t('votingStatsModal.recentAuditLog', 'Recent Vote Audit Log')}
             </h5>
 
             <div className="border border-slate-200 rounded-xl divide-y divide-slate-100 overflow-hidden">
               {votersHistory.length === 0 ? (
                 <div className="p-6 text-center text-xs text-slate-400">
-                  Chưa có lịch sử vote nào được ghi nhận.
+                  {t('votingStatsModal.noAuditHistory', 'Chưa có lịch sử vote nào được ghi nhận.')}
                 </div>
               ) : (
                 votersHistory.map((v) => (
@@ -238,9 +240,7 @@ export const VotingStatsModal: React.FC<VotingStatsModalProps> = ({
           <button
             onClick={onClose}
             className="px-4 py-2 rounded-xl text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-colors cursor-pointer"
-          >
-            Close
-          </button>
+          >{t('votingStatsModal.closeBtn', 'Close')}</button>
         </div>
       </div>
     </div>

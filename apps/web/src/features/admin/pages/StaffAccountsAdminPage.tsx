@@ -1,3 +1,4 @@
+import { useLanguage } from '../../../context/LanguageContext';
 import React, { useState, useEffect } from 'react';
 import {
   ShieldCheck,
@@ -27,6 +28,7 @@ import {
 } from '../../../services/api/adminApi';
 
 export const StaffAccountsAdminPage: React.FC = () => {
+  const { t } = useLanguage();
   const [staffList, setStaffList] = useState<StaffSummaryDto[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [search, setSearch] = useState('');

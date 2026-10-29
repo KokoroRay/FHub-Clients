@@ -6,6 +6,7 @@ import { Input, Textarea, Select } from '../../components/common/Input';
 import { CourseSelect } from '../../components/common/CourseSelect';
 import { courseNodesApi } from '../../services/api/adminApi';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { CourseReview } from '../../types';
 import { courseReviewApi } from '../../services/api/contentApi';
 import { filterCompactCourses } from '../../utils/courseFilter';
@@ -24,6 +25,7 @@ export const CreateCourseEvaluationModal: React.FC<CreateCourseEvaluationModalPr
   defaultCourseCode = '',
 }) => {
   const { currentUser } = useAuth();
+  const { t } = useLanguage();
   const [courseCode, setCourseCode] = useState(defaultCourseCode ? defaultCourseCode.toUpperCase() : "");
   const [semesterTaken, setSemesterTaken] = useState('');
   const [lecturerName, setLecturerName] = useState('');
@@ -87,7 +89,7 @@ export const CreateCourseEvaluationModal: React.FC<CreateCourseEvaluationModalPr
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (comment.trim().length < 20) {
-      setErrorMessage('Nội dung nhận xét đánh giá môn học cần tối thiểu 20 ký tự để cung cấp thông tin hữu ích cho các bạn sinh viên khác.');
+      setErrorMessage(t('evaluationModal.errorCommentMin', 'Nội dung nhận xét đánh giá môn học cần tối thiểu 20 ký tự để cung cấp thông tin hữu ích cho các bạn sinh viên khác.'));
       return;
     }
 
@@ -165,16 +167,12 @@ export const CreateCourseEvaluationModal: React.FC<CreateCourseEvaluationModalPr
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Viết đánh giá môn học (Course Evaluation)"
+      title={t('evaluationModal.title', 'Viết đánh giá môn học (Course Evaluation)')}
       size="lg"
       footer={
         <>
-          <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
-            Hủy
-          </Button>
-          <Button variant="primary" onClick={handleSubmit} isLoading={isSubmitting}>
-            Gửi đánh giá
-          </Button>
+          <Button variant="outline" onClick={onClose} disabled={isSubmitting}>{t('common.cancel', 'Hủy')}</Button>
+          <Button variant="primary" onClick={handleSubmit} isLoading={isSubmitting}>{t('evaluationModal.submit', 'Gửi đánh giá')}</Button>
         </>
       }
     >
@@ -187,23 +185,23 @@ export const CreateCourseEvaluationModal: React.FC<CreateCourseEvaluationModalPr
         )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <CourseSelect
-            label="Môn học đánh giá *"
+            label={t('evaluationModal.courseLabel', 'Môn học đánh giá *')}
             value={courseCode}
             onChange={(code) => setCourseCode(code)}
             required
           />
           <Input
-            label="Kỳ học đã học *"
+            label={t('evaluationModal.semesterLabel', 'Kỳ học đã học *')}
             value={semesterTaken}
             onChange={(e) => setSemesterTaken(e.target.value)}
-            placeholder="Ví dụ: Spring 2025, Fall 2024"
+            placeholder={t('evaluationModal.semesterPlaceholder', 'Ví dụ: Spring 2025, Fall 2024')}
             required
           />
         </div>
 
         <Input
-          label="Tên giảng viên đứng lớp (Không bắt buộc)"
-          placeholder="Ví dụ: Thầy Bùi Đình Bình, Cô Nguyễn Thị Lan..."
+          label={t('evaluationModal.lecturerLabel', 'Tên giảng viên đứng lớp (Không bắt buộc)')}
+          placeholder={t('evaluationModal.lecturerPlaceholder', 'Ví dụ: Thầy Bùi Đình Bình, Cô Nguyễn Thị Lan...')}
           value={lecturerName}
           onChange={(e) => setLecturerName(e.target.value)}
         />
@@ -212,7 +210,7 @@ export const CreateCourseEvaluationModal: React.FC<CreateCourseEvaluationModalPr
         <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
           <div>
             <div className="flex items-center justify-between text-xs font-bold text-slate-700 mb-1">
-              <span>Đánh giá chung (Overall Rating): {rating}/5</span>
+              <span>{t('evaluationModal.overallRating', 'Đánh giá chung (Overall Rating):')} {rating}/5</span>
               <div className="flex items-center gap-1 text-amber-500">
                 {[1, 2, 3, 4, 5].map((s) => (
                   <Star
@@ -228,7 +226,7 @@ export const CreateCourseEvaluationModal: React.FC<CreateCourseEvaluationModalPr
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-200 text-xs">
             <div>
               <span className="font-semibold text-slate-600 block mb-1">
-                Khối lượng bài tập (Workload): {workloadRating}/5
+                {t('evaluationModal.workloadRating', 'Khối lượng bài tập (Workload):')} {workloadRating}/5
               </span>
               <input
                 type="range"
@@ -238,12 +236,12 @@ export const CreateCourseEvaluationModal: React.FC<CreateCourseEvaluationModalPr
                 onChange={(e) => setWorkloadRating(Number(e.target.value))}
                 className="w-full accent-[#0076D1] cursor-pointer"
               />
-              <span className="text-[10px] text-slate-400">1: Rất nhẹ • 5: Rất nặng</span>
+              <span className="text-[10px] text-slate-400">{t('evaluationModal.workloadHint', '1: Rất nhẹ • 5: Rất nặng')}</span>
             </div>
 
             <div>
               <span className="font-semibold text-slate-600 block mb-1">
-                Độ khó thi Practical Exam: {difficultyRating}/5
+                {t('evaluationModal.difficultyRating', 'Độ khó thi Practical Exam:')} {difficultyRating}/5
               </span>
               <input
                 type="range"
@@ -253,14 +251,14 @@ export const CreateCourseEvaluationModal: React.FC<CreateCourseEvaluationModalPr
                 onChange={(e) => setDifficultyRating(Number(e.target.value))}
                 className="w-full accent-purple-600 cursor-pointer"
               />
-              <span className="text-[10px] text-slate-400">1: Dễ qua môn • 5: Khó & gắt</span>
+              <span className="text-[10px] text-slate-400">{t('evaluationModal.difficultyHint', '1: Dễ qua môn • 5: Khó & gắt')}</span>
             </div>
           </div>
         </div>
 
         <Textarea
-          label="Nội dung đánh giá & Kinh nghiệm học tập thực tế *"
-          placeholder="Chia sẻ về cấu trúc môn, độ khó các Assignment, lời khuyên ôn thi Practical/PE, tài liệu nên chuẩn bị..."
+          label={t('evaluationModal.commentLabel', 'Nội dung đánh giá & Kinh nghiệm học tập thực tế *')}
+          placeholder={t('evaluationModal.commentPlaceholder', 'Chia sẻ về cấu trúc môn, độ khó các Assignment, lời khuyên ôn thi Practical/PE, tài liệu nên chuẩn bị...')}
           rows={5}
           value={comment}
           onChange={(e) => setComment(e.target.value)}
@@ -270,7 +268,7 @@ export const CreateCourseEvaluationModal: React.FC<CreateCourseEvaluationModalPr
         <div className="flex items-center gap-2 p-3 bg-blue-50 text-blue-800 rounded-xl text-xs">
           <AlertCircle className="w-4 h-4 text-[#0076D1] shrink-0" />
           <span>
-            Đánh giá của bạn sẽ giúp hàng ngàn sinh viên các khóa sau định hướng kế hoạch học tập tốt hơn.
+            {t('evaluationModal.helpNotice', 'Đánh giá của bạn sẽ giúp hàng ngàn sinh viên các khóa sau định hướng kế hoạch học tập tốt hơn.')}
           </span>
         </div>
       </form>

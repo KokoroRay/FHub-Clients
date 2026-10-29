@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Mail, ShieldCheck, Sparkles, MapPin } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { authApi } from '../../services/api/adminApi';
 import { validateFptEmail } from '../../utils/fptEmailValidator';
 import { User } from '../../types';
@@ -9,6 +10,7 @@ import { User } from '../../types';
 export const AuthOptionsPage: React.FC = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { t } = useLanguage();
   const [selectedCampus, setSelectedCampus] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -122,18 +124,18 @@ export const AuthOptionsPage: React.FC = () => {
         <div className="space-y-2 text-center">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200/60 text-[#0076D1] text-xs font-bold mx-auto">
             <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Bước 2: Phương Thức Xác Thực</span>
+            <span>{t('auth.optionsStep', 'Bước 2: Phương Thức Xác Thực')}</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-            Authentication Options
+            {t('auth.optionsTitle', 'Authentication Options')}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto">
-            Lựa chọn phương thức xác thực tài khoản phù hợp tại Đại học FPT.
+            {t('auth.optionsSubtitle', 'Lựa chọn phương thức xác thực tài khoản phù hợp tại Đại học FPT.')}
           </p>
           {selectedCampus && (
             <div className="inline-flex items-center gap-1.5 text-xs text-slate-600 bg-slate-100 px-3 py-1 rounded-lg font-semibold">
               <MapPin className="w-3 h-3 text-[#0076D1]" />
-              <span>Cơ sở đã chọn: <strong>{selectedCampus}</strong></span>
+              <span>{t('auth.selectedCampus', 'Cơ sở đã chọn:')} <strong>{selectedCampus}</strong></span>
             </div>
           )}
         </div>
@@ -162,15 +164,15 @@ export const AuthOptionsPage: React.FC = () => {
               </svg>
               <div>
                 <span className="block font-black text-sm text-slate-800 group-hover:text-[#0076D1] transition-colors">
-                  Continue with Google
+                  {t('auth.continueGoogle', 'Continue with Google')}
                 </span>
                 <span className="text-[11px] text-slate-500">
-                  Dành cho tài khoản Google trường học (@fpt.edu.vn, @fe.edu.vn)
+                  {t('auth.googleDesc', 'Dành cho tài khoản Google trường học (@fpt.edu.vn, @fe.edu.vn)')}
                 </span>
               </div>
             </div>
             <span className="text-[11px] font-bold text-[#0076D1] opacity-0 group-hover:opacity-100 transition-opacity">
-              Tiếp tục &rarr;
+              {t('auth.continueBtn', 'Tiếp tục')} &rarr;
             </span>
           </button>
 
@@ -184,10 +186,10 @@ export const AuthOptionsPage: React.FC = () => {
               <Mail className="w-5 h-5 text-slate-600 shrink-0" />
               <div>
                 <span className="block font-black text-sm text-slate-800 group-hover:text-slate-900 transition-colors">
-                  Continue with Email
+                  {t('auth.continueEmail', 'Continue with Email')}
                 </span>
                 <span className="text-[11px] text-slate-500">
-                  Đăng nhập bằng Email và mật khẩu riêng hệ thống
+                  {t('auth.emailDesc', 'Đăng nhập bằng Email và mật khẩu riêng hệ thống')}
                 </span>
               </div>
             </div>
@@ -205,7 +207,7 @@ export const AuthOptionsPage: React.FC = () => {
             className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors flex items-center justify-center gap-2 cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Back</span>
+            <span>{t('auth.back', 'Back')}</span>
           </button>
         </div>
       </div>

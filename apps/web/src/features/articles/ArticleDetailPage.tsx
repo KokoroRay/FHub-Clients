@@ -23,10 +23,17 @@ import { useLanguage } from '../../context/LanguageContext';
 import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
 import { Textarea } from '../../components/common/Input';
+import { MarkdownPreview } from '../../components/common/MarkdownPreview';
 import { articleApi } from '../../services/api/contentApi';
 import { voteApi, bookmarkApi } from '../../services/api/studentApi';
 import { normalizeMediaUrl } from '../../utils/mediaUtils';
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
+import {
+  loadAllSemanticTags,
+  getSemanticTagMap,
+  resolveTagNames,
+  resolveCategoryFromTags,
+} from '../../utils/tagUtils';
 
 export const ArticleDetailPage: React.FC = () => {
   const { t } = useLanguage();
@@ -43,8 +50,14 @@ export const ArticleDetailPage: React.FC = () => {
     const loadDetail = async () => {
       try {
         setIsLoading(true);
-        const data = await articleApi.getArticleById(id);
+        const [data, tagsRes] = await Promise.all([
+          articleApi.getArticleById(id),
+          loadAllSemanticTags(),
+        ]);
         if (isMounted && data) {
+          const tagMap = getSemanticTagMap(tagsRes);
+          const tags = resolveTagNames(data.semanticTagIds, tagMap);
+          const category = resolveCategoryFromTags(data.semanticTagIds, tagMap) || (tags.length > 0 ? tags[0] : 'Bài viết học thuật');
           setArticle({
             id: String(data.articleId),
             title: data.title,
@@ -55,7 +68,8 @@ export const ArticleDetailPage: React.FC = () => {
             readTimeMinutes: 4,
             viewsCount: 0,
             likesCount: 0,
-            category: 'Academic Article',
+            category,
+            tags,
             author: {
               fullName: data.authorStaffId ? 'FPT Faculty Staff' : `Author #${data.authorUserId || 1}`,
               role: data.authorStaffId ? 'Staff' : 'Student',

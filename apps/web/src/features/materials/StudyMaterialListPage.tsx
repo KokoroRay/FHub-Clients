@@ -25,6 +25,13 @@ import { AddExternalLinkModal } from './AddExternalLinkModal';
 import { studyMaterialApi } from '../../services/api/contentApi';
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 import { useLanguage } from '../../context/LanguageContext';
+import {
+  loadAllSemanticTags,
+  getSemanticTagMap,
+  resolveTagNames,
+  FALLBACK_ALL_TAGS,
+  SemanticTagItem,
+} from '../../utils/tagUtils';
 
 export const StudyMaterialListPage: React.FC = () => {
   const { t } = useLanguage();
@@ -34,25 +41,31 @@ export const StudyMaterialListPage: React.FC = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCourse, setSelectedCourse] = useState<string>('ALL');
+  const [selectedTag, setSelectedTag] = useState<string>('ALL');
   const [selectedType, setSelectedType] = useState<string>('ALL');
   const [sortBy, setSortBy] = useState<'downloads' | 'newest'>('downloads');
   const [isUploadOpen, setIsUploadOpen] = useState(shouldOpenUpload);
   const [isAddLinkOpen, setIsAddLinkOpen] = useState(shouldOpenAddLink);
   const [materials, setMaterials] = useState<StudyMaterial[]>([]);
   const [availableCourses, setAvailableCourses] = useState<CourseNodeListItem[]>([]);
+  const [allTags, setAllTags] = useState<SemanticTagItem[]>(FALLBACK_ALL_TAGS);
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 8;
 
   React.useEffect(() => {
-    courseNodesApi.getCourseNodes({ pageSize: 300 })
+    courseNodesApi.getCourseNodes({ pageSize: 2000 })
       .then((res) => setAvailableCourses(res?.items || []))
       .catch(() => setAvailableCourses([]));
+
+    loadAllSemanticTags().then((tags) => {
+      if (tags && tags.length > 0) setAllTags(tags);
+    });
   }, []);
 
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, selectedCourse, selectedType, sortBy]);
+  }, [searchQuery, selectedCourse, selectedTag, selectedType, sortBy]);
 
   React.useEffect(() => {
     const fetchMaterials = async () => {
@@ -62,6 +75,7 @@ export const StudyMaterialListPage: React.FC = () => {
           pageSize: 100,
         });
         if (res && res.items) {
+          const tagMap = getSemanticTagMap(allTags);
           const courseMap = new Map<number, string>();
           availableCourses.forEach(c => {
             const id = Number(c.courseNodeId ?? c.id);
@@ -80,6 +94,8 @@ export const StudyMaterialListPage: React.FC = () => {
             else if (['zip', 'rar', '7z'].includes(ext || '')) resolvedFileType = 'ZIP';
             else if (['cs', 'java', 'py', 'sql', 'cpp', 'c', 'json', 'md', 'txt'].includes(ext || '')) resolvedFileType = 'CODE';
 
+            const tags = resolveTagNames(item.semanticTagIds, tagMap);
+
             return {
               id: String(item.studyMaterialId),
               title: item.title,
@@ -95,6 +111,7 @@ export const StudyMaterialListPage: React.FC = () => {
               },
               semesterUploaded: 'N/A',
               createdAt: item.createdAt || new Date().toISOString(),
+              tags,
             };
           });
           setMaterials(mapped);
@@ -121,11 +138,14 @@ export const StudyMaterialListPage: React.FC = () => {
     .filter((m) => {
       const matchType = selectedType === 'ALL' || m.fileType === selectedType;
       const matchCourse = selectedCourse === 'ALL' || m.courseCode === selectedCourse;
+      const matchTag =
+        selectedTag === 'ALL' ||
+        (m.tags && m.tags.some((t) => t.toLowerCase() === selectedTag.toLowerCase()));
       const matchSearch =
         m.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         m.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
         m.courseCode.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchType && matchCourse && matchSearch;
+      return matchType && matchCourse && matchTag && matchSearch;
     })
     .sort((a, b) => {
       if (sortBy === 'downloads') return b.downloadsCount - a.downloadsCount;
@@ -164,7 +184,7 @@ export const StudyMaterialListPage: React.FC = () => {
             </span>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            {t('Find useful resources, lecture notes, exam banks, and cheat sheets shared by the community.')}
+            {t('materials.subtitle', 'Kho tài liệu học tập, slide bài giảng, đề thi PE/FE, đề cương & tài nguyên mọi chuyên ngành FPT University.')}
           </p>
         </div>
 
@@ -190,13 +210,13 @@ export const StudyMaterialListPage: React.FC = () => {
       {/* Search & Refinement Toolbar (Figma #101:3710) */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200/90 dark:border-slate-800 shadow-2xs grid grid-cols-1 md:grid-cols-12 gap-3">
         {/* Search */}
-        <div className="relative md:col-span-5">
+        <div className="relative md:col-span-4">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={t('Search study materials...')}
+            placeholder={t('materials.searchPlaceholder', 'Tìm tài liệu theo tên, mã môn (SWP391, MKT101, GRA201, LAW101...), giảng viên hoặc từ khóa...')}
             className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-4 py-2 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#0076D1]/20 focus:border-[#0076D1]"
           />
         </div>
@@ -208,7 +228,7 @@ export const StudyMaterialListPage: React.FC = () => {
             onChange={(e) => setSelectedCourse(e.target.value)}
             className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#0076D1] cursor-pointer"
           >
-            <option value="ALL">{t('All Courses')}</option>
+            <option value="ALL">{t('common.allCourses', 'Tất cả môn học')}</option>
             {availableCourses.map((c) => {
               const code = c.courseCode || c.code || '';
               const id = c.courseNodeId ?? c.id ?? code;
@@ -221,14 +241,30 @@ export const StudyMaterialListPage: React.FC = () => {
           </select>
         </div>
 
-        {/* Type Filter */}
+        {/* Tag / Topic Filter */}
         <div className="md:col-span-2">
+          <select
+            value={selectedTag}
+            onChange={(e) => setSelectedTag(e.target.value)}
+            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#0076D1] cursor-pointer"
+          >
+            <option value="ALL">{t('materials.allTags', 'Tất cả thẻ tag / Chủ đề')}</option>
+            {allTags.map((tItem) => (
+              <option key={tItem.id} value={tItem.name}>
+                {tItem.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Type Filter */}
+        <div className="md:col-span-1">
           <select
             value={selectedType}
             onChange={(e) => setSelectedType(e.target.value)}
-            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#0076D1] cursor-pointer"
+            className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-2 py-2 text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#0076D1] cursor-pointer"
           >
-            <option value="ALL">{t('All Types')}</option>
+            <option value="ALL">{t('common.type', 'Loại')}</option>
             <option value="PDF">PDF</option>
             <option value="DOCX">DOCX</option>
             <option value="ZIP">ZIP</option>

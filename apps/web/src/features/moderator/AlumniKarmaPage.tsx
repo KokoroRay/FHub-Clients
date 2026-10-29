@@ -1,3 +1,4 @@
+import { useLanguage } from '../../context/LanguageContext';
 import React, { useState } from 'react';
 import { Award, ShieldCheck, TrendingUp, Star, Users, CheckCircle2 } from 'lucide-react';
 import { Button } from '../../components/common/Button';
@@ -5,6 +6,7 @@ import { Badge } from '../../components/common/Badge';
 import { Card, CardBody, CardHeader } from '../../components/common/Card';
 
 export const AlumniKarmaPage: React.FC = () => {
+  const { t } = useLanguage();
   const [endorsedCount, setEndorsedCount] = useState(0);
   const [leaderboard, setLeaderboard] = useState<Array<{
     rank: number;

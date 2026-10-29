@@ -1,3 +1,4 @@
+import { useLanguage } from '../../../context/LanguageContext';
 import React, { useState, useEffect } from 'react';
 import {
   Zap,
@@ -17,6 +18,7 @@ import { ReputationRule } from '../../../types';
 import { useReputationRules, useCreateReputationRule, useUpdateReputationRule } from '../../../services/api';
 
 export const ReputationRulesPage: React.FC = () => {
+  const { t } = useLanguage();
   const { data: rulesData, isLoading, refetch } = useReputationRules();
   const createRuleMutation = useCreateReputationRule();
   const updateRuleMutation = useUpdateReputationRule();

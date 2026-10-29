@@ -1,3 +1,4 @@
+import { useLanguage } from '../../../context/LanguageContext';
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -28,6 +29,7 @@ import {
 } from '../../../services/api';
 
 export const SpecializationsPage: React.FC = () => {
+  const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMajorId, setSelectedMajorId] = useState<string>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
@@ -205,7 +207,7 @@ export const SpecializationsPage: React.FC = () => {
             <span className="text-blue-600">SPECIALIZATIONS ({totalCount})</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            Specializations Registry
+            {t('Specializations Registry', 'Specializations Registry')}
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
             Manage academic specializations, curriculum alignments, and parent degree tracks across all campuses.
@@ -220,7 +222,7 @@ export const SpecializationsPage: React.FC = () => {
             title="Refresh specializations"
           >
             <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${isRefetching ? 'animate-spin' : ''}`} />
-            <span>Refresh</span>
+            <span>{t('common.refresh', 'Refresh')}</span>
           </button>
 
           <button
@@ -228,7 +230,7 @@ export const SpecializationsPage: React.FC = () => {
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Add Specialization</span>
+            <span>{t('Add Specialization', 'Add Specialization')}</span>
           </button>
         </div>
       </div>
@@ -262,25 +264,25 @@ export const SpecializationsPage: React.FC = () => {
       {/* 4 Stat Cards Row (Consistent with MajorsPage) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">TOTAL SPECIALIZATIONS</span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('TOTAL SPECIALIZATIONS', 'TOTAL SPECIALIZATIONS')}</span>
           <h3 className="text-2xl font-bold text-slate-900 tracking-tight mt-1">{totalCount}</h3>
           <p className="text-[11px] text-slate-400 mt-0.5">Defined academic sub-tracks</p>
         </div>
 
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
-          <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">ACTIVE TRACKS</span>
+          <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">{t('ACTIVE TRACKS', 'ACTIVE TRACKS')}</span>
           <h3 className="text-2xl font-bold text-emerald-600 tracking-tight mt-1">{activeCount}</h3>
           <p className="text-[11px] text-slate-400 mt-0.5">Currently enrolling students</p>
         </div>
 
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
-          <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">CURRICULA LINKED</span>
+          <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">{t('CURRICULA LINKED', 'CURRICULA LINKED')}</span>
           <h3 className="text-2xl font-bold text-blue-600 tracking-tight mt-1">{totalCurricula}</h3>
           <p className="text-[11px] text-slate-400 mt-0.5">Roadmap matrices active</p>
         </div>
 
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">PARENT MAJORS</span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('PARENT MAJORS', 'PARENT MAJORS')}</span>
           <h3 className="text-2xl font-bold text-slate-900 tracking-tight mt-1">{majors.length}</h3>
           <p className="text-[11px] text-slate-400 mt-0.5">Undergraduate degree programs</p>
         </div>

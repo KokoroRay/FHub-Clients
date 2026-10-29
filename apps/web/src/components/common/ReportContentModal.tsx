@@ -189,8 +189,8 @@ ${details.trim()}
           {/* Details */}
           <div className="space-y-1">
             <Textarea
-              label="Mô tả cụ thể vi phạm (*)"
-              placeholder="Vui lòng cung cấp chi tiết..."
+              label={t('Mô tả cụ thể vi phạm (*)', 'Mô tả cụ thể vi phạm (*)')}
+              placeholder={t('Vui lòng cung cấp chi tiết...', 'Vui lòng cung cấp chi tiết...')}
               rows={3}
               value={details}
               onChange={(e) => setDetails(e.target.value)}

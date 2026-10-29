@@ -1,3 +1,4 @@
+import { useLanguage } from '../../context/LanguageContext';
 import React, { useState, useEffect } from 'react';
 import { Megaphone, Plus, Bell, Filter, Calendar, MapPin, Send } from 'lucide-react';
 import { Button } from '../../components/common/Button';
@@ -18,6 +19,7 @@ interface Broadcast {
 }
 
 export const OfficialBroadcastsPage: React.FC = () => {
+  const { t } = useLanguage();
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
   const [loading, setLoading] = useState(true);
 

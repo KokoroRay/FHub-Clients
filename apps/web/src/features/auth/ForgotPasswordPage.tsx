@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLanguage } from '../../context/LanguageContext';
 import { useNavigate } from 'react-router-dom';
 import { Mail, ArrowLeft, ArrowRight, KeyRound } from 'lucide-react';
 import { authApi } from '../../services/api/adminApi';
@@ -6,6 +7,7 @@ import { validateFptEmail } from '../../utils/fptEmailValidator';
 
 export const ForgotPasswordPage: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -52,7 +54,7 @@ export const ForgotPasswordPage: React.FC = () => {
             className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#0076D1] transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Back</span>
+            <span>{t('auth.back', 'Back')}</span>
           </button>
           <div className="flex items-center gap-1.5">
             <KeyRound className="w-4 h-4 text-[#0076D1]" />
@@ -62,10 +64,10 @@ export const ForgotPasswordPage: React.FC = () => {
 
         <div className="text-center space-y-1">
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-            Forgot Password
+            {t('auth.forgotTitle', 'Forgot Password')}
           </h1>
           <p className="text-xs text-slate-500">
-            Nhập email tài khoản sinh viên FHub của bạn để nhận mã xác thực OTP đổi mật khẩu.
+            {t('auth.forgotSubtitle', 'Nhập email tài khoản sinh viên FHub của bạn để nhận mã xác thực OTP đổi mật khẩu.')}
           </p>
         </div>
 
@@ -78,7 +80,7 @@ export const ForgotPasswordPage: React.FC = () => {
         <form onSubmit={handleSendOtpCode} className="space-y-4">
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1">
-              Email Sinh Viên / Cán Bộ *
+              {t('auth.emailLabel', 'Email Sinh Viên / Cán Bộ *')}
             </label>
             <div className="relative">
               <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -99,7 +101,7 @@ export const ForgotPasswordPage: React.FC = () => {
             disabled={isLoading}
             className="w-full py-3 px-4 rounded-xl text-xs font-bold text-white bg-[#0076D1] hover:bg-[#005DA7] transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
           >
-            <span>{isLoading ? 'ĐANG GỬI MÃ...' : 'Send OTP Code'}</span>
+            <span>{isLoading ? t('auth.processing', 'ĐANG GỬI MÃ...') : t('auth.sendOtpBtn', 'Send OTP Code')}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>

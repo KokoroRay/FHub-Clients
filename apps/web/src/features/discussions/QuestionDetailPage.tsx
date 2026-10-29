@@ -42,7 +42,7 @@ import { VotingStatsModal } from './VotingStatsModal';
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 
 export const QuestionDetailPage: React.FC = () => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { id } = useParams<{ id: string }>();
   const { currentUser, currentRole } = useAuth();
 
@@ -105,7 +105,7 @@ export const QuestionDetailPage: React.FC = () => {
             courseCode: mappedCourseCode,
             author: {
               id: String(data.authorUserId || 'anon'),
-              fullName: data.isAnonymous ? 'Ẩn danh FPTer' : (data.authorDisplayName || 'Sinh viên FHub'),
+              fullName: data.isAnonymous ? t('common.anonymous', 'Ẩn danh FPTer') : (data.authorDisplayName || t('common.userNumber', 'Sinh viên FHub')),
               role: 'Student',
               karma: 0,
               campus: '',
@@ -168,7 +168,7 @@ export const QuestionDetailPage: React.FC = () => {
               questionId: String(ans.questionId),
               author: {
                 id: String(ans.authorUserId || 'usr'),
-                fullName: ans.isAnonymous ? 'Ẩn danh FPTer' : (ans.authorDisplayName || 'Sinh viên FHub'),
+                fullName: ans.isAnonymous ? t('common.anonymous', 'Ẩn danh FPTer') : (ans.authorDisplayName || t('common.userNumber', 'Sinh viên FHub')),
                 avatarUrl: '',
                 role: ans.isModeratorVerified ? 'Alumni' : 'Student',
                 karma: 0,
@@ -184,9 +184,9 @@ export const QuestionDetailPage: React.FC = () => {
               comments: (ans.comments || []).map((c: any) => ({
                 id: String(c.commentId),
                 parentId: String(ans.answerId),
-                author: { id: String(c.authorUserId || 'u'), fullName: c.authorDisplayName || 'Người dùng FHub' },
+                author: { id: String(c.authorUserId || 'u'), fullName: c.authorDisplayName || t('common.userNumber', 'Người dùng FHub') },
                 content: c.body,
-                createdAt: c.createdAt || 'Vừa xong',
+                createdAt: c.createdAt || t('common.justNow', 'Vừa xong'),
               })),
               createdAt: ans.createdAt,
             };
@@ -373,7 +373,7 @@ export const QuestionDetailPage: React.FC = () => {
       questionId: question.id,
       author: {
         id: currentUser?.id || 'usr-current',
-        fullName: currentUser?.fullName || 'Sinh viên FHub',
+        fullName: currentUser?.fullName || t('common.userNumber', 'Sinh viên FHub'),
         avatarUrl: currentUser?.avatarUrl,
         role: currentUser?.role || 'Student',
         karma: currentUser?.karma || 0,
@@ -416,7 +416,7 @@ export const QuestionDetailPage: React.FC = () => {
         fullName: currentUser?.fullName || 'Sinh viên FHub',
       },
       content: text,
-      createdAt: 'Vừa xong',
+      createdAt: t('common.justNow', 'Vừa xong'),
     };
 
     setAnswers((prev) =>
@@ -443,7 +443,7 @@ export const QuestionDetailPage: React.FC = () => {
     return (
       <div className="p-12 text-center space-y-4 bg-white rounded-2xl border border-slate-200">
         <h3 className="text-lg font-bold text-slate-800">{t('No data found')}</h3>
-        <p className="text-xs text-slate-500">Câu hỏi này không tồn tại hoặc đã bị xóa.</p>
+        <p className="text-xs text-slate-500">{t('questions.notFound', 'Câu hỏi này không tồn tại hoặc đã bị xóa.')}</p>
         <Link to="/discussions" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700">
           <ArrowLeft className="w-4 h-4" /> {t('Back to Discussions')}
         </Link>
@@ -510,7 +510,7 @@ export const QuestionDetailPage: React.FC = () => {
                         <Badge variant="purple" size="sm">{t('Anonymous Author')}</Badge>
                       </div>
                       <span className="text-[10px] text-slate-400">
-                        Đã hỏi: {new Date(question.createdAt).toLocaleDateString('vi-VN')} • Xem: {question.viewsCount} lượt
+                        {t('questions.askedAt', 'Đã hỏi:')} {new Date(question.createdAt).toLocaleDateString(language === 'ja' ? 'ja-JP' : language === 'en' ? 'en-US' : 'vi-VN')} • {t('questions.views', 'Xem:')} {question.viewsCount} {t('questions.viewsSuffix', 'lượt')}
                       </span>
                     </div>
                   </div>
@@ -527,7 +527,7 @@ export const QuestionDetailPage: React.FC = () => {
                         <Badge variant="neutral" size="sm">{question.author.campus || 'FU-HL'}</Badge>
                       </div>
                       <span className="text-[10px] text-slate-400">
-                        Đã hỏi: {new Date(question.createdAt).toLocaleDateString('vi-VN')} • Xem: {question.viewsCount} lượt
+                        {t('questions.askedAt', 'Đã hỏi:')} {new Date(question.createdAt).toLocaleDateString(language === 'ja' ? 'ja-JP' : language === 'en' ? 'en-US' : 'vi-VN')} • {t('questions.views', 'Xem:')} {question.viewsCount} {t('questions.viewsSuffix', 'lượt')}
                       </span>
                     </div>
                   </>
@@ -618,7 +618,7 @@ export const QuestionDetailPage: React.FC = () => {
                 {t('Accepted Best Answer by Author')}
               </h4>
               <p className="text-xs text-emerald-700 dark:text-emerald-300">
-                Câu trả lời chính xác đã giải quyết được vấn đề • Đã cộng +50 Karma cho tác giả
+                {t('questions.bestAnswerSolvedNotice', 'Câu trả lời chính xác đã giải quyết được vấn đề • Đã cộng +50 Karma cho tác giả')}
               </p>
             </div>
           </div>
@@ -634,7 +634,7 @@ export const QuestionDetailPage: React.FC = () => {
           <h2 className="text-lg font-black text-slate-900 dark:text-slate-100">
             {answers.length} {t('Answers')}
           </h2>
-          <span className="text-xs text-slate-400">Sắp xếp theo: Điểm cao nhất</span>
+          <span className="text-xs text-slate-400">{t('questions.sortByHighestScore', 'Sắp xếp theo: Điểm cao nhất')}</span>
         </div>
 
         {answers.map((ans) => (
@@ -669,8 +669,8 @@ export const QuestionDetailPage: React.FC = () => {
                     </div>
                     <span className="text-[10px] text-slate-400 font-medium">
                       {ans.author.isAnonymous
-                        ? `Trả lời: ${new Date(ans.createdAt).toLocaleDateString('vi-VN')}`
-                        : `Karma: ${ans.author.karma.toLocaleString()} pts • Trả lời: ${new Date(ans.createdAt).toLocaleDateString('vi-VN')}`}
+                        ? `${t('questions.answeredAt', 'Trả lời:')} ${new Date(ans.createdAt).toLocaleDateString()}`
+                        : `Karma: ${ans.author.karma.toLocaleString()} pts • ${t('questions.answeredAt', 'Trả lời:')} ${new Date(ans.createdAt).toLocaleDateString()}`}
                     </span>
                   </div>
                 </div>
@@ -728,7 +728,7 @@ export const QuestionDetailPage: React.FC = () => {
                   <ContentActionMenu
                     targetType="ANSWER"
                     targetId={ans.id}
-                    targetTitle={`Câu trả lời của ${ans.author?.fullName || 'Sinh viên'}`}
+                    targetTitle={`${t('questions.answerOf', 'Câu trả lời của')} ${ans.author?.fullName || t('common.studentNumber', 'Sinh viên')}`}
                   />
                 </div>
               </div>
@@ -758,9 +758,7 @@ export const QuestionDetailPage: React.FC = () => {
                   onChange={(e) => setCommentInputs({ ...commentInputs, [ans.id]: e.target.value })}
                   className="flex-1 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-blue-600"
                 />
-                <Button size="sm" variant="secondary" onClick={() => handleAddComment(ans.id)}>
-                  Gửi
-                </Button>
+                <Button size="sm" variant="secondary" onClick={() => handleAddComment(ans.id)}>{t('common.send', 'Gửi')}</Button>
               </div>
             </CardBody>
           </Card>
@@ -781,7 +779,7 @@ export const QuestionDetailPage: React.FC = () => {
                   composerTab === 'write' ? 'bg-white dark:bg-slate-900 text-blue-600 shadow-2xs' : 'text-slate-500'
                 }`}
               >
-                Soạn thảo
+                {t('questions.tabWrite', 'Soạn thảo')}
               </button>
               <button
                 onClick={() => setComposerTab('preview')}
@@ -789,7 +787,7 @@ export const QuestionDetailPage: React.FC = () => {
                   composerTab === 'preview' ? 'bg-white dark:bg-slate-900 text-blue-600 shadow-2xs' : 'text-slate-500'
                 }`}
               >
-                Xem trước
+                {t('questions.tabPreview', 'Xem trước')}
               </button>
             </div>
           </div>
@@ -798,8 +796,8 @@ export const QuestionDetailPage: React.FC = () => {
           {isLocked ? (
             <div className="p-8 text-center space-y-2 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-700">
               <Lock className="w-8 h-8 mx-auto text-rose-500" />
-              <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200">Thảo luận này đã bị khóa bình luận</h4>
-              <p className="text-xs text-slate-500">Điều hành viên đã tạm khóa thảo luận này để rà soát hoặc ngăn chặn vi phạm nội quy.</p>
+              <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200">{t('questions.lockedTitle', 'Thảo luận này đã bị khóa bình luận')}</h4>
+              <p className="text-xs text-slate-500">{t('questions.lockedDesc', 'Điều hành viên đã tạm khóa thảo luận này để rà soát hoặc ngăn chặn vi phạm nội quy.')}</p>
             </div>
           ) : (
             <>
@@ -811,7 +809,7 @@ export const QuestionDetailPage: React.FC = () => {
                   type="button"
                   onClick={() => setNewAnswerContent((c) => `${c}\n\`\`\`csharp\n// your code here\n\`\`\`\n`)}
                   className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-xs font-mono flex items-center gap-1 hover:text-blue-600 cursor-pointer"
-                  title="Thêm Code Block"
+                  title={t('questions.addCodeBlock', 'Thêm Code Block')}
                 >
                   <Code className="w-3.5 h-3.5" /> <span>Code</span>
                 </button>
@@ -819,7 +817,7 @@ export const QuestionDetailPage: React.FC = () => {
                   type="button"
                   onClick={() => setNewAnswerContent((c) => `${c} **in đậm** `)}
                   className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-xs hover:text-blue-600 cursor-pointer"
-                  title="In đậm"
+                  title={t('questions.bold', 'In đậm')}
                 >
                   <Bold className="w-3.5 h-3.5" />
                 </button>
@@ -827,7 +825,7 @@ export const QuestionDetailPage: React.FC = () => {
                   type="button"
                   onClick={() => setNewAnswerContent((c) => `${c} *in nghiêng* `)}
                   className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-xs hover:text-blue-600 cursor-pointer"
-                  title="In nghiêng"
+                  title={t('questions.italic', 'In nghiêng')}
                 >
                   <Italic className="w-3.5 h-3.5" />
                 </button>
@@ -835,7 +833,7 @@ export const QuestionDetailPage: React.FC = () => {
                   type="button"
                   onClick={() => setNewAnswerContent((c) => `${c}\n- Item 1\n- Item 2\n`)}
                   className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-xs hover:text-blue-600 cursor-pointer"
-                  title="Danh sách"
+                  title={t('questions.list', 'Danh sách')}
                 >
                   <List className="w-3.5 h-3.5" />
                 </button>
@@ -843,14 +841,14 @@ export const QuestionDetailPage: React.FC = () => {
                   type="button"
                   onClick={() => setNewAnswerContent((c) => `${c}\n> Trích dẫn\n`)}
                   className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-xs hover:text-blue-600 cursor-pointer"
-                  title="Trích dẫn"
+                  title={t('questions.quote', 'Trích dẫn')}
                 >
                   <Quote className="w-3.5 h-3.5" />
                 </button>
               </div>
 
               <Textarea
-                placeholder="Nhập nội dung giải đáp chi tiết, hướng dẫn từng bước và kèm code snippet mẫu..."
+                placeholder={t('questions.answerPlaceholder', 'Nhập nội dung giải đáp chi tiết, hướng dẫn từng bước và kèm code snippet mẫu...')}
                 rows={6}
                 value={newAnswerContent}
                 onChange={(e) => setNewAnswerContent(e.target.value)}
@@ -864,7 +862,7 @@ export const QuestionDetailPage: React.FC = () => {
 
           <div className="flex items-center justify-between pt-2">
             <p className="text-[11px] text-slate-400">
-              💡 Hỗ trợ Markdown: dùng <code>```csharp</code> để highlight code.
+              💡 {t('questions.markdownHelperNotice', 'Hỗ trợ Markdown: dùng ```csharp để highlight code.')}
             </p>
             <Button
               variant="primary"

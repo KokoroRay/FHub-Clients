@@ -10,6 +10,8 @@ import {
   Share2,
 } from 'lucide-react';
 import { workflowApi } from '../../services/api/contentApi';
+import { courseNodesApi } from '../../services/api/adminApi';
+import { loadAllSemanticTags, getSemanticTagMap, resolveTagNames } from '../../utils/tagUtils';
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 import { Card, CardBody } from '../../components/common/Card';
 import { Badge } from '../../components/common/Badge';
@@ -34,14 +36,35 @@ export const WorkflowDetailPage: React.FC = () => {
     const fetchWorkflow = async () => {
       try {
         setIsLoading(true);
-        const data = await workflowApi.getWorkflowById(id);
+        const [data, coursesRes, tagsRes] = await Promise.all([
+          workflowApi.getWorkflowById(id),
+          courseNodesApi.getCourseNodes({ pageSize: 2000 }).catch(() => ({ items: [] })),
+          loadAllSemanticTags(),
+        ]);
         if (isMounted && data) {
+          const cItems = (coursesRes as any)?.items || (Array.isArray(coursesRes) ? coursesRes : []);
+          const matchedCourse = cItems.find(
+            (c: any) =>
+              c.id === data.courseId ||
+              c.courseId === data.courseId ||
+              c.courseNodeId === data.courseId ||
+              (c.code && Number(c.code.replace(/\D/g, '')) === data.courseId)
+          );
+          const courseCode =
+            matchedCourse?.code ||
+            (matchedCourse as any)?.courseCode ||
+            (data.courseId === 61 ? 'SWP391' : data.courseId === 30 ? 'PRN231' : data.courseId === 49 ? 'SEP490' : data.courseId ? `COURSE-${data.courseId}` : 'CHUNG');
+
+          const tagMap = getSemanticTagMap(tagsRes);
+          const tags = resolveTagNames(data.semanticTagIds, tagMap);
+          const technology = (data as any).technology || (tags.length > 0 ? tags[0] : 'Quy trình chuẩn');
+
           setWorkflow({
             id: String(data.workflowId),
             title: data.title,
             description: data.summary || '',
-            courseCode: 'PRN211',
-            technology: '.NET / C#',
+            courseCode,
+            technology,
             version: (data as any).version || 1,
             author: {
               fullName: `Author #${data.authorUserId || 1}`,
@@ -55,7 +78,7 @@ export const WorkflowDetailPage: React.FC = () => {
               title: s.stepTitle || `Bước ${s.stepNumber}`,
               instruction: s.instruction || '',
               codeSnippet: s.codeSnippet || '',
-              language: s.language || 'csharp',
+              language: s.language || 'bash',
             })),
           });
         }

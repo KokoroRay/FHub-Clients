@@ -93,6 +93,47 @@ export const CourseListPage: React.FC = () => {
     setCurrentPage(1);
   };
 
+  const availableMajors = useMemo(() => {
+    const map = new Map<string, string>();
+    if (majors && majors.length > 0) {
+      majors.forEach((m) => {
+        const code = m.code || m.majorCode;
+        if (code) map.set(code.toUpperCase(), m.name || m.majorName || code);
+      });
+    }
+    courses.forEach((c) => {
+      if (c.majorCode) {
+        const code = c.majorCode.toUpperCase();
+        if (!map.has(code)) {
+          map.set(code, c.department || code);
+        }
+      }
+    });
+
+    const canonicalFptMajors: { code: string; name: string }[] = [
+      { code: 'SE', name: 'Kỹ thuật phần mềm (Software Engineering)' },
+      { code: 'AI', name: 'Trí tuệ nhân tạo & Khoa học dữ liệu' },
+      { code: 'IA', name: 'An toàn thông tin & Mạng máy tính' },
+      { code: 'GD', name: 'Thiết kế Mỹ thuật số & Đồ họa (Graphic Design)' },
+      { code: 'MKT', name: 'Digital Marketing & Truyền thông' },
+      { code: 'BA', name: 'Quản trị kinh doanh & Chuỗi cung ứng' },
+      { code: 'FIN', name: 'Tài chính - Ngân hàng & Fintech' },
+      { code: 'HM', name: 'Quản trị Khách sạn & Du lịch' },
+      { code: 'LAW', name: 'Luật kinh tế' },
+      { code: 'ENG', name: 'Ngôn ngữ Anh' },
+      { code: 'JPN', name: 'Ngôn ngữ Nhật' },
+      { code: 'KOR', name: 'Ngôn ngữ Hàn' },
+      { code: 'CHN', name: 'Ngôn ngữ Trung' },
+    ];
+    canonicalFptMajors.forEach((f) => {
+      if (!map.has(f.code)) {
+        map.set(f.code, f.name);
+      }
+    });
+
+    return Array.from(map.entries()).map(([code, name]) => ({ code, name }));
+  }, [majors, courses]);
+
   // Full filter bar allows student to see all courses across all departments
   const filteredCourses = useMemo(() => {
     return courses
@@ -100,7 +141,10 @@ export const CourseListPage: React.FC = () => {
         const matchMajor =
           selectedMajor === 'ALL' ||
           (c.majorCode && c.majorCode.toUpperCase() === selectedMajor.toUpperCase()) ||
-          String(c.majorId) === selectedMajor;
+          String(c.majorId) === selectedMajor ||
+          (c.department && c.department.toLowerCase().includes(selectedMajor.toLowerCase())) ||
+          (c.code && c.code.toUpperCase().startsWith(selectedMajor.toUpperCase())) ||
+          ((c as any).tags && Array.isArray((c as any).tags) && (c as any).tags.some((t: string) => t.toLowerCase().includes(selectedMajor.toLowerCase())));
         const matchSemester =
           selectedSemester === 'ALL' || String(c.semester) === selectedSemester;
         const codeStr = (c.code || c.courseCode || '').toLowerCase();
@@ -190,7 +234,7 @@ export const CourseListPage: React.FC = () => {
             type="text"
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder={t('courses.searchPlaceholder', 'Tìm theo mã môn (PRN211, SWP391...) hoặc tên môn...')}
+            placeholder={t('courses.searchPlaceholder', 'Tìm theo mã môn (SWP391, MKT101, GRA201, LAW101...) hoặc tên môn...')}
             className="w-full bg-[#F0F3FD] border border-slate-200 rounded-lg pl-10 pr-4 py-2 text-xs text-slate-800 placeholder-[#707785] focus:outline-none focus:ring-2 focus:ring-[#0076D1]/20 focus:border-[#0076D1] transition-all"
           />
         </div>
@@ -203,7 +247,7 @@ export const CourseListPage: React.FC = () => {
             className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-[#0076D1] cursor-pointer"
           >
             <option value="ALL">{t('common.allMajors', 'Tất cả ngành học (All Departments)')}</option>
-            {majors.map((m) => (
+            {availableMajors.map((m) => (
               <option key={m.code} value={m.code}>
                 {m.code} - {m.name}
               </option>

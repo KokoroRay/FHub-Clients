@@ -1,3 +1,4 @@
+import { useLanguage } from '../../../context/LanguageContext';
 import React, { useState, useEffect } from 'react';
 import {
   Award,
@@ -20,6 +21,7 @@ import { DetailedBadge } from '../../../types';
 import { useBadges, useCreateBadge, useDeleteBadge } from '../../../services/api';
 
 export const AchievementBadgesPage: React.FC = () => {
+  const { t } = useLanguage();
   const { data: badgesData, isLoading, refetch } = useBadges();
   const createBadgeMutation = useCreateBadge();
   const deleteBadgeMutation = useDeleteBadge();
@@ -120,7 +122,7 @@ export const AchievementBadgesPage: React.FC = () => {
             <span className="text-blue-600">BADGES CATALOGUE</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            Achievement Badges Catalogue
+            {t('Achievement Badges Registry', 'Achievement Badges Registry')} Catalogue
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
             Manage student milestone honors, tier rankings (Bronze, Silver, Gold, Platinum, Legendary), and trigger expressions.

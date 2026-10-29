@@ -1,3 +1,4 @@
+import { useLanguage } from '../../../context/LanguageContext';
 import React, { useState, useEffect } from 'react';
 import {
   Tag,
@@ -26,6 +27,7 @@ import {
 import { useAuth } from '../../../context/AuthContext';
 
 export const SemanticTagsPage: React.FC = () => {
+  const { t } = useLanguage();
   const { currentUser } = useAuth();
   const [tags, setTags] = useState<SemanticTagItemDto[]>([]);
   const [isLoading, setIsLoading] = useState(false);

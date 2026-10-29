@@ -5,6 +5,7 @@ import { Button } from '../../components/common/Button';
 import { Input, Textarea } from '../../components/common/Input';
 import { Series } from '../../types';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { seriesApi } from '../../services/api/contentApi';
 
 export interface SeriesModalProps {
@@ -21,6 +22,7 @@ export const SeriesModal: React.FC<SeriesModalProps> = ({
   initialSeries,
 }) => {
   const { currentUser } = useAuth();
+  const { t } = useLanguage();
   const [title, setTitle] = useState(initialSeries?.title || '');
   const [description, setDescription] = useState(initialSeries?.description || '');
   const [items, setItems] = useState<Series['items']>(
@@ -139,31 +141,27 @@ export const SeriesModal: React.FC<SeriesModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={initialSeries ? 'Chỉnh sửa Series chuyên đề' : 'Tạo mới Series chuyên đề (Series Management)'}
+      title={initialSeries ? t('seriesModal.titleEdit', 'Chỉnh sửa Series chuyên đề') : t('seriesModal.titleCreate', 'Tạo mới Series chuyên đề (Series Management)')}
       size="lg"
       footer={
         <>
-          <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
-            Hủy
-          </Button>
-          <Button variant="primary" onClick={handleSubmit} isLoading={isSubmitting}>
-            {initialSeries ? 'Cập nhật Series' : 'Tạo Series'}
-          </Button>
+          <Button variant="outline" onClick={onClose} disabled={isSubmitting}>{t('common.cancel', 'Hủy')}</Button>
+          <Button variant="primary" onClick={handleSubmit} isLoading={isSubmitting}>{initialSeries ? t('seriesModal.saveEdit', 'Cập nhật Series') : t('seriesModal.saveCreate', 'Tạo Series')}</Button>
         </>
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4 text-xs">
         <Input
-          label="Tiêu đề Series *"
-          placeholder="Ví dụ: Lộ trình làm chủ C# & .NET 9 cho sinh viên SE"
+          label={t('seriesModal.seriesTitleLabel', 'Tiêu đề Series *')}
+          placeholder={t('seriesModal.seriesTitlePlaceholder', 'Ví dụ: Lộ trình làm chủ C# & .NET 9 cho sinh viên SE')}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           required
         />
 
         <Textarea
-          label="Mô tả mục tiêu của Series"
-          placeholder="Mô tả ngắn về kiến thức chuỗi bài viết / workflow mang lại..."
+          label={t('seriesModal.seriesDescLabel', 'Mô tả mục tiêu của Series')}
+          placeholder={t('seriesModal.seriesDescPlaceholder', 'Mô tả ngắn về kiến thức chuỗi bài viết / workflow mang lại...')}
           rows={3}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
@@ -173,7 +171,7 @@ export const SeriesModal: React.FC<SeriesModalProps> = ({
         <div className="space-y-3 pt-2 border-t border-slate-200">
           <div className="flex items-center justify-between">
             <span className="font-bold text-slate-700 uppercase tracking-wider text-[11px]">
-              Danh sách bài trong Series ({items.length})
+              {t('seriesModal.itemsListHeading', 'Danh sách bài trong Series')} ({items.length})
             </span>
           </div>
 
@@ -192,7 +190,7 @@ export const SeriesModal: React.FC<SeriesModalProps> = ({
               type="text"
               value={newItemTitle}
               onChange={(e) => setNewItemTitle(e.target.value)}
-              placeholder="Nhập tên bài viết muốn thêm vào chuỗi..."
+              placeholder={t('seriesModal.itemTitlePlaceholder', 'Nhập tên bài viết muốn thêm vào chuỗi...')}
               className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-[#0076D1]"
             />
             <button
@@ -200,7 +198,7 @@ export const SeriesModal: React.FC<SeriesModalProps> = ({
               onClick={handleAddItem}
               className="px-3 py-1.5 bg-[#0076D1] text-white rounded-xl text-xs font-bold hover:bg-[#005DA7] transition-colors cursor-pointer"
             >
-              + Thêm bài
+              {t('seriesModal.addItemBtn', '+ Thêm bài')}
             </button>
           </div>
 
@@ -227,7 +225,7 @@ export const SeriesModal: React.FC<SeriesModalProps> = ({
                     disabled={idx === 0}
                     onClick={() => handleMove(idx, 'UP')}
                     className="p-1 text-slate-400 hover:text-slate-700 disabled:opacity-30 cursor-pointer"
-                    title="Di chuyển lên"
+                    title={t('seriesModal.moveUp', 'Di chuyển lên')}
                   >
                     <ArrowUp className="w-3.5 h-3.5" />
                   </button>
@@ -236,7 +234,7 @@ export const SeriesModal: React.FC<SeriesModalProps> = ({
                     disabled={idx === items.length - 1}
                     onClick={() => handleMove(idx, 'DOWN')}
                     className="p-1 text-slate-400 hover:text-slate-700 disabled:opacity-30 cursor-pointer"
-                    title="Di chuyển xuống"
+                    title={t('seriesModal.moveDown', 'Di chuyển xuống')}
                   >
                     <ArrowDown className="w-3.5 h-3.5" />
                   </button>
@@ -244,7 +242,7 @@ export const SeriesModal: React.FC<SeriesModalProps> = ({
                     type="button"
                     onClick={() => handleRemoveItem(item.id)}
                     className="p-1 text-rose-500 hover:text-rose-700 cursor-pointer ml-1"
-                    title="Xóa khỏi series"
+                    title={t('seriesModal.removeItem', 'Xóa khỏi series')}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
