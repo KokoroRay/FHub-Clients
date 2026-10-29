@@ -273,7 +273,7 @@ export const CourseEvaluationListPage: React.FC = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
-              placeholder={t('Search by course code, lecturer, or review content...')}
+              placeholder={t('evaluations.searchPlaceholder', 'Tìm theo mã môn (SWP391, MKT101, GRA201, LAW101...), giảng viên hoặc nội dung review...')}
               className="w-full bg-[#F8F9FF] dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg pl-10 pr-4 py-2 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0076D1]/20 focus:border-[#0076D1]"
             />
           </div>

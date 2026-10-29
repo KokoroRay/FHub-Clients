@@ -308,112 +308,19 @@ export const ArticleDetailPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Rich Body Content (Figma Frame 7) */}
-              <div className="space-y-6 pt-4 border-t border-slate-100 dark:border-slate-800 text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-sans">
-                {/* Section 1 */}
-                <section id="intro" className="space-y-2">
-                  <h2 className="text-lg font-black text-slate-900 dark:text-slate-100">1. Introduction</h2>
-                  <p>
-                    Trong quá trình xây dựng các ứng dụng lớn với ASP.NET Core, việc quản lý vòng đời của các object (Dependencies) là yếu tố quyết định đến tính mở rộng (Scalability), khả năng viết Unit Test và hiệu năng tổng thể của ứng dụng.
-                  </p>
-                </section>
-
-                {/* Section 2 */}
-                <section id="what-is-di" className="space-y-2">
-                  <h2 className="text-lg font-black text-slate-900 dark:text-slate-100">2. What is Dependency Injection?</h2>
-                  <p>
-                    Dependency Injection (DI) là một kỹ thuật triển khai nguyên lý <em>Inversion of Control (IoC)</em>, giúp tách rời sự phụ thuộc giữa các class. Thay vì class tự khởi tạo đối tượng phụ thuộc bằng từ khóa <code>new</code>, IoC Container của .NET sẽ tự động inject qua Constructor.
-                  </p>
-                </section>
-
-                {/* Section 3 */}
-                <section id="registering-services" className="space-y-3">
-                  <h2 className="text-lg font-black text-slate-900 dark:text-slate-100">3. Registering Services (Lifecycles)</h2>
-                  <p>
-                    ASP.NET Core cung cấp 3 loại Service Lifecycles chính:
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="p-3.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200/70 dark:border-blue-900/60 space-y-1">
-                      <h4 className="font-bold text-xs text-blue-900 dark:text-blue-200">Transient</h4>
-                      <p className="text-[11px] text-slate-600 dark:text-slate-400">Được tạo mới mỗi khi có request inject. Thích hợp cho service nhẹ, stateless.</p>
-                    </div>
-                    <div className="p-3.5 rounded-xl bg-purple-50/70 dark:bg-purple-950/40 border border-purple-200/70 dark:border-purple-900/60 space-y-1">
-                      <h4 className="font-bold text-xs text-purple-900 dark:text-purple-200">Scoped</h4>
-                      <p className="text-[11px] text-slate-600 dark:text-slate-400">Được tạo 1 lần cho mỗi HTTP Request. Chuẩn cho DbContext và Unit of Work.</p>
-                    </div>
-                    <div className="p-3.5 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200/70 dark:border-emerald-900/60 space-y-1">
-                      <h4 className="font-bold text-xs text-emerald-900 dark:text-emerald-200">Singleton</h4>
-                      <p className="text-[11px] text-slate-600 dark:text-slate-400">Chỉ 1 instance duy nhất được tạo cho toàn bộ vòng đời ứng dụng. Dùng cho Cache.</p>
-                    </div>
+              {/* Rich Body Content */}
+              {article.content && article.content.trim().length > 0 ? (
+                <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+                  <MarkdownPreview content={article.content} />
+                </div>
+              ) : (
+                <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800 text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-sans">
+                  <p>{article.summary}</p>
+                  <div className="p-4 rounded-xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900 text-xs text-slate-600 dark:text-slate-300">
+                    {t('articles.noContentFallback', 'Bài viết đang cập nhật nội dung chi tiết. Sinh viên có thể để lại bình luận hoặc trao đổi trực tiếp với tác giả bên dưới.')}
                   </div>
-
-                  {/* Code snippet block */}
-                  <div className="relative rounded-xl overflow-hidden bg-slate-900 text-slate-100 border border-slate-800 my-4 font-mono text-xs shadow-inner">
-                    <div className="flex items-center justify-between px-4 py-2 bg-slate-950 border-b border-slate-800 text-[11px] text-slate-400">
-                      <span className="font-semibold text-blue-400">Program.cs • Service Registration</span>
-                      <button
-                        onClick={() =>
-                          copySnippet(`var builder = WebApplication.CreateBuilder(args);
-
-// Register Services with different lifecycles
-builder.Services.AddTransient<IEmailService, EmailService>();
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddSingleton<IMemoryCacheProvider, MemoryCacheProvider>();`)
-                        }
-                        className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer"
-                      >
-                        <Copy className="w-3 h-3" />
-                        <span>{copiedCode ? t('Copied') : t('Copy Link')}</span>
-                      </button>
-                    </div>
-                    <pre className="p-4 overflow-x-auto text-slate-200">
-                      <code>{`var builder = WebApplication.CreateBuilder(args);
-
-// Register Services with different lifecycles
-builder.Services.AddTransient<IEmailService, EmailService>();
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddSingleton<IMemoryCacheProvider, MemoryCacheProvider>();`}</code>
-                    </pre>
-                  </div>
-                </section>
-
-                {/* Section 4 */}
-                <section id="injecting-dependencies" className="space-y-3">
-                  <h2 className="text-lg font-black text-slate-900 dark:text-slate-100">4. Injecting Dependencies</h2>
-                  <p>
-                    Inject interface vào Controller hoặc Service thông qua Constructor:
-                  </p>
-                  <div className="relative rounded-xl overflow-hidden bg-slate-900 text-slate-100 border border-slate-800 my-4 font-mono text-xs">
-                    <div className="flex items-center justify-between px-4 py-2 bg-slate-950 border-b border-slate-800 text-[11px] text-slate-400">
-                      <span className="font-semibold text-purple-400">UsersController.cs</span>
-                    </div>
-                    <pre className="p-4 overflow-x-auto text-slate-200">
-                      <code>{`public class UsersController : ControllerBase
-{
-    private readonly IUserRepository _userRepository;
-    private readonly IEmailService _emailService;
-
-    public UsersController(IUserRepository userRepository, IEmailService emailService)
-    {
-        _userRepository = userRepository;
-        _emailService = emailService;
-    }
-}`}</code>
-                    </pre>
-                  </div>
-                </section>
-
-                {/* Section 5: Anti-Patterns */}
-                <section id="anti-patterns" className="space-y-2">
-                  <h2 className="text-lg font-black text-slate-900 dark:text-slate-100">5. Common Anti-Patterns</h2>
-                  <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-950 dark:text-amber-200 space-y-1">
-                    <h5 className="font-bold text-xs">⚠️ Captive Dependency Alert:</h5>
-                    <p className="text-xs text-amber-900 dark:text-amber-300">
-                      Tuyệt đối không inject một <code>Scoped</code> service (như DbContext) vào một <code>Singleton</code> service. Điều này sẽ khiến DbContext bị giữ sống mãi mãi và gây lỗi đa luồng nghiêm trọng!
-                    </p>
-                  </div>
-                </section>
-              </div>
+                </div>
+              )}
 
               {/* Tags */}
               <div className="flex flex-wrap gap-1.5 pt-4 border-t border-slate-100 dark:border-slate-800">
