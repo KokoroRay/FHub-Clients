@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import { Copy, Check } from 'lucide-react';
+import { normalizeMediaUrl } from '../../utils/mediaUtils';
 
 interface MarkdownPreviewProps {
   content: string;
@@ -294,7 +295,7 @@ function renderBlock(block: Block, key: number) {
 function renderInline(text: string): React.ReactNode {
   // Regex tokenization for inline formatting
   // Matches `code`, **bold**, *italic*, ~~strike~~, [text](url), ![alt](url)
-  const pattern = /(!?\[[^\]]+\]\([^)]+\)|`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*|~~[^~]+~~)/g;
+  const pattern = /(!\[[^\]]*\]\([^)]+\)|\[[^\]]+\]\([^)]+\)|`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*|~~[^~]+~~)/g;
   const parts = text.split(pattern);
 
   return parts.map((part, index) => {
@@ -307,9 +308,11 @@ function renderInline(text: string): React.ReactNode {
         return (
           <img
             key={index}
-            src={match[2]}
+            src={normalizeMediaUrl(match[2])}
             alt={match[1]}
-            className="rounded-lg max-h-72 my-2 border border-slate-200 dark:border-slate-700 object-contain"
+            loading="lazy"
+            decoding="async"
+            className="block h-auto max-w-full max-h-[640px] mx-auto my-6 rounded-xl border border-slate-200 dark:border-slate-700 object-contain"
           />
         );
       }

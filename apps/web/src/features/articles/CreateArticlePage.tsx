@@ -1,13 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { lazy, Suspense, useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { FileText, ArrowLeft, Image as ImageIcon, AlertCircle } from 'lucide-react';
+import { FileText, ArrowLeft, ImagePlus, AlertCircle, Loader2, X } from 'lucide-react';
 import { Card, CardBody, CardHeader } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Input, Textarea, Select } from '../../components/common/Input';
-import { articleApi, alumniApi } from '../../services/api/contentApi';
+import { articleApi, alumniApi, contentMediaApi } from '../../services/api/contentApi';
+import { IMAGE_ACCEPT, validateImage } from '../../utils/mediaUtils';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { loadAllSemanticTags, FALLBACK_ALL_TAGS, SemanticTagItem } from '../../utils/tagUtils';
+
+const ArticleEditor = lazy(() => import('../../components/common/ArticleEditor').then((module) => ({ default: module.ArticleEditor })));
 
 export const CreateArticlePage: React.FC = () => {
   const navigate = useNavigate();
@@ -20,6 +23,10 @@ export const CreateArticlePage: React.FC = () => {
   const [content, setContent] = useState('');
   const [tags, setTags] = useState('kinh-nghiem, hoc-tap, sinh-vien-fpt');
   const [coverUrl, setCoverUrl] = useState('');
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const [isUploadingContent, setIsUploadingContent] = useState(false);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+  const coverBusyRef = useRef(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [allTags, setAllTags] = useState<SemanticTagItem[]>(FALLBACK_ALL_TAGS);
@@ -30,8 +37,26 @@ export const CreateArticlePage: React.FC = () => {
     });
   }, []);
 
+  const uploadCover = async (file?: File) => {
+    if (!file || coverBusyRef.current || isSubmitting) return;
+    try {
+      validateImage(file);
+      coverBusyRef.current = true;
+      setIsUploadingCover(true);
+      setErrorMessage(null);
+      const result = await contentMediaApi.uploadMedia(file, 'article');
+      setCoverUrl(result.publicUrl);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : t('Không tải được ảnh bìa. Vui lòng thử lại.'));
+    } finally {
+      coverBusyRef.current = false;
+      setIsUploadingCover(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting || isUploadingCover || isUploadingContent) return;
     if (title.trim().length < 10) {
       setErrorMessage(t('articleCreate.errorTitleMin', 'Tiêu đề bài viết cần ít nhất 10 ký tự.'));
       return;
@@ -160,13 +185,30 @@ export const CreateArticlePage: React.FC = () => {
               />
             </div>
 
-            <Input
-              label={t('articleCreate.coverLabel', 'Link ảnh bìa Cover Image (Tùy chọn)')}
-              placeholder={t("https://images.unsplash.com/...")}
-              value={coverUrl}
-              onChange={(e) => setCoverUrl(e.target.value)}
-              leftIcon={<ImageIcon className="w-4 h-4" />}
-            />
+            <div className="space-y-2">
+              <span className="block text-sm font-semibold text-slate-700">{t('Ảnh bìa (tùy chọn)')}</span>
+              <div className="relative overflow-hidden rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 transition-colors hover:border-blue-300"
+                onDragOver={(event) => event.preventDefault()}
+                onDrop={(event) => { event.preventDefault(); void uploadCover(event.dataTransfer.files[0]); }} aria-busy={isUploadingCover}>
+                {coverUrl ? (
+                  <>
+                    <img src={coverUrl} alt={t('Ảnh bìa bài viết')} className="max-h-72 w-full object-cover" />
+                    <div className="absolute right-3 top-3 flex gap-2">
+                      <button type="button" disabled={isUploadingCover || isSubmitting} onClick={() => coverInputRef.current?.click()} className="rounded-lg bg-white px-3 py-2 text-xs font-semibold shadow">{t('Thay ảnh')}</button>
+                      <button type="button" aria-label={t('Xóa ảnh bìa')} disabled={isUploadingCover || isSubmitting} onClick={() => setCoverUrl('')} className="rounded-lg bg-white p-2 text-rose-600 shadow"><X className="h-4 w-4" /></button>
+                    </div>
+                  </>
+                ) : (
+                  <button type="button" disabled={isUploadingCover || isSubmitting} onClick={() => coverInputRef.current?.click()} className="flex w-full flex-col items-center gap-2 p-8 text-slate-500 disabled:opacity-50">
+                    <ImagePlus className="h-7 w-7 text-blue-500" />
+                    <span className="text-sm font-semibold text-slate-700">{t('Chọn hoặc kéo thả ảnh bìa vào đây')}</span>
+                    <span className="text-xs">{t('PNG, JPG, WebP hoặc GIF · Tối đa 10MB')}</span>
+                  </button>
+                )}
+                {isUploadingCover && <div role="status" className="absolute inset-0 flex items-center justify-center gap-2 bg-white/85 text-sm text-blue-700"><Loader2 className="h-5 w-5 animate-spin" />{t('Đang tải ảnh bìa…')}</div>}
+              </div>
+              <input ref={coverInputRef} type="file" accept={IMAGE_ACCEPT} className="hidden" aria-label={t('Chọn ảnh bìa')} onChange={(event) => { void uploadCover(event.target.files?.[0]); event.target.value = ''; }} />
+            </div>
 
             <Textarea
               label={t('articleCreate.summaryLabel', 'Tóm tắt ngắn (1-2 câu)')}
@@ -177,18 +219,13 @@ export const CreateArticlePage: React.FC = () => {
               required
             />
 
-            <Textarea
-              label={t('articleCreate.contentLabel', 'Nội dung bài viết (Hỗ trợ Markdown và Code snippet)')}
-              placeholder={t('articleCreate.contentPlaceholder', 'Nhập nội dung bài viết chi tiết...')}
-              rows={12}
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              required
-            />
+            <Suspense fallback={<p role="status" className="py-8 text-center text-sm text-slate-400">{t('Đang tải trình soạn thảo…')}</p>}>
+              <ArticleEditor onChange={setContent} onUploadingChange={setIsUploadingContent} disabled={isSubmitting} />
+            </Suspense>
 
             <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
               <Button variant="outline" type="button" onClick={() => navigate('/articles')}>{t('common.cancel', 'Hủy')}</Button>
-              <Button variant="primary" type="submit" isLoading={isSubmitting}>
+              <Button variant="primary" type="submit" isLoading={isSubmitting} disabled={isUploadingCover || isUploadingContent}>
                 {t('articleCreate.publish', 'Đăng bài viết (+30 Karma)')}
               </Button>
             </div>

@@ -12,6 +12,7 @@ import {
   Layers,
 } from 'lucide-react';
 import { SeriesModal } from './SeriesModal';
+import { normalizeMediaUrl } from '../../utils/mediaUtils';
 import { Article, Series } from '../../types';
 import { articleApi, seriesApi } from '../../services/api/contentApi';
 import { voteApi, bookmarkApi } from '../../services/api/studentApi';
@@ -76,7 +77,7 @@ export const ArticleListPage: React.FC = () => {
               title: item.title,
               summary: item.summary || item.title,
               content: '',
-              coverImage: item.coverImageUrl || '',
+              coverImage: normalizeMediaUrl(item.coverImageUrl),
               category,
               tags,
               author: {
