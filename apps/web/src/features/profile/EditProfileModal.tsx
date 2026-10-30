@@ -3,7 +3,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { X, Upload, CheckCircle2, Shield, Loader2, ChevronDown } from 'lucide-react';
 import { profileApi } from '../../services/api/studentApi';
 import { contentMediaApi } from '../../services/api/contentApi';
-import { normalizeMediaUrl } from '../../utils/mediaUtils';
+import { IMAGE_ACCEPT, normalizeMediaUrl, validateImage } from '../../utils/mediaUtils';
 
 const CAMPUS_OPTIONS = [
   { id: 1, code: 'HN', name: 'Trường Đại học FPT - Hà Nội (Hòa Lạc)' },
@@ -132,6 +132,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   const [photoPreview, setPhotoPreview] = useState(normalizeMediaUrl(initialData.avatarUrl) || '');
   const [uploadedAvatarUrl, setUploadedAvatarUrl] = useState<string | null>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -149,10 +150,13 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      setErrorMessage(t('profileEditModal.errorAvatarSize', 'Dung lượng ảnh đại diện không được vượt quá 5MB.'));
+    try {
+      validateImage(file, 5);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : t('Ảnh không hợp lệ.'));
       return;
     }
     setErrorMessage(null);
@@ -164,12 +168,14 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
     try {
       const res = await contentMediaApi.uploadMedia(file, 'avatar');
-      const remoteUrl = res.publicUrl || `/api/content/media/${res.storageKey}`;
+      const remoteUrl = res.publicUrl;
       setPhotoPreview(remoteUrl);
       setUploadedAvatarUrl(remoteUrl);
     } catch (err) {
-      console.warn('Real avatar upload error, preserving preview:', err);
+      setPhotoPreview(photoPreview);
+      setErrorMessage(err instanceof Error ? err.message : t('Không tải được ảnh đại diện. Vui lòng thử lại.'));
     } finally {
+      URL.revokeObjectURL(localUrl);
       setIsUploadingPhoto(false);
     }
   };
@@ -189,6 +195,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isUploadingPhoto || isSaving || showSuccessToast) return;
     if (!fullName.trim()) {
       setErrorMessage(t('profileEditModal.errorFullNameEmpty', 'Họ và tên không được để trống.'));
       return;
@@ -199,12 +206,15 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     const majorObj = MAJOR_OPTIONS.find((m) => m.code === major);
     const specObj = currentSpecializations.find((s) => s.code === specialization);
 
+    setIsSaving(true);
+    const savedPhoto = uploadedAvatarUrl ?? (photoPreview.startsWith('blob:') ? '' : photoPreview);
+    const avatarUrl = savedPhoto ? new URL(savedPhoto, window.location.origin).href : '';
     try {
-      await Promise.allSettled([
+      const results = await Promise.allSettled([
         profileApi.updatePersonalInfo({
           fullName: fullName.trim(),
           bio: bio.trim(),
-          avatarUrl: uploadedAvatarUrl || photoPreview || undefined,
+          avatarUrl,
         }),
         profileApi.updateAcademicInfo({
           campusId: campusObj?.id ?? 1,
@@ -212,8 +222,13 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
           specializationId: specObj?.id ?? 1,
         }),
       ]);
+      const failed = results.find((result) => result.status === 'rejected');
+      if (failed?.status === 'rejected') throw failed.reason;
     } catch (err) {
-      console.warn('API update personal / academic info notice:', err);
+      setErrorMessage(err instanceof Error ? err.message : t('Không lưu được hồ sơ. Vui lòng thử lại.'));
+      return;
+    } finally {
+      setIsSaving(false);
     }
 
     setShowSuccessToast(true);
@@ -225,7 +240,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
         specialization: specObj?.code || specialization,
         bio: bio.trim(),
         interests,
-        avatarUrl: uploadedAvatarUrl || photoPreview,
+        avatarUrl,
       });
       setShowSuccessToast(false);
       onClose();
@@ -295,12 +310,13 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-[#0076D1] hover:bg-blue-100 border border-blue-200 rounded-lg text-xs font-semibold transition-colors">
                   <Upload className="w-3.5 h-3.5" />
                   <span>{isUploadingPhoto ? t('profileEditModal.uploadingPhoto', 'Đang tải lên...') : t('profileEditModal.uploadNewPhoto', 'Tải ảnh mới')}</span>
-                  <input type="file" accept="image/*" className="hidden" disabled={isUploadingPhoto} onChange={handlePhotoUpload} />
+                  <input type="file" accept={IMAGE_ACCEPT} className="hidden" disabled={isUploadingPhoto || isSaving} onChange={handlePhotoUpload} />
                 </label>
                 {photoPreview && (
                   <button
                     type="button"
                     onClick={handleRemovePhoto}
+                    disabled={isUploadingPhoto || isSaving}
                     className="px-3 py-1.5 text-red-600 hover:bg-red-50 border border-transparent rounded-lg text-xs font-semibold transition-colors"
                   >{t('profileEditModal.removePhoto', 'Gỡ ảnh')}</button>
                 )}
@@ -484,7 +500,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
             >{t('profileEditModal.cancelBtn', 'Hủy bỏ')}</button>
             <button
               type="submit"
-              disabled={isUploadingPhoto}
+              disabled={isUploadingPhoto || isSaving || showSuccessToast}
               className="px-5 py-2 text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700 rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50"
             >{t('profileEditModal.saveBtn', 'Lưu thay đổi')}</button>
           </div>

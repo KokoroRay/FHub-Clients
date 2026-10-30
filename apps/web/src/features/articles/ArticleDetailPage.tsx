@@ -234,7 +234,7 @@ export const ArticleDetailPage: React.FC = () => {
           <Card className="overflow-hidden">
             {article.coverImage && (
               <div className="h-72 w-full bg-slate-100 overflow-hidden relative">
-                <img src={article.coverImage} alt={article.title} className="w-full h-full object-cover" />
+                <img src={normalizeMediaUrl(article.coverImage)} alt={article.title} className="w-full h-full object-cover" />
                 <div className="absolute top-4 left-4 flex gap-2">
                   <Badge variant="purple" size="md">{article.category}</Badge>
                 </div>

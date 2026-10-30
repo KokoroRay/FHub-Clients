@@ -1,0 +1,14 @@
+.article-editor .tiptap { min-height: 360px; padding: 24px; outline: none; font-size: 15px; line-height: 1.8; overflow-wrap: anywhere; color: inherit; }
+.article-editor .tiptap > * + * { margin-top: 1em; }
+.article-editor .tiptap h2 { font-size: 1.6em; line-height: 1.3; font-weight: 750; }
+.article-editor .tiptap h3 { font-size: 1.25em; font-weight: 700; }
+.article-editor .tiptap ul { list-style: disc; padding-left: 1.5em; }
+.article-editor .tiptap ol { list-style: decimal; padding-left: 1.5em; }
+.article-editor .tiptap blockquote { border-left: 3px solid #3b82f6; padding-left: 1em; color: #64748b; }
+.article-editor .tiptap pre { background: #0f172a; color: #e2e8f0; border-radius: 12px; padding: 16px; overflow-x: auto; }
+.article-editor .tiptap code { font-family: monospace; font-size: .9em; }
+.article-editor .tiptap a { color: #2563eb; text-decoration: underline; }
+.article-editor .tiptap img { display: block; max-width: 100%; max-height: 640px; width: auto; height: auto; margin: 24px auto; border-radius: 12px; }
+.article-editor .tiptap img.ProseMirror-selectednode { outline: 3px solid #3b82f6; outline-offset: 4px; }
+.article-editor .tiptap p.is-editor-empty:first-child::before { content: attr(data-placeholder); color: #94a3b8; float: left; height: 0; pointer-events: none; }
+@media (max-width: 640px) { .article-editor .tiptap { padding: 16px; min-height: 280px; } }

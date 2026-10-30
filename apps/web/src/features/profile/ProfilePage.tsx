@@ -41,7 +41,7 @@ export const ProfilePage: React.FC = () => {
     community: 'FHub Engineering Community',
     major: (currentUser as any)?.major || 'Software Engineering (K18 - DevOps)',
     role: 'Student',
-    status: 'Verified Student · Cohort K18 (Semester 7)',
+    status: 'Verified Student · Cohort K18',
     memberSince: 'Sep 2022 (Cohort K18)',
     bio: 'K18 Software Engineering student at FPT University Can Tho (CE181522). Passionate about Cloud Infrastructure, DevOps, CI/CD Pipelines, Docker, Kubernetes, and .NET Microservices.',
     detailedBio: 'Final-year K18 Software Engineering student specializing in DevOps & Cloud-Native Architecture at FPT University Can Tho. Active contributor of PRN231, SWD392, and SEP490 study materials, Docker Compose templates, and automated GitHub Actions deployment workflows.',

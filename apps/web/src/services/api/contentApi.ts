@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import { normalizeMediaUrl } from '../../utils/mediaUtils';
 import type { ApiResponse } from './adminApi';
 
 
@@ -749,15 +750,20 @@ export const contentMediaApi = {
     if (scopeId) formData.append('scopeId', scopeId);
 
     const res = await apiClient.post<ApiResponse<StorageUploadResult>>('/api/content/media/upload', formData, {
+      timeout: 120000,
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     });
     const d = res.data.data;
-    const cleanPublicUrl = `/api/content/media/${(d.storageKey || '').replace(/^\/+/, '')}`;
+    if (!res.data.success || !d?.storageKey) {
+      throw new Error(res.data.message || 'Máy chủ không trả về ảnh đã tải lên.');
+    }
+    const cleanPublicUrl = normalizeMediaUrl(`/api/content/media/${d.storageKey.replace(/^\/+/, '').split('/').map(encodeURIComponent).join('/')}`);
     return {
       ...d,
-      publicUrl: cleanPublicUrl,
+      // Profile validation requires an absolute URL even when Vite proxies the API.
+      publicUrl: new URL(cleanPublicUrl, window.location.origin).href,
     };
   },
 };

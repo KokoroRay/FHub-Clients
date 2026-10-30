@@ -10,6 +10,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useCampusDetails } from '../../hooks/useCampusDetails';
+import { normalizeMediaUrl } from '../../utils/mediaUtils';
 
 export const RightSidebar: React.FC = () => {
   const { currentUser, currentCampus } = useAuth();
@@ -20,7 +21,6 @@ export const RightSidebar: React.FC = () => {
   const studentId = currentUser?.studentId || 'CE181522';
   const avatarInitials = studentName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'NT';
   const majorDisplay = (currentUser as any)?.majorName || (currentUser as any)?.major || 'Software Engineering (K18 - DevOps)';
-  const semesterDisplay = (currentUser as any)?.term || (currentUser as any)?.semester || 'Semester 7';
 
   const activities: Array<{
     id: string;
@@ -47,7 +47,7 @@ export const RightSidebar: React.FC = () => {
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 rounded-full bg-[#0076D1] text-white flex items-center justify-center font-bold text-sm ring-2 ring-blue-100 dark:ring-blue-900 shrink-0">
             {currentUser?.avatarUrl ? (
-              <img src={currentUser.avatarUrl} alt={studentName} className="w-full h-full rounded-full object-cover" />
+              <img src={normalizeMediaUrl(currentUser.avatarUrl)} alt={studentName} className="w-full h-full rounded-full object-cover" />
             ) : (
               <span>{avatarInitials}</span>
             )}
@@ -75,10 +75,6 @@ export const RightSidebar: React.FC = () => {
           <div className="flex items-center justify-between">
             <span className="text-slate-400">{t('common.major', 'Major')}:</span>
             <span className="font-medium text-slate-700 dark:text-slate-300">{majorDisplay}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-slate-400">{t('common.term', 'Semester')}:</span>
-            <span className="font-mono font-semibold text-slate-700 dark:text-slate-300">{semesterDisplay}</span>
           </div>
         </div>
 

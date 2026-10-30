@@ -1,32 +1,29 @@
-/**
- * Normalizes media URLs to use relative `/api/content/media/...` paths
- * ensuring they pass through Vite proxy and production ingress correctly,
- * and fixes any legacy or misconfigured URLs pointing to port 5004 or 5121.
- */
+const configuredApiUrl = (import.meta.env.VITE_API_URL || '').trim();
+
+/** Resolve persisted media paths against the API, including older local storage URLs. */
+export function resolveMediaUrl(url: string | undefined, apiUrl: string): string {
+  if (!url?.trim()) return '';
+  let path = url.trim();
+  if (/^(blob:|data:)/i.test(path)) return path;
+  path = path.replace(/^https?:\/\/(?:localhost|127\.0\.0\.1):(?:5004|5121)\/(?:api\/content\/media\/|storage\/)?/i, '/api/content/media/');
+  path = path.replace(/^\/storage\//, '/api/content/media/');
+  path = path.replace(/^https?:\/\/(?:www\.|ops\.|admin\.)?fhub\.com\.vn(\/api\/content\/media\/)/i, '$1');
+  if (!path.startsWith('/api/content/media/')) return path;
+  const base = apiUrl.trim().replace(/\/+$/, '').replace(/\/api$/, '');
+  return base + path;
+}
+
 export function normalizeMediaUrl(url?: string): string {
-  if (!url) return '';
-  const trimmed = url.trim();
-  if (trimmed.startsWith('blob:') || trimmed.startsWith('data:')) return trimmed;
+  return resolveMediaUrl(url, configuredApiUrl);
+}
 
-  // Fix obsolete or misconfigured backend port 5004 (e.g. http://localhost:5004/storage/...)
-  if (trimmed.includes(':5004/storage/')) {
-    return trimmed.replace(/^https?:\/\/[^/]+:5004\/storage\//, '/api/content/media/');
+export const IMAGE_ACCEPT = 'image/jpeg,image/png,image/webp,image/gif';
+
+export function validateImage(file: File, maxMB = 10): void {
+  if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) {
+    throw new Error('Vui lòng chọn ảnh PNG, JPG, WebP hoặc GIF.');
   }
-
-  // Fix http://localhost:5004/...
-  if (trimmed.includes(':5004/')) {
-    return trimmed.replace(/^https?:\/\/[^/]+:5004\/(api\/content\/media\/|storage\/)?/, '/api/content/media/');
+  if (!file.size || file.size > maxMB * 1024 * 1024) {
+    throw new Error('Dung lượng ảnh phải lớn hơn 0 và không vượt quá ' + maxMB + 'MB.');
   }
-
-  // If pointing to full content service port 5121, make it relative
-  if (trimmed.includes(':5121/api/content/media/')) {
-    return trimmed.replace(/^https?:\/\/[^/]+:5121/, '');
-  }
-
-  // If pointing to /storage/ directly, map to /api/content/media/
-  if (trimmed.startsWith('/storage/')) {
-    return trimmed.replace(/^\/storage\//, '/api/content/media/');
-  }
-
-  return trimmed;
 }
