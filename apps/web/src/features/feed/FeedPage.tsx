@@ -27,9 +27,12 @@ import { courseNodesApi, CourseNodeListItem } from '../../services/api/adminApi'
 import { filterCompactCourses } from '../../utils/courseFilter';
 import { notificationApi, NotificationItem, voteApi } from '../../services/api/studentApi';
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
+import { normalizeMediaUrl } from '../../utils/mediaUtils';
 
 export const FeedPage: React.FC = () => {
   const { currentUser, currentCampus, isAuthenticated } = useAuth();
+  const avatarUrl = normalizeMediaUrl(currentUser?.avatarUrl);
+  const [failedAvatarUrl, setFailedAvatarUrl] = useState<string | null>(null);
   const { locale, t } = useLanguage();
   const campusInfo = useCampusDetails(currentUser?.campus || currentCampus);
   const navigate = useNavigate();
@@ -248,8 +251,13 @@ export const FeedPage: React.FC = () => {
         {/* Right user badge */}
         <div className="flex items-center gap-3 bg-slate-50 dark:bg-[#333333] p-2.5 px-4 rounded-xl border border-slate-100 dark:border-[#272727]">
           <div className="w-9 h-9 rounded-full bg-[#0076D1] text-white flex items-center justify-center font-bold text-xs ring-2 ring-blue-100 shrink-0">
-            {currentUser?.avatarUrl ? (
-              <img src={currentUser.avatarUrl} alt={studentName} className="w-full h-full rounded-full object-cover" />
+            {avatarUrl && avatarUrl !== failedAvatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt={studentName}
+                onError={() => setFailedAvatarUrl(avatarUrl)}
+                className="w-full h-full rounded-full object-cover"
+              />
             ) : (
               <span>{studentInitials}</span>
             )}
