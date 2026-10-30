@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Code } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { courseNodesApi } from '../../services/api/adminApi';
 import { SharedWorkflow } from '../../types';
 import { Modal } from '../../components/common/Modal';
@@ -21,6 +22,7 @@ export const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
   onCreated,
 }) => {
   const { currentUser } = useAuth();
+  const { t } = useLanguage();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [courseCode, setCourseCode] = useState('');
@@ -52,7 +54,7 @@ export const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
   }, [courseCode]);
 
   const [steps, setSteps] = useState([
-    { stepNumber: 1, title: 'Bước 1: Cài đặt package', instruction: 'Chạy lệnh cài đặt NuGet packages', codeSnippet: 'dotnet add package ...', language: 'bash' },
+    { stepNumber: 1, title: '', instruction: '', codeSnippet: '', language: 'bash' },
   ]);
 
   const addStep = () => {
@@ -60,7 +62,7 @@ export const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
       ...steps,
       {
         stepNumber: steps.length + 1,
-        title: `Bước ${steps.length + 1}: `,
+        title: '',
         instruction: '',
         codeSnippet: '',
         language: 'bash',
@@ -85,11 +87,11 @@ export const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (title.trim().length < 8) {
-      setErrorMessage('Tên workflow cần tối thiểu 8 ký tự.');
+      setErrorMessage(t('workflowModal.errorTitleMin', 'Tên workflow cần tối thiểu 8 ký tự.'));
       return;
     }
     if (steps.length === 0 || !steps.some((s) => s.title.trim() || s.instruction.trim())) {
-      setErrorMessage('Workflow cần ít nhất 1 bước với tiêu đề hoặc hướng dẫn cụ thể.');
+      setErrorMessage(t('workflowModal.errorStepsMin', 'Workflow cần ít nhất 1 bước với tiêu đề hoặc hướng dẫn cụ thể.'));
       return;
     }
 
@@ -103,7 +105,7 @@ export const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
       steps,
       author: {
         id: currentUser?.id || 'usr-1',
-        fullName: currentUser?.fullName || 'Sinh viên FHub',
+        fullName: currentUser?.fullName || t("Sinh viên FHub"),
         avatarUrl: currentUser?.avatarUrl,
         role: currentUser?.role || 'Student',
         campus: currentUser?.campus || 'FU-HL',
@@ -135,24 +137,24 @@ export const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Chia sẻ Workflow / Code Boilerplate mới"
+      title={t('workflowModal.title', 'Chia sẻ Quy trình & Hướng dẫn học tập (Workflow)')}
       size="xl"
       footer={
         <>
-          <Button variant="outline" onClick={onClose}>Hủy</Button>
-          <Button variant="primary" onClick={handleSubmit}>Xuất bản Workflow (+25 Karma)</Button>
+          <Button variant="outline" onClick={onClose}>{t('common.cancel', 'Hủy')}</Button>
+          <Button variant="primary" onClick={handleSubmit}>{t('workflowModal.publish', 'Xuất bản Workflow (+25 Karma)')}</Button>
         </>
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4 text-xs">
         {errorMessage && (
           <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold">
-            {errorMessage}
+            {t(errorMessage)}
           </div>
         )}
         <Input
-          label="Tên Workflow"
-          placeholder="Ví dụ: Quy trình Setup Clean Architecture với EF Core & JWT Auth"
+          label={t('workflowModal.nameLabel', 'Tên Workflow')}
+          placeholder={t('workflowModal.namePlaceholder', 'Ví dụ: Quy trình làm bài tập lớn Assignment, Quy trình làm đồ án Capstone, Quy trình thiết kế Figma UI/UX, Quy trình phân tích SPSS...')}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           required
@@ -160,22 +162,22 @@ export const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <CourseSelect
-            label="Môn học áp dụng *"
+            label={t('workflowModal.courseLabel', 'Môn học áp dụng *')}
             value={courseCode}
             onChange={(code) => setCourseCode(code)}
             required
           />
           <Input
-            label="Công nghệ / Tech Stack"
-            placeholder=".NET 8, React, Node.js..."
+            label={t('workflowModal.techLabel', 'Công cụ / Phần mềm / Công nghệ')}
+            placeholder={t("Figma, SPSS, Excel, Canva, React, Python, Premiere, Jira, Photoshop...")}
             value={technology}
             onChange={(e) => setTechnology(e.target.value)}
           />
         </div>
 
         <Textarea
-          label="Mô tả tóm tắt quy trình"
-          placeholder="Quy trình này giúp sinh viên làm gì? Giải quyết vấn đề nào..."
+          label={t('workflowModal.descLabel', 'Mô tả tóm tắt quy trình')}
+          placeholder={t('workflowModal.descPlaceholder', 'Quy trình này giúp sinh viên làm gì? Giải quyết vấn đề nào...')}
           rows={2}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
@@ -183,16 +185,16 @@ export const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
 
         <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-3">
           <div className="flex items-center justify-between">
-            <h4 className="font-bold text-sm text-slate-900 dark:text-slate-100">Các bước thực hiện</h4>
+            <h4 className="font-bold text-sm text-slate-900 dark:text-slate-100">{t('workflowModal.stepsHeading', 'Các bước thực hiện')}</h4>
             <Button variant="secondary" size="sm" type="button" onClick={addStep} leftIcon={<Plus className="w-3.5 h-3.5" />}>
-              Thêm bước mới
+              {t('workflowModal.addStep', 'Thêm bước mới')}
             </Button>
           </div>
 
           {steps.map((step, idx) => (
             <div key={idx} className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="font-bold text-xs text-blue-600">Bước {step.stepNumber}</span>
+                <span className="font-bold text-xs text-blue-600">{t('workflowModal.stepPrefix', 'Bước')} {step.stepNumber}</span>
                 {steps.length > 1 && (
                   <button type="button" onClick={() => removeStep(idx)} className="text-rose-500 hover:text-rose-700 cursor-pointer">
                     <Trash2 className="w-4 h-4" />
@@ -201,21 +203,21 @@ export const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
               </div>
 
               <Input
-                placeholder="Tiêu đề bước (Ví dụ: Cấu hình DbContext)"
+                placeholder={t('workflowModal.stepTitlePlaceholder', 'Tiêu đề bước (Ví dụ: Cấu hình DbContext)')}
                 value={step.title}
                 onChange={(e) => updateStep(idx, 'title', e.target.value)}
                 required
               />
 
               <Textarea
-                placeholder="Hướng dẫn chi tiết bước này..."
+                placeholder={t('workflowModal.stepInstructionPlaceholder', 'Hướng dẫn chi tiết bước này...')}
                 rows={2}
                 value={step.instruction}
                 onChange={(e) => updateStep(idx, 'instruction', e.target.value)}
               />
 
               <Textarea
-                placeholder="Đoạn mã (Code snippet / Terminal command)..."
+                placeholder={t('workflowModal.stepCodePlaceholder', 'Đoạn mã (Code snippet / Terminal command)...')}
                 rows={3}
                 value={step.codeSnippet || ''}
                 onChange={(e) => updateStep(idx, 'codeSnippet', e.target.value)}

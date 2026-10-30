@@ -17,6 +17,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { notificationApi, NotificationItem as ApiNotificationItem } from '../../services/api/studentApi';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface NotificationItem {
   id: string;
@@ -34,9 +35,11 @@ interface NotificationItem {
 
 export const NotificationsPage: React.FC = () => {
   const navigate = useNavigate();
+  const { formatDate, formatTime, locale, t } = useLanguage();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [activeTab, setActiveTab] = useState<'all' | 'unread' | 'read'>('all');
   const [loading, setLoading] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   const fetchLiveNotifications = async () => {
     try {
@@ -46,25 +49,25 @@ export const NotificationsPage: React.FC = () => {
         const mapped: NotificationItem[] = liveItems.map(item => {
           const rawType = (item.type || '').toLowerCase();
           let mappedType: NotificationItem['type'] = 'community';
-          let label = 'Thông báo chung';
+          let label = t('notifications.typeCommunity', 'Thông báo chung');
           let color = 'bg-sky-50 text-sky-800 border-sky-100';
 
           if (rawType.includes('message')) {
             mappedType = 'message';
-            label = 'Tin nhắn mới';
-            color = 'bg-indigo-50 text-indigo-700 border-indigo-100';
+            label = t('notifications.typeMessage', 'Tin nhắn mới');
+            color = 'bg-sky-50 text-sky-700 border-sky-100';
           } else if (rawType.includes('article')) {
             mappedType = 'article';
-            label = 'Tương tác bài viết';
+            label = t('notifications.typeArticle', 'Tương tác bài viết');
             color = 'bg-emerald-50 text-emerald-700 border-emerald-100';
           } else if (rawType.includes('material')) {
             mappedType = 'material';
-            label = 'Tài liệu học tập';
+            label = t('notifications.typeMaterial', 'Tài liệu học tập');
             color = 'bg-blue-50 text-blue-700 border-blue-100';
           } else if (rawType.includes('evaluation') || rawType.includes('review')) {
             mappedType = 'evaluation';
-            label = 'Đánh giá môn học';
-            color = 'bg-purple-50 text-purple-700 border-purple-100';
+            label = t('notifications.typeEvaluation', 'Đánh giá môn học');
+            color = 'bg-blue-50 text-blue-700 border-blue-100';
           }
 
           return {
@@ -72,10 +75,10 @@ export const NotificationsPage: React.FC = () => {
             type: mappedType,
             typeLabel: label,
             typeColor: color,
-            time: item.createdAt ? new Date(item.createdAt).toLocaleDateString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'Vừa xong',
-            title: item.title || 'Thông báo mới',
+            time: item.createdAt ? item.createdAt : t('profile.recent', 'Gần đây'),
+            title: item.title || t('notifications.title', 'Thông báo'),
             description: item.message || '',
-            actionText: 'Chi tiết thông báo',
+            actionText: t('notifications.viewDetails', 'Chi tiết thông báo'),
             actionUrl: item.actionUrl || '/notifications',
             isRead: item.isRead,
           };
@@ -157,13 +160,13 @@ export const NotificationsPage: React.FC = () => {
   const getTypeIcon = (type: NotificationItem['type']) => {
     switch (type) {
       case 'message':
-        return <MessageSquare className="w-5 h-5 text-indigo-600" />;
+        return <MessageSquare className="w-5 h-5 text-sky-600" />;
       case 'article':
         return <FileText className="w-5 h-5 text-emerald-600" />;
       case 'material':
         return <BookOpen className="w-5 h-5 text-blue-600" />;
       case 'evaluation':
-        return <Star className="w-5 h-5 text-purple-600" />;
+        return <Star className="w-5 h-5 text-blue-600" />;
       case 'community':
       default:
         return <Users className="w-5 h-5 text-sky-600" />;
@@ -176,15 +179,15 @@ export const NotificationsPage: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-2">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-2xl font-bold text-[#181C22]">Notifications</h1>
+            <h1 className="text-2xl font-bold text-[#181C22]">{t('notifications.title', 'Notifications')}</h1>
             {unreadCount > 0 && (
               <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#EBF5FF] text-[#0076D1] border border-[#BFDBFE]">
-                {unreadCount} unread
+                {unreadCount} {t('notifications.unread', 'unread')}
               </span>
             )}
           </div>
           <p className="text-sm text-slate-500">
-            Stay updated on activity across the FHub community and academic spaces.
+            {t('notifications.subtitle', 'Stay updated on activity across the FHub community and academic spaces.')}
           </p>
         </div>
 
@@ -199,7 +202,7 @@ export const NotificationsPage: React.FC = () => {
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <span>All</span>
+              <span>{t('notifications.all', 'All')}</span>
               <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
                 activeTab === 'all' ? 'bg-blue-100 text-[#0076D1]' : 'bg-slate-200 text-slate-600'
               }`}>
@@ -214,7 +217,7 @@ export const NotificationsPage: React.FC = () => {
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <span>Unread</span>
+              <span>{t('notifications.tabUnread', 'Unread')}</span>
               <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
                 activeTab === 'unread' ? 'bg-blue-100 text-[#0076D1]' : 'bg-slate-200 text-slate-600'
               }`}>
@@ -229,7 +232,7 @@ export const NotificationsPage: React.FC = () => {
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              <span>Read</span>
+              <span>{t('notifications.tabRead', 'Read')}</span>
               <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
                 activeTab === 'read' ? 'bg-blue-100 text-[#0076D1]' : 'bg-slate-200 text-slate-600'
               }`}>
@@ -245,11 +248,11 @@ export const NotificationsPage: React.FC = () => {
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#0076D1] hover:bg-blue-50 border border-blue-200 rounded-xl transition-colors disabled:opacity-50 disabled:pointer-events-none"
             >
               <CheckCheck className="w-3.5 h-3.5" />
-              <span>Mark all as read</span>
+              <span>{t('notifications.markAllRead', 'Mark all as read')}</span>
             </button>
             <Link
               to="/settings"
-              title="Notification Settings"
+              title={t('notifications.settings', 'Notification Settings')}
               className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 border border-slate-200 rounded-xl transition-colors"
             >
               <Settings className="w-4 h-4" />
@@ -264,16 +267,16 @@ export const NotificationsPage: React.FC = () => {
         <div className="flex items-center justify-between px-6 py-3 border-b border-slate-100 bg-slate-50/50">
           <div className="flex items-center gap-3">
             <span className="font-mono text-xs font-semibold tracking-wider text-slate-500 uppercase">
-              Stream Feed
+              {t('notifications.streamFeed', 'STREAM FEED')}
             </span>
             <span className="text-slate-300">•</span>
             <span className="text-xs text-slate-500">
-              Displaying latest interactions
+              {t('notifications.displayingInteractions', 'Displaying latest interactions')}
             </span>
             {loading && (
               <span className="inline-flex items-center gap-1 text-xs text-[#0076D1]">
                 <Loader2 className="w-3 h-3 animate-spin" />
-                <span>Đang đồng bộ...</span>
+                <span>{t('notifications.syncing', 'Đang đồng bộ...')}</span>
               </span>
             )}
           </div>
@@ -282,7 +285,7 @@ export const NotificationsPage: React.FC = () => {
             className="flex items-center gap-1 text-xs text-slate-500 hover:text-[#0076D1] transition-colors"
           >
             <RotateCcw className="w-3 h-3" />
-            <span>Reset Feed</span>
+            <span>{t('notifications.resetFeed', 'Reset Feed')}</span>
           </button>
         </div>
 
@@ -290,8 +293,8 @@ export const NotificationsPage: React.FC = () => {
         {filteredNotifications.length === 0 ? (
           <div className="py-16 text-center text-slate-400">
             <Bell className="w-10 h-10 mx-auto mb-3 opacity-30" />
-            <p className="text-sm font-medium text-slate-600">No notifications found</p>
-            <p className="text-xs text-slate-400 mt-1">You are all caught up with community updates.</p>
+            <p className="text-sm font-medium text-slate-600">{t('notifications.emptyTitle', 'No notifications found')}</p>
+            <p className="text-xs text-slate-400 mt-1">{t('notifications.emptyDesc', 'You are all caught up with community updates.')}</p>
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
@@ -312,7 +315,7 @@ export const NotificationsPage: React.FC = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-2 mb-1">
                     <span className={`px-2 py-0.5 rounded-md text-[11px] font-semibold border ${notif.typeColor}`}>
-                      {notif.typeLabel}
+                      {t(notif.typeLabel) || notif.typeLabel}
                     </span>
                     {notif.courseCode && (
                       <span className="px-2 py-0.5 rounded-md text-[11px] font-mono font-medium bg-slate-100 text-slate-700 border border-slate-200">
@@ -320,7 +323,7 @@ export const NotificationsPage: React.FC = () => {
                       </span>
                     )}
                     <span className="text-xs text-slate-400 ml-auto">
-                      {notif.time}
+                      {formatDate(notif.time, { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
 
@@ -334,7 +337,7 @@ export const NotificationsPage: React.FC = () => {
 
                   <div className="mt-2.5 flex items-center gap-2">
                     <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#0076D1] group-hover:underline">
-                      <span>{notif.actionText}</span>
+                      <span>{t(notif.actionText)}</span>
                       <ExternalLink className="w-3 h-3" />
                     </span>
                   </div>
@@ -346,15 +349,20 @@ export const NotificationsPage: React.FC = () => {
                     <span className="w-2.5 h-2.5 rounded-full bg-[#0076D1] ring-4 ring-blue-100 mr-2" />
                   )}
                   <button
+                    id={`btn-toggle-read-${notif.id}`}
                     onClick={(e) => handleToggleRead(notif.id, e)}
-                    title={notif.isRead ? "Mark as unread" : "Mark as read"}
+                    title={notif.isRead ? t('notifications.markAsUnread', 'Mark as unread') : t('notifications.markAsRead', 'Mark as read')}
                     className="p-1.5 text-slate-400 hover:text-[#0076D1] hover:bg-white rounded-lg border border-transparent hover:border-slate-200 transition-colors"
                   >
                     <Check className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={(e) => handleDelete(notif.id, e)}
-                    title="Delete notification"
+                    id={`btn-delete-notif-${notif.id}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeleteTargetId(notif.id);
+                    }}
+                    title={t('notifications.delete', 'Delete notification')}
                     className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-white rounded-lg border border-transparent hover:border-slate-200 transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -366,6 +374,43 @@ export const NotificationsPage: React.FC = () => {
         )}
       </div>
 
+      {/* 3.12.3 Delete Notification Confirmation Modal */}
+      {deleteTargetId && (
+        <div id="modal-delete-notification" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full p-6 space-y-4 animate-in fade-in">
+            <div className="flex items-center gap-3 text-red-600">
+              <div className="p-2.5 rounded-xl bg-red-50">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">{t("Delete Notification")}</h3>
+                <p className="text-xs text-slate-500">{t("Remove from activity feed")}</p>
+              </div>
+            </div>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              {t("Are you sure you want to delete this notification from your personal activity stream?")}</p>
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setDeleteTargetId(null)}
+                className="px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+              >
+                {t("Cancel")}</button>
+              <button
+                id="btn-confirm-delete-notif"
+                type="button"
+                onClick={(e) => {
+                  handleDelete(deleteTargetId, e);
+                  setDeleteTargetId(null);
+                }}
+                className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors shadow-xs"
+              >
+                {t("Delete Notification")}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Notification Delivery Info Card (Figma #106:8424) */}
       <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-start gap-3.5">
@@ -373,9 +418,9 @@ export const NotificationsPage: React.FC = () => {
             <Mail className="w-5 h-5" />
           </div>
           <div>
-            <h4 className="text-sm font-bold text-slate-800">Email Digest Delivery</h4>
+            <h4 className="text-sm font-bold text-slate-800">{t('notifications.emailDigestTitle', 'Email Digest Delivery')}</h4>
             <p className="text-xs text-slate-500 mt-0.5">
-              A weekly digest of unread mentions and answers will be sent to your student mail.
+              {t('notifications.emailDigestDesc', 'A weekly digest of unread mentions and answers will be sent to your student mail.')}
             </p>
           </div>
         </div>
@@ -383,7 +428,7 @@ export const NotificationsPage: React.FC = () => {
           to="/settings"
           className="text-xs font-bold text-[#0076D1] hover:underline whitespace-nowrap px-3 py-1.5 rounded-lg border border-blue-200 bg-blue-50/50 hover:bg-blue-50 self-start sm:self-auto"
         >
-          Manage Digest Settings
+          {t('notifications.manageDigest', 'Manage Digest Settings')}
         </Link>
       </div>
     </div>

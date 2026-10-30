@@ -1,3 +1,4 @@
+import { useLanguage } from '../../context/LanguageContext';
 import React, { useState, useEffect } from 'react';
 import {
   Newspaper,
@@ -24,6 +25,7 @@ import { newsApi, ArticleListItem, ArticleDetailDto, ArticleRequest } from '../.
 import { useAuth } from '../../context/AuthContext';
 
 export const NewsManagementPage: React.FC = () => {
+  const { locale, t } = useLanguage();
   const { currentUser } = useAuth();
   const [newsList, setNewsList] = useState<ArticleListItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -90,17 +92,17 @@ export const NewsManagementPage: React.FC = () => {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.title.trim().length < 8) {
-      setFeedback({ type: 'error', message: 'Tiêu đề tin tức cần ít nhất 8 ký tự.' });
+      setFeedback({ type: 'error', message: t("Tiêu đề tin tức cần ít nhất 8 ký tự.") });
       return;
     }
     setFormSubmitting(true);
     try {
       await newsApi.createNews(formData);
-      setFeedback({ type: 'success', message: 'Tạo bản tin nhà trường thành công!' });
+      setFeedback({ type: 'success', message: t("Tạo bản tin nhà trường thành công!") });
       setIsCreateOpen(false);
       fetchNews();
     } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || 'Lỗi khi tạo tin tức.';
+      const msg = err.response?.data?.message || err.message || t("Lỗi khi tạo tin tức.");
       setFeedback({ type: 'error', message: msg });
     } finally {
       setFormSubmitting(false);
@@ -134,11 +136,11 @@ export const NewsManagementPage: React.FC = () => {
     setFormSubmitting(true);
     try {
       await newsApi.updateNews(selectedNews.articleId, formData, selectedNews.version);
-      setFeedback({ type: 'success', message: 'Cập nhật bản tin thành công!' });
+      setFeedback({ type: 'success', message: t("Cập nhật bản tin thành công!") });
       setIsEditOpen(false);
       fetchNews();
     } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || 'Lỗi khi cập nhật bản tin.';
+      const msg = err.response?.data?.message || err.message || t("Lỗi khi cập nhật bản tin.");
       setFeedback({ type: 'error', message: msg });
     } finally {
       setFormSubmitting(false);
@@ -155,11 +157,11 @@ export const NewsManagementPage: React.FC = () => {
     setFormSubmitting(true);
     try {
       await newsApi.deleteNews(selectedNews.articleId, selectedNews.version);
-      setFeedback({ type: 'success', message: 'Đã xóa bản tin nhà trường!' });
+      setFeedback({ type: 'success', message: t("Đã xóa bản tin nhà trường!") });
       setIsDeleteOpen(false);
       fetchNews();
     } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || 'Lỗi khi xóa bản tin.';
+      const msg = err.response?.data?.message || err.message || t("Lỗi khi xóa bản tin.");
       setFeedback({ type: 'error', message: msg });
     } finally {
       setFormSubmitting(false);
@@ -185,21 +187,19 @@ export const NewsManagementPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-900 p-6 rounded-2xl text-white shadow-lg">
+      {/* Page header: shared neutral surface and primary blue actions. */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-white/20 text-white border border-white/20 uppercase tracking-wider">
-              School Representative Portal
-            </span>
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-900 uppercase tracking-wider">
+              {t("School Representative Portal")}</span>
           </div>
-          <h1 className="text-xl sm:text-2xl font-black tracking-tight flex items-center gap-2">
-            <Newspaper className="w-6 h-6 text-blue-200" />
-            <span>Quản lý Tin Tức & Thông Báo Trường (News Management)</span>
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
+            <Newspaper className="w-6 h-6 text-blue-600" />
+            <span>{t("Quản lý Tin Tức & Thông Báo Trường (News Management)")}</span>
           </h1>
-          <p className="text-xs text-blue-100 max-w-2xl mt-1 leading-relaxed">
-            Kênh truyền thông chính thống từ Đại diện Nhà trường tới toàn thể sinh viên và cán bộ giảng viên FPT.
-          </p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-2xl mt-1 leading-relaxed">
+            {t("Kênh truyền thông chính thống từ Đại diện Nhà trường tới toàn thể sinh viên và cán bộ giảng viên FPT.")}</p>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -207,20 +207,18 @@ export const NewsManagementPage: React.FC = () => {
             size="sm"
             onClick={fetchNews}
             isLoading={isLoading}
-            className="bg-white/10 text-white border-white/20 hover:bg-white/20"
             leftIcon={<RefreshCw className="w-4 h-4" />}
           >
-            Làm mới
-          </Button>
+            {t("Làm mới")}</Button>
           <Button
             variant="primary"
             size="sm"
+            id="btn-create-news"
             onClick={openCreateModal}
-            className="bg-white text-blue-700 hover:bg-blue-50 font-bold shadow-md"
-            leftIcon={<Plus className="w-4 h-4 text-blue-700" />}
+            className="shrink-0"
+            leftIcon={<Plus className="w-4 h-4" />}
           >
-            Tạo bản tin mới
-          </Button>
+            {t("Tạo bản tin mới")}</Button>
         </div>
       </div>
 
@@ -232,7 +230,7 @@ export const NewsManagementPage: React.FC = () => {
               : 'bg-rose-50 border-rose-200 text-rose-800'
           }`}
         >
-          <span>{feedback.message}</span>
+          <span>{t(feedback.message)}</span>
           <button onClick={() => setFeedback(null)} className="text-slate-400 hover:text-slate-600 font-bold">×</button>
         </div>
       )}
@@ -245,7 +243,7 @@ export const NewsManagementPage: React.FC = () => {
               <Newspaper className="w-5 h-5" />
             </div>
             <div>
-              <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">Tổng số bản tin</span>
+              <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">{t("Tổng số bản tin")}</span>
               <span className="text-xl font-black text-slate-800">{newsList.length}</span>
             </div>
           </CardBody>
@@ -256,7 +254,7 @@ export const NewsManagementPage: React.FC = () => {
               <CheckCircle2 className="w-5 h-5" />
             </div>
             <div>
-              <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">Đang công khai</span>
+              <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">{t("Đang công khai")}</span>
               <span className="text-xl font-black text-emerald-600">{publishedCount}</span>
             </div>
           </CardBody>
@@ -267,7 +265,7 @@ export const NewsManagementPage: React.FC = () => {
               <Clock className="w-5 h-5" />
             </div>
             <div>
-              <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">Bản nháp (Draft)</span>
+              <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">{t("Bản nháp (Draft)")}</span>
               <span className="text-xl font-black text-amber-600">{draftCount}</span>
             </div>
           </CardBody>
@@ -282,13 +280,13 @@ export const NewsManagementPage: React.FC = () => {
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
-                placeholder="Tìm kiếm tiêu đề hoặc nội dung tin tức..."
+                placeholder={t("Tìm kiếm tiêu đề hoặc nội dung tin tức...")}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full pl-9 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
-            <Button type="submit" variant="secondary" size="sm">Tìm</Button>
+            <Button type="submit" variant="secondary" size="sm">{t("Tìm")}</Button>
           </form>
 
           <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -298,10 +296,10 @@ export const NewsManagementPage: React.FC = () => {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="text-xs bg-white border border-slate-200 rounded-xl px-3 py-2 font-medium"
             >
-              <option value="ALL">Tất cả trạng thái</option>
-              <option value="PUBLISHED">PUBLISHED (Công khai)</option>
-              <option value="DRAFT">DRAFT (Bản nháp)</option>
-              <option value="ARCHIVED">ARCHIVED (Lưu trữ)</option>
+              <option value="ALL">{t("Tất cả trạng thái")}</option>
+              <option value="PUBLISHED">{t("PUBLISHED (Công khai)")}</option>
+              <option value="DRAFT">{t("DRAFT (Bản nháp)")}</option>
+              <option value="ARCHIVED">{t("ARCHIVED (Lưu trữ)")}</option>
             </select>
           </div>
         </CardBody>
@@ -310,23 +308,23 @@ export const NewsManagementPage: React.FC = () => {
       {/* News Articles List */}
       <Card>
         <CardHeader>
-          <h3 className="font-bold text-sm text-slate-800">Danh Sách Bản Tin Chính Thức</h3>
+          <h3 className="font-bold text-sm text-slate-800">{t("Danh Sách Bản Tin Chính Thức")}</h3>
         </CardHeader>
         <CardBody className="p-0">
           {isLoading ? (
-            <div className="p-12 text-center text-xs text-slate-400">Đang tải danh sách tin tức...</div>
+            <div className="p-12 text-center text-xs text-slate-400">{t('news.loadingList', 'Đang tải danh sách tin tức...')}</div>
           ) : newsList.length === 0 ? (
-            <div className="p-12 text-center text-xs text-slate-400">Chưa có bản tin nào. Bấm "Tạo bản tin mới" để bắt đầu.</div>
+            <div className="p-12 text-center text-xs text-slate-400">{t("Chưa có bản tin nào. Bấm \"Tạo bản tin mới\" để bắt đầu.")}</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-xs text-left">
                 <thead className="bg-slate-50 text-slate-600 border-b border-slate-200 font-bold">
                   <tr>
-                    <th className="p-3.5">ID / Tiêu đề</th>
-                    <th className="p-3.5">Tóm tắt</th>
-                    <th className="p-3.5">Trạng thái</th>
-                    <th className="p-3.5">Ngày đăng</th>
-                    <th className="p-3.5 text-right">Thao tác</th>
+                    <th className="p-3.5">{t("ID / Tiêu đề")}</th>
+                    <th className="p-3.5">{t("Tóm tắt")}</th>
+                    <th className="p-3.5">{t("Trạng thái")}</th>
+                    <th className="p-3.5">{t("Ngày đăng")}</th>
+                    <th className="p-3.5 text-right">{t("Thao tác")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -338,48 +336,47 @@ export const NewsManagementPage: React.FC = () => {
                             <img src={item.coverImageUrl} alt="" className="w-12 h-9 rounded-lg object-cover shrink-0" />
                           ) : (
                             <div className="w-12 h-9 rounded-lg bg-blue-50 text-[#0076D1] flex items-center justify-center font-bold text-[10px] shrink-0">
-                              NEWS
-                            </div>
+                              {t("NEWS")}</div>
                           )}
                           <div>
                             <span className="font-bold text-slate-900 block line-clamp-1 hover:text-[#0076D1] cursor-pointer" onClick={() => viewDetail(item)}>
                               {item.title}
                             </span>
-                            <span className="text-[10px] text-slate-400 font-mono">ID: #{item.articleId} · v{item.version}</span>
+                            <span className="text-[10px] text-slate-400 font-mono">{t("ID: #")}{item.articleId} · v{item.version}</span>
                           </div>
                         </div>
                       </td>
                       <td className="p-3.5 max-w-sm text-slate-600 line-clamp-2 leading-relaxed">
-                        {item.summary || 'Chưa có tóm tắt ngắn'}
+                        {item.summary || t("Chưa có tóm tắt ngắn")}
                       </td>
                       <td className="p-3.5">
                         <Badge size="sm" variant={item.status === 'PUBLISHED' ? 'success' : item.status === 'DRAFT' ? 'warning' : 'secondary'}>
-                          {item.status}
+                          {t(item.status)}
                         </Badge>
                       </td>
                       <td className="p-3.5 text-slate-500 whitespace-nowrap">
-                        {item.publishedAt ? new Date(item.publishedAt).toLocaleDateString('vi-VN') : item.createdAt ? new Date(item.createdAt).toLocaleDateString('vi-VN') : '—'}
+                        {item.publishedAt ? new Date(item.publishedAt).toLocaleDateString(locale) : item.createdAt ? new Date(item.createdAt).toLocaleDateString(locale) : '—'}
                       </td>
                       <td className="p-3.5 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => viewDetail(item)}
                             className="p-1.5 text-slate-500 hover:text-blue-600 rounded-lg hover:bg-slate-100"
-                            title="Xem chi tiết"
+                            title={t("Xem chi tiết")}
                           >
                             <Eye className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => openEditModal(item)}
                             className="p-1.5 text-slate-500 hover:text-amber-600 rounded-lg hover:bg-slate-100"
-                            title="Chỉnh sửa"
+                            title={t("Chỉnh sửa")}
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => openDeleteModal(item)}
                             className="p-1.5 text-slate-500 hover:text-rose-600 rounded-lg hover:bg-slate-100"
-                            title="Xóa"
+                            title={t("Xóa")}
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -396,110 +393,104 @@ export const NewsManagementPage: React.FC = () => {
 
       {/* CREATE MODAL */}
       <Modal
+        size="lg"
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
-        title="Đăng Tin Tức Nhà Trường Mới"
+        title={t("Đăng Tin Tức Nhà Trường Mới")}
         footer={
           <>
-            <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Hủy</Button>
-            <Button variant="primary" onClick={handleCreate} isLoading={formSubmitting}>Xuất bản tin tức</Button>
+            <Button variant="outline" onClick={() => setIsCreateOpen(false)}>{t("Hủy")}</Button>
+            <Button variant="primary" onClick={handleCreate} isLoading={formSubmitting}>{t("Xuất bản tin tức")}</Button>
           </>
         }
       >
         <form onSubmit={handleCreate} className="space-y-4 text-xs">
           <Input
-            label="Tiêu đề bản tin *"
-            placeholder="Ví dụ: Thông báo Lịch đăng ký Tín chỉ Học kỳ Fall 2026"
+            label={t("Tiêu đề bản tin *")}
+            placeholder={t("Ví dụ: Thông báo Lịch đăng ký Tín chỉ Học kỳ Fall 2026")}
             value={formData.title}
             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
             required
           />
           <Input
-            label="Ảnh bìa (Cover Image URL)"
-            placeholder="https://..."
+            label={t("Ảnh bìa (Cover Image URL)")}
+            placeholder={t("https://...")}
             value={formData.coverImageUrl}
             onChange={(e) => setFormData({ ...formData, coverImageUrl: e.target.value })}
           />
           <Textarea
-            label="Tóm tắt ngắn (Summary) *"
+            label={t("Tóm tắt ngắn (Summary) *")}
             rows={2}
-            placeholder="Tóm tắt ngắn gọn nội dung thông báo để hiển thị trên bảng tin..."
+            placeholder={t("Tóm tắt ngắn gọn nội dung thông báo để hiển thị trên bảng tin...")}
             value={formData.summary}
             onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
             required
           />
           <Textarea
-            label="Nội dung chi tiết bài viết (Markdown / Text) *"
+            label={t("Nội dung chi tiết bài viết (Markdown / Text) *")}
             rows={6}
-            placeholder="Nhập toàn văn thông báo, các mốc thời gian và hướng dẫn cho sinh viên..."
+            placeholder={t("Nhập toàn văn thông báo, các mốc thời gian và hướng dẫn cho sinh viên...")}
             value={formData.content}
             onChange={(e) => setFormData({ ...formData, content: e.target.value })}
             required
           />
-          <div>
-            <label className="font-bold text-slate-700 block mb-1">Trạng thái xuất bản</label>
-            <select
+          <Select label={t("Trạng thái xuất bản")}
               value={formData.status}
               onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl"
             >
-              <option value="PUBLISHED">Công khai ngay (PUBLISHED)</option>
-              <option value="DRAFT">Lưu bản nháp (DRAFT)</option>
-            </select>
-          </div>
+              <option value="PUBLISHED">{t("Công khai ngay (PUBLISHED)")}</option>
+              <option value="DRAFT">{t("Lưu bản nháp (DRAFT)")}</option>
+            </Select>
         </form>
       </Modal>
 
       {/* EDIT MODAL */}
       <Modal
+        size="lg"
         isOpen={isEditOpen}
         onClose={() => setIsEditOpen(false)}
-        title={`Chỉnh Sửa Bản Tin #${selectedNews?.articleId}`}
+        title={t("Chỉnh Sửa Bản Tin #{p0}", undefined, { p0: selectedNews?.articleId })}
         footer={
           <>
-            <Button variant="outline" onClick={() => setIsEditOpen(false)}>Hủy</Button>
-            <Button variant="primary" onClick={handleUpdate} isLoading={formSubmitting}>Lưu thay đổi</Button>
+            <Button variant="outline" onClick={() => setIsEditOpen(false)}>{t("Hủy")}</Button>
+            <Button variant="primary" onClick={handleUpdate} isLoading={formSubmitting}>{t("Lưu thay đổi")}</Button>
           </>
         }
       >
         <form onSubmit={handleUpdate} className="space-y-4 text-xs">
           <Input
-            label="Tiêu đề bản tin *"
+            label={t("Tiêu đề bản tin *")}
             value={formData.title}
             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
             required
           />
           <Input
-            label="Ảnh bìa (Cover Image URL)"
+            label={t("Ảnh bìa (Cover Image URL)")}
             value={formData.coverImageUrl}
             onChange={(e) => setFormData({ ...formData, coverImageUrl: e.target.value })}
           />
           <Textarea
-            label="Tóm tắt ngắn *"
+            label={t("Tóm tắt ngắn *")}
             rows={2}
             value={formData.summary}
             onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
             required
           />
           <Textarea
-            label="Nội dung chi tiết *"
+            label={t("Nội dung chi tiết *")}
             rows={6}
             value={formData.content}
             onChange={(e) => setFormData({ ...formData, content: e.target.value })}
             required
           />
-          <div>
-            <label className="font-bold text-slate-700 block mb-1">Trạng thái</label>
-            <select
+          <Select label={t("Trạng thái")}
               value={formData.status}
               onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-              className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl"
             >
-              <option value="PUBLISHED">PUBLISHED (Công khai)</option>
-              <option value="DRAFT">DRAFT (Bản nháp)</option>
-              <option value="ARCHIVED">ARCHIVED (Lưu trữ)</option>
-            </select>
-          </div>
+              <option value="PUBLISHED">{t("PUBLISHED (Công khai)")}</option>
+              <option value="DRAFT">{t("DRAFT (Bản nháp)")}</option>
+              <option value="ARCHIVED">{t("ARCHIVED (Lưu trữ)")}</option>
+            </Select>
         </form>
       </Modal>
 
@@ -507,21 +498,20 @@ export const NewsManagementPage: React.FC = () => {
       <Modal
         isOpen={isDeleteOpen}
         onClose={() => setIsDeleteOpen(false)}
-        title="Xác nhận xóa bản tin"
+        title={t("Xác nhận xóa bản tin")}
         footer={
           <>
-            <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>Hủy</Button>
-            <Button variant="danger" onClick={handleDelete} isLoading={formSubmitting}>Xóa vĩnh viễn</Button>
+            <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>{t("Hủy")}</Button>
+            <Button variant="danger" onClick={handleDelete} isLoading={formSubmitting}>{t("Xóa vĩnh viễn")}</Button>
           </>
         }
       >
         <div className="space-y-3 text-xs">
           <p className="text-slate-600">
-            Bạn có chắc chắn muốn xóa bản tin <strong>"{selectedNews?.title}"</strong>?
+            {t("Bạn có chắc chắn muốn xóa bản tin")} <strong>"{selectedNews?.title}"</strong>?
           </p>
           <p className="text-rose-600 font-semibold">
-            Hành động này sẽ gỡ bỏ bản tin khỏi trang tin của sinh viên và không thể hoàn tác.
-          </p>
+            {t("Hành động này sẽ gỡ bỏ bản tin khỏi trang tin của sinh viên và không thể hoàn tác.")}</p>
         </div>
       </Modal>
 
@@ -529,19 +519,19 @@ export const NewsManagementPage: React.FC = () => {
       <Modal
         isOpen={isDetailOpen}
         onClose={() => setIsDetailOpen(false)}
-        title={selectedDetail?.title || 'Chi tiết bản tin'}
-        footer={<Button variant="outline" onClick={() => setIsDetailOpen(false)}>Đóng</Button>}
+        title={selectedDetail?.title || t("Chi tiết bản tin")}
+        footer={<Button variant="outline" onClick={() => setIsDetailOpen(false)}>{t("Đóng")}</Button>}
       >
         {detailLoading ? (
-          <div className="p-8 text-center text-xs text-slate-400">Đang tải nội dung...</div>
+          <div className="p-8 text-center text-xs text-slate-400">{t('news.loadingContent', 'Đang tải nội dung...')}</div>
         ) : selectedDetail ? (
           <div className="space-y-4 text-xs">
             {selectedDetail.coverImageUrl && (
               <img src={selectedDetail.coverImageUrl} alt="" className="w-full max-h-48 object-cover rounded-xl" />
             )}
             <div className="flex items-center gap-2">
-              <Badge variant="success" size="sm">{selectedDetail.status}</Badge>
-              <span className="text-slate-400">Ngày đăng: {selectedDetail.publishedAt ? new Date(selectedDetail.publishedAt).toLocaleString('vi-VN') : '—'}</span>
+              <Badge variant="success" size="sm">{t(selectedDetail.status)}</Badge>
+              <span className="text-slate-400">{t("Ngày đăng:")} {selectedDetail.publishedAt ? new Date(selectedDetail.publishedAt).toLocaleString(locale) : '—'}</span>
             </div>
             {selectedDetail.summary && (
               <div className="p-3 bg-blue-50/60 border border-blue-100 rounded-xl text-blue-900 font-medium">

@@ -1,5 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RotateCcw, Home } from 'lucide-react';
+import { LanguageContext } from '../../context/LanguageContext';
 
 interface Props {
   children: ReactNode;
@@ -13,6 +14,8 @@ interface State {
 }
 
 export class ErrorBoundary extends Component<Props, State> {
+  static contextType = LanguageContext;
+  declare context: React.ContextType<typeof LanguageContext>;
   public state: State = {
     hasError: false,
     error: null,
@@ -39,6 +42,7 @@ export class ErrorBoundary extends Component<Props, State> {
   };
 
   public render() {
+    const t = this.context!.t;
     if (this.state.hasError) {
       if (this.props.fallback) {
         return this.props.fallback;
@@ -53,10 +57,10 @@ export class ErrorBoundary extends Component<Props, State> {
 
             <div className="space-y-1.5">
               <h2 className="text-xl font-bold text-[#181C22]">
-                Đã xảy ra sự cố hiển thị giao diện
+                {t('Đã xảy ra sự cố hiển thị giao diện')}
               </h2>
               <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
-                Hệ thống gặp một lỗi ngoại lệ không mong muốn khi tải thành phần này. Vui lòng tải lại hoặc quay về trang chủ.
+                {t('Hệ thống gặp một lỗi ngoại lệ không mong muốn khi tải thành phần này. Vui lòng tải lại hoặc quay về trang chủ.')}
               </p>
             </div>
 
@@ -73,7 +77,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#0076D1] hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>Tải lại trang</span>
+                <span>{t('Tải lại trang')}</span>
               </button>
 
               <button
@@ -82,7 +86,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl border border-slate-200 transition-colors cursor-pointer"
               >
                 <Home className="w-3.5 h-3.5" />
-                <span>Về trang chủ</span>
+                <span>{t('Về trang chủ')}</span>
               </button>
             </div>
           </div>

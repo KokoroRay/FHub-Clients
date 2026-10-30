@@ -1,3 +1,5 @@
+import { useConfirmDialog } from '../../../components/common/useConfirmDialog';
+import { useLanguage } from '../../../context/LanguageContext';
 import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
@@ -46,6 +48,8 @@ import {
 } from '../../../services/api';
 
 export const UserDetailPage: React.FC = () => {
+  const { confirm, confirmationDialog } = useConfirmDialog();
+  const { locale, t } = useLanguage();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const numericId = id?.replace(/\D/g, '') || '1';
@@ -116,28 +120,28 @@ export const UserDetailPage: React.FC = () => {
         },
       });
       await refetch();
-      setActionSuccess(`Account status updated to ${newStatus} on Backend.`);
+      setActionSuccess(t("Account status updated to {p0} on Backend.", undefined, { p0: newStatus }));
     } catch (e: any) {
       console.warn('API status toggle error, falling back locally', e);
       setOverrides((prev) => ({ ...prev, status: newStatus }));
-      setActionSuccess(`Account status updated locally (${e?.message || 'Error'})`);
+      setActionSuccess(t("Account status updated locally ({p0})", undefined, { p0: e?.message || 'Error' }));
     }
     setTimeout(() => setActionSuccess(null), 3000);
   };
 
   // 2. Delete User Account (Soft Delete)
   const handleDeleteAccount = async () => {
-    if (!window.confirm(`Are you sure you want to soft delete account #${numericId}?`)) return;
+    if (!await confirm(t("Are you sure you want to soft delete account #{p0}?", undefined, { p0: numericId }))) return;
     try {
       await deleteAccountMutation.mutateAsync({
         id: numericId,
         reason: 'Account soft deleted by Administrator',
       });
-      setActionSuccess(`Account #${numericId} deleted successfully.`);
+      setActionSuccess(t("Account #{p0} deleted successfully.", undefined, { p0: numericId }));
       setTimeout(() => navigate('/users'), 1500);
     } catch (e: any) {
       console.error('Delete user error:', e);
-      setActionSuccess(`Error deleting user: ${e?.message || 'Failed'}`);
+      setActionSuccess(t("Error deleting user: {p0}", undefined, { p0: e?.message || 'Failed' }));
       setTimeout(() => setActionSuccess(null), 3500);
     }
   };
@@ -151,33 +155,33 @@ export const UserDetailPage: React.FC = () => {
       });
       await refetch();
       setShowRoleModal(false);
-      setActionSuccess(`Role '${roleCode}' assigned successfully to user.`);
+      setActionSuccess(t("Role '{p0}' assigned successfully to user.", undefined, { p0: roleCode }));
     } catch (e: any) {
       console.error('Assign role error:', e);
       const current = user.inlinePolicies || [];
       if (!current.includes(roleCode)) {
         setOverrides((prev) => ({ ...prev, inlinePolicies: [...current, roleCode] }));
       }
-      setActionSuccess(`Role assigned locally (${e?.message || 'Backend error'})`);
+      setActionSuccess(t("Role assigned locally ({p0})", undefined, { p0: e?.message || 'Backend error' }));
     }
     setTimeout(() => setActionSuccess(null), 3000);
   };
 
   // 4. Revoke Role
   const handleRevokeRole = async (roleCode: string) => {
-    if (!window.confirm(`Revoke role '${roleCode}' from this user?`)) return;
+    if (!await confirm(t("Revoke role '{p0}' from this user?", undefined, { p0: roleCode }))) return;
     try {
       await revokeRoleMutation.mutateAsync({
         userId: numericId,
         roleCode,
       });
       await refetch();
-      setActionSuccess(`Role '${roleCode}' revoked successfully.`);
+      setActionSuccess(t("Role '{p0}' revoked successfully.", undefined, { p0: roleCode }));
     } catch (e: any) {
       console.error('Revoke role error:', e);
       const current = user.inlinePolicies || [];
       setOverrides((prev) => ({ ...prev, inlinePolicies: current.filter((r) => r !== roleCode) }));
-      setActionSuccess(`Role revoked locally (${e?.message || 'Backend error'})`);
+      setActionSuccess(t("Role revoked locally ({p0})", undefined, { p0: e?.message || 'Backend error' }));
     }
     setTimeout(() => setActionSuccess(null), 3000);
   };
@@ -196,10 +200,10 @@ export const UserDetailPage: React.FC = () => {
       await refetch();
       await refetchVerification();
       setReviewNote('');
-      setActionSuccess(`Verification request ${decision.toLowerCase()} successfully on Governance Service.`);
+      setActionSuccess(t("Verification request {p0} successfully on Governance Service.", undefined, { p0: decision.toLowerCase() }));
     } catch (e: any) {
       console.error('Verification error:', e);
-      setActionSuccess(`Verification error: ${e?.response?.data?.message || e?.message || 'Failed'}`);
+      setActionSuccess(t("Verification error: {p0}", undefined, { p0: e?.response?.data?.message || e?.message || 'Failed' }));
     }
     setTimeout(() => setActionSuccess(null), 3500);
   };
@@ -213,38 +217,37 @@ export const UserDetailPage: React.FC = () => {
     if (user.activeSessions) {
       const updatedSessions = user.activeSessions.filter((s) => s.id !== sessionId);
       setOverrides((prev) => ({ ...prev, activeSessions: updatedSessions }));
-      setActionSuccess('Device session revoked successfully.');
+      setActionSuccess(t("Device session revoked successfully."));
       setTimeout(() => setActionSuccess(null), 3000);
     }
   };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
+      {confirmationDialog}
       {/* Breadcrumbs & Header (Figma 55:3199) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-            <Link to="/users" className="hover:text-blue-600 transition-colors">USER MANAGEMENT</Link>
-            <span>&gt;</span>
-            <Link to="/users" className="hover:text-blue-600 transition-colors">DIRECTORY</Link>
-            <span>&gt;</span>
+            <Link to="/users" className="hover:text-blue-600 transition-colors">{t("USER MANAGEMENT")}</Link>
+            <span>{t("&gt;")}</span>
+            <Link to="/users" className="hover:text-blue-600 transition-colors">{t("DIRECTORY")}</Link>
+            <span>{t("&gt;")}</span>
             <span className="text-blue-600">{user.fullName}</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            User Account Detail
-          </h1>
+            {t("User Account Detail")}</h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            View and manage institutional student profile, permissions, active sessions, and karma score.
-          </p>
+            {t("View and manage institutional student profile, permissions, active sessions, and karma score.")}</p>
         </div>
 
         <div className="flex items-center gap-2.5">
           <button
-            onClick={() => { setActionSuccess(`Profile export PDF generated for ${user.fullName}.`); setTimeout(() => setActionSuccess(null), 3500); }}
+            onClick={() => { setActionSuccess(t("Profile export PDF generated for {p0}.", undefined, { p0: user.fullName })); setTimeout(() => setActionSuccess(null), 3500); }}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 shadow-2xs transition-colors cursor-pointer"
           >
             <Download className="w-3.5 h-3.5 text-slate-500" />
-            <span>Export Profile</span>
+            <span>{t("Export Profile")}</span>
           </button>
 
           {user.status === 'ACTIVE' ? (
@@ -253,7 +256,7 @@ export const UserDetailPage: React.FC = () => {
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 text-xs font-semibold text-rose-700 transition-colors cursor-pointer"
             >
               <ShieldAlert className="w-3.5 h-3.5" />
-              <span>Suspend Account</span>
+              <span>{t("Suspend Account")}</span>
             </button>
           ) : (
             <button
@@ -261,17 +264,17 @@ export const UserDetailPage: React.FC = () => {
               className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Restore Active</span>
+              <span>{t("Restore Active")}</span>
             </button>
           )}
 
           <button
             onClick={handleDeleteAccount}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-rose-50 border border-rose-200 text-xs font-semibold text-rose-600 transition-colors cursor-pointer"
-            title="Soft Delete User Account"
+            title={t("Soft Delete User Account")}
           >
             <Trash2 className="w-3.5 h-3.5 text-rose-600" />
-            <span>Delete User</span>
+            <span>{t("Delete User")}</span>
           </button>
         </div>
       </div>
@@ -279,7 +282,7 @@ export const UserDetailPage: React.FC = () => {
       {actionSuccess && (
         <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center gap-2 animate-fadeIn">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span>{actionSuccess}</span>
+          <span>{t(actionSuccess)}</span>
         </div>
       )}
 
@@ -297,7 +300,7 @@ export const UserDetailPage: React.FC = () => {
                 <h2 className="text-lg font-bold text-slate-900">{user.fullName}</h2>
                 <CheckCircle2 className="w-4 h-4 text-blue-600 fill-blue-50" />
                 <span className="text-[10px] font-bold px-2 py-0.2 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  {user.role} ({user.status})
+                  {t(user.role)} ({t(user.status)})
                 </span>
               </div>
 
@@ -307,18 +310,18 @@ export const UserDetailPage: React.FC = () => {
                 <span className="text-slate-600 font-mono text-[11px]">{user.email}</span>
                 <span>•</span>
                 <span className="flex items-center gap-1 text-slate-700">
-                  <MapPin className="w-3.5 h-3.5 text-blue-600" /> Campus: {user.campus}
+                  <MapPin className="w-3.5 h-3.5 text-blue-600" />  {t("Campus:")} {user.campus}
                 </span>
                 <span>•</span>
-                <span>Joined: {user.verifiedAt ? new Date(user.verifiedAt).toLocaleDateString() : 'N/A'}</span>
+                <span>{t("Joined:")} {user.verifiedAt ? new Date(user.verifiedAt).toLocaleDateString(locale) : 'N/A'}</span>
               </div>
             </div>
           </div>
 
           <div className="flex items-center gap-3 md:border-l md:border-slate-100 md:pl-6">
             <div>
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Karma Points</span>
-              <div className="text-xl font-bold text-blue-600">{user.karma || 0} pts</div>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">{t("Karma Points")}</span>
+              <div className="text-xl font-bold text-blue-600">{user.karma || 0}  {t("pts")}</div>
             </div>
           </div>
         </div>
@@ -330,43 +333,43 @@ export const UserDetailPage: React.FC = () => {
         <div className="lg:col-span-8 space-y-6">
           {/* Personal & Academic Information Card */}
           <div className="p-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-4">
-            <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Personal & Academic Information</h3>
+            <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">{t("Personal & Academic Information")}</h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
               <div>
-                <span className="text-slate-400 text-[11px] block">Full Legal Name</span>
+                <span className="text-slate-400 text-[11px] block">{t("Full Legal Name")}</span>
                 <span className="font-semibold text-slate-800">{user.fullName}</span>
               </div>
               <div>
-                <span className="text-slate-400 text-[11px] block">Student / Staff ID</span>
+                <span className="text-slate-400 text-[11px] block">{t("Student / Staff ID")}</span>
                 <span className="font-mono font-semibold text-slate-800">{user.studentId || 'N/A'}</span>
               </div>
               <div>
-                <span className="text-slate-400 text-[11px] block">Institutional Email</span>
+                <span className="text-slate-400 text-[11px] block">{t("Institutional Email")}</span>
                 <span className="font-mono text-slate-800">{user.email}</span>
               </div>
               <div>
-                <span className="text-slate-400 text-[11px] block">Contact Phone</span>
+                <span className="text-slate-400 text-[11px] block">{t("Contact Phone")}</span>
                 <span className="font-mono text-slate-800">{user.phone || 'N/A'}</span>
               </div>
               <div>
-                <span className="text-slate-400 text-[11px] block">Current Major</span>
+                <span className="text-slate-400 text-[11px] block">{t("Current Major")}</span>
                 <span className="font-semibold text-slate-800">{user.major || 'N/A'}</span>
               </div>
               <div>
-                <span className="text-slate-400 text-[11px] block">Campus Partition</span>
-                <span className="font-semibold text-slate-800">{user.campus ? `Campus ${user.campus}` : 'N/A'}</span>
+                <span className="text-slate-400 text-[11px] block">{t("Campus Partition")}</span>
+                <span className="font-semibold text-slate-800">{user.campus ? t("Campus {p0}", undefined, { p0: user.campus }) : 'N/A'}</span>
               </div>
             </div>
 
             {user.academicProfile && (
               <div className="p-3.5 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between text-xs pt-3 mt-2">
                 <div>
-                  <span className="text-slate-400 text-[11px]">Academic Progress</span>
-                  <div className="font-bold text-slate-800">{user.academicProfile.completedCredits} / 144 Credits</div>
+                  <span className="text-slate-400 text-[11px]">{t("Academic Progress")}</span>
+                  <div className="font-bold text-slate-800">{user.academicProfile.completedCredits}  {t("/ 144 Credits")}</div>
                 </div>
                 <div className="text-right">
-                  <span className="text-slate-400 text-[11px]">Cumulative GPA</span>
+                  <span className="text-slate-400 text-[11px]">{t("Cumulative GPA")}</span>
                   <div className="font-bold text-emerald-600 text-sm">{user.academicProfile.gpa} / 4.0</div>
                 </div>
               </div>
@@ -376,13 +379,12 @@ export const UserDetailPage: React.FC = () => {
           {/* Roles & Permissions Card */}
           <div className="p-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-3.5">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Roles & Permissions (Identity IAM)</h3>
+              <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">{t("Roles & Permissions (Identity IAM)")}</h3>
               <button
                 onClick={() => setShowRoleModal(!showRoleModal)}
                 className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 cursor-pointer"
               >
-                <Plus className="w-3.5 h-3.5" /> Gán Role mới
-              </button>
+                <Plus className="w-3.5 h-3.5" />  {t("Gán Role mới")}</button>
             </div>
 
             {showRoleModal && (
@@ -392,17 +394,16 @@ export const UserDetailPage: React.FC = () => {
                   onChange={(e) => setSelectedNewRole(e.target.value)}
                   className="flex-1 bg-white border border-slate-200 rounded px-2.5 py-1.5 text-xs font-semibold text-slate-800"
                 >
-                  <option value="CommunityModerator">Community Moderator (Kiểm duyệt viên)</option>
-                  <option value="Staff">Staff (Cán bộ nhà trường)</option>
-                  <option value="Admin">Admin (Quản trị viên hệ thống)</option>
-                  <option value="Student">Student (Sinh viên)</option>
+                  <option value="CommunityModerator">{t("Community Moderator (Kiểm duyệt viên)")}</option>
+                  <option value="Staff">{t("Staff (Cán bộ nhà trường)")}</option>
+                  <option value="Admin">{t("Admin (Quản trị viên hệ thống)")}</option>
+                  <option value="Student">{t("Student (Sinh viên)")}</option>
                 </select>
                 <button
                   onClick={() => handleAssignRole(selectedNewRole)}
                   className="px-3.5 py-1.5 bg-blue-600 text-white rounded text-xs font-semibold hover:bg-blue-700 cursor-pointer"
                 >
-                  Gán Role
-                </button>
+                  {t("Gán Role")}</button>
               </div>
             )}
 
@@ -427,35 +428,35 @@ export const UserDetailPage: React.FC = () => {
 
           {/* Community Contributions (5 boxes) */}
           <div className="p-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-3.5">
-            <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Community Contributions</h3>
+            <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">{t("Community Contributions")}</h3>
 
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
               <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
                 <div className="text-lg font-bold text-slate-900">{user.activityStats?.questionsCount || 0}</div>
-                <div className="text-[10px] text-slate-500 uppercase font-semibold mt-0.5">QUESTIONS</div>
+                <div className="text-[10px] text-slate-500 uppercase font-semibold mt-0.5">{t("QUESTIONS")}</div>
               </div>
               <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
                 <div className="text-lg font-bold text-emerald-600">{user.activityStats?.answersCount || 0}</div>
-                <div className="text-[10px] text-slate-500 uppercase font-semibold mt-0.5">ANSWERS</div>
+                <div className="text-[10px] text-slate-500 uppercase font-semibold mt-0.5">{t("ANSWERS")}</div>
               </div>
               <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
                 <div className="text-lg font-bold text-slate-900">{user.activityStats?.materialsUploaded || 0}</div>
-                <div className="text-[10px] text-slate-500 uppercase font-semibold mt-0.5">MATERIALS</div>
+                <div className="text-[10px] text-slate-500 uppercase font-semibold mt-0.5">{t("MATERIALS")}</div>
               </div>
               <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
                 <div className="text-lg font-bold text-slate-900">{user.activityStats?.articlesCount || 0}</div>
-                <div className="text-[10px] text-slate-500 uppercase font-semibold mt-0.5">ARTICLES</div>
+                <div className="text-[10px] text-slate-500 uppercase font-semibold mt-0.5">{t("ARTICLES")}</div>
               </div>
               <div className="p-3 bg-slate-50 rounded-lg border border-slate-100">
                 <div className="text-lg font-bold text-blue-600">{user.karma || 0}</div>
-                <div className="text-[10px] text-slate-500 uppercase font-semibold mt-0.5">KARMA REP</div>
+                <div className="text-[10px] text-slate-500 uppercase font-semibold mt-0.5">{t("KARMA REP")}</div>
               </div>
             </div>
           </div>
 
           {/* Recent Activity Timeline & Account Status History */}
           <div className="p-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-3">
-            <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Account Status & Audit History</h3>
+            <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">{t("Account Status & Audit History")}</h3>
 
             {beAccountData?.statusHistory && beAccountData.statusHistory.length > 0 ? (
               <div className="space-y-3">
@@ -468,20 +469,19 @@ export const UserDetailPage: React.FC = () => {
                         <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-100 text-blue-700 font-bold">{h.newStatus}</span>
                       </div>
                       <span className="text-[10px] text-slate-400 font-mono">
-                        {new Date(h.changedAt).toLocaleString()}
+                        {new Date(h.changedAt).toLocaleString(locale)}
                       </span>
                     </div>
                     {h.reason && (
                       <p className="text-slate-600 text-[11px] italic">"{h.reason}"</p>
                     )}
-                    <span className="text-[9px] text-slate-400 uppercase font-mono block">Source: {h.changeSource}</span>
+                    <span className="text-[9px] text-slate-400 uppercase font-mono block">{t("Source:")} {h.changeSource}</span>
                   </div>
                 ))}
               </div>
             ) : (
               <div className="py-2 text-xs text-slate-400">
-                0 status changes recorded for this user account.
-              </div>
+                {t("0 status changes recorded for this user account.")}</div>
             )}
           </div>
         </div>
@@ -490,24 +490,24 @@ export const UserDetailPage: React.FC = () => {
         <div className="lg:col-span-4 space-y-6">
           {/* Account Status Card (Figma 55:3199) */}
           <div className="p-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-3.5">
-            <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Account Status</h3>
+            <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">{t("Account Status")}</h3>
 
             <div className="space-y-2.5 text-xs divide-y divide-slate-100">
               <div className="pt-2 first:pt-0 flex justify-between">
-                <span className="text-slate-500">Status</span>
-                <span className="font-bold text-emerald-600">{user.status}</span>
+                <span className="text-slate-500">{t("Status")}</span>
+                <span className="font-bold text-emerald-600">{t(user.status)}</span>
               </div>
               <div className="pt-2 flex justify-between">
-                <span className="text-slate-500">Verified At</span>
-                <span className="font-semibold text-slate-800">{user.verifiedAt ? new Date(user.verifiedAt).toLocaleDateString() : 'Unverified'}</span>
+                <span className="text-slate-500">{t("Verified At")}</span>
+                <span className="font-semibold text-slate-800">{user.verifiedAt ? new Date(user.verifiedAt).toLocaleDateString(locale) : t("Unverified")}</span>
               </div>
               <div className="pt-2 flex justify-between">
-                <span className="text-slate-500">2-Factor Auth (2FA)</span>
-                <span className="font-semibold text-blue-600">{user.twoFactorEnabled ? 'Enabled' : 'Disabled'}</span>
+                <span className="text-slate-500">{t("2-Factor Auth (2FA)")}</span>
+                <span className="font-semibold text-blue-600">{user.twoFactorEnabled ? t("Enabled") : t("Disabled")}</span>
               </div>
               <div className="pt-2 flex justify-between">
-                <span className="text-slate-500">Active Devices</span>
-                <span className="font-semibold text-slate-800">{user.activeSessions?.length || 0} Active Devices</span>
+                <span className="text-slate-500">{t("Active Devices")}</span>
+                <span className="font-semibold text-slate-800">{user.activeSessions?.length || 0}  {t("Active Devices")}</span>
               </div>
             </div>
           </div>
@@ -515,41 +515,39 @@ export const UserDetailPage: React.FC = () => {
           {/* Account Verification Card (Review Role Manual Verification - Governance Service) */}
           <div className="p-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-3 text-xs">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Role Manual Verification</h3>
+              <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">{t("Role Manual Verification")}</h3>
               {verificationData ? (
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                   verificationData.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
                   verificationData.status === 'REJECTED' ? 'bg-rose-50 text-rose-700 border-rose-200' :
                   'bg-amber-50 text-amber-700 border-amber-200 animate-pulse'
                 }`}>
-                  {verificationData.status}
+                  {t(verificationData.status)}
                 </span>
               ) : (
                 <span className="text-[10px] font-medium text-slate-400 bg-slate-100 px-2 py-0.5 rounded">
-                  No Request
-                </span>
+                  {t("No Request")}</span>
               )}
             </div>
 
             <p className="text-slate-500 text-[11px] leading-relaxed">
-              Duyệt hoặc từ chối yêu cầu xác minh sinh viên / vai trò thông qua Governance Service.
-            </p>
+              {t("Duyệt hoặc từ chối yêu cầu xác minh sinh viên / vai trò thông qua Governance Service.")}</p>
 
             {verificationData && (
               <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-100 space-y-1.5 text-[11px]">
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Type:</span>
+                  <span className="text-slate-400">{t("Type:")}</span>
                   <span className="font-semibold text-slate-800">{verificationData.verificationType}</span>
                 </div>
                 {verificationData.studentCode && (
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Student Code:</span>
+                    <span className="text-slate-400">{t("Student Code:")}</span>
                     <span className="font-mono font-bold text-blue-600">{verificationData.studentCode}</span>
                   </div>
                 )}
                 {verificationData.requestReason && (
                   <div>
-                    <span className="text-slate-400 block">Student Note:</span>
+                    <span className="text-slate-400 block">{t("Student Note:")}</span>
                     <span className="text-slate-700 italic">"{verificationData.requestReason}"</span>
                   </div>
                 )}
@@ -561,13 +559,12 @@ export const UserDetailPage: React.FC = () => {
                       rel="noreferrer"
                       className="text-blue-600 hover:underline flex items-center gap-1 mt-1 font-semibold"
                     >
-                      <ExternalLink className="w-3 h-3" /> Xem tài liệu chứng minh
-                    </a>
+                      <ExternalLink className="w-3 h-3" />  {t("Xem tài liệu chứng minh")}</a>
                   </div>
                 )}
                 {verificationData.reviewNote && (
                   <div className="pt-1 border-t border-slate-200">
-                    <span className="text-slate-400 block">Ghi chú duyệt trước:</span>
+                    <span className="text-slate-400 block">{t("Ghi chú duyệt trước:")}</span>
                     <span className="text-slate-700 italic">{verificationData.reviewNote}</span>
                   </div>
                 )}
@@ -577,7 +574,7 @@ export const UserDetailPage: React.FC = () => {
             <div className="space-y-2 pt-1">
               <input
                 type="text"
-                placeholder="Ghi chú duyệt (Review Note)..."
+                placeholder={t("Ghi chú duyệt (Review Note)...")}
                 value={reviewNote}
                 onChange={(e) => setReviewNote(e.target.value)}
                 className="w-full text-xs p-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500"
@@ -587,21 +584,19 @@ export const UserDetailPage: React.FC = () => {
                   onClick={() => handleProcessVerification('APPROVED')}
                   className="flex-1 py-1.5 px-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold text-xs transition-colors cursor-pointer flex items-center justify-center gap-1"
                 >
-                  <CheckCircle2 className="w-3.5 h-3.5" /> Duyệt (Approve)
-                </button>
+                  <CheckCircle2 className="w-3.5 h-3.5" />  {t("Duyệt (Approve)")}</button>
                 <button
                   onClick={() => handleProcessVerification('REJECTED')}
                   className="flex-1 py-1.5 px-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg font-semibold text-xs transition-colors cursor-pointer flex items-center justify-center gap-1"
                 >
-                  <XCircle className="w-3.5 h-3.5" /> Từ chối
-                </button>
+                  <XCircle className="w-3.5 h-3.5" />  {t("Từ chối")}</button>
               </div>
             </div>
           </div>
 
           {/* Active Sessions Card */}
           <div className="p-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-3">
-            <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Active Login Sessions</h3>
+            <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">{t("Active Login Sessions")}</h3>
 
             <div className="space-y-2.5 divide-y divide-slate-100 text-xs">
               {user.activeSessions && user.activeSessions.length > 0 ? (
@@ -613,8 +608,7 @@ export const UserDetailPage: React.FC = () => {
                         <span>{s.device}</span>
                         {s.isCurrent && (
                           <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 font-bold">
-                            Current
-                          </span>
+                            {t("Current")}</span>
                         )}
                       </div>
                       <span className="text-[10px] text-slate-400 block">{s.ipAddress} • {s.location}</span>
@@ -625,15 +619,13 @@ export const UserDetailPage: React.FC = () => {
                         onClick={() => handleRevokeSession(s.id)}
                         className="text-[11px] text-rose-600 font-semibold hover:underline cursor-pointer"
                       >
-                        Revoke
-                      </button>
+                        {t("Revoke")}</button>
                     )}
                   </div>
                 ))
               ) : (
                 <div className="py-2 text-xs text-slate-400">
-                  0 active login sessions recorded.
-                </div>
+                  {t("0 active login sessions recorded.")}</div>
               )}
             </div>
           </div>

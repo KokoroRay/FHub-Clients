@@ -17,17 +17,29 @@ import {
   CornerDownRight,
   ListFilter,
   Send,
+  Edit3,
+  Trash2,
+  X,
 } from 'lucide-react';
 import { Card, CardBody, CardHeader } from '../../components/common/Card';
+import { useLanguage } from '../../context/LanguageContext';
 import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
 import { Textarea } from '../../components/common/Input';
+import { MarkdownPreview } from '../../components/common/MarkdownPreview';
 import { articleApi } from '../../services/api/contentApi';
 import { voteApi, bookmarkApi } from '../../services/api/studentApi';
 import { normalizeMediaUrl } from '../../utils/mediaUtils';
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
+import {
+  loadAllSemanticTags,
+  getSemanticTagMap,
+  resolveTagNames,
+  resolveCategoryFromTags,
+} from '../../utils/tagUtils';
 
 export const ArticleDetailPage: React.FC = () => {
+  const { formatDate, locale, t } = useLanguage();
   const { id } = useParams<{ id: string }>();
   const [article, setArticle] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -41,8 +53,14 @@ export const ArticleDetailPage: React.FC = () => {
     const loadDetail = async () => {
       try {
         setIsLoading(true);
-        const data = await articleApi.getArticleById(id);
+        const [data, tagsRes] = await Promise.all([
+          articleApi.getArticleById(id),
+          loadAllSemanticTags(),
+        ]);
         if (isMounted && data) {
+          const tagMap = getSemanticTagMap(tagsRes);
+          const tags = resolveTagNames(data.semanticTagIds, tagMap);
+          const category = resolveCategoryFromTags(data.semanticTagIds, tagMap) || (tags.length > 0 ? tags[0] : t("Bài viết học thuật"));
           setArticle({
             id: String(data.articleId),
             title: data.title,
@@ -53,11 +71,12 @@ export const ArticleDetailPage: React.FC = () => {
             readTimeMinutes: 4,
             viewsCount: 0,
             likesCount: 0,
-            category: 'Academic Article',
+            category,
+            tags,
             author: {
-              fullName: data.authorStaffId ? 'FPT Faculty Staff' : `Author #${data.authorUserId || 1}`,
+              fullName: data.authorStaffId ? 'FPT Faculty Staff' : 'Nguyen Minh Tam (CE181522)',
               role: data.authorStaffId ? 'Staff' : 'Student',
-              campus: 'FU',
+              campus: 'FPT University - Can Tho',
               avatarUrl: '',
             },
           });
@@ -100,6 +119,11 @@ export const ArticleDetailPage: React.FC = () => {
   const [isFollowingAuthor, setIsFollowingAuthor] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   const [commentText, setCommentText] = useState('');
+  const [showEditArticleModal, setShowEditArticleModal] = useState(false);
+  const [showDeleteArticleModal, setShowDeleteArticleModal] = useState(false);
+  const [editArticleTitle, setEditArticleTitle] = useState('');
+  const [editArticleSummary, setEditArticleSummary] = useState('');
+  const [editArticleContent, setEditArticleContent] = useState('');
   const [comments, setComments] = useState<any[]>([]);
 
   const toggleLike = async () => {
@@ -181,7 +205,7 @@ export const ArticleDetailPage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="p-12 text-center text-slate-400 text-xs">
-        Đang tải bài viết...
+        {t('Loading...')}
       </div>
     );
   }
@@ -189,10 +213,10 @@ export const ArticleDetailPage: React.FC = () => {
   if (!article) {
     return (
       <div className="p-12 text-center space-y-4 bg-white rounded-2xl border border-slate-200">
-        <h3 className="text-lg font-bold text-slate-800">Không tìm thấy bài viết</h3>
-        <p className="text-xs text-slate-500">Bài viết này không tồn tại hoặc đã bị gỡ bỏ.</p>
+        <h3 className="text-lg font-bold text-slate-800">{t('No data found')}</h3>
+        <p className="text-xs text-slate-500">{t("Bài viết này không tồn tại hoặc đã bị gỡ bỏ.")}</p>
         <Link to="/articles" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700">
-          <ArrowLeft className="w-4 h-4" /> Quay lại danh sách bài viết
+          <ArrowLeft className="w-4 h-4" /> {t('Back to Articles')}
         </Link>
       </div>
     );
@@ -202,8 +226,7 @@ export const ArticleDetailPage: React.FC = () => {
     <div className="space-y-6">
       {/* Back link */}
       <Link to="/articles" className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-blue-600 transition-colors">
-        <ArrowLeft className="w-4 h-4" /> Quay lại danh sách bài viết
-      </Link>
+        <ArrowLeft className="w-4 h-4" />  {t("Quay lại danh sách bài viết")}</Link>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         {/* Main Article Content Column (Figma Frame 7: FHub | Article: Understanding...) */}
@@ -223,15 +246,14 @@ export const ArticleDetailPage: React.FC = () => {
               <div className="space-y-3">
                 <div className="flex items-center gap-3 text-xs text-slate-400">
                   <span className="flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5 text-blue-600" /> {article.readTimeMinutes} phút đọc
-                  </span>
+                    <Clock className="w-3.5 h-3.5 text-blue-600" /> {article.readTimeMinutes}  {t("phút đọc")}</span>
                   {article.isSeries && (
                     <Badge variant="warning" size="sm" icon={<Layers className="w-3 h-3" />}>
-                      Series: {article.seriesName}
+                      {t("Series:")} {article.seriesName}
                     </Badge>
                   )}
-                  <span>• {new Date(article.createdAt).toLocaleDateString('vi-VN')}</span>
-                  <span>• {article.viewsCount} lượt xem</span>
+                  <span>• {new Date(article.createdAt).toLocaleDateString(locale)}</span>
+                  <span>• {article.viewsCount}  {t("lượt xem")}</span>
                 </div>
 
                 <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-slate-100 leading-tight">
@@ -249,11 +271,10 @@ export const ArticleDetailPage: React.FC = () => {
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-sm text-slate-900 dark:text-slate-100">{article.author.fullName}</span>
-                        <Badge variant="neutral" size="sm">{article.author.role}</Badge>
+                        <Badge variant="neutral" size="sm">{t(article.author.role)}</Badge>
                       </div>
                       <div className="text-xs text-slate-400">
-                        {article.author.campus || 'FU-HL'} • Kỹ thuật phần mềm (SE)
-                      </div>
+                        {article.author.campus || 'FU-HL'}  {t("• Kỹ thuật phần mềm (SE)")}</div>
                     </div>
                   </div>
 
@@ -264,7 +285,7 @@ export const ArticleDetailPage: React.FC = () => {
                       onClick={() => setIsFollowingAuthor(!isFollowingAuthor)}
                       leftIcon={isFollowingAuthor ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
                     >
-                      {isFollowingAuthor ? 'Đang theo dõi' : 'Theo dõi'}
+                      {isFollowingAuthor ? t("Đang theo dõi") : t("Theo dõi")}
                     </Button>
                     <Button
                       variant={isLiked ? 'primary' : 'outline'}
@@ -280,7 +301,31 @@ export const ArticleDetailPage: React.FC = () => {
                       onClick={toggleBookmark}
                       leftIcon={<Bookmark className={`w-4 h-4 ${isBookmarked ? 'fill-blue-600 text-blue-600' : ''}`} />}
                     >
-                      {isBookmarked ? 'Đã lưu' : 'Lưu'}
+                      {isBookmarked ? t("Đã lưu") : t("Lưu")}
+                    </Button>
+                    <Button
+                      id="btn-edit-article"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setEditArticleTitle(article.title);
+                        setEditArticleSummary(article.summary);
+                        setEditArticleContent(article.content);
+                        setShowEditArticleModal(true);
+                      }}
+                      leftIcon={<Edit3 className="w-3.5 h-3.5 text-slate-500" />}
+                    >
+                      {t('Edit')}
+                    </Button>
+                    <Button
+                      id="btn-delete-article"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowDeleteArticleModal(true)}
+                      className="text-red-600 hover:bg-red-50"
+                      leftIcon={<Trash2 className="w-3.5 h-3.5" />}
+                    >
+                      {t('Delete')}
                     </Button>
                     <ContentActionMenu
                       targetType="ARTICLE"
@@ -292,112 +337,19 @@ export const ArticleDetailPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Rich Body Content (Figma Frame 7) */}
-              <div className="space-y-6 pt-4 border-t border-slate-100 dark:border-slate-800 text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-sans">
-                {/* Section 1 */}
-                <section id="intro" className="space-y-2">
-                  <h2 className="text-lg font-black text-slate-900 dark:text-slate-100">1. Introduction</h2>
-                  <p>
-                    Trong quá trình xây dựng các ứng dụng lớn với ASP.NET Core, việc quản lý vòng đời của các object (Dependencies) là yếu tố quyết định đến tính mở rộng (Scalability), khả năng viết Unit Test và hiệu năng tổng thể của ứng dụng.
-                  </p>
-                </section>
-
-                {/* Section 2 */}
-                <section id="what-is-di" className="space-y-2">
-                  <h2 className="text-lg font-black text-slate-900 dark:text-slate-100">2. What is Dependency Injection?</h2>
-                  <p>
-                    Dependency Injection (DI) là một kỹ thuật triển khai nguyên lý <em>Inversion of Control (IoC)</em>, giúp tách rời sự phụ thuộc giữa các class. Thay vì class tự khởi tạo đối tượng phụ thuộc bằng từ khóa <code>new</code>, IoC Container của .NET sẽ tự động inject qua Constructor.
-                  </p>
-                </section>
-
-                {/* Section 3 */}
-                <section id="registering-services" className="space-y-3">
-                  <h2 className="text-lg font-black text-slate-900 dark:text-slate-100">3. Registering Services (Lifecycles)</h2>
-                  <p>
-                    ASP.NET Core cung cấp 3 loại Service Lifecycles chính:
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="p-3.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200/70 dark:border-blue-900/60 space-y-1">
-                      <h4 className="font-bold text-xs text-blue-900 dark:text-blue-200">Transient</h4>
-                      <p className="text-[11px] text-slate-600 dark:text-slate-400">Được tạo mới mỗi khi có request inject. Thích hợp cho service nhẹ, stateless.</p>
-                    </div>
-                    <div className="p-3.5 rounded-xl bg-purple-50/70 dark:bg-purple-950/40 border border-purple-200/70 dark:border-purple-900/60 space-y-1">
-                      <h4 className="font-bold text-xs text-purple-900 dark:text-purple-200">Scoped</h4>
-                      <p className="text-[11px] text-slate-600 dark:text-slate-400">Được tạo 1 lần cho mỗi HTTP Request. Chuẩn cho DbContext và Unit of Work.</p>
-                    </div>
-                    <div className="p-3.5 rounded-xl bg-emerald-50/70 dark:bg-emerald-950/40 border border-emerald-200/70 dark:border-emerald-900/60 space-y-1">
-                      <h4 className="font-bold text-xs text-emerald-900 dark:text-emerald-200">Singleton</h4>
-                      <p className="text-[11px] text-slate-600 dark:text-slate-400">Chỉ 1 instance duy nhất được tạo cho toàn bộ vòng đời ứng dụng. Dùng cho Cache.</p>
-                    </div>
+              {/* Rich Body Content */}
+              {article.content && article.content.trim().length > 0 ? (
+                <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+                  <MarkdownPreview content={article.content} />
+                </div>
+              ) : (
+                <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800 text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-sans">
+                  <p>{article.summary}</p>
+                  <div className="p-4 rounded-xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900 text-xs text-slate-600 dark:text-slate-300">
+                    {t('articles.noContentFallback', 'Bài viết đang cập nhật nội dung chi tiết. Sinh viên có thể để lại bình luận hoặc trao đổi trực tiếp với tác giả bên dưới.')}
                   </div>
-
-                  {/* Code snippet block */}
-                  <div className="relative rounded-xl overflow-hidden bg-slate-900 text-slate-100 border border-slate-800 my-4 font-mono text-xs shadow-inner">
-                    <div className="flex items-center justify-between px-4 py-2 bg-slate-950 border-b border-slate-800 text-[11px] text-slate-400">
-                      <span className="font-semibold text-blue-400">Program.cs • Service Registration</span>
-                      <button
-                        onClick={() =>
-                          copySnippet(`var builder = WebApplication.CreateBuilder(args);
-
-// Register Services with different lifecycles
-builder.Services.AddTransient<IEmailService, EmailService>();
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddSingleton<IMemoryCacheProvider, MemoryCacheProvider>();`)
-                        }
-                        className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer"
-                      >
-                        <Copy className="w-3 h-3" />
-                        <span>{copiedCode ? 'Đã copy!' : 'Copy'}</span>
-                      </button>
-                    </div>
-                    <pre className="p-4 overflow-x-auto text-slate-200">
-                      <code>{`var builder = WebApplication.CreateBuilder(args);
-
-// Register Services with different lifecycles
-builder.Services.AddTransient<IEmailService, EmailService>();
-builder.Services.AddScoped<IUserRepository, UserRepository>();
-builder.Services.AddSingleton<IMemoryCacheProvider, MemoryCacheProvider>();`}</code>
-                    </pre>
-                  </div>
-                </section>
-
-                {/* Section 4 */}
-                <section id="injecting-dependencies" className="space-y-3">
-                  <h2 className="text-lg font-black text-slate-900 dark:text-slate-100">4. Injecting Dependencies</h2>
-                  <p>
-                    Inject interface vào Controller hoặc Service thông qua Constructor:
-                  </p>
-                  <div className="relative rounded-xl overflow-hidden bg-slate-900 text-slate-100 border border-slate-800 my-4 font-mono text-xs">
-                    <div className="flex items-center justify-between px-4 py-2 bg-slate-950 border-b border-slate-800 text-[11px] text-slate-400">
-                      <span className="font-semibold text-purple-400">UsersController.cs</span>
-                    </div>
-                    <pre className="p-4 overflow-x-auto text-slate-200">
-                      <code>{`public class UsersController : ControllerBase
-{
-    private readonly IUserRepository _userRepository;
-    private readonly IEmailService _emailService;
-
-    public UsersController(IUserRepository userRepository, IEmailService emailService)
-    {
-        _userRepository = userRepository;
-        _emailService = emailService;
-    }
-}`}</code>
-                    </pre>
-                  </div>
-                </section>
-
-                {/* Section 5: Anti-Patterns */}
-                <section id="anti-patterns" className="space-y-2">
-                  <h2 className="text-lg font-black text-slate-900 dark:text-slate-100">5. Common Anti-Patterns</h2>
-                  <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-950 dark:text-amber-200 space-y-1">
-                    <h5 className="font-bold text-xs">⚠️ Captive Dependency Alert:</h5>
-                    <p className="text-xs text-amber-900 dark:text-amber-300">
-                      Tuyệt đối không inject một <code>Scoped</code> service (như DbContext) vào một <code>Singleton</code> service. Điều này sẽ khiến DbContext bị giữ sống mãi mãi và gây lỗi đa luồng nghiêm trọng!
-                    </p>
-                  </div>
-                </section>
-              </div>
+                </div>
+              )}
 
               {/* Tags */}
               <div className="flex flex-wrap gap-1.5 pt-4 border-t border-slate-100 dark:border-slate-800">
@@ -415,14 +367,14 @@ builder.Services.AddSingleton<IMemoryCacheProvider, MemoryCacheProvider>();`}</c
             <CardHeader>
               <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <MessageSquare className="w-4 h-4 text-blue-600" />
-                <span>Thảo luận & Bình luận ({comments.length})</span>
+                <span>{t('Conversation & Updates')} ({comments.length})</span>
               </h3>
             </CardHeader>
             <CardBody className="p-6 space-y-5">
               {/* Add Comment Form */}
               <form onSubmit={handleAddComment} className="space-y-3">
                 <Textarea
-                  placeholder="Viết nhận xét, đặt câu hỏi cho tác giả bài viết..."
+                  placeholder={t("Viết nhận xét, đặt câu hỏi cho tác giả bài viết...")}
                   rows={3}
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
@@ -435,7 +387,7 @@ builder.Services.AddSingleton<IMemoryCacheProvider, MemoryCacheProvider>();`}</c
                     disabled={!commentText.trim()}
                     leftIcon={<Send className="w-3.5 h-3.5" />}
                   >
-                    Gửi bình luận
+                    {t('Send Reply')}
                   </Button>
                 </div>
               </form>
@@ -452,11 +404,11 @@ builder.Services.AddSingleton<IMemoryCacheProvider, MemoryCacheProvider>();`}</c
                           <Badge variant="neutral" size="sm">{cmt.author.campus}</Badge>
                         </div>
                         <div className="flex items-center gap-1">
-                          <span className="text-[10px] text-slate-400">{cmt.createdAt}</span>
+                          <span className="text-[10px] text-slate-400">{formatDate(cmt.createdAt)}</span>
                           <ContentActionMenu
                             targetType="OTHER"
                             targetId={cmt.id}
-                            targetTitle={`Bình luận của ${cmt.author?.fullName || 'Sinh viên'}`}
+                            targetTitle={t("Bình luận của {p0}", undefined, { p0: cmt.author?.fullName || 'Sinh viên' })}
                           />
                         </div>
                       </div>
@@ -476,7 +428,7 @@ builder.Services.AddSingleton<IMemoryCacheProvider, MemoryCacheProvider>();`}</c
             <CardHeader className="p-4 pb-2.5">
               <h4 className="font-bold text-xs text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
                 <ListFilter className="w-4 h-4 text-blue-600" />
-                <span>Mục lục bài viết (TOC)</span>
+                <span>{t('Table of Contents')}</span>
               </h4>
             </CardHeader>
             <CardBody className="p-4 pt-0 space-y-1.5 text-xs">
@@ -502,29 +454,143 @@ builder.Services.AddSingleton<IMemoryCacheProvider, MemoryCacheProvider>();`}</c
               />
               <div>
                 <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">{article.author.fullName}</h4>
-                <p className="text-xs text-slate-400 font-medium">{article.author.role} • {article.author.campus || 'FU-HL'}</p>
+                <p className="text-xs text-slate-400 font-medium">{t(article.author.role)} • {article.author.campus || 'FU-HL'}</p>
               </div>
               <p className="text-xs text-slate-500 leading-relaxed">
-                Đam mê xây dựng hệ thống backend hiệu năng cao và chia sẻ kiến trúc phần mềm cho cộng đồng sinh viên FPT.
-              </p>
+                {t("Đam mê xây dựng hệ thống backend hiệu năng cao và chia sẻ kiến trúc phần mềm cho cộng đồng sinh viên FPT.")}</p>
               <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-around text-xs">
                 <div>
                   <div className="font-bold text-slate-900 dark:text-slate-100">8</div>
-                  <div className="text-[10px] text-slate-400">Bài viết</div>
+                  <div className="text-[10px] text-slate-400">{t('Articles')}</div>
                 </div>
                 <div>
                   <div className="font-bold text-blue-600">2,890</div>
-                  <div className="text-[10px] text-slate-400">Karma</div>
+                  <div className="text-[10px] text-slate-400">{t("Karma")}</div>
                 </div>
                 <div>
                   <div className="font-bold text-slate-900 dark:text-slate-100">450</div>
-                  <div className="text-[10px] text-slate-400">Followers</div>
+                  <div className="text-[10px] text-slate-400">{t('Followers')}</div>
                 </div>
               </div>
             </CardBody>
           </Card>
         </div>
       </div>
+
+      {/* ─── 3.6.4 Edit Article Modal ────────────────────────────────────────── */}
+      {showEditArticleModal && article && (
+        <div id="modal-edit-article" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 max-w-xl w-full p-6 space-y-4 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                <Edit3 className="w-5 h-5 text-[#0076D1]" />
+                <span>{t("Chỉnh Sửa Bài Viết Kỹ Thuật")}</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowEditArticleModal(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">{t("Tiêu đề bài viết")}</label>
+                <input
+                  type="text"
+                  value={editArticleTitle}
+                  onChange={(e) => setEditArticleTitle(e.target.value)}
+                  className="w-full p-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">{t("Tóm tắt ngắn (Summary)")}</label>
+                <textarea
+                  rows={2}
+                  value={editArticleSummary}
+                  onChange={(e) => setEditArticleSummary(e.target.value)}
+                  className="w-full p-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">{t("Nội dung bài viết (Markdown)")}</label>
+                <textarea
+                  rows={6}
+                  value={editArticleContent}
+                  onChange={(e) => setEditArticleContent(e.target.value)}
+                  className="w-full p-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono resize-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setShowEditArticleModal(false)}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+              >
+                {t("Hủy")}</button>
+              <button
+                id="btn-save-edit-article"
+                type="button"
+                onClick={() => {
+                  setArticle({
+                    ...article,
+                    title: editArticleTitle,
+                    summary: editArticleSummary,
+                    content: editArticleContent,
+                  });
+                  setShowEditArticleModal(false);
+                }}
+                className="px-5 py-2 text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700 rounded-xl transition-colors shadow-xs"
+              >
+                {t("Lưu thay đổi")}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── 3.6.5 Delete Article Confirmation Modal ──────────────────────────── */}
+      {showDeleteArticleModal && article && (
+        <div id="modal-delete-article" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 max-w-sm w-full p-6 space-y-4 animate-in fade-in">
+            <div className="flex items-center gap-3 text-red-600">
+              <div className="p-2.5 rounded-xl bg-red-50 dark:bg-red-950/40">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{t("Xóa Bài Viết Kỹ Thuật")}</h3>
+                <p className="text-xs text-slate-500">{t("Xác nhận xóa vĩnh viễn")}</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+              {t("Bạn có chắc chắn muốn xóa bài viết")} <strong>"{article.title}"</strong>{t("? Toàn bộ nội dung, lượt thích và thảo luận sẽ bị xóa vĩnh viễn khỏi nền tảng.")}</p>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setShowDeleteArticleModal(false)}
+                className="px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+              >
+                {t("Hủy")}</button>
+              <button
+                id="btn-confirm-delete-article"
+                type="button"
+                onClick={() => {
+                  setShowDeleteArticleModal(false);
+                }}
+                className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors shadow-xs"
+              >
+                {t("Xác nhận xóa")}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

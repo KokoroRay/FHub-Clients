@@ -26,7 +26,8 @@ apiClient.interceptors.request.use(
     if (storedUser) {
       try {
         const u = JSON.parse(storedUser);
-        if (u.id) userId = u.id.replace(/\D/g, '') || '1';
+        const rawId = u.userId ?? u.id;
+        if (rawId != null) userId = String(rawId).replace(/\D/g, '') || '1';
       } catch {
         // ignore parse error
       }

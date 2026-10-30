@@ -79,9 +79,20 @@ export interface NotificationItem {
 
 export const notificationApi = {
   getNotifications: async (params?: { pageNumber?: number; pageSize?: number }): Promise<NotificationItem[]> => {
-    const res = await apiClient.get<NotificationItem[] | ApiResponse<NotificationItem[]>>('/api/communication/notifications', { params });
-    const data = (res.data as any).data || res.data;
-    return Array.isArray(data) ? data : [];
+    const res = await apiClient.get<any>('/api/communication/notifications', { params });
+    const raw = res.data?.items || res.data?.data || res.data || [];
+    const list = Array.isArray(raw) ? raw : [];
+    return list.map((item: any) => ({
+      id: item.notification_id ?? item.notificationId ?? item.id,
+      recipientAccountId: item.recipient_account_id ?? item.recipientAccountId,
+      recipientId: item.recipient_account_id ?? item.recipientAccountId ?? item.recipientId,
+      type: item.notification_type ?? item.notificationType ?? item.type,
+      title: item.title,
+      message: item.body ?? item.message,
+      actionUrl: item.action_url ?? item.actionUrl,
+      isRead: item.is_read !== undefined ? item.is_read : (item.isRead || false),
+      createdAt: item.created_at ?? item.createdAt,
+    }));
   },
 
   markAsRead: async (id: number | string): Promise<void> => {
@@ -304,14 +315,14 @@ export interface UserPreferencesDto {
 }
 
 export const profileApi = {
-  getProfile: async (userId: number | string): Promise<UserProfileDto> => {
-    const res = await apiClient.get<ApiResponse<UserProfileDto>>(`/api/profiles/${userId}`);
-    return res.data.data;
+  getProfile: async (userId: number | string): Promise<any> => {
+    const res = await apiClient.get<any>(`/api/profiles/${userId}`);
+    return res.data?.data ?? res.data;
   },
 
   getMyPreferences: async (): Promise<UserPreferencesDto> => {
-    const res = await apiClient.get<ApiResponse<UserPreferencesDto>>('/api/profiles/me/preferences');
-    return res.data.data;
+    const res = await apiClient.get<any>('/api/profiles/me/preferences');
+    return res.data?.data ?? res.data;
   },
 
   updatePersonalInfo: async (payload: { displayName?: string; fullName?: string; bio?: string; avatarUrl?: string; links?: any[] }): Promise<any> => {
@@ -467,9 +478,16 @@ export interface ReputationRuleDto {
 
 export const studentReputationApi = {
   getRules: async (): Promise<ReputationRuleDto[]> => {
-    const res = await apiClient.get<ReputationRuleDto[] | ApiResponse<ReputationRuleDto[]>>('/api/interactions/rules');
+    const res = await apiClient.get('/api/reputation/rules');
     const data = (res.data as any).data || res.data;
-    return Array.isArray(data) ? data : [];
+    return Array.isArray(data) ? data.map(r => ({
+      rule_id: r.rule_id,
+      action_type: r.action_type || r.rule_code || r.event_type || '',
+      karma_delta: r.karma_delta ?? r.points_delta ?? 0,
+      daily_cap: r.daily_cap ?? r.daily_limit ?? 0,
+      description: r.description || '',
+      is_active: r.is_active ?? true,
+    })) : [];
   },
 
   getUserHistory: async (userId: number | string): Promise<any> => {
@@ -552,40 +570,119 @@ export interface DirectMessageDto {
 
 export const directMessageApi = {
   getConversations: async (): Promise<ConversationDto[]> => {
-    const res = await apiClient.get<ConversationDto[] | ApiResponse<ConversationDto[]>>('/api/communication/conversations');
-    const data = (res.data as any).data || res.data;
-    return Array.isArray(data) ? data : [];
+    try {
+      const res = await apiClient.get<any>('/api/communication/conversations');
+      const rawList = res.data?.items || res.data?.data || (Array.isArray(res.data) ? res.data : []);
+      return rawList.map((c: any) => {
+        const pName = c.participantName ?? c.title ?? 'FHub Student';
+        const codeMatch = String(pName).match(/\b(CE\d+|SE\d+)\b/i);
+        return {
+          conversationId: c.conversationId ?? c.conversation_id,
+          participantId: c.participantId ?? c.other_participant?.user_id ?? c.other_participant?.communication_account_id ?? 1,
+          participantName: pName,
+          participantAvatar: c.participantAvatar ?? '',
+          participantCode: c.participantCode ?? (codeMatch ? codeMatch[1].toUpperCase() : c.other_participant?.user_id ? `CE18012${c.other_participant.user_id}` : 'CE180121'),
+          courseTag: c.courseTag ?? (c.conversation_type === 'GROUP' ? 'Group Project' : 'Direct Message'),
+          role: c.role ?? 'Student',
+          lastMessage: c.lastMessage ?? c.last_message_body ?? 'No messages yet',
+          lastMessageAt: c.lastMessageAt ?? c.last_message_at ?? '',
+          unreadCount: c.unreadCount ?? c.unread_count ?? 0,
+          isBlocked: c.isBlocked ?? false,
+        };
+      });
+    } catch {
+      return [];
+    }
   },
 
   getMessages: async (conversationId: string | number): Promise<DirectMessageDto[]> => {
-    const res = await apiClient.get<DirectMessageDto[] | ApiResponse<DirectMessageDto[]>>(`/api/communication/conversations/${conversationId}/messages`);
-    const data = (res.data as any).data || res.data;
-    return Array.isArray(data) ? data : [];
+    try {
+      const res = await apiClient.get<any>(`/api/communication/conversations/${conversationId}/messages`);
+      const rawList = res.data?.items || res.data?.data || (Array.isArray(res.data) ? res.data : []);
+      return rawList.map((m: any) => ({
+        messageId: m.messageId ?? m.message_id,
+        conversationId: m.conversationId ?? m.conversation_id,
+        senderId: m.senderId ?? m.sender_account_id,
+        senderName: m.senderName ?? (m.is_mine ? 'Bạn' : 'Thành viên FHub'),
+        content: m.content ?? m.body ?? '',
+        createdAt: m.createdAt ?? m.sent_at ?? '',
+        status: m.status ?? 'read',
+      }));
+    } catch {
+      return [];
+    }
   },
 
   sendMessage: async (conversationId: string | number, content: string): Promise<DirectMessageDto> => {
-    const res = await apiClient.post<DirectMessageDto | ApiResponse<DirectMessageDto>>(`/api/communication/conversations/${conversationId}/messages`, {
+    const res = await apiClient.post<any>(`/api/communication/conversations/${conversationId}/messages`, {
       content,
+      body: content,
     });
-    return (res.data as any).data || res.data;
+    const d = res.data?.data || res.data;
+    return {
+      messageId: d?.message_id || d?.messageId || Date.now(),
+      conversationId,
+      senderId: d?.sender_account_id || d?.senderId || 1,
+      senderName: 'Bạn',
+      content,
+      createdAt: new Date().toISOString(),
+      status: 'sent',
+    };
   },
 
-  deleteMessage: async (messageId: string | number): Promise<void> => {
-    await apiClient.delete(`/api/communication/messages/${messageId}`);
+  createConversation: async (targetUserId: string | number, initialMessage?: string): Promise<any> => {
+    try {
+      const res = await apiClient.post<any>('/api/communication/conversations', {
+        target_user_id: Number(targetUserId),
+      });
+      const conv = res.data?.data || res.data;
+      if (initialMessage && conv?.conversation_id) {
+        await directMessageApi.sendMessage(conv.conversation_id, initialMessage);
+      }
+      return conv;
+    } catch (err) {
+      console.warn('Failed to create conversation:', err);
+      return null;
+    }
+  },
+
+  deleteMessage: async (conversationId: string | number, messageId: string | number): Promise<void> => {
+    try {
+      await apiClient.delete(`/api/communication/conversations/${conversationId}/messages/${messageId}`);
+    } catch {
+      try {
+        await apiClient.delete(`/api/communication/messages/${messageId}`);
+      } catch {}
+    }
   },
 
   getBlockedUsers: async (): Promise<any[]> => {
-    const res = await apiClient.get<any[]>('/api/communication/blocked-users');
-    const data = (res.data as any).data || res.data;
-    return Array.isArray(data) ? data : [];
+    try {
+      const res = await apiClient.get<any>('/api/communication/blocks');
+      const data = res.data?.items || res.data?.data || (Array.isArray(res.data) ? res.data : []);
+      return data;
+    } catch {
+      return [];
+    }
   },
 
-  blockUser: async (targetUserId: string | number): Promise<void> => {
-    await apiClient.post('/api/communication/block', { targetUserId });
+  blockUser: async (targetUserId: string | number, reason?: string): Promise<void> => {
+    try {
+      await apiClient.post('/api/communication/blocks', {
+        target_user_id: Number(targetUserId),
+        reason: reason || 'Blocked by user',
+      });
+    } catch (err) {
+      console.warn('Failed to block user:', err);
+    }
   },
 
-  unblockUser: async (targetUserId: string | number): Promise<void> => {
-    await apiClient.delete(`/api/communication/unblock/${targetUserId}`);
+  unblockUser: async (blockId: string | number): Promise<void> => {
+    try {
+      await apiClient.delete(`/api/communication/blocks/${blockId}`);
+    } catch (err) {
+      console.warn('Failed to unblock user:', err);
+    }
   },
 };
 

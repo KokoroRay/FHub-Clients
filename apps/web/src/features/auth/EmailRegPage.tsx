@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLanguage } from '../../context/LanguageContext';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, User as UserIcon, ArrowRight, ArrowLeft, Eye, EyeOff, ShieldCheck, MapPin, CheckCircle2 } from 'lucide-react';
 import { campusesApi, authApi } from '../../services/api/adminApi';
@@ -6,6 +7,7 @@ import { validateFptEmail, FptEmailValidationResult, MAJOR_LETTER_MAP } from '..
 
 export const EmailRegPage: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [studentId, setStudentId] = useState('');
@@ -52,28 +54,28 @@ export const EmailRegPage: React.FC = () => {
     setErrorMessage(null);
 
     if (!fullName.trim() || !email.trim() || !password) {
-      setErrorMessage('Vui lòng điền đầy đủ các trường bắt buộc.');
+      setErrorMessage(t("Vui lòng điền đầy đủ các trường bắt buộc."));
       return;
     }
 
     const emailCheck = validateFptEmail(email);
     if (!emailCheck.isValid) {
-      setErrorMessage(emailCheck.error || 'Email không hợp lệ theo quy chế FPT.');
+      setErrorMessage(emailCheck.error || t("Email không hợp lệ theo quy chế FPT."));
       return;
     }
 
     if (password.length < 6) {
-      setErrorMessage('Mật khẩu phải chứa ít nhất 6 ký tự.');
+      setErrorMessage(t("Mật khẩu phải chứa ít nhất 6 ký tự."));
       return;
     }
 
     if (password !== confirmPassword) {
-      setErrorMessage('Mật khẩu xác nhận không khớp.');
+      setErrorMessage(t("Mật khẩu xác nhận không khớp."));
       return;
     }
 
     if (!agreeTerms) {
-      setErrorMessage('Vui lòng đồng ý với điều khoản dịch vụ.');
+      setErrorMessage(t("Vui lòng đồng ý với điều khoản dịch vụ."));
       return;
     }
 
@@ -97,7 +99,7 @@ export const EmailRegPage: React.FC = () => {
 
       navigate('/otp-verify?mode=register');
     } catch (err: any) {
-      setErrorMessage('Không thể gửi mã xác thực OTP. Vui lòng thử lại.');
+      setErrorMessage(t("Không thể gửi mã xác thực OTP. Vui lòng thử lại."));
     } finally {
       setIsLoading(false);
     }
@@ -114,26 +116,26 @@ export const EmailRegPage: React.FC = () => {
             className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#0076D1] transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Back</span>
+            <span>{t('auth.back', 'Back')}</span>
           </button>
           <div className="flex items-center gap-1.5">
             <ShieldCheck className="w-4 h-4 text-[#0076D1]" />
-            <span className="font-extrabold text-xs text-slate-800">Email Registration</span>
+            <span className="font-extrabold text-xs text-slate-800">{t("Email Registration")}</span>
           </div>
         </div>
 
         <div className="text-center space-y-1">
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-            Email Registration
+            {t('auth.emailRegTitle', 'Email Registration')}
           </h1>
           <p className="text-xs text-slate-500">
-            Tạo tài khoản sinh viên FHub mới qua email chính sách trường
+            {t('auth.emailRegSubtitle', 'Tạo tài khoản sinh viên FHub mới qua email chính sách trường')}
           </p>
         </div>
 
         {errorMessage && (
           <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold">
-            {errorMessage}
+            {t(errorMessage)}
           </div>
         )}
 
@@ -141,7 +143,7 @@ export const EmailRegPage: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
-                Họ và Tên *
+                {t('auth.fullNameLabel', 'Họ và Tên *')}
               </label>
               <div className="relative">
                 <UserIcon className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -149,7 +151,7 @@ export const EmailRegPage: React.FC = () => {
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Lê Tấn"
+                  placeholder={t("Lê Tấn")}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0076D1]/20 focus:border-[#0076D1] transition-all"
                   required
                 />
@@ -158,13 +160,13 @@ export const EmailRegPage: React.FC = () => {
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
-                Mã Số Sinh Viên (MSSV)
+                {t('auth.studentIdLabel', 'Mã Số Sinh Viên (MSSV)')}
               </label>
               <input
                 type="text"
                 value={studentId}
                 onChange={(e) => setStudentId(e.target.value.toUpperCase())}
-                placeholder="CE190370"
+                placeholder={t("CE190370")}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 uppercase focus:outline-none focus:ring-2 focus:ring-[#0076D1]/20 focus:border-[#0076D1] transition-all"
               />
             </div>
@@ -173,9 +175,9 @@ export const EmailRegPage: React.FC = () => {
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="block text-xs font-bold text-slate-700">
-                Email Sinh Viên *
+                {t('auth.emailLabel', 'Email Sinh Viên *')}
               </label>
-              <span className="text-[10px] text-slate-400">K18: @fpt.edu.vn • K19+: @gmail.com</span>
+              <span className="text-[10px] text-slate-400">{t("K18: @fpt.edu.vn • K19+: @gmail.com")}</span>
             </div>
             <div className="relative">
               <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -183,7 +185,7 @@ export const EmailRegPage: React.FC = () => {
                 type="email"
                 value={email}
                 onChange={(e) => handleEmailChange(e.target.value)}
-                placeholder="TanLT.CE190370@gmail.com"
+                placeholder={t("TanLT.CE190370@gmail.com")}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0076D1]/20 focus:border-[#0076D1] transition-all"
                 required
               />
@@ -194,8 +196,8 @@ export const EmailRegPage: React.FC = () => {
                   <span className="text-emerald-700 font-medium bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60 inline-flex items-center gap-1">
                     <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                     {emailInfo.type === 'GMAIL_K19_PLUS'
-                      ? `Sinh viên K${emailInfo.cohort} • ${emailInfo.campusName} • Ngành: ${MAJOR_LETTER_MAP[emailInfo.majorLetter || ''] || 'Kỹ thuật'}`
-                      : 'Email trường (@fpt.edu.vn / @fe.edu.vn)'}
+                      ? t("Sinh viên K{p0} • {p1} • Ngành: {p2}", undefined, { p0: emailInfo.cohort, p1: emailInfo.campusName, p2: MAJOR_LETTER_MAP[emailInfo.majorLetter || ''] || 'Kỹ thuật' })
+                      : t("Email trường (@fpt.edu.vn / @fe.edu.vn)")}
                   </span>
                 ) : (
                   <span className="text-amber-700 font-medium bg-amber-50 px-2 py-0.5 rounded border border-amber-200/60">
@@ -209,7 +211,7 @@ export const EmailRegPage: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
-                Cơ Sở (Campus) *
+                {t('auth.campusLabel', 'Cơ Sở (Campus) *')}
               </label>
               <div className="relative">
                 <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -224,11 +226,11 @@ export const EmailRegPage: React.FC = () => {
                     ))
                   ) : (
                     <>
-                      <option value="CT">CT - Cần Thơ</option>
-                      <option value="HN">HN - Hà Nội</option>
-                      <option value="HCM">HCM - TP.HCM</option>
-                      <option value="DN">DN - Đà Nẵng</option>
-                      <option value="QN">QN - Quy Nhơn</option>
+                      <option value="CT">{t("CT - Cần Thơ")}</option>
+                      <option value="HN">{t("HN - Hà Nội")}</option>
+                      <option value="HCM">{t("HCM - TP.HCM")}</option>
+                      <option value="DN">{t("DN - Đà Nẵng")}</option>
+                      <option value="QN">{t("QN - Quy Nhơn")}</option>
                     </>
                   )}
                 </select>
@@ -237,7 +239,7 @@ export const EmailRegPage: React.FC = () => {
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">
-                Mật Khẩu *
+                {t('auth.passwordLabel', 'Mật Khẩu *')}
               </label>
               <div className="relative">
                 <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -262,7 +264,7 @@ export const EmailRegPage: React.FC = () => {
 
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1">
-              Xác Nhận Mật Khẩu *
+              {t('auth.confirmPasswordLabel', 'Xác Nhận Mật Khẩu *')}
             </label>
             <div className="relative">
               <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -285,7 +287,7 @@ export const EmailRegPage: React.FC = () => {
                 onChange={(e) => setAgreeTerms(e.target.checked)}
                 className="w-4 h-4 rounded text-[#0076D1] border-slate-300 focus:ring-[#0076D1] mt-0.5"
               />
-              <span className="text-[11px] text-slate-600">Tôi đồng ý với Điều khoản dịch vụ và Quy chế cộng đồng FHub.</span>
+              <span className="text-[11px] text-slate-600">{t('auth.agreeTerms', 'Tôi đồng ý với Điều khoản dịch vụ và Quy chế cộng đồng FHub.')}</span>
             </label>
           </div>
 
@@ -295,7 +297,7 @@ export const EmailRegPage: React.FC = () => {
             disabled={isLoading}
             className="w-full py-3 px-4 rounded-xl text-xs font-bold text-white bg-[#0076D1] hover:bg-[#005DA7] transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
           >
-            <span>{isLoading ? 'ĐANG XỬ LÝ...' : 'Submit Registration'}</span>
+            <span>{isLoading ? t('auth.processing', 'ĐANG XỬ LÝ...') : t('auth.submitRegBtn', 'Submit Registration')}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>

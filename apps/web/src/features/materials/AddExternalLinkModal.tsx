@@ -8,6 +8,7 @@ import { CourseNodeListItem } from '../../services/api/adminApi';
 import { studyMaterialApi } from '../../services/api/contentApi';
 import { StudyMaterial } from '../../types';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 export interface AddExternalLinkModalProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ export const AddExternalLinkModal: React.FC<AddExternalLinkModalProps> = ({
   onAdded,
 }) => {
   const { currentUser } = useAuth();
+  const { t } = useLanguage();
   const [title, setTitle] = useState('');
   const [linkUrl, setLinkUrl] = useState('');
   const [courseCode, setCourseCode] = useState('');
@@ -32,16 +34,16 @@ export const AddExternalLinkModal: React.FC<AddExternalLinkModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) {
-      setErrorMessage('Vui lòng nhập tiêu đề tài liệu.');
+      setErrorMessage(t("Vui lòng nhập tiêu đề tài liệu."));
       return;
     }
     const cleanUrl = linkUrl.trim();
     if (!cleanUrl) {
-      setErrorMessage('Vui lòng nhập liên kết URL tài liệu.');
+      setErrorMessage(t("Vui lòng nhập liên kết URL tài liệu."));
       return;
     }
     if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
-      setErrorMessage('Đường dẫn URL không hợp lệ. Vui lòng nhập URL bắt đầu bằng https:// hoặc http://');
+      setErrorMessage(t('materialExternalModal.errorInvalidUrl', 'Đường dẫn URL không hợp lệ. Vui lòng nhập URL bắt đầu bằng https:// hoặc http://'));
       return;
     }
 
@@ -70,7 +72,7 @@ export const AddExternalLinkModal: React.FC<AddExternalLinkModalProps> = ({
         downloadsCount: 0,
         author: {
           id: currentUser?.id || String(created.uploaderUserId),
-          fullName: currentUser?.fullName || 'Sinh viên FHub',
+          fullName: currentUser?.fullName || t("Sinh viên FHub"),
           avatarUrl: currentUser?.avatarUrl,
         },
         semesterUploaded: '',
@@ -84,7 +86,7 @@ export const AddExternalLinkModal: React.FC<AddExternalLinkModalProps> = ({
       setErrorMessage(null);
       onClose();
     } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi thêm liên kết tài liệu.';
+      const msg = err?.response?.data?.message || err?.message || t("Có lỗi xảy ra khi thêm liên kết tài liệu.");
       setErrorMessage(msg);
     } finally {
       setIsSubmitting(false);
@@ -95,16 +97,12 @@ export const AddExternalLinkModal: React.FC<AddExternalLinkModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Add External Material Link (Thêm liên kết tài liệu ngoài)"
+      title={t('materialExternalModal.title', 'Add External Material Link (Thêm liên kết tài liệu ngoài)')}
       size="md"
       footer={
         <>
-          <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
-            Hủy
-          </Button>
-          <Button variant="primary" onClick={handleSubmit} isLoading={isSubmitting}>
-            Thêm liên kết
-          </Button>
+          <Button variant="outline" onClick={onClose} disabled={isSubmitting}>{t('common.cancel', 'Hủy')}</Button>
+          <Button variant="primary" onClick={handleSubmit} isLoading={isSubmitting}>{t('materialExternalModal.addBtn', 'Thêm liên kết')}</Button>
         </>
       }
     >
@@ -112,20 +110,20 @@ export const AddExternalLinkModal: React.FC<AddExternalLinkModalProps> = ({
         {errorMessage && (
           <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
-            <span>{errorMessage}</span>
+            <span>{t(errorMessage)}</span>
           </div>
         )}
         <Input
-          label="Tiêu đề tài liệu *"
-          placeholder="Ví dụ: DBI202 SQL Server Sample Database Script"
+          label={t('materialExternalModal.titleLabel', 'Tiêu đề tài liệu *')}
+          placeholder={t('materialExternalModal.titlePlaceholder', 'Ví dụ: DBI202 SQL Server Sample Database Script')}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           required
         />
 
         <Input
-          label="Đường dẫn URL ngoài (Google Drive, GitHub, Notion, OneDrive...) *"
-          placeholder="https://github.com/example/sample-db"
+          label={t('materialExternalModal.urlLabel', 'Đường dẫn URL ngoài (Google Drive, GitHub, Notion, OneDrive...) *')}
+          placeholder={t("https://github.com/example/sample-db")}
           value={linkUrl}
           onChange={(e) => setLinkUrl(e.target.value)}
           leftIcon={<Globe className="w-4 h-4 text-slate-400" />}
@@ -133,7 +131,7 @@ export const AddExternalLinkModal: React.FC<AddExternalLinkModalProps> = ({
         />
 
         <CourseSelect
-          label="Môn học liên quan *"
+          label={t('materialExternalModal.courseLabel', 'Môn học liên quan *')}
           value={courseCode}
           onChange={(code, course) => {
             setCourseCode(code);
@@ -143,8 +141,8 @@ export const AddExternalLinkModal: React.FC<AddExternalLinkModalProps> = ({
         />
 
         <Textarea
-          label="Mô tả & Hướng dẫn truy cập"
-          placeholder="Mô tả chi tiết tài liệu, lưu ý khi truy cập..."
+          label={t('materialExternalModal.descLabel', 'Mô tả & Hướng dẫn truy cập')}
+          placeholder={t('materialExternalModal.descPlaceholder', 'Mô tả chi tiết tài liệu, lưu ý khi truy cập...')}
           rows={3}
           value={description}
           onChange={(e) => setDescription(e.target.value)}

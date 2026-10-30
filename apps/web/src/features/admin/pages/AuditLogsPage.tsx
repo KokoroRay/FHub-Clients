@@ -1,3 +1,4 @@
+import { useLanguage } from '../../../context/LanguageContext';
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -20,6 +21,7 @@ import { useAuditLogs } from '../../../services/api';
 import { auditLogsApi } from '../../../services/api/adminApi';
 
 export const AuditLogsPage: React.FC = () => {
+  const { t } = useLanguage();
   const { data: logsData, isLoading, refetch } = useAuditLogs();
   const [logs, setLogs] = useState<DetailedAuditLog[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -83,19 +85,17 @@ export const AuditLogsPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">SECURITY & COMPLIANCE</span>
-            <span>&gt;</span>
-            <span className="text-blue-600 text-[11px] font-bold">IMMUTABLE AUDIT LEDGER</span>
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{t("SECURITY & COMPLIANCE")}</span>
+            <span>{t("&gt;")}</span>
+            <span className="text-blue-600 text-[11px] font-bold">{t("IMMUTABLE AUDIT LEDGER")}</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            System Audit Logs
+            {t('System Audit Logs', 'System Audit Logs')}
             <span className="flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-              <Lock className="w-3 h-3" /> SHA-256 SEALED
-            </span>
+              <Lock className="w-3 h-3" />  {t("SHA-256 SEALED")}</span>
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Cryptographically sealed system audit events compliant with ISO/IEC 27001:2022 and Decree 13/2023/ND-CP.
-          </p>
+            {t("Cryptographically sealed system audit events compliant with ISO/IEC 27001:2022 and Decree 13/2023/ND-CP.")}</p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -104,14 +104,14 @@ export const AuditLogsPage: React.FC = () => {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
           >
             <Download className="w-3.5 h-3.5 text-slate-500" />
-            <span>Export CSV</span>
+            <span>{t("Export CSV")}</span>
           </button>
           <button
             onClick={() => handleExport('JSON')}
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
           >
             <Download className="w-3.5 h-3.5" />
-            <span>Export JSON Signed</span>
+            <span>{t("Export JSON Signed")}</span>
           </button>
         </div>
       </div>
@@ -131,7 +131,7 @@ export const AuditLogsPage: React.FC = () => {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by Event ID (EVT-20260317), Actor email, Action, or details..."
+            placeholder={t("Search by Event ID (EVT-20260317), Actor email, Action, or details...")}
             className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
           />
         </div>
@@ -141,11 +141,11 @@ export const AuditLogsPage: React.FC = () => {
           onChange={(e) => setSelectedService(e.target.value)}
           className="w-full md:w-56 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none cursor-pointer"
         >
-          <option value="ALL">All Microservices</option>
-          <option value="Academic">Academic Taxonomy Service</option>
-          <option value="Identity">Identity & Access Service</option>
-          <option value="Governance">Governance & Moderation</option>
-          <option value="Storage">Storage & Material Service</option>
+          <option value="ALL">{t("All Microservices")}</option>
+          <option value="Academic">{t("Academic Taxonomy Service")}</option>
+          <option value="Identity">{t("Identity & Access Service")}</option>
+          <option value="Governance">{t("Governance & Moderation")}</option>
+          <option value="Storage">{t("Storage & Material Service")}</option>
         </select>
       </div>
 
@@ -155,12 +155,12 @@ export const AuditLogsPage: React.FC = () => {
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50/80 text-[10px] font-bold text-slate-400 uppercase border-b border-slate-200">
               <tr>
-                <th className="py-3 px-4 font-bold">EVENT ID & TIME</th>
-                <th className="py-3 px-3 font-bold">MICROSERVICE</th>
-                <th className="py-3 px-3 font-bold">ACTION</th>
-                <th className="py-3 px-3 font-bold">ACTOR (CALLER)</th>
-                <th className="py-3 px-3 font-bold">DETAILS</th>
-                <th className="py-3 px-4 font-bold text-right">CRYPTOGRAPHIC SEAL</th>
+                <th className="py-3 px-4 font-bold">{t("EVENT ID & TIME")}</th>
+                <th className="py-3 px-3 font-bold">{t("MICROSERVICE")}</th>
+                <th className="py-3 px-3 font-bold">{t("ACTION")}</th>
+                <th className="py-3 px-3 font-bold">{t("ACTOR (CALLER)")}</th>
+                <th className="py-3 px-3 font-bold">{t("DETAILS")}</th>
+                <th className="py-3 px-4 font-bold text-right">{t("CRYPTOGRAPHIC SEAL")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -168,13 +168,13 @@ export const AuditLogsPage: React.FC = () => {
                 <tr>
                   <td colSpan={6} className="py-8 text-center text-slate-400">
                     <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-blue-600" />
-                    <span>Loading audit records from Governance Ledger...</span>
+                    <span>{t("Loading audit records from Governance Ledger...")}</span>
                   </td>
                 </tr>
               ) : filteredLogs.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-8 text-center text-slate-400">
-                    <span>No audit log records found matching your filters.</span>
+                    <span>{t("No audit log records found matching your filters.")}</span>
                   </td>
                 </tr>
               ) : (
@@ -182,7 +182,7 @@ export const AuditLogsPage: React.FC = () => {
                 <tr key={log.id} className="hover:bg-slate-50/70 transition-colors">
                   <td className="py-3 px-4">
                     <Link
-                      to={`/audit-logs/${log.id}`}
+                      to={`/admin-console/audit-logs/${log.id}`}
                       className="font-mono font-bold text-blue-600 hover:underline block"
                     >
                       {log.eventId}
@@ -202,7 +202,7 @@ export const AuditLogsPage: React.FC = () => {
 
                   <td className="py-3 px-3">
                     <div className="font-semibold text-slate-800">{log.actorEmail}</div>
-                    <div className="text-[10px] text-slate-400 font-mono">IP: {log.ipAddress}</div>
+                    <div className="text-[10px] text-slate-400 font-mono">{t("IP:")} {log.ipAddress}</div>
                   </td>
 
                   <td className="py-3 px-3 max-w-sm text-slate-600">
@@ -211,11 +211,11 @@ export const AuditLogsPage: React.FC = () => {
 
                   <td className="py-3 px-4 text-right">
                     <Link
-                      to={`/audit-logs/${log.id}`}
+                      to={`/admin-console/audit-logs/${log.id}`}
                       className="inline-flex items-center gap-1 text-[10px] font-mono px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700 font-bold border border-emerald-200 hover:bg-emerald-100 transition-colors"
                     >
                       <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                      <span>SHA-256 Valid</span>
+                      <span>{t("SHA-256 Valid")}</span>
                       <ChevronRight className="w-3 h-3 text-slate-400 ml-0.5" />
                     </Link>
                   </td>

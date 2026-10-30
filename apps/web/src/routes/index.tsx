@@ -25,8 +25,6 @@ import { StudyMaterialListPage } from '../features/materials/StudyMaterialListPa
 import { StudyMaterialDetailPage } from '../features/materials/StudyMaterialDetailPage';
 import { CourseEvaluationListPage } from '../features/evaluations/CourseEvaluationListPage';
 import { CourseEvaluationDetailPage } from '../features/evaluations/CourseEvaluationDetailPage';
-import { MarketplaceListPage } from '../features/marketplace/MarketplaceListPage';
-import { MarketplaceDetailPage } from '../features/marketplace/MarketplaceDetailPage';
 
 // Profile & Communication & Support
 import { ProfilePage } from '../features/profile/ProfilePage';
@@ -149,6 +147,7 @@ const getSubdomainRoutes = () => [
       { path: 'tags', element: <SemanticTagsPage /> },
       { path: 'staff', element: <StaffAccountsAdminPage /> },
       { path: 'news', element: <NewsManagementPage /> },
+      { path: 'settings', element: <ProfileSettingsPage /> },
     ],
   },
   {
@@ -187,8 +186,6 @@ const getMainPortalRoutes = () => [
       { path: 'course-evaluations/:id', element: <CourseEvaluationDetailPage /> },
       { path: 'evaluations', element: <CourseEvaluationListPage /> },
       { path: 'evaluations/:id', element: <CourseEvaluationDetailPage /> },
-      { path: 'marketplace', element: <MarketplaceListPage /> },
-      { path: 'marketplace/:id', element: <MarketplaceDetailPage /> },
       { path: 'profile', element: <ProfilePage /> },
       { path: 'profile/:id', element: <ProfilePage /> },
       { path: 'settings', element: <ProfileSettingsPage /> },
@@ -239,6 +236,7 @@ const getMainPortalRoutes = () => [
       { path: 'verifications', element: <VerificationQueuePage /> },
       { path: 'tags', element: <SemanticTagsPage /> },
       { path: 'staff', element: <StaffAccountsAdminPage /> },
+      { path: 'settings', element: <ProfileSettingsPage /> },
     ],
   },
 

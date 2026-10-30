@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useLanguage } from '../../context/LanguageContext';
 
 export interface DropdownItem {
   id: string;
@@ -22,6 +23,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
   align = 'right',
   className = '',
 }) => {
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -46,25 +48,28 @@ export const Dropdown: React.FC<DropdownProps> = ({
             align === 'right' ? 'right-0' : 'left-0'
           } mt-2 w-52 bg-white dark:bg-slate-900 rounded-xl shadow-lg border border-slate-200 dark:border-slate-800 py-1.5 z-40 animate-in fade-in zoom-in-95 duration-150`}
         >
-          {items.map((item, index) => (
-            <React.Fragment key={item.id || index}>
-              {item.divider && <div className="my-1 border-t border-slate-100 dark:border-slate-800" />}
-              <button
-                onClick={() => {
-                  item.onClick();
-                  setIsOpen(false);
-                }}
-                className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-left transition-colors cursor-pointer ${
-                  item.danger
-                    ? 'text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30'
-                    : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'
-                }`}
-              >
-                {item.icon && <span className="w-4 h-4 flex items-center justify-center">{item.icon}</span>}
-                <span>{item.label}</span>
-              </button>
-            </React.Fragment>
-          ))}
+          {items.map((item, index) => {
+            const labelContent = typeof item.label === 'string' ? t(item.label) : item.label;
+            return (
+              <React.Fragment key={item.id || index}>
+                {item.divider && <div className="my-1 border-t border-slate-100 dark:border-slate-800" />}
+                <button
+                  onClick={() => {
+                    item.onClick();
+                    setIsOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-left transition-colors cursor-pointer ${
+                    item.danger
+                      ? 'text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30'
+                      : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  {item.icon && <span className="w-4 h-4 flex items-center justify-center">{item.icon}</span>}
+                  <span>{labelContent}</span>
+                </button>
+              </React.Fragment>
+            );
+          })}
         </div>
       )}
     </div>

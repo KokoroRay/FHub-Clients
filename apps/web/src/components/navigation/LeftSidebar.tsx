@@ -7,49 +7,48 @@ import {
   FileText,
   Workflow,
   Download,
-  ShoppingBag,
   Bookmark,
   Users,
   LifeBuoy,
-  ShieldCheck,
   Megaphone,
   Award,
   Settings2,
-  Activity,
   Sparkles,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const LeftSidebar: React.FC = () => {
   const { currentUser } = useAuth();
+  const { t } = useLanguage();
 
   const mainNav = [
-    { name: 'Global Feed', path: '/', icon: Compass },
-    { name: 'Course Hub', path: '/courses', icon: BookOpen },
-    { name: 'Shared Workflows', path: '/workflows', icon: Workflow },
-    { name: 'Articles', path: '/articles', icon: FileText },
-    { name: 'Course Evaluations', path: '/course-evaluations', icon: Sparkles },
-    { name: 'Study Materials', path: '/materials', icon: Download },
-    { name: 'Questions', path: '/discussions', icon: HelpCircle },
+    { name: t('nav.globalFeed', 'Global Feed'), path: '/', icon: Compass },
+    { name: t('nav.courseHub', 'Course Hub'), path: '/courses', icon: BookOpen },
+    { name: t('nav.sharedWorkflows', 'Shared Workflows'), path: '/workflows', icon: Workflow },
+    { name: t('nav.articles', 'Articles'), path: '/articles', icon: FileText },
+    { name: t('nav.courseEvaluations', 'Course Evaluations'), path: '/course-evaluations', icon: Sparkles },
+    { name: t('nav.studyMaterials', 'Study Materials'), path: '/materials', icon: Download },
+    { name: t('nav.questions', 'Questions'), path: '/discussions', icon: HelpCircle },
   ];
 
   const commNav: Array<{ name: string; path: string; icon: any; badge?: number | string }> = [
-    { name: 'Messages', path: '/messages', icon: Users },
-    { name: 'Bookmarks', path: '/bookmarks', icon: Bookmark },
+    { name: t('nav.messages', 'Messages'), path: '/messages', icon: Users },
+    { name: t('nav.bookmarks', 'Bookmarks'), path: '/bookmarks', icon: Bookmark },
   ];
 
   const personalNav = [
-    { name: 'My Profile', path: '/profile', icon: Award },
-    { name: 'Preferences & Privacy', path: '/settings', icon: Settings2 },
-    { name: 'Notifications', path: '/notifications', icon: Megaphone },
-    { name: 'Support Tickets', path: '/tickets', icon: LifeBuoy },
+    { name: t('nav.myProfile', 'My Profile'), path: '/profile', icon: Award },
+    { name: t('nav.settings', 'Preferences & Privacy'), path: '/settings', icon: Settings2 },
+    { name: t('nav.notifications', 'Notifications'), path: '/notifications', icon: Megaphone },
+    { name: t('nav.supportTickets', 'Support Tickets'), path: '/tickets', icon: LifeBuoy },
   ];
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all group ${
+    `flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all group ${
       isActive
-        ? 'bg-[#0076D1] text-white shadow-xs'
-        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100/80 dark:hover:bg-slate-800/60'
+        ? 'bg-[#0076D1] text-white shadow-xs dark:bg-[#3a3b3c] dark:text-white dark:font-bold'
+        : 'bg-transparent text-slate-600 dark:text-[#b0b3b8] hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-[#333333] dark:bg-transparent'
     }`;
 
   return (
@@ -58,7 +57,7 @@ export const LeftSidebar: React.FC = () => {
         {/* Section A: MAIN NAVIGATION */}
         <div>
           <h4 className="px-3 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
-            MAIN NAVIGATION
+            {t('nav.mainNavigation', 'MAIN NAVIGATION')}
           </h4>
           <nav className="space-y-1">
             {mainNav.map((item) => {
@@ -78,7 +77,7 @@ export const LeftSidebar: React.FC = () => {
         {/* Section B: COMMUNICATION */}
         <div>
           <h4 className="px-3 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
-            COMMUNICATION
+            {t('nav.communication', 'COMMUNICATION')}
           </h4>
           <nav className="space-y-1">
             {commNav.map((item) => {
@@ -103,7 +102,7 @@ export const LeftSidebar: React.FC = () => {
         {/* Section C: PERSONAL */}
         <div>
           <h4 className="px-3 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">
-            PERSONAL
+            {t('nav.personal', 'PERSONAL')}
           </h4>
           <nav className="space-y-1">
             {personalNav.map((item) => {

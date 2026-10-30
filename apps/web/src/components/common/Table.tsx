@@ -1,5 +1,6 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 export interface Column<T> {
   header: React.ReactNode;
@@ -25,21 +26,26 @@ export function Table<T>({
   className = '',
   isLoading = false,
 }: TableProps<T>) {
+  const { t } = useLanguage();
+
   return (
     <div className={`overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 ${className}`}>
       <table className="w-full text-left border-collapse">
         <thead>
           <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
-            {columns.map((col, idx) => (
-              <th
-                key={idx}
-                className={`py-3.5 px-4 text-xs font-semibold text-slate-600 dark:text-slate-300 tracking-wider ${
-                  col.className || ''
-                }`}
-              >
-                {col.header}
-              </th>
-            ))}
+            {columns.map((col, idx) => {
+              const headerContent = typeof col.header === 'string' ? t(col.header) : col.header;
+              return (
+                <th
+                  key={idx}
+                  className={`py-3.5 px-4 text-xs font-semibold text-slate-600 dark:text-slate-300 tracking-wider ${
+                    col.className || ''
+                  }`}
+                >
+                  {headerContent}
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
@@ -47,13 +53,13 @@ export function Table<T>({
             <tr>
               <td colSpan={columns.length} className="py-12 text-center text-slate-400">
                 <div className="inline-block w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                <p className="mt-2 text-xs">Đang tải dữ liệu...</p>
+                <p className="mt-2 text-xs">{t('common.loading', 'Đang tải dữ liệu...')}</p>
               </td>
             </tr>
           ) : data.length === 0 ? (
             <tr>
               <td colSpan={columns.length} className="py-12 text-center text-slate-400 text-xs">
-                {emptyText}
+                {t(emptyText)}
               </td>
             </tr>
           ) : (
@@ -91,6 +97,8 @@ export const Pagination: React.FC<PaginationProps> = ({
   totalItems,
   pageSize,
 }) => {
+  const { t } = useLanguage();
+
   if (totalPages <= 1) return null;
 
   return (
@@ -98,12 +106,12 @@ export const Pagination: React.FC<PaginationProps> = ({
       <div>
         {totalItems !== undefined && pageSize !== undefined ? (
           <span>
-            Hiển thị {(currentPage - 1) * pageSize + 1} -{' '}
-            {Math.min(currentPage * pageSize, totalItems)} trong số {totalItems} bản ghi
+            {t('common.showing', 'Hiển thị')} {(currentPage - 1) * pageSize + 1} -{' '}
+            {Math.min(currentPage * pageSize, totalItems)} {t('common.of', 'trong số')} {totalItems} {t('common.records', 'bản ghi')}
           </span>
         ) : (
           <span>
-            Trang {currentPage} / {totalPages}
+            {t('common.page', 'Trang')} {currentPage} / {totalPages}
           </span>
         )}
       </div>

@@ -1,3 +1,4 @@
+import { useLanguage } from '../../../context/LanguageContext';
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
@@ -24,6 +25,7 @@ import { DetailedCourseNode } from '../../../types';
 import { useCourseNodes } from '../../../services/api';
 
 export const CourseNodeDetailPage: React.FC = () => {
+  const { t } = useLanguage();
   const { code } = useParams<{ code: string }>();
   const { data: courseNodesData, isLoading } = useCourseNodes();
   const [courses, setCourses] = useState<DetailedCourseNode[]>([]);
@@ -62,7 +64,7 @@ export const CourseNodeDetailPage: React.FC = () => {
             difficultyScore: f.difficultyScore || 0,
             prerequisiteReadinessScore: f.prerequisiteReadinessScore || 0,
             duplicateQuestionsFiltered: f.duplicateQuestionsFiltered || 0,
-            summary: f.description || `Môn học ${f.courseCode} - ${f.courseName} từ Taxonomy Service.`,
+            summary: f.description || t("Môn học {p0} - {p1} từ Taxonomy Service.", undefined, { p0: f.courseCode, p1: f.courseName }),
             suggestedTags: [(f.courseCode || '').toLowerCase()].filter(Boolean),
           },
         };
@@ -86,7 +88,7 @@ export const CourseNodeDetailPage: React.FC = () => {
     setIsAiProcessing(true);
     setTimeout(() => {
       setIsAiProcessing(false);
-      setSuccessMessage('AI Summarizer has re-synthesized the complete course syllabus according to ABET criteria.');
+      setSuccessMessage(t("AI Summarizer has re-synthesized the complete course syllabus according to ABET criteria."));
       setTimeout(() => setSuccessMessage(null), 3500);
     }, 800);
   };
@@ -95,7 +97,7 @@ export const CourseNodeDetailPage: React.FC = () => {
     setIsAiProcessing(true);
     setTimeout(() => {
       setIsAiProcessing(false);
-      setSuccessMessage('AI Tag Engine scanned active Q&A threads and refreshed course taxonomy tags.');
+      setSuccessMessage(t("AI Tag Engine scanned active Q&A threads and refreshed course taxonomy tags."));
       setTimeout(() => setSuccessMessage(null), 3500);
     }, 700);
   };
@@ -104,7 +106,7 @@ export const CourseNodeDetailPage: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-slate-500">
         <Loader2 className="w-8 h-8 animate-spin text-blue-600 mb-2" />
-        <p className="text-xs font-semibold">Loading course details from Taxonomy Service...</p>
+        <p className="text-xs font-semibold">{t("Loading course details from Taxonomy Service...")}</p>
       </div>
     );
   }
@@ -117,19 +119,17 @@ export const CourseNodeDetailPage: React.FC = () => {
             to="/courses"
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700"
           >
-            <ArrowLeft className="w-4 h-4" /> Back to Courses
-          </Link>
+            <ArrowLeft className="w-4 h-4" />  {t("Back to Courses")}</Link>
         </div>
         <div className="p-8 bg-white rounded-xl border border-slate-200 text-center space-y-3">
           <BookOpen className="w-10 h-10 text-slate-400 mx-auto" />
-          <h2 className="text-base font-bold text-slate-800">Course Not Found</h2>
-          <p className="text-xs text-slate-500">The course code &quot;{code}&quot; does not exist or has not been synced yet.</p>
+          <h2 className="text-base font-bold text-slate-800">{t("Course Not Found")}</h2>
+          <p className="text-xs text-slate-500">{t("The course code &quot;")}{code}{t("&quot; does not exist or has not been synced yet.")}</p>
           <Link
             to="/courses"
             className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-semibold"
           >
-            Return to Registry
-          </Link>
+            {t("Return to Registry")}</Link>
         </div>
       </div>
     );
@@ -143,15 +143,14 @@ export const CourseNodeDetailPage: React.FC = () => {
           to="/courses"
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700"
         >
-          <ArrowLeft className="w-4 h-4" /> Back to Courses
-        </Link>
-        <span className="text-[11px] font-mono text-slate-400">Syllabus: {course.syllabusVersion}</span>
+          <ArrowLeft className="w-4 h-4" />  {t("Back to Courses")}</Link>
+        <span className="text-[11px] font-mono text-slate-400">{t("Syllabus:")} {course.syllabusVersion}</span>
       </div>
 
       {successMessage && (
         <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center gap-2 animate-fadeIn">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span>{successMessage}</span>
+          <span>{t(successMessage)}</span>
         </div>
       )}
 
@@ -169,15 +168,14 @@ export const CourseNodeDetailPage: React.FC = () => {
               </div>
               <p className="text-xs text-slate-500 font-medium">{course.vietnameseTitle}</p>
               <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400 mt-1.5">
-                <span>Major: <strong>{course.majorCode}</strong></span>
+                <span>{t("Major:")} <strong>{course.majorCode}</strong></span>
                 <span>•</span>
-                <span>Semester: <strong>Sem {course.semester}</strong></span>
+                <span>{t("Semester:")} <strong>{t("Sem")} {course.semester}</strong></span>
                 <span>•</span>
-                <span>Credits: <strong>{course.credits} Credits</strong></span>
+                <span>{t("Credits:")} <strong>{course.credits}  {t("Credits")}</strong></span>
                 <span>•</span>
                 <span className="flex items-center gap-1 text-amber-500 font-semibold">
-                  <Star className="w-3.5 h-3.5 fill-current" /> {course.averageRating} ({course.reviewCount} reviews)
-                </span>
+                  <Star className="w-3.5 h-3.5 fill-current" /> {course.averageRating} ({course.reviewCount}  {t("reviews)")}</span>
               </div>
             </div>
           </div>
@@ -189,7 +187,7 @@ export const CourseNodeDetailPage: React.FC = () => {
               className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition-colors shadow-xs cursor-pointer"
             >
               <Sparkles className={`w-3.5 h-3.5 text-amber-300 ${isAiProcessing ? 'animate-spin' : ''}`} />
-              <span>AI Re-Summarize</span>
+              <span>{t("AI Re-Summarize")}</span>
             </button>
             <button
               onClick={handleTriggerTagSuggestion}
@@ -197,7 +195,7 @@ export const CourseNodeDetailPage: React.FC = () => {
               className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors cursor-pointer"
             >
               <Tag className="w-3.5 h-3.5 text-blue-600" />
-              <span>Suggest Tags</span>
+              <span>{t("Suggest Tags")}</span>
             </button>
           </div>
         </div>
@@ -205,7 +203,7 @@ export const CourseNodeDetailPage: React.FC = () => {
         {/* Prerequisites & Overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-100 text-xs">
           <div>
-            <span className="font-semibold text-slate-400 block mb-1">Prerequisites:</span>
+            <span className="font-semibold text-slate-400 block mb-1">{t("Prerequisites:")}</span>
             <div className="flex items-center gap-2">
               {course.prerequisites && course.prerequisites.length > 0 ? (
                 course.prerequisites.map((p) => (
@@ -218,13 +216,13 @@ export const CourseNodeDetailPage: React.FC = () => {
                   </Link>
                 ))
               ) : (
-                <span className="text-emerald-600 font-semibold">None (Foundation)</span>
+                <span className="text-emerald-600 font-semibold">{t("None (Foundation)")}</span>
               )}
             </div>
           </div>
 
           <div>
-            <span className="font-semibold text-slate-400 block mb-1">Course Description:</span>
+            <span className="font-semibold text-slate-400 block mb-1">{t("Course Description:")}</span>
             <p className="text-slate-600 leading-relaxed">{course.description}</p>
           </div>
         </div>
@@ -236,11 +234,10 @@ export const CourseNodeDetailPage: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-amber-400" />
-              <h3 className="font-bold text-xs text-slate-200 uppercase tracking-wider">AI Content Intelligence Insights</h3>
+              <h3 className="font-bold text-xs text-slate-200 uppercase tracking-wider">{t("AI Content Intelligence Insights")}</h3>
             </div>
             <span className="text-[10px] font-mono px-2 py-0.2 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30">
-              Vertex AI Gemini 1.5 Pro
-            </span>
+              {t("Vertex AI Gemini 1.5 Pro")}</span>
           </div>
 
           <p className="text-slate-300 leading-relaxed bg-white/5 p-3 rounded-lg border border-white/10">
@@ -249,21 +246,21 @@ export const CourseNodeDetailPage: React.FC = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
             <div className="p-2.5 bg-white/5 rounded-lg border border-white/10">
-              <span className="text-slate-400 text-[10px] uppercase">Academic Difficulty:</span>
+              <span className="text-slate-400 text-[10px] uppercase">{t("Academic Difficulty:")}</span>
               <p className="text-sm font-bold text-amber-400 mt-0.5">{course.aiAnalysis.difficultyScore} / 10.0</p>
             </div>
             <div className="p-2.5 bg-white/5 rounded-lg border border-white/10">
-              <span className="text-slate-400 text-[10px] uppercase">Prereq Readiness:</span>
+              <span className="text-slate-400 text-[10px] uppercase">{t("Prereq Readiness:")}</span>
               <p className="text-sm font-bold text-emerald-400 mt-0.5">{course.aiAnalysis.prerequisiteReadinessScore} / 10.0</p>
             </div>
             <div className="p-2.5 bg-white/5 rounded-lg border border-white/10">
-              <span className="text-slate-400 text-[10px] uppercase">Deduplicated Q&A:</span>
-              <p className="text-sm font-bold text-blue-400 mt-0.5">{course.aiAnalysis.duplicateQuestionsFiltered} filtered</p>
+              <span className="text-slate-400 text-[10px] uppercase">{t("Deduplicated Q&A:")}</span>
+              <p className="text-sm font-bold text-blue-400 mt-0.5">{course.aiAnalysis.duplicateQuestionsFiltered}  {t("filtered")}</p>
             </div>
           </div>
 
           <div className="pt-1 flex flex-wrap gap-1.5 items-center">
-            <span className="text-slate-400 text-[11px] mr-1">Taxonomy Tags:</span>
+            <span className="text-slate-400 text-[11px] mr-1">{t("Taxonomy Tags:")}</span>
             {course.aiAnalysis.suggestedTags.map((tag) => (
               <span key={tag} className="px-2 py-0.5 rounded font-mono text-[10px] bg-blue-500/20 text-blue-300 border border-blue-400/30">
                 #{tag}
@@ -276,8 +273,7 @@ export const CourseNodeDetailPage: React.FC = () => {
       {/* 5 Campus Offerings Matrix */}
       <div className="p-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-3.5">
         <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">
-          Campus Distribution & Offerings (5 Regional Campuses)
-        </h3>
+          {t("Campus Distribution & Offerings (5 Regional Campuses)")}</h3>
 
         {course.campusOfferings && course.campusOfferings.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -288,28 +284,27 @@ export const CourseNodeDetailPage: React.FC = () => {
                     {co.campusCode}
                   </span>
                   <span className="text-[9px] px-1.5 py-0.2 bg-emerald-50 text-emerald-700 rounded font-bold">
-                    ACTIVE
-                  </span>
+                    {t("ACTIVE")}</span>
                 </div>
                 <div>
-                  <div className="font-bold text-slate-900">{co.enrolledStudents || 0} Students</div>
-                  <div className="text-[10px] text-slate-400">{co.activeClasses || 0} Classes</div>
+                  <div className="font-bold text-slate-900">{co.enrolledStudents || 0}  {t("Students")}</div>
+                  <div className="text-[10px] text-slate-400">{co.activeClasses || 0}  {t("Classes")}</div>
                 </div>
                 <div className="text-[10px] text-slate-500 pt-1 border-t border-slate-200 truncate">
-                  {co.lecturers && co.lecturers.length > 0 ? co.lecturers.join(', ') : 'Chưa phân công'}
+                  {co.lecturers && co.lecturers.length > 0 ? co.lecturers.join(', ') : t("Chưa phân công")}
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-xs text-slate-400">0 campuses offering this course.</p>
+          <p className="text-xs text-slate-400">{t("0 campuses offering this course.")}</p>
         )}
       </div>
 
       {/* Syllabus Learning Objectives & Topics Breakdown */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="p-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-3">
-          <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Learning Objectives (ABET)</h3>
+          <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">{t("Learning Objectives (ABET)")}</h3>
           {course.learningObjectives && course.learningObjectives.length > 0 ? (
             <ul className="space-y-2 text-xs text-slate-700">
               {course.learningObjectives.map((obj, i) => (
@@ -320,12 +315,12 @@ export const CourseNodeDetailPage: React.FC = () => {
               ))}
             </ul>
           ) : (
-            <p className="text-xs text-slate-400">0 learning objectives defined.</p>
+            <p className="text-xs text-slate-400">{t("0 learning objectives defined.")}</p>
           )}
         </div>
 
         <div className="p-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-3">
-          <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Topics Syllabus</h3>
+          <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">{t("Topics Syllabus")}</h3>
           {course.topics && course.topics.length > 0 ? (
             <div className="divide-y divide-slate-100 text-xs">
               {course.topics.map((t) => (
@@ -341,7 +336,7 @@ export const CourseNodeDetailPage: React.FC = () => {
               ))}
             </div>
           ) : (
-            <p className="text-xs text-slate-400">0 topics in syllabus.</p>
+            <p className="text-xs text-slate-400">{t("0 topics in syllabus.")}</p>
           )}
         </div>
       </div>

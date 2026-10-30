@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, ArrowRight, ArrowLeft, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { authApi } from '../../services/api/adminApi';
 import { validateFptEmail } from '../../utils/fptEmailValidator';
 import { User } from '../../types';
 
 export const EmailAuthPage: React.FC = () => {
   const { login } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -19,24 +21,24 @@ export const EmailAuthPage: React.FC = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) {
-      setErrorMessage('Vui lòng nhập email trường hoặc mã sinh viên.');
+      setErrorMessage(t("Vui lòng nhập email trường hoặc mã sinh viên."));
       return;
     }
 
     if (email.trim().includes('@')) {
       const emailCheck = validateFptEmail(email.trim());
       if (!emailCheck.isValid) {
-        setErrorMessage(emailCheck.error || 'Email không đúng quy chế của trường.');
+        setErrorMessage(emailCheck.error || t("Email không đúng quy chế của trường."));
         return;
       }
     }
 
     if (!password) {
-      setErrorMessage('Vui lòng nhập mật khẩu.');
+      setErrorMessage(t("Vui lòng nhập mật khẩu."));
       return;
     }
     if (password.length < 6) {
-      setErrorMessage('Mật khẩu phải chứa ít nhất 6 ký tự.');
+      setErrorMessage(t("Mật khẩu phải chứa ít nhất 6 ký tự."));
       return;
     }
     setIsLoading(true);
@@ -78,7 +80,7 @@ export const EmailAuthPage: React.FC = () => {
       else if (mappedRole === 'Community Moderator') navigate('/admin-console/moderation');
       else navigate('/');
     } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || 'Đăng nhập không thành công. Vui lòng kiểm tra lại thông tin xác thực.';
+      const msg = err.response?.data?.message || err.message || t("Đăng nhập không thành công. Vui lòng kiểm tra lại thông tin xác thực.");
       setErrorMessage(msg);
     } finally {
       setIsLoading(false);
@@ -96,33 +98,33 @@ export const EmailAuthPage: React.FC = () => {
             className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#0076D1] transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Back</span>
+            <span>{t('auth.back', 'Back')}</span>
           </button>
           <div className="flex items-center gap-1.5">
-            <img src="/fhub-remove-background.png" alt="FHub Logo" className="w-6 h-6 object-contain" />
-            <span className="font-extrabold text-xs tracking-tight text-slate-800">FHub EDU</span>
+            <img src="/fhub-remove-background.png" alt={t("FHub Logo")} className="w-6 h-6 object-contain" />
+            <span className="font-extrabold text-xs tracking-tight text-slate-800">{t("FHub EDU")}</span>
           </div>
         </div>
 
         <div className="space-y-1 text-center">
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-            Email Authentication
+            {t('auth.emailAuthTitle', 'Email Authentication')}
           </h1>
           <p className="text-xs text-slate-500">
-            Đăng nhập hệ thống bằng email sinh viên và mật khẩu
+            {t('auth.emailAuthSubtitle', 'Đăng nhập hệ thống bằng email sinh viên và mật khẩu')}
           </p>
         </div>
 
         {errorMessage && (
           <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold">
-            {errorMessage}
+            {t(errorMessage)}
           </div>
         )}
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1">
-              Email Sinh Viên / Cán Bộ *
+              {t('auth.emailLabel', 'Email Sinh Viên / Cán Bộ *')}
             </label>
             <div className="relative">
               <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -130,7 +132,7 @@ export const EmailAuthPage: React.FC = () => {
                 type="text"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="TanLT.CE190370@gmail.com hoặc namnv@fpt.edu.vn"
+                placeholder={t("TanLT.CE190370@gmail.com hoặc namnv@fpt.edu.vn")}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0076D1]/20 focus:border-[#0076D1] transition-all"
                 required
               />
@@ -140,7 +142,7 @@ export const EmailAuthPage: React.FC = () => {
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="block text-xs font-bold text-slate-700">
-                Mật Khẩu *
+                {t('auth.passwordLabel', 'Mật Khẩu *')}
               </label>
               {/* Button: "Forgot password" */}
               <button
@@ -148,7 +150,7 @@ export const EmailAuthPage: React.FC = () => {
                 onClick={() => navigate('/forgot-password')}
                 className="text-xs font-bold text-[#0076D1] hover:underline cursor-pointer"
               >
-                Forgot password
+                {t('auth.forgotPasswordBtn', 'Forgot password')}
               </button>
             </div>
             <div className="relative">
@@ -179,7 +181,7 @@ export const EmailAuthPage: React.FC = () => {
                 onChange={(e) => setRememberMe(e.target.checked)}
                 className="w-4 h-4 rounded text-[#0076D1] border-slate-300 focus:ring-[#0076D1]"
               />
-              <span className="text-slate-600">Ghi nhớ đăng nhập</span>
+              <span className="text-slate-600">{t('auth.rememberMe', 'Ghi nhớ đăng nhập')}</span>
             </label>
           </div>
 
@@ -188,20 +190,20 @@ export const EmailAuthPage: React.FC = () => {
             disabled={isLoading}
             className="w-full py-3 px-4 rounded-xl text-xs font-bold text-white bg-[#0076D1] hover:bg-[#005DA7] transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
           >
-            <span>{isLoading ? 'ĐANG ĐĂNG NHẬP...' : 'SIGN IN'}</span>
+            <span>{isLoading ? t('auth.signingIn', 'ĐANG ĐĂNG NHẬP...') : t('auth.signInBtn', 'SIGN IN')}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
 
         {/* Action: "Register Account" */}
         <div className="pt-4 border-t border-slate-100 text-center space-y-2">
-          <p className="text-xs text-slate-500">Chưa có tài khoản sinh viên FHub?</p>
+          <p className="text-xs text-slate-500">{t('auth.noAccountYet', 'Chưa có tài khoản sinh viên FHub?')}</p>
           <button
             type="button"
             onClick={() => navigate('/email-reg')}
             className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-[#0076D1] bg-blue-50/70 hover:bg-blue-100/70 border border-blue-200/80 transition-all cursor-pointer"
           >
-            Register Account
+            {t('auth.registerAccountBtn', 'Register Account')}
           </button>
         </div>
       </div>

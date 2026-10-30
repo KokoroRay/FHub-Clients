@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Search,
@@ -16,8 +16,18 @@ import { Article, Series } from '../../types';
 import { articleApi, seriesApi } from '../../services/api/contentApi';
 import { voteApi, bookmarkApi } from '../../services/api/studentApi';
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
+import { useLanguage } from '../../context/LanguageContext';
+import {
+  loadAllSemanticTags,
+  getSemanticTagMap,
+  resolveTagNames,
+  resolveCategoryFromTags,
+  FALLBACK_ALL_TAGS,
+  SemanticTagItem,
+} from '../../utils/tagUtils';
 
 export const ArticleListPage: React.FC = () => {
+  const { locale, t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'articles' | 'series'>('articles');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -28,7 +38,21 @@ export const ArticleListPage: React.FC = () => {
   const [likeScores, setLikeScores] = useState<Record<string, number>>({});
   const [isSeriesModalOpen, setIsSeriesModalOpen] = useState(false);
   const [apiArticles, setApiArticles] = useState<Article[]>([]);
+  const [allTags, setAllTags] = useState<SemanticTagItem[]>(FALLBACK_ALL_TAGS);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Load all DB semantic tags on mount
+  useEffect(() => {
+    let isMounted = true;
+    loadAllSemanticTags().then((tags) => {
+      if (isMounted && tags && tags.length > 0) {
+        setAllTags(tags);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     const fetchArticles = async () => {
@@ -36,29 +60,38 @@ export const ArticleListPage: React.FC = () => {
       try {
         const res = await articleApi.getArticles({
           search: searchQuery.trim() || undefined,
-          pageSize: 20,
+          pageSize: 50,
         });
         if (res && res.items) {
-          const mapped: Article[] = res.items.map((item) => ({
-            id: String(item.articleId),
-            title: item.title,
-            summary: item.summary || item.title,
-            content: '',
-            coverImage: item.coverImageUrl || '',
-            category: 'Backend Development',
-            tags: ['dotnet', 'csharp', 'architecture'],
-            author: {
-              id: String(item.authorUserId || item.authorStaffId || 1),
-              fullName: item.authorStaffId ? 'FPT Faculty Staff' : 'Student Author',
-              role: item.authorStaffId ? 'Staff' : 'Student',
-              avatarUrl: '',
-            },
-            likesCount: 0,
-            bookmarksCount: 0,
-            viewsCount: 0,
-            readTimeMinutes: 3,
-            createdAt: item.createdAt || new Date().toISOString(),
-          }));
+          const tagMap = getSemanticTagMap(allTags);
+          const mapped: Article[] = res.items.map((item) => {
+            const tags = resolveTagNames(item.semanticTagIds, tagMap);
+            if (tags.length === 0) {
+              tags.push(t("Chia sẻ kinh nghiệm"), t("Học thuật"));
+            }
+            const category = resolveCategoryFromTags(item.semanticTagIds, tagMap) || tags[0] || t("Học thuật & Trải nghiệm");
+
+            return {
+              id: String(item.articleId),
+              title: item.title,
+              summary: item.summary || item.title,
+              content: '',
+              coverImage: item.coverImageUrl || '',
+              category,
+              tags,
+              author: {
+                id: String(item.authorUserId || item.authorStaffId || 1),
+                fullName: item.authorStaffId ? 'FPT Faculty Staff' : 'Student Author',
+                role: item.authorStaffId ? 'Staff' : 'Student',
+                avatarUrl: '',
+              },
+              likesCount: 0,
+              bookmarksCount: 0,
+              viewsCount: 0,
+              readTimeMinutes: Math.max(2, Math.ceil((item.summary || item.title).length / 120)),
+              createdAt: item.createdAt || new Date().toISOString(),
+            };
+          });
           setApiArticles(mapped);
 
           // Synchronize bookmarks and votes from interaction service
@@ -221,21 +254,16 @@ export const ArticleListPage: React.FC = () => {
     }
   };
 
-  const categories = [
-    'ALL',
-    'Development',
-    'UI/UX',
-    'Database',
-    'Career',
-    'Backend Development',
-    'Software Architecture',
-  ];
+  const categories = useMemo(() => {
+    return ['ALL', ...allTags.map((t) => t.name)];
+  }, [allTags]);
 
   const filteredArticles = allArticles
     .filter((art: Article) => {
       const matchCat =
         selectedCategory === 'ALL' ||
-        (art.category && art.category.toLowerCase() === selectedCategory.toLowerCase());
+        (art.category && art.category.toLowerCase() === selectedCategory.toLowerCase()) ||
+        (art.tags && art.tags.some((t) => t.toLowerCase() === selectedCategory.toLowerCase()));
       const matchSearch =
         art.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         art.summary.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -259,15 +287,15 @@ export const ArticleListPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl font-black text-[#181C22] tracking-tight">
-              Articles
+            <h1 className="text-2xl font-black text-[#181C22] dark:text-slate-100 tracking-tight">
+              {t('Articles & Knowledge')}
             </h1>
             <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-[#0076D1] border border-blue-100">
-              {activeTab === 'articles' ? `${filteredArticles.length} Articles` : `${filteredSeries.length} Series`}
+              {activeTab === 'articles' ? `${filteredArticles.length} ${t('articles.countLabel', 'Articles')}` : `${filteredSeries.length} ${t('articles.seriesCountLabel', 'Series')}`}
             </span>
           </div>
-          <p className="text-xs sm:text-sm text-[#404753] mt-1">
-            Explore practical knowledge and ideas from the community.
+          <p className="text-xs sm:text-sm text-[#404753] dark:text-slate-400 mt-1">
+            {t('articles.subtitle', 'Tổng hợp bài viết học thuật, kinh nghiệm học tập FPTU, tài liệu & hướng dẫn đa chuyên ngành.')}
           </p>
         </div>
 
@@ -278,7 +306,7 @@ export const ArticleListPage: React.FC = () => {
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-[#0076D1] hover:bg-[#005DA7] transition-all shadow-xs cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              <span>Create Series</span>
+              <span>{t('Create Series')}</span>
             </button>
           ) : (
             <Link
@@ -286,14 +314,14 @@ export const ArticleListPage: React.FC = () => {
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-[#0076D1] hover:bg-[#005DA7] transition-all shadow-xs"
             >
               <Plus className="w-4 h-4" />
-              <span>Create Article</span>
+              <span>{t('Create Article')}</span>
             </Link>
           )}
         </div>
       </div>
 
       {/* 2. Search & Filters Toolbar (Figma #95:7778) */}
-      <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs p-3.5 space-y-3">
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/90 dark:border-slate-800 shadow-2xs p-3.5 space-y-3">
         {/* Top bar: Search input & Tab switcher */}
         <div className="flex flex-col sm:flex-row items-center gap-3">
           <div className="relative flex-1 w-full">
@@ -302,31 +330,31 @@ export const ArticleListPage: React.FC = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search articles..."
-              className="w-full bg-[#F8F9FF] border border-slate-200 rounded-lg pl-10 pr-4 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0076D1]/20 focus:border-[#0076D1]"
+              placeholder={t('articles.searchPlaceholder', 'Tìm bài viết theo tiêu đề, tóm tắt, môn học, kỹ năng hoặc chuyên ngành...')}
+              className="w-full bg-[#F8F9FF] dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg pl-10 pr-4 py-2.5 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0076D1]/20 focus:border-[#0076D1]"
             />
           </div>
 
-          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg shrink-0 w-full sm:w-auto">
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg shrink-0 w-full sm:w-auto">
             <button
               onClick={() => setActiveTab('articles')}
               className={`flex-1 sm:flex-none px-4 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
                 activeTab === 'articles'
-                  ? 'bg-white text-slate-900 shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
               }`}
             >
-              All Articles
+              {t('All Articles')}
             </button>
             <button
               onClick={() => setActiveTab('series')}
               className={`flex-1 sm:flex-none px-4 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
                 activeTab === 'series'
-                  ? 'bg-white text-slate-900 shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
               }`}
             >
-              Series Collections ({seriesList.length})
+              {t('Series Collections')} ({seriesList.length})
             </button>
           </div>
         </div>
@@ -339,11 +367,11 @@ export const ArticleListPage: React.FC = () => {
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full appearance-none bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#0076D1] cursor-pointer"
+                className="w-full appearance-none bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#0076D1] cursor-pointer"
               >
                 {categories.map((c) => (
                   <option key={c} value={c}>
-                    {c === 'ALL' ? 'All Categories' : c}
+                    {c === 'ALL' ? t('articles.allTagsOrCategories', 'Tất cả chủ đề / Thẻ tag') : t(c)}
                   </option>
                 ))}
               </select>
@@ -355,11 +383,11 @@ export const ArticleListPage: React.FC = () => {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="w-full appearance-none bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#0076D1] cursor-pointer"
+                className="w-full appearance-none bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#0076D1] cursor-pointer"
               >
-                <option value="newest">Sort: Newest First</option>
-                <option value="popular">Sort: Most Popular</option>
-                <option value="views">Sort: Most Read</option>
+                <option value="newest">{t('Sort: Newest First')}</option>
+                <option value="popular">{t('Sort: Most Popular')}</option>
+                <option value="views">{t('Sort: Most Read')}</option>
               </select>
               <ChevronDown className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
             </div>
@@ -371,8 +399,8 @@ export const ArticleListPage: React.FC = () => {
       {activeTab === 'articles' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {filteredArticles.length === 0 ? (
-            <div className="col-span-2 p-12 text-center text-slate-400 text-xs bg-white rounded-xl border border-slate-200">
-              No articles found matching your criteria.
+            <div className="col-span-2 p-12 text-center text-slate-400 text-xs bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+              {t('No articles found matching your criteria.')}
             </div>
           ) : (
             filteredArticles.map((art) => {
@@ -388,10 +416,10 @@ export const ArticleListPage: React.FC = () => {
                     {/* Top Row: Category pill & Date */}
                     <div className="flex items-center justify-between gap-2 text-xs">
                       <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-[#0076D1] border border-blue-100">
-                        {art.category || 'Development'}
+                        {t(art.category || 'Development')}
                       </span>
                       <span className="text-slate-400 text-[11px]">
-                        {new Date(art.createdAt).toLocaleDateString('en-US', {
+                        {new Date(art.createdAt).toLocaleDateString(locale, {
                           month: 'short',
                           day: 'numeric',
                           year: 'numeric',
@@ -431,17 +459,17 @@ export const ArticleListPage: React.FC = () => {
                         )}
                         <div>
                           <div className="font-bold text-slate-800 line-clamp-1">
-                            {art.author.fullName}
+                            {t(art.author.fullName)}
                           </div>
                           <div className="text-[10px] text-slate-400">
-                            {art.author.role || 'Student'}
+                            {t(art.author.role || 'Student')}
                           </div>
                         </div>
                       </div>
 
                       {/* Metrics */}
                       <div className="flex items-center gap-3 text-slate-500 font-semibold">
-                        <span className="flex items-center gap-1" title="Views">
+                        <span className="flex items-center gap-1" title={t("Views")}>
                           <Eye className="w-3.5 h-3.5 text-slate-400" />
                           <span>{art.viewsCount || 0}</span>
                         </span>
@@ -450,7 +478,7 @@ export const ArticleListPage: React.FC = () => {
                           className={`flex items-center gap-1 transition-colors cursor-pointer ${
                             isLiked ? 'text-rose-500' : 'text-slate-500 hover:text-rose-500'
                           }`}
-                          title="Like"
+                          title={t("Like")}
                         >
                           <Heart
                             className={`w-3.5 h-3.5 ${isLiked ? 'fill-rose-500 text-rose-500' : ''}`}
@@ -466,7 +494,7 @@ export const ArticleListPage: React.FC = () => {
                         to={`/articles/${art.id}`}
                         className="inline-flex items-center gap-1 text-xs font-bold text-[#0076D1] hover:text-[#005DA7] transition-colors"
                       >
-                        <span>Read Article</span>
+                        <span>{t('articles.readArticle', 'Read Article')}</span>
                         <ArrowRight className="w-3.5 h-3.5" />
                       </Link>
 
@@ -507,10 +535,9 @@ export const ArticleListPage: React.FC = () => {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
-                    Series Collection
-                  </span>
+                    {t("Series Collection")}</span>
                   <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
-                    {s.itemCount} Articles
+                    {s.itemCount} {t('articles.countLabel', 'Articles')}
                   </span>
                 </div>
 
@@ -541,7 +568,7 @@ export const ArticleListPage: React.FC = () => {
                   to={`/series/${s.id}`}
                   className="inline-flex items-center gap-1 text-xs font-bold text-[#0076D1] hover:text-[#005DA7] transition-colors"
                 >
-                  <span>Explore Series</span>
+                  <span>{t("Explore Series")}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>

@@ -1,3 +1,7 @@
+import { RecordDialog } from '../../../components/common/RecordDialog';
+import { Button } from '../../../components/common/Button';
+import { majorsApi } from '../../../services/api/adminApi';
+import { useConfirmDialog } from '../../../components/common/useConfirmDialog';
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -16,9 +20,12 @@ import {
   Loader2,
 } from 'lucide-react';
 import { DetailedMajor } from '../../../types';
+import { useLanguage } from '../../../context/LanguageContext';
 import { useMajors, useCreateMajor, useDeleteMajor } from '../../../services/api';
 
 export const MajorsPage: React.FC = () => {
+  const { confirm, confirmationDialog } = useConfirmDialog();
+  const { t } = useLanguage();
   const { data: majorsData, isLoading, refetch } = useMajors();
   const createMajorMutation = useCreateMajor();
   const deleteMajorMutation = useDeleteMajor();
@@ -27,6 +34,7 @@ export const MajorsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDept, setSelectedDept] = useState('ALL');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingMajor, setEditingMajor] = useState<DetailedMajor | null>(null);
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
 
   // Form
@@ -44,9 +52,9 @@ export const MajorsPage: React.FC = () => {
         code: m.majorCode || '',
         name: m.majorName || '',
         vietnameseName: m.vietnameseName || m.majorName || '',
-        description: m.description || `Chương trình đào tạo ${m.vietnameseName || m.majorName || ''} tại FPT University.`,
-        department: m.department || 'Công nghệ thông tin',
-        headOfDepartment: m.headOfDepartment || 'Chưa chỉ định',
+        description: m.description || t("Chương trình đào tạo {p0} tại FPT University.", undefined, { p0: m.vietnameseName || m.majorName || '' }),
+        department: m.department || t("Công nghệ thông tin"),
+        headOfDepartment: m.headOfDepartment || t("Chưa chỉ định"),
         totalCreditsRequired: m.totalCreditsRequired || 0,
         durationSemesters: m.durationSemesters || 0,
         totalCourses: m.totalCourses || 0,
@@ -77,14 +85,14 @@ export const MajorsPage: React.FC = () => {
         majorName: newName.trim(),
         vietnameseName: newVnName.trim() || newName.trim(),
         department: newDept,
-        headOfDepartment: newHead.trim() || 'Chưa chỉ định',
+        headOfDepartment: newHead.trim() || t("Chưa chỉ định"),
         totalCreditsRequired: Number(newCredits) || 0,
         description: `Chương trình đào tạo ${newVnName || newName} tại FPT University.`,
         isActive: true,
       });
 
       setShowCreateModal(false);
-      setSuccessNotice(`Created major track in DB: ${newVnName || newName} (${newCode.toUpperCase()})`);
+      setSuccessNotice(t("Created major track in DB: {p0} ({p1})", undefined, { p0: newVnName || newName, p1: newCode.toUpperCase() }));
       setTimeout(() => setSuccessNotice(null), 3500);
       refetch();
     } catch (err: any) {
@@ -95,7 +103,7 @@ export const MajorsPage: React.FC = () => {
         vietnameseName: newVnName.trim() || newName.trim(),
         description: `Chương trình đào tạo ${newVnName || newName} tại FPT University.`,
         department: newDept,
-        headOfDepartment: newHead.trim() || 'Chưa chỉ định',
+        headOfDepartment: newHead.trim() || t("Chưa chỉ định"),
         totalCreditsRequired: Number(newCredits) || 0,
         durationSemesters: 0,
         totalCourses: 0,
@@ -104,13 +112,13 @@ export const MajorsPage: React.FC = () => {
       };
       setMajors((prev) => [...prev, created]);
       setShowCreateModal(false);
-      setSuccessNotice(`Created major track locally: ${created.vietnameseName} (${created.code})`);
+      setSuccessNotice(t("Created major track locally: {p0} ({p1})", undefined, { p0: created.vietnameseName, p1: created.code }));
       setTimeout(() => setSuccessNotice(null), 3500);
     }
   };
 
   const handleDeleteMajor = async (majorId: string, majorName: string) => {
-    if (window.confirm(`Delete major track ${majorName}?`)) {
+    if (await confirm(t("Delete major track {p0}?", undefined, { p0: majorName }))) {
       try {
         const numericId = majorId.replace(/\D/g, '');
         if (numericId) {
@@ -120,27 +128,32 @@ export const MajorsPage: React.FC = () => {
         console.warn('Delete major fallback to local:', e);
       }
       setMajors((prev) => prev.filter((m) => m.id !== majorId));
-      setSuccessNotice(`Deleted major track ${majorName}`);
+      setSuccessNotice(t("Deleted major track {p0}", undefined, { p0: majorName }));
       setTimeout(() => setSuccessNotice(null), 3000);
     }
   };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
+      {editingMajor && <RecordDialog title={t('Edit Major')} onClose={() => setEditingMajor(null)} fields={[
+        {key:'code', label:'Major Code', value:editingMajor.code, readOnly:true},
+        {key:'name', label:'Major Name', value:editingMajor.name},
+        {key:'description', label:'Description', value:editingMajor.description, multiline:true},
+        {key:'active', label:'Status', value:editingMajor.isActive ? 'Active' : 'Inactive', options:['Active','Inactive']},
+      ]} onSave={async v => { await majorsApi.updateMajor(editingMajor.id, {majorName:v.name, description:v.description, isActive:v.active === 'Active'}); await refetch(); }} />}
+      {confirmationDialog}
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-            <span>ACADEMIC TAXONOMY</span>
-            <span>&gt;</span>
-            <span className="text-blue-600">DEGREE TRACKS (MAJORS)</span>
+            <span>{t("ACADEMIC TAXONOMY")}</span>
+            <span>{t("&gt;")}</span>
+            <span className="text-blue-600">{t("DEGREE TRACKS (MAJORS)")}</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            Degree Tracks & Curriculums
-          </h1>
+            {t("Degree Tracks & Curriculums")}</h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Manage all {majors.length} undergraduate and graduate academic programs, department chairs, and credit requirements.
-          </p>
+            {t("Manage all")} {majors.length}  {t("undergraduate and graduate academic programs, department chairs, and credit requirements.")}</p>
         </div>
 
         <button
@@ -148,14 +161,14 @@ export const MajorsPage: React.FC = () => {
           className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
         >
           <Plus className="w-3.5 h-3.5" />
-          <span>Add Major Track</span>
+          <span>{t('Add New')}</span>
         </button>
       </div>
 
       {successNotice && (
         <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center gap-2 animate-fadeIn">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span>{successNotice}</span>
+          <span>{t(successNotice)}</span>
         </div>
       )}
 
@@ -167,7 +180,7 @@ export const MajorsPage: React.FC = () => {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by major code (SE, IA, AI), English title, or Vietnamese name..."
+            placeholder={t("Search by major code (SE, IA, AI), English title, or Vietnamese name...")}
             className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
           />
         </div>
@@ -177,12 +190,12 @@ export const MajorsPage: React.FC = () => {
           onChange={(e) => setSelectedDept(e.target.value)}
           className="w-full md:w-56 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none cursor-pointer"
         >
-          <option value="ALL">All Departments</option>
-          <option value="Công nghệ thông tin">Information Technology</option>
-          <option value="An toàn thông tin">Information Assurance</option>
-          <option value="Khoa học máy tính">Computer Science</option>
-          <option value="Thiết kế đồ họa">Graphic Design</option>
-          <option value="Quản trị kinh doanh">Business Administration</option>
+          <option value="ALL">{t('Tất cả') || 'All Departments'}</option>
+          <option value="Công nghệ thông tin">{t("Information Technology")}</option>
+          <option value="An toàn thông tin">{t("Information Assurance")}</option>
+          <option value="Khoa học máy tính">{t("Computer Science")}</option>
+          <option value="Thiết kế đồ họa">{t("Graphic Design")}</option>
+          <option value="Quản trị kinh doanh">{t("Business Administration")}</option>
         </select>
       </div>
 
@@ -190,8 +203,7 @@ export const MajorsPage: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredMajors.length === 0 ? (
           <div className="col-span-full p-8 text-center bg-white rounded-xl border border-slate-200 text-slate-400 text-xs">
-            0 degree tracks found matching your filter criteria.
-          </div>
+            {t("0 degree tracks found matching your filter criteria.")}</div>
         ) : (
           filteredMajors.map((major) => (
             <div
@@ -213,24 +225,22 @@ export const MajorsPage: React.FC = () => {
                   </div>
 
                   <span className="text-[10px] font-bold px-2 py-0.2 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                    ACTIVE
-                  </span>
+                    {t("ACTIVE")}</span>
                 </div>
 
                 <div className="p-3 bg-slate-50 rounded-lg space-y-1.5 text-xs">
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Department:</span>
+                    <span className="text-slate-500">{t("Department:")}</span>
                     <span className="font-semibold text-slate-800">{major.department}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Department Chair:</span>
+                    <span className="text-slate-500">{t("Department Chair:")}</span>
                     <span className="font-semibold text-slate-800">{major.headOfDepartment}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Credits & Duration:</span>
+                    <span className="text-slate-500">{t("Credits & Duration:")}</span>
                     <span className="font-bold text-blue-600">
-                      {major.totalCreditsRequired} Credits ({major.durationSemesters} Semesters)
-                    </span>
+                      {major.totalCreditsRequired}  {t("Credits (")}{major.durationSemesters}  {t("Semesters)")}</span>
                   </div>
                 </div>
 
@@ -240,10 +250,11 @@ export const MajorsPage: React.FC = () => {
               </div>
 
               <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between">
+                <Button size="sm" variant="ghost" onClick={() => setEditingMajor(major)}>{t('Edit')}</Button>
                 <button
                   onClick={() => handleDeleteMajor(major.id, major.vietnameseName)}
                   className="text-slate-400 hover:text-rose-600 p-1 rounded transition-colors cursor-pointer"
-                  title="Delete major"
+                  title={t("Delete major")}
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -252,7 +263,7 @@ export const MajorsPage: React.FC = () => {
                   to={`/majors/${major.code}`}
                   className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700"
                 >
-                  <span>{major.durationSemesters > 0 ? `${major.durationSemesters}-Semester Roadmap` : 'Curriculum Roadmap'}</span>
+                  <span>{major.durationSemesters > 0 ? t("{p0}-Semester Roadmap", undefined, { p0: major.durationSemesters }) : t("Curriculum Roadmap")}</span>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
@@ -266,7 +277,7 @@ export const MajorsPage: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-fadeIn">
           <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full p-6 shadow-xl space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-slate-900">Add New Major Track</h2>
+              <h2 className="text-base font-bold text-slate-900">{t("Add New Major Track")}</h2>
               <button
                 onClick={() => setShowCreateModal(false)}
                 className="text-slate-400 hover:text-slate-600 cursor-pointer"
@@ -278,22 +289,22 @@ export const MajorsPage: React.FC = () => {
             <form onSubmit={handleCreateMajor} className="space-y-3">
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700">Code:</label>
+                  <label className="text-xs font-semibold text-slate-700">{t("Code:")}</label>
                   <input
                     type="text"
                     required
-                    placeholder="SE"
+                    placeholder={t("SE")}
                     value={newCode}
                     onChange={(e) => setNewCode(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-bold uppercase"
                   />
                 </div>
                 <div className="col-span-2 space-y-1">
-                  <label className="text-xs font-semibold text-slate-700">Vietnamese Title:</label>
+                  <label className="text-xs font-semibold text-slate-700">{t("Vietnamese Title:")}</label>
                   <input
                     type="text"
                     required
-                    placeholder="Kỹ thuật phần mềm"
+                    placeholder={t("Kỹ thuật phần mềm")}
                     value={newVnName}
                     onChange={(e) => setNewVnName(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs"
@@ -302,11 +313,11 @@ export const MajorsPage: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">English Title:</label>
+                <label className="text-xs font-semibold text-slate-700">{t("English Title:")}</label>
                 <input
                   type="text"
                   required
-                  placeholder="Software Engineering"
+                  placeholder={t("Software Engineering")}
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs"
@@ -315,24 +326,24 @@ export const MajorsPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700">Department:</label>
+                  <label className="text-xs font-semibold text-slate-700">{t("Department:")}</label>
                   <select
                     value={newDept}
                     onChange={(e) => setNewDept(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs"
                   >
-                    <option value="Công nghệ thông tin">Công nghệ thông tin</option>
-                    <option value="An toàn thông tin">An toàn thông tin</option>
-                    <option value="Khoa học máy tính">Khoa học máy tính</option>
-                    <option value="Thiết kế đồ họa">Thiết kế đồ họa</option>
-                    <option value="Quản trị kinh doanh">Quản trị kinh doanh</option>
+                    <option value="Công nghệ thông tin">{t("Công nghệ thông tin")}</option>
+                    <option value="An toàn thông tin">{t("An toàn thông tin")}</option>
+                    <option value="Khoa học máy tính">{t("Khoa học máy tính")}</option>
+                    <option value="Thiết kế đồ họa">{t("Thiết kế đồ họa")}</option>
+                    <option value="Quản trị kinh doanh">{t("Quản trị kinh doanh")}</option>
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700">Department Chair:</label>
+                  <label className="text-xs font-semibold text-slate-700">{t("Department Chair:")}</label>
                   <input
                     type="text"
-                    placeholder="Dr. Kieu Trong..."
+                    placeholder={t("Dr. Kieu Trong...")}
                     value={newHead}
                     onChange={(e) => setNewHead(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs"
@@ -346,14 +357,12 @@ export const MajorsPage: React.FC = () => {
                   onClick={() => setShowCreateModal(false)}
                   className="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold cursor-pointer"
                 >
-                  Cancel
-                </button>
+                  {t("Cancel")}</button>
                 <button
                   type="submit"
                   className="px-4 py-2 rounded-lg bg-blue-600 text-white text-xs font-semibold cursor-pointer hover:bg-blue-700"
                 >
-                  Create Major
-                </button>
+                  {t("Create Major")}</button>
               </div>
             </form>
           </div>

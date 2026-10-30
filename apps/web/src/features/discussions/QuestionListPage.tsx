@@ -21,10 +21,19 @@ import { questionApi } from '../../services/api/contentApi';
 import { voteApi } from '../../services/api/studentApi';
 import { courseNodesApi, semanticTagsApi } from '../../services/api/adminApi';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
+import {
+  loadAllSemanticTags,
+  getSemanticTagMap,
+  resolveTagNames,
+  FALLBACK_ALL_TAGS,
+  SemanticTagItem,
+} from '../../utils/tagUtils';
 
 export const QuestionListPage: React.FC = () => {
   const { currentCampus } = useAuth();
+  const { locale, t } = useLanguage();
   const [searchParams] = useSearchParams();
   const initialTag = searchParams.get('tag');
   const shouldOpenCreate = searchParams.get('action') === 'create';
@@ -38,6 +47,7 @@ export const QuestionListPage: React.FC = () => {
   const [questions, setQuestions] = useState<QuestionPost[]>([]);
   const [votesState, setVotesState] = useState<Record<string, { score: number; userVote: 'UP' | 'DOWN' | null }>>({});
   const [availableCourses, setAvailableCourses] = useState<Array<{ id: number; code: string; title: string }>>([]);
+  const [allTags, setAllTags] = useState<SemanticTagItem[]>(FALLBACK_ALL_TAGS);
   const [tagsMap, setTagsMap] = useState<Record<number, string>>({});
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
@@ -46,33 +56,32 @@ export const QuestionListPage: React.FC = () => {
     let isMounted = true;
     const loadMetadata = async () => {
       try {
-        const cRes = await courseNodesApi.getCourseNodes({ pageSize: 100 });
-        const cItems = (cRes as any)?.items || cRes || [];
-        if (isMounted && Array.isArray(cItems)) {
-          setAvailableCourses(
-            cItems.map((c: any, idx: number) => {
-              const idNum = Number(c.id ?? c.courseNodeId ?? c.courseId);
-              return {
-                id: Number.isFinite(idNum) ? idNum : idx + 1,
-                code: c.code || c.courseCode || `C-${idx + 1}`,
-                title: c.name || c.title || c.code || `Course ${idx + 1}`,
-              };
-            })
-          );
-        }
-      } catch {}
-
-      try {
-        const tRes = await semanticTagsApi.getTags({ pageSize: 100 });
-        const tItems = (tRes as any)?.items || (tRes as any)?.data?.items || tRes || [];
-        if (isMounted && Array.isArray(tItems)) {
-          const map: Record<number, string> = {};
-          tItems.forEach((t: any) => {
-            const id = Number(t.semanticTagId || t.id);
-            const name = (t.tagName || t.name || '').toLowerCase().trim();
-            if (id && name) map[id] = name;
-          });
-          setTagsMap(map);
+        const [cRes, tags] = await Promise.all([
+          courseNodesApi.getCourseNodes({ pageSize: 2000 }).catch(() => ({ items: [] })),
+          loadAllSemanticTags(),
+        ]);
+        if (isMounted) {
+          const cItems = (cRes as any)?.items || cRes || [];
+          if (Array.isArray(cItems)) {
+            setAvailableCourses(
+              cItems.map((c: any, idx: number) => {
+                const idNum = Number(c.id ?? c.courseNodeId ?? c.courseId);
+                return {
+                  id: Number.isFinite(idNum) ? idNum : idx + 1,
+                  code: c.code || c.courseCode || `C-${idx + 1}`,
+                  title: c.name || c.title || c.code || `Course ${idx + 1}`,
+                };
+              })
+            );
+          }
+          if (tags && tags.length > 0) {
+            setAllTags(tags);
+            const map: Record<number, string> = {};
+            tags.forEach((t) => {
+              map[t.id] = t.name;
+            });
+            setTagsMap(map);
+          }
         }
       } catch {}
     };
@@ -93,12 +102,13 @@ export const QuestionListPage: React.FC = () => {
         });
         if (isMounted) {
           const items = res?.items || [];
+          const tagMap = getSemanticTagMap(allTags);
           const mapped: QuestionPost[] = items.map((item) => {
             const matchedCourse = availableCourses.find((c) => c.id === item.courseId);
             const courseCode = matchedCourse ? matchedCourse.code : (item.courseId ? `COURSE-${item.courseId}` : undefined);
             const tags = (item.semanticTagIds && item.semanticTagIds.length > 0)
-              ? item.semanticTagIds.map((t) => tagsMap[t] || `tag-${t}`)
-              : ['qa'];
+              ? resolveTagNames(item.semanticTagIds, tagMap)
+              : [t('common.study', 'Học tập')];
 
             return {
               id: String(item.questionId),
@@ -107,7 +117,7 @@ export const QuestionListPage: React.FC = () => {
               courseCode,
               author: {
                 id: String(item.authorUserId || 'anon'),
-                fullName: item.isAnonymous ? 'Ẩn danh FPTer' : (item.authorDisplayName || 'Sinh viên FHub'),
+                fullName: item.isAnonymous ? t('common.anonymous', 'Ẩn danh FPTer') : (item.authorDisplayName || t('common.userNumber', 'Sinh viên FHub')),
                 role: 'Student',
                 karma: 0,
                 campus: '',
@@ -185,10 +195,16 @@ export const QuestionListPage: React.FC = () => {
   }, [searchQuery, sortBy]);
 
   const allTopics = useMemo(() => {
-    const set = new Set<string>();
-    questions.forEach((q) => q.tags.forEach((t) => set.add(t)));
-    return Array.from(set);
-  }, [questions]);
+    const list: string[] = allTags.map((t) => t.name);
+    questions.forEach((q) => {
+      q.tags.forEach((t) => {
+        if (!list.some((existing) => existing.toLowerCase() === t.toLowerCase())) {
+          list.push(t);
+        }
+      });
+    });
+    return list;
+  }, [allTags, questions]);
 
   const handleVote = async (id: string, dir: 'UP' | 'DOWN', e: React.MouseEvent) => {
     e.preventDefault();
@@ -285,7 +301,8 @@ export const QuestionListPage: React.FC = () => {
             : Boolean(q.courseCode && q.courseCode.toLowerCase() === selectedCourse.toLowerCase());
 
         const matchTopic =
-          selectedTopic === 'ALL' || q.tags.includes(selectedTopic);
+          selectedTopic === 'ALL' ||
+          q.tags.some((t) => t.toLowerCase() === selectedTopic.toLowerCase());
 
         return matchSearch && matchStatus && matchCourse && matchTopic;
       })
@@ -310,11 +327,11 @@ export const QuestionListPage: React.FC = () => {
       {/* 1. Content Header Block (Figma #87:957) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-[#181C22] tracking-tight">
-            Questions & Discussions
+          <h1 className="text-2xl font-black text-[#181C22] dark:text-slate-100 tracking-tight">
+            {t('discussions.title', 'Hỏi đáp & Thảo luận')}
           </h1>
-          <p className="text-xs sm:text-sm text-[#404753] mt-1">
-            Ask questions, share technical workflows, and resolve course roadblocks together.
+          <p className="text-xs sm:text-sm text-[#404753] dark:text-slate-400 mt-1">
+            {t('discussions.subtitle', 'Hỏi đáp bài tập, trao đổi kinh nghiệm thi PE/FE, đồ án Capstone & thảo luận đa chuyên ngành.')}
           </p>
         </div>
 
@@ -323,12 +340,12 @@ export const QuestionListPage: React.FC = () => {
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-[#0076D1] hover:bg-[#005DA7] transition-all shadow-xs cursor-pointer shrink-0"
         >
           <Plus className="w-4 h-4" />
-          <span>Ask Question</span>
+          <span>{t('Ask Question')}</span>
         </button>
       </div>
 
       {/* 2. Search & Filter Card (Figma #87:976) */}
-      <div className="bg-white rounded-xl border border-slate-200/90 shadow-2xs p-4 space-y-3.5">
+      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/90 dark:border-slate-800 shadow-2xs p-4 space-y-3.5">
         {/* Row 1: Search Input */}
         <div className="relative w-full">
           <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -336,44 +353,44 @@ export const QuestionListPage: React.FC = () => {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search questions by title, keyword, course code, or tag..."
-            className="w-full bg-[#F8F9FF] border border-slate-200 rounded-lg pl-10 pr-4 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0076D1]/20 focus:border-[#0076D1]"
+            placeholder={t('discussions.searchPlaceholder', 'Tìm câu hỏi theo tiêu đề, nội dung, mã môn (SWP391, MKT101, GRA201, LAW101...) hoặc thẻ tag...')}
+            className="w-full bg-[#F8F9FF] dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg pl-10 pr-4 py-2.5 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0076D1]/20 focus:border-[#0076D1]"
           />
         </div>
 
         {/* Row 2: Secondary Dropdowns and Status Tabs (Figma #87:983) */}
-        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 pt-1 border-t border-slate-100">
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 pt-1 border-t border-slate-100 dark:border-slate-800">
           {/* Status Tabs (Figma #87:984) */}
-          <div className="flex items-center bg-slate-100/90 p-1 rounded-lg shrink-0">
+          <div className="flex items-center bg-slate-100/90 dark:bg-slate-800 p-1 rounded-lg shrink-0">
             <button
               onClick={() => setStatusTab('all')}
               className={`px-3.5 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
                 statusTab === 'all'
-                  ? 'bg-white text-slate-900 shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
               }`}
             >
-              All Questions
+              {t('All Questions')}
             </button>
             <button
               onClick={() => setStatusTab('answered')}
               className={`px-3.5 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
                 statusTab === 'answered'
-                  ? 'bg-white text-slate-900 shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
               }`}
             >
-              Answered
+              {t('Answered')}
             </button>
             <button
               onClick={() => setStatusTab('unanswered')}
               className={`px-3.5 py-1.5 rounded-md text-xs font-bold transition-all cursor-pointer ${
                 statusTab === 'unanswered'
-                  ? 'bg-white text-slate-900 shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
               }`}
             >
-              Unanswered
+              {t('Unanswered')}
             </button>
           </div>
 
@@ -384,10 +401,10 @@ export const QuestionListPage: React.FC = () => {
               <select
                 value={selectedCourse}
                 onChange={(e) => setSelectedCourse(e.target.value)}
-                className="w-full appearance-none bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#0076D1] cursor-pointer"
+                className="w-full appearance-none bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#0076D1] cursor-pointer"
               >
-                <option value="ALL">Tất cả môn học</option>
-                <option value="NONE">Chung (Không môn học)</option>
+                <option value="ALL">{t('Tất cả môn học')}</option>
+                <option value="NONE">{t('Chung (Không môn học)')}</option>
                 {availableCourses.map((c, idx) => (
                   <option key={`${c.code || 'course'}-${c.id ?? idx}`} value={c.code}>
                     {c.code}
@@ -402,12 +419,12 @@ export const QuestionListPage: React.FC = () => {
               <select
                 value={selectedTopic}
                 onChange={(e) => setSelectedTopic(e.target.value)}
-                className="w-full appearance-none bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#0076D1] cursor-pointer"
+                className="w-full appearance-none bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#0076D1] cursor-pointer"
               >
-                <option value="ALL">All Topics</option>
-                {allTopics.map((t) => (
-                  <option key={t} value={t}>
-                    #{t}
+                <option value="ALL">{t('discussions.allTopics', 'Tất cả chủ đề / Thẻ tag')}</option>
+                {allTopics.map((tItem) => (
+                  <option key={tItem} value={tItem}>
+                    #{t(tItem)}
                   </option>
                 ))}
               </select>
@@ -419,11 +436,11 @@ export const QuestionListPage: React.FC = () => {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="w-full appearance-none bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#0076D1] cursor-pointer"
+                className="w-full appearance-none bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#0076D1] cursor-pointer"
               >
-                <option value="recent">Sort: Most Recent</option>
-                <option value="upvoted">Sort: Most Upvoted</option>
-                <option value="answers">Sort: Most Answers</option>
+                <option value="recent">{t('Sort: Most Recent')}</option>
+                <option value="upvoted">{t('Sort: Most Upvoted')}</option>
+                <option value="answers">{t('Sort: Most Answers')}</option>
               </select>
               <ChevronDown className="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
             </div>
@@ -431,8 +448,8 @@ export const QuestionListPage: React.FC = () => {
             {/* Reset Button */}
             <button
               onClick={resetFilters}
-              title="Reset Filters"
-              className="p-2 rounded-lg border border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-50 transition-colors cursor-pointer shrink-0"
+              title={t('Làm mới')}
+              className="p-2 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
             >
               <RotateCcw className="w-3.5 h-3.5" />
             </button>
@@ -441,24 +458,24 @@ export const QuestionListPage: React.FC = () => {
       </div>
 
       {/* 3. Active Filter Notification Bar (Figma #87:1023) */}
-      <div className="flex items-center justify-between px-3.5 py-2 rounded-lg bg-blue-50/60 border border-blue-100 text-xs text-[#404753]">
+      <div className="flex items-center justify-between px-3.5 py-2 rounded-lg bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900 text-xs text-[#404753] dark:text-slate-300">
         <div className="flex items-center gap-1.5">
-          <span>Showing</span>
-          <span className="font-bold text-[#181C22]">{filteredQuestions.length}</span>
-          <span>discussions matching current criteria</span>
+          <span>{t('Showing')}</span>
+          <span className="font-bold text-[#181C22] dark:text-slate-100">{filteredQuestions.length}</span>
+          <span>{t('discussions matching current criteria')}</span>
         </div>
 
-        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold">
+        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-[11px] font-bold">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          <span>Live Sync Active</span>
+          <span>{t('Live Sync Active')}</span>
         </div>
       </div>
 
       {/* 4. Questions List Container (Figma #87:1035) */}
       <div className="space-y-3.5">
         {paginatedQuestions.length === 0 ? (
-          <div className="p-12 text-center text-slate-400 text-xs bg-white rounded-xl border border-slate-200">
-            No questions found matching your criteria. Be the first to ask!
+          <div className="p-12 text-center text-slate-400 text-xs bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+            {t('No questions found matching your criteria. Be the first to ask!')}
           </div>
         ) : (
           paginatedQuestions.map((q) => {
@@ -476,7 +493,7 @@ export const QuestionListPage: React.FC = () => {
                   <div className="flex sm:flex-col items-center gap-1">
                     <button
                       onClick={(e) => handleVote(q.id, 'UP', e)}
-                      title="Upvote"
+                      title={t("Upvote")}
                       className={`p-1 rounded hover:bg-slate-100 transition-colors cursor-pointer ${
                         currentUserVote === 'UP' ? 'text-[#0076D1] font-bold' : 'text-slate-400'
                       }`}
@@ -488,7 +505,7 @@ export const QuestionListPage: React.FC = () => {
                     </span>
                     <button
                       onClick={(e) => handleVote(q.id, 'DOWN', e)}
-                      title="Downvote"
+                      title={t("Downvote")}
                       className={`p-1 rounded hover:bg-slate-100 transition-colors cursor-pointer ${
                         currentUserVote === 'DOWN' ? 'text-rose-600 font-bold' : 'text-slate-400'
                       }`}
@@ -506,7 +523,7 @@ export const QuestionListPage: React.FC = () => {
                     }`}
                   >
                     <span>{q.answersCount}</span>
-                    <span className="text-[11px] font-medium">ans</span>
+                    <span className="text-[11px] font-medium">{t('questions.answersUnit', 'câu')}</span>
                     {(q.isSolved || q.isModVerified) && <Check className="w-3 h-3 text-emerald-600" />}
                   </div>
                 </div>
@@ -525,7 +542,7 @@ export const QuestionListPage: React.FC = () => {
                         </Link>
                       ) : (
                         <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-500 border border-slate-200/60">
-                          Chung
+                          {t('common.general', 'Chung')}
                         </span>
                       )}
                       {q.tags.map((tag) => (
@@ -534,7 +551,7 @@ export const QuestionListPage: React.FC = () => {
                           onClick={() => setSelectedTopic(tag)}
                           className="px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-[#0076D1] transition-colors cursor-pointer"
                         >
-                          #{tag}
+                          #{t(tag)}
                         </button>
                       ))}
                     </div>
@@ -542,7 +559,7 @@ export const QuestionListPage: React.FC = () => {
                     {(q.isSolved || q.isModVerified) && (
                       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                         <CheckCircle2 className="w-3 h-3" />
-                        <span>Verified Solution</span>
+                        <span>{t('Verified Solution')}</span>
                       </span>
                     )}
                   </div>
@@ -550,13 +567,13 @@ export const QuestionListPage: React.FC = () => {
                   {/* Heading 2 - Title */}
                   <Link
                     to={`/discussions/${q.id}`}
-                    className="font-bold text-sm sm:text-base text-[#181C22] hover:text-[#0076D1] transition-colors line-clamp-2 leading-snug block"
+                    className="font-bold text-sm sm:text-base text-[#181C22] dark:text-slate-100 hover:text-[#0076D1] transition-colors line-clamp-2 leading-snug block"
                   >
                     {q.title}
                   </Link>
 
                   {/* Preview snippet */}
-                  <p className="text-xs text-[#404753] line-clamp-2 leading-relaxed">
+                  <p className="text-xs text-[#404753] dark:text-slate-400 line-clamp-2 leading-relaxed">
                     {q.content}
                   </p>
 
@@ -569,7 +586,7 @@ export const QuestionListPage: React.FC = () => {
                             <EyeOff className="w-3 h-3" />
                           </div>
                           <span className="font-semibold text-purple-700 dark:text-purple-300 text-xs">
-                            Ẩn danh FPTer
+                            {t('Ẩn danh FPTer')}
                           </span>
                         </div>
                       ) : (
@@ -592,7 +609,7 @@ export const QuestionListPage: React.FC = () => {
                       )}
                       <span>·</span>
                       <span>
-                        {new Date(q.createdAt).toLocaleDateString('en-US', {
+                        {new Date(q.createdAt).toLocaleDateString(locale, {
                           month: 'short',
                           day: 'numeric',
                         })}
@@ -602,7 +619,7 @@ export const QuestionListPage: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <div className="flex items-center gap-1 text-slate-400">
                         <Eye className="w-3.5 h-3.5" />
-                        <span>{q.viewsCount} views</span>
+                        <span>{q.viewsCount} {t('views')}</span>
                       </div>
                       <ContentActionMenu
                         targetType="QUESTION"
@@ -619,20 +636,23 @@ export const QuestionListPage: React.FC = () => {
         )}
       </div>
 
-            {/* Pagination Controls */}
+      {/* Pagination Controls */}
       {totalPages > 1 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4 px-4 bg-white rounded-2xl border border-slate-200/90 shadow-2xs">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4 px-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xs">
           <p className="text-xs text-slate-500">
-            Hiển thị <span className="font-semibold text-slate-700">{(currentPage - 1) * pageSize + 1}</span> -{' '}
-            <span className="font-semibold text-slate-700">{Math.min(currentPage * pageSize, filteredQuestions.length)}</span> trên tổng số{' '}
-            <span className="font-semibold text-slate-700">{filteredQuestions.length}</span> câu hỏi
+            {t('Hiển thị')}{' '}
+            <span className="font-semibold text-slate-700 dark:text-slate-300">{(currentPage - 1) * pageSize + 1}</span> -{' '}
+            <span className="font-semibold text-slate-700 dark:text-slate-300">{Math.min(currentPage * pageSize, filteredQuestions.length)}</span>{' '}
+            {t('trên tổng số')}{' '}
+            <span className="font-semibold text-slate-700 dark:text-slate-300">{filteredQuestions.length}</span>{' '}
+            {t('câu hỏi')}
           </p>
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-              title="Trang trước"
+              className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              title={t('Trang trước')}
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
@@ -643,7 +663,7 @@ export const QuestionListPage: React.FC = () => {
                 className={`w-8 h-8 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
                   currentPage === pageNum
                     ? 'bg-[#0076D1] text-white shadow-xs'
-                    : 'text-slate-600 hover:bg-slate-100'
+                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`}
               >
                 {pageNum}
@@ -652,8 +672,8 @@ export const QuestionListPage: React.FC = () => {
             <button
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-              title="Trang kế tiếp"
+              className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              title={t('Trang kế tiếp')}
             >
               <ChevronRight className="w-4 h-4" />
             </button>

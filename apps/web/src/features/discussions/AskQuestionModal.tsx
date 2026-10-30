@@ -24,6 +24,7 @@ import {
   ChevronUp,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { courseNodesApi, semanticTagsApi } from '../../services/api/adminApi';
 import { filterCompactCourses } from '../../utils/courseFilter';
 import { QuestionPost } from '../../types';
@@ -33,6 +34,7 @@ import { Input, Select } from '../../components/common/Input';
 import { CourseSelect } from '../../components/common/CourseSelect';
 import { questionApi } from '../../services/api/contentApi';
 import { MarkdownPreview } from '../../components/common/MarkdownPreview';
+import { FALLBACK_ALL_TAGS } from '../../utils/tagUtils';
 
 export interface AskQuestionModalProps {
   isOpen: boolean;
@@ -53,7 +55,8 @@ interface CourseItem {
 }
 
 // Fallback tags if API is temporarily unavailable
-const DEFAULT_FALLBACK_TAGS: TagItem[] = [
+const DEFAULT_FALLBACK_TAGS: TagItem[] = FALLBACK_ALL_TAGS.map((t) => ({ id: t.id, name: t.name, count: 10 }));
+const OLD_UNUSED_TAGS = [
   { id: 101, name: 'csharp', count: 42 },
   { id: 102, name: 'dotnet', count: 38 },
   { id: 103, name: 'efcore', count: 29 },
@@ -82,6 +85,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
   onCreated,
 }) => {
   const { currentUser } = useAuth();
+  const { t } = useLanguage();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [courseCode, setCourseCode] = useState('');
@@ -106,14 +110,14 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
     let isMounted = true;
     const loadData = async () => {
       try {
-        const res = await courseNodesApi.getCourseNodes({ pageSize: 150 });
+        const res = await courseNodesApi.getCourseNodes({ pageSize: 2000 });
         const items = (res as any)?.items || res || [];
         if (isMounted && Array.isArray(items) && items.length > 0) {
           const filtered = filterCompactCourses(items, currentUser);
           const mapped: CourseItem[] = filtered.map((c: any, index: number) => ({
             id: Number(c.id || c.courseNodeId || index + 1),
             code: c.code || c.courseCode || 'COURSE',
-            title: c.name || c.title || c.code || 'Môn học',
+            title: c.name || c.title || c.code || t("Môn học"),
           }));
           setCourses(mapped);
           // courseCode remains '' by default so choosing a course is optional!
@@ -181,6 +185,22 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
       algorithm: ['algorithms'],
       winforms: ['winforms', 'csharp'],
       wpf: ['dotnet', 'csharp'],
+      pe: ['Practical Exam (PE)', 'pe'],
+      fe: ['Final Exam (FE)', 'fe'],
+      pt: ['Progress Test (PT)'],
+      assignment: ['Assignment & Project'],
+      capstone: ['Capstone Project'],
+      ojt: ['On the Job Training (OJT)'],
+      figma: ['Thiết kế Đồ họa, 3D & UI/UX', 'ui/ux'],
+      ui: ['Thiết kế Đồ họa, 3D & UI/UX'],
+      ux: ['Thiết kế Đồ họa, 3D & UI/UX'],
+      marketing: ['Digital Marketing & Truyền thông'],
+      seo: ['Digital Marketing & Truyền thông'],
+      business: ['Kinh doanh, Quản trị & Chuỗi cung ứng'],
+      fintech: ['Tài chính, Kế toán & Fintech'],
+      law: ['Pháp luật & Luật kinh tế'],
+      english: ['Ngoại ngữ (Anh - Nhật - Hàn - Trung)'],
+      japanese: ['Ngoại ngữ (Anh - Nhật - Hàn - Trung)'],
     };
 
     Object.entries(keywordRules).forEach(([keyword, tags]) => {
@@ -201,6 +221,18 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
         ['mobile-app', 'react'].forEach((t) => suggestions.add(t));
       } else if (code.includes('PRO192') || code.includes('PRF192')) {
         ['java', 'oop', 'algorithms'].forEach((t) => suggestions.add(t));
+      } else if (code.includes('MKT')) {
+        ['Digital Marketing & Truyền thông', 'marketing'].forEach((t) => suggestions.add(t));
+      } else if (code.includes('GRA') || code.includes('GD')) {
+        ['Thiết kế Đồ họa, 3D & UI/UX', 'figma'].forEach((t) => suggestions.add(t));
+      } else if (code.includes('FIN') || code.includes('ACC')) {
+        ['Tài chính, Kế toán & Fintech'].forEach((t) => suggestions.add(t));
+      } else if (code.includes('BUS') || code.includes('MGT')) {
+        ['Kinh doanh, Quản trị & Chuỗi cung ứng'].forEach((t) => suggestions.add(t));
+      } else if (code.includes('LAW')) {
+        ['Pháp luật & Luật kinh tế'].forEach((t) => suggestions.add(t));
+      } else if (code.includes('ENG') || code.includes('JPN') || code.includes('KOR')) {
+        ['Ngoại ngữ (Anh - Nhật - Hàn - Trung)'].forEach((t) => suggestions.add(t));
       }
     }
 
@@ -225,7 +257,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
   // Tag helper actions
   const addTag = (tagOrName: TagItem | string) => {
     if (selectedTags.length >= 5) {
-      setErrorMessage('Bạn chỉ có thể chọn tối đa 5 thẻ cho một câu hỏi.');
+      setErrorMessage(t('askModal.errorTooManyTags', 'Bạn chỉ có thể chọn tối đa 5 thẻ cho một câu hỏi.'));
       return;
     }
 
@@ -327,11 +359,11 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
   };
 
   const insertCodeBlock = (lang: string = 'csharp') => {
-    insertFormatting(`\`\`\`${lang}\n`, '\n```\n', '// Nhập đoạn mã của bạn ở đây');
+    insertFormatting(`\`\`\`${lang}\n`, '\n```\n', t("// Nhập đoạn mã của bạn ở đây"));
   };
 
   const insertTable = () => {
-    const tableTemplate = `\n| Cột 1 | Cột 2 | Cột 3 |\n| :--- | :--- | :--- |\n| Dữ liệu A | Dữ liệu B | Dữ liệu C |\n| Dữ liệu D | Dữ liệu E | Dữ liệu F |\n`;
+    const tableTemplate = t("\n| Cột 1 | Cột 2 | Cột 3 |\n| :--- | :--- | :--- |\n| Dữ liệu A | Dữ liệu B | Dữ liệu C |\n| Dữ liệu D | Dữ liệu E | Dữ liệu F |\n");
     insertFormatting(tableTemplate, '');
   };
 
@@ -339,11 +371,11 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (title.trim().length < 10) {
-      setErrorMessage('Tiêu đề câu hỏi quá ngắn. Vui lòng nhập ít nhất 10 ký tự để người khác dễ hiểu vấn đề.');
+      setErrorMessage(t('askModal.errorTitleMin', 'Tiêu đề câu hỏi quá ngắn. Vui lòng nhập ít nhất 10 ký tự để người khác dễ hiểu vấn đề.'));
       return;
     }
     if (content.trim().length < 20) {
-      setErrorMessage('Nội dung chi tiết câu hỏi cần tối thiểu 20 ký tự.');
+      setErrorMessage(t('askModal.errorContentMin', 'Nội dung chi tiết câu hỏi cần tối thiểu 20 ký tự.'));
       return;
     }
 
@@ -371,8 +403,8 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
         author: {
           id: isAnonymous ? 'anon' : String(res.authorUserId || currentUser?.id || 'usr'),
           fullName: isAnonymous
-            ? 'Ẩn danh FPTer'
-            : res.authorDisplayName || currentUser?.fullName || 'Sinh viên FHub',
+            ? t("Ẩn danh FPTer")
+            : res.authorDisplayName || currentUser?.fullName || t("Sinh viên FHub"),
           avatarUrl: isAnonymous ? undefined : currentUser?.avatarUrl,
           role: currentUser?.role || 'Student',
           karma: isAnonymous ? 0 : currentUser?.karma || 0,
@@ -401,7 +433,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
         courseCode: courseCode || undefined,
         author: {
           id: isAnonymous ? 'anon' : currentUser?.id || 'usr',
-          fullName: isAnonymous ? 'Ẩn danh FPTer' : currentUser?.fullName || 'Sinh viên FHub',
+          fullName: isAnonymous ? t("Ẩn danh FPTer") : currentUser?.fullName || t("Sinh viên FHub"),
           avatarUrl: isAnonymous ? undefined : currentUser?.avatarUrl,
           role: currentUser?.role || 'Student',
           karma: isAnonymous ? 0 : currentUser?.karma || 0,
@@ -443,16 +475,12 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Đặt câu hỏi thảo luận mới"
+      title={t('askModal.title', 'Đặt câu hỏi thảo luận mới')}
       size="xl"
       footer={
         <>
-          <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
-            Hủy
-          </Button>
-          <Button variant="primary" onClick={handleSubmit} isLoading={isSubmitting}>
-            Đăng câu hỏi
-          </Button>
+          <Button variant="outline" onClick={onClose} disabled={isSubmitting}>{t('common.cancel', 'Hủy')}</Button>
+          <Button variant="primary" onClick={handleSubmit} isLoading={isSubmitting}>{t('askModal.submit', 'Đăng câu hỏi')}</Button>
         </>
       }
     >
@@ -460,14 +488,14 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
         {errorMessage && (
           <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold flex items-center gap-2">
             <HelpCircle className="w-4 h-4 text-rose-500 shrink-0" />
-            <span>{errorMessage}</span>
+            <span>{t(errorMessage)}</span>
           </div>
         )}
 
         {/* 1. Title */}
         <Input
-          label="Tiêu đề câu hỏi (Ngắn gọn, trọng tâm vấn đề)"
-          placeholder="Ví dụ: Làm sao để xử lý lỗi connection pool timeout trong EF Core?"
+          label={t('askModal.titleLabel', 'Tiêu đề câu hỏi (Ngắn gọn, trọng tâm vấn đề)')}
+          placeholder={t('askModal.titlePlaceholder', 'Ví dụ: Làm sao để xử lý lỗi connection pool timeout trong EF Core?')}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           required
@@ -476,37 +504,37 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
         {/* 2. Môn học liên quan (Tùy chọn) & Thẻ phân loại (Tags) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <CourseSelect
-            label="Môn học liên quan"
+            label={t('askModal.courseLabel', 'Môn học liên quan')}
             value={courseCode}
             onChange={(code: string) => setCourseCode(code)}
             allowEmpty
-            emptyLabel="-- Không chọn môn học (Tùy chọn) --"
+            emptyLabel={t('askModal.courseEmpty', '-- Không chọn môn học (Tùy chọn) --')}
           />
 
           {/* Tags with real-time suggestion & all tags list */}
           <div className="space-y-1">
             <div className="flex items-center justify-between">
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Tags (Tự động đề xuất khi điền)
+                {t('askModal.tagsLabel', 'Tags (Tự động đề xuất khi điền)')}
               </label>
               <span className="text-[10px] text-slate-400 font-medium">
-                {selectedTags.length}/5 thẻ
+                {selectedTags.length}/5 {t('askModal.tagsLimit', 'thẻ')}
               </span>
             </div>
 
             <div className="relative">
               <div className="flex items-center flex-wrap gap-1 p-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus-within:ring-1 focus-within:ring-blue-600 focus-within:border-blue-600 min-h-[42px]">
-                {selectedTags.map((t) => (
+                {selectedTags.map((tag) => (
                   <span
-                    key={t.name}
+                    key={tag.name}
                     className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800"
                   >
-                    #{t.name}
+                    #{tag.name}
                     <button
                       type="button"
-                      onClick={() => removeTag(t.name)}
+                      onClick={() => removeTag(tag.name)}
                       className="hover:text-rose-500 transition-colors cursor-pointer"
-                      title="Xóa tag"
+                      title={t("Xóa tag")}
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -525,9 +553,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
                     onFocus={() => setIsTagDropdownOpen(true)}
                     onKeyDown={handleTagKeyDown}
                     placeholder={
-                      selectedTags.length === 0
-                        ? 'Nhập tag (dotnet, efcore, react...)'
-                        : 'Thêm thẻ...'
+                      selectedTags.length === 0 ? t('askModal.tagPlaceholderEmpty', 'Nhập tag (dotnet, efcore, react...)') : t('askModal.tagPlaceholderMore', 'Thêm thẻ...')
                     }
                     className="flex-1 min-w-[120px] bg-transparent text-xs text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none py-1 px-1"
                   />
@@ -538,25 +564,25 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
               {isTagDropdownOpen && tagInput.trim() && (
                 <div className="absolute z-20 left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg max-h-48 overflow-y-auto p-1 animate-in fade-in">
                   {filteredTags.length > 0 ? (
-                    filteredTags.map((t) => (
+                    filteredTags.map((tagItem) => (
                       <button
                         key={t.name}
                         type="button"
-                        onClick={() => addTag(t)}
+                        onClick={() => addTag(tagItem)}
                         className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-800 dark:text-slate-200 hover:bg-blue-50 hover:text-blue-600 transition-colors text-left cursor-pointer"
                       >
                         <span className="flex items-center gap-1.5">
                           <Tag className="w-3 h-3 text-slate-400" />
-                          <span>#{t.name}</span>
+                          <span>#{tagItem.name}</span>
                         </span>
-                        {t.count ? (
-                          <span className="text-[10px] text-slate-400">{t.count} câu hỏi</span>
+                        {tagItem.count ? (
+                          <span className="text-[10px] text-slate-400">{tagItem.count} {t('askModal.tagQuestionsSuffix', 'câu hỏi')}</span>
                         ) : null}
                       </button>
                     ))
                   ) : (
                     <div className="p-2 text-xs text-slate-500">
-                      Nhấn <kbd className="px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border text-[10px]">Enter</kbd> để thêm <strong>#{tagInput.trim().toLowerCase()}</strong>
+                      {t("Nhấn")} <kbd className="px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border text-[10px]">{t("Enter")}</kbd>  {t("để thêm")} <strong>#{tagInput.trim().toLowerCase()}</strong>
                     </div>
                   )}
                 </div>
@@ -568,7 +594,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
               {smartSuggestedTags.length > 0 && selectedTags.length < 5 ? (
                 <div className="flex items-center gap-1 flex-wrap">
                   <span className="text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-0.5">
-                    <Sparkles className="w-3 h-3" /> Gợi ý:
+                    <Sparkles className="w-3 h-3" /> {t('askModal.suggestions', 'Gợi ý:')}
                   </span>
                   {smartSuggestedTags.slice(0, 3).map((tagName) => (
                     <button
@@ -588,7 +614,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
                 onClick={() => setShowAllTagsCloud((prev) => !prev)}
                 className="text-blue-600 hover:underline cursor-pointer font-semibold ml-auto"
               >
-                {showAllTagsCloud ? 'Ẩn tất cả tag' : 'Tất cả thẻ có sẵn'}
+                {showAllTagsCloud ? t('askModal.hideAllTags', 'Ẩn tất cả tag') : t('askModal.showAllTags', 'Tất cả thẻ có sẵn')}
               </button>
             </div>
 
@@ -621,7 +647,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-              Chi tiết câu hỏi & Code snippet (Markdown hỗ trợ)
+              {t('askModal.contentLabel', 'Chi tiết câu hỏi & Code snippet (Markdown hỗ trợ)')}
             </label>
 
             {/* View Mode Switcher: Viết / Chia đôi / Xem trước */}
@@ -634,10 +660,10 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
                     ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs'
                     : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                 }`}
-                title="Chế độ soạn thảo"
+                title={t("Chế độ soạn thảo")}
               >
                 <Edit3 className="w-3 h-3" />
-                <span>Viết</span>
+                <span>{t('askModal.modeWrite', 'Viết')}</span>
               </button>
               <button
                 type="button"
@@ -647,10 +673,10 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
                     ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs'
                     : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                 }`}
-                title="Chế độ chia đôi"
+                title={t("Chế độ chia đôi")}
               >
                 <Columns className="w-3 h-3" />
-                <span>Chia đôi</span>
+                <span>{t('askModal.modeSplit', 'Chia đôi')}</span>
               </button>
               <button
                 type="button"
@@ -660,10 +686,10 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
                     ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs'
                     : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                 }`}
-                title="Xem trước kết quả"
+                title={t("Xem trước kết quả")}
               >
                 <Eye className="w-3 h-3" />
-                <span>Xem trước</span>
+                <span>{t('askModal.modePreview', 'Xem trước')}</span>
               </button>
             </div>
           </div>
@@ -675,7 +701,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
                 type="button"
                 onClick={() => insertLinePrefix('### ')}
                 className="p-1.5 hover:bg-slate-200/70 dark:hover:bg-slate-800 rounded font-bold"
-                title="Tiêu đề (Heading)"
+                title={t('askModal.toolbarH', 'Tiêu đề (Heading)')}
               >
                 H
               </button>
@@ -683,25 +709,25 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
 
               <button
                 type="button"
-                onClick={() => insertFormatting('**', '**', 'in đậm')}
+                onClick={() => insertFormatting('**', '**', t("in đậm"))}
                 className="p-1.5 hover:bg-slate-200/70 dark:hover:bg-slate-800 rounded"
-                title="In đậm (Bold)"
+                title={t('askModal.toolbarBold', 'In đậm (Bold)')}
               >
                 <Bold className="w-3.5 h-3.5" />
               </button>
               <button
                 type="button"
-                onClick={() => insertFormatting('*', '*', 'in nghiêng')}
+                onClick={() => insertFormatting('*', '*', t("in nghiêng"))}
                 className="p-1.5 hover:bg-slate-200/70 dark:hover:bg-slate-800 rounded"
-                title="In nghiêng (Italic)"
+                title={t('askModal.toolbarItalic', 'In nghiêng (Italic)')}
               >
                 <Italic className="w-3.5 h-3.5" />
               </button>
               <button
                 type="button"
-                onClick={() => insertFormatting('~~', '~~', 'gạch ngang')}
+                onClick={() => insertFormatting('~~', '~~', t("gạch ngang"))}
                 className="p-1.5 hover:bg-slate-200/70 dark:hover:bg-slate-800 rounded"
-                title="Gạch ngang (Strikethrough)"
+                title={t('askModal.toolbarStrike', 'Gạch ngang (Strikethrough)')}
               >
                 <Strikethrough className="w-3.5 h-3.5" />
               </button>
@@ -712,7 +738,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
                 type="button"
                 onClick={() => insertFormatting('`', '`', 'code')}
                 className="p-1.5 hover:bg-slate-200/70 dark:hover:bg-slate-800 rounded font-mono"
-                title="Mã nội dòng (Inline Code)"
+                title={t('askModal.toolbarInlineCode', 'Mã nội dòng (Inline Code)')}
               >
                 <Code className="w-3.5 h-3.5" />
               </button>
@@ -720,10 +746,9 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
                 type="button"
                 onClick={() => insertCodeBlock('csharp')}
                 className="px-1.5 py-1 hover:bg-slate-200/70 dark:hover:bg-slate-800 rounded font-mono font-bold text-[11px] text-blue-600"
-                title="Khối mã nguồn (Code Block)"
+                title={t('askModal.toolbarCodeBlock', 'Khối mã nguồn (Code Block)')}
               >
-                &lt;/&gt;
-              </button>
+                {t("&lt;/&gt;")}</button>
 
               <div className="w-[1px] h-4 bg-slate-200 dark:bg-slate-700 mx-1" />
 
@@ -731,23 +756,23 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
                 type="button"
                 onClick={() => insertLinePrefix('> ')}
                 className="p-1.5 hover:bg-slate-200/70 dark:hover:bg-slate-800 rounded"
-                title="Trích dẫn (Quote)"
+                title={t('askModal.toolbarQuote', 'Trích dẫn (Quote)')}
               >
                 <Quote className="w-3.5 h-3.5" />
               </button>
               <button
                 type="button"
-                onClick={() => insertFormatting('[', '](https://example.com)', 'Tiêu đề link')}
+                onClick={() => insertFormatting('[', '](https://example.com)', t("Tiêu đề link"))}
                 className="p-1.5 hover:bg-slate-200/70 dark:hover:bg-slate-800 rounded"
-                title="Chèn liên kết (Link)"
+                title={t('askModal.toolbarLink', 'Chèn liên kết (Link)')}
               >
                 <LinkIcon className="w-3.5 h-3.5" />
               </button>
               <button
                 type="button"
-                onClick={() => insertFormatting('![Mô tả ảnh](', ')', 'https://')}
+                onClick={() => insertFormatting(t("![Mô tả ảnh]("), ')', 'https://')}
                 className="p-1.5 hover:bg-slate-200/70 dark:hover:bg-slate-800 rounded"
-                title="Chèn ảnh (Image)"
+                title={t('askModal.toolbarImage', 'Chèn ảnh (Image)')}
               >
                 <ImageIcon className="w-3.5 h-3.5" />
               </button>
@@ -755,7 +780,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
                 type="button"
                 onClick={insertTable}
                 className="p-1.5 hover:bg-slate-200/70 dark:hover:bg-slate-800 rounded"
-                title="Tạo bảng (Table)"
+                title={t('askModal.toolbarTable', 'Tạo bảng (Table)')}
               >
                 <TableIcon className="w-3.5 h-3.5" />
               </button>
@@ -766,7 +791,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
                 type="button"
                 onClick={() => insertLinePrefix('- ')}
                 className="p-1.5 hover:bg-slate-200/70 dark:hover:bg-slate-800 rounded"
-                title="Danh sách gạch đầu dòng"
+                title={t('askModal.toolbarBulletList', 'Danh sách gạch đầu dòng')}
               >
                 <List className="w-3.5 h-3.5" />
               </button>
@@ -774,7 +799,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
                 type="button"
                 onClick={() => insertLinePrefix('1. ')}
                 className="p-1.5 hover:bg-slate-200/70 dark:hover:bg-slate-800 rounded"
-                title="Danh sách số"
+                title={t('askModal.toolbarNumberList', 'Danh sách số')}
               >
                 <ListOrdered className="w-3.5 h-3.5" />
               </button>
@@ -782,7 +807,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
                 type="button"
                 onClick={() => insertFormatting('\n---\n')}
                 className="p-1.5 hover:bg-slate-200/70 dark:hover:bg-slate-800 rounded"
-                title="Đường kẻ ngang"
+                title={t('askModal.toolbarDivider', 'Đường kẻ ngang')}
               >
                 <Minus className="w-3.5 h-3.5" />
               </button>
@@ -793,24 +818,24 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
                 className={`ml-auto p-1.5 rounded transition-colors text-xs font-semibold flex items-center gap-1 ${
                   showMarkdownHelp ? 'bg-blue-100 text-blue-600' : 'hover:bg-slate-200/70'
                 }`}
-                title="Cú pháp hỗ trợ Markdown"
+                title={t('askModal.toolbarSyntax', 'Cú pháp')}
               >
                 <HelpCircle className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline text-[11px]">Cú pháp</span>
+                <span className="hidden sm:inline text-[11px]">{t('askModal.toolbarSyntax', 'Cú pháp')}</span>
               </button>
             </div>
 
             {/* Markdown Cheat Sheet Help */}
             {showMarkdownHelp && (
               <div className="p-2.5 bg-blue-50/70 dark:bg-blue-950/40 border-b border-blue-100 dark:border-blue-900/60 text-[11px] grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-slate-700 dark:text-slate-300 animate-in fade-in">
-                <div><code>**in đậm**</code></div>
-                <div><code>*in nghiêng*</code></div>
-                <div><code>`code nội dòng`</code></div>
-                <div><code>```csharp ... ```</code></div>
-                <div><code>&gt; trích dẫn</code></div>
-                <div><code>- danh sách</code></div>
-                <div><code>[Tiêu đề](link)</code></div>
-                <div><code>| Cột 1 | Cột 2 |</code></div>
+                <div><code>{t("**in đậm**")}</code></div>
+                <div><code>{t("*in nghiêng*")}</code></div>
+                <div><code>{t("`code nội dòng`")}</code></div>
+                <div><code>{t("```csharp ... ```")}</code></div>
+                <div><code>{t("&gt; trích dẫn")}</code></div>
+                <div><code>{t("- danh sách")}</code></div>
+                <div><code>{t("[Tiêu đề](link)")}</code></div>
+                <div><code>{t("| Cột 1 | Cột 2 |")}</code></div>
               </div>
             )}
 
@@ -820,7 +845,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
                 ref={textareaRef}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder="Mô tả hoàn cảnh gặp lỗi, các bước đã thử và mong muốn được hỗ trợ..."
+                placeholder={t('askModal.placeholderWrite', 'Mô tả hoàn cảnh gặp lỗi, các bước đã thử và mong muốn được hỗ trợ...')}
                 rows={7}
                 className="w-full p-3 text-xs sm:text-sm font-sans leading-relaxed text-slate-800 dark:text-slate-200 placeholder-slate-400 bg-white dark:bg-slate-900 focus:outline-none resize-y"
                 required
@@ -833,7 +858,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
                   ref={textareaRef}
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
-                  placeholder="Gõ nội dung markdown bên trái, xem kết quả bên phải..."
+                  placeholder={t('askModal.placeholderSplit', 'Gõ nội dung markdown bên trái, xem kết quả bên phải...')}
                   rows={7}
                   className="w-full p-3 text-xs sm:text-sm font-sans leading-relaxed text-slate-800 dark:text-slate-200 placeholder-slate-400 bg-white dark:bg-slate-900 focus:outline-none resize-none"
                   required
@@ -852,7 +877,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
 
             {/* Character count bar */}
             <div className="px-3 py-1.5 bg-slate-50/80 dark:bg-slate-950/70 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px]">
-              <span className="text-slate-400">Hỗ trợ Markdown &amp; Code highlighting</span>
+              <span className="text-slate-400">{t('askModal.charCountHelper', 'Hỗ trợ Markdown & Code highlighting')}</span>
               <div className="flex items-center gap-1">
                 <span
                   className={`font-semibold ${
@@ -861,7 +886,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
                       : 'text-amber-600 dark:text-amber-400'
                   }`}
                 >
-                  {charCount} / 20 ký tự tối thiểu
+                  {charCount} / 20 {t('askModal.charCountMin', 'ký tự tối thiểu')}
                 </span>
                 {isContentValid && <Check className="w-3.5 h-3.5 text-emerald-500" />}
               </div>
@@ -875,10 +900,10 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
             <EyeOff className="w-4 h-4 text-purple-600" />
             <div>
               <span className="font-bold text-xs text-slate-800 dark:text-slate-200">
-                Đăng ẩn danh (Anonymous Post)
+                {t('askModal.anonymousTitle', 'Đăng ẩn danh (Anonymous Post)')}
               </span>
               <p className="text-[11px] text-slate-400">
-                Tên và mã sinh viên của bạn sẽ được ẩn hoàn toàn đối với cộng đồng.
+                {t('askModal.anonymousDesc', 'Tên và mã sinh viên của bạn sẽ được ẩn hoàn toàn đối với cộng đồng.')}
               </p>
             </div>
           </div>

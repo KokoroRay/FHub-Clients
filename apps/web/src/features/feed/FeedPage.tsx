@@ -18,6 +18,7 @@ import {
   BookOpen,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { useCampusDetails } from '../../hooks/useCampusDetails';
 import { AskQuestionModal } from '../discussions/AskQuestionModal';
 import { QuestionPost } from '../../types';
@@ -29,6 +30,7 @@ import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 
 export const FeedPage: React.FC = () => {
   const { currentUser, currentCampus, isAuthenticated } = useAuth();
+  const { locale, t } = useLanguage();
   const campusInfo = useCampusDetails(currentUser?.campus || currentCampus);
   const navigate = useNavigate();
 
@@ -220,31 +222,31 @@ export const FeedPage: React.FC = () => {
     });
   };
 
-  const studentName = currentUser?.fullName || 'Sinh viên FHub';
+  const studentName = currentUser?.fullName || t("Sinh viên FHub");
   const studentInitials = studentName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'SV';
 
   return (
     <div className="space-y-6">
       {/* 3.A Welcome Header (Figma #86:118) */}
-      <div className="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-[#272727] rounded-2xl p-6 border border-slate-200/90 dark:border-[#272727] hover:dark:border-[#444444] shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-colors">
         <div className="space-y-1.5">
           <div
             className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-[#0076D1] border border-blue-100 cursor-default"
-            title={`${campusInfo.fullName}${campusInfo.address ? `\nĐịa chỉ: ${campusInfo.address}` : ''}`}
+            title={`${t(campusInfo.fullName)}${campusInfo.address ? `\n${t('Địa chỉ:')} ${campusInfo.address}` : ''}`}
           >
             <span className="w-1.5 h-1.5 rounded-full bg-[#0076D1]" />
-            <span>Campus: {campusInfo.shortName}</span>
+            <span>{t('common.campus', 'Campus')}: {campusInfo.shortName}</span>
           </div>
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-            Welcome back to FHub
+            {t('auth.welcomeBack', 'Welcome back to FHub')}
           </h1>
           <p className="text-xs text-slate-500 max-w-xl leading-relaxed">
-            Learn, collaborate, share knowledge, and grow with your academic community.
+            {t('app.tagline', 'Learn, collaborate, share knowledge, and grow with your academic community.')}
           </p>
         </div>
 
         {/* Right user badge */}
-        <div className="flex items-center gap-3 bg-slate-50 p-2.5 px-4 rounded-xl border border-slate-100">
+        <div className="flex items-center gap-3 bg-slate-50 dark:bg-[#333333] p-2.5 px-4 rounded-xl border border-slate-100 dark:border-[#272727]">
           <div className="w-9 h-9 rounded-full bg-[#0076D1] text-white flex items-center justify-center font-bold text-xs ring-2 ring-blue-100 shrink-0">
             {currentUser?.avatarUrl ? (
               <img src={currentUser.avatarUrl} alt={studentName} className="w-full h-full rounded-full object-cover" />
@@ -253,7 +255,7 @@ export const FeedPage: React.FC = () => {
             )}
           </div>
           <div className="text-left">
-            <span className="block text-[10px] text-slate-400 font-medium">Logged in as</span>
+            <span className="block text-[10px] text-slate-400 font-medium">{t('common.loggedInAs', 'Logged in as')}</span>
             <span className="block text-xs font-bold text-slate-800 leading-tight">{studentName}</span>
           </div>
         </div>
@@ -262,117 +264,117 @@ export const FeedPage: React.FC = () => {
       {/* 3.B Quick Actions Grid (8 specific actions only) (Figma #86:137) */}
       <div className="space-y-3">
         <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-          QUICK ACTIONS
+          {t('feed.quickActions', 'QUICK ACTIONS')}
         </h2>
         <div className="grid grid-cols-4 sm:grid-cols-8 gap-2.5">
           {/* 1. Ask Question */}
           <button
             onClick={() => setIsAskModalOpen(true)}
-            className="h-[84px] p-2 flex flex-col items-center justify-between bg-white rounded-xl border border-slate-200/90 hover:border-blue-400 hover:shadow-xs transition-all text-center group cursor-pointer"
+            className="h-[84px] p-2 flex flex-col items-center justify-between bg-white dark:bg-[#272727] rounded-2xl border border-slate-200/90 dark:border-transparent hover:border-blue-400 dark:hover:border-[#444444] dark:hover:bg-[#333333] hover:shadow-xs transition-all text-center group cursor-pointer"
           >
             <div className="w-8 h-8 rounded-lg bg-blue-50 text-[#0076D1] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
               <HelpCircle className="w-4 h-4" />
             </div>
             <span className="text-[10px] font-bold text-slate-700 leading-tight text-center">
-              Ask<br />Question
+              {t('feed.askQuestion', 'Ask Question')}
             </span>
           </button>
 
           {/* 2. New Workflow */}
           <button
             onClick={() => navigate('/workflows?action=create')}
-            className="h-[84px] p-2 flex flex-col items-center justify-between bg-white rounded-xl border border-slate-200/90 hover:border-indigo-400 hover:shadow-xs transition-all text-center group cursor-pointer"
+            className="h-[84px] p-2 flex flex-col items-center justify-between bg-white dark:bg-[#272727] rounded-2xl border border-slate-200/90 dark:border-transparent hover:border-indigo-400 dark:hover:border-[#444444] dark:hover:bg-[#333333] hover:shadow-xs transition-all text-center group cursor-pointer"
           >
             <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
               <Code className="w-4 h-4" />
             </div>
             <span className="text-[10px] font-bold text-slate-700 leading-tight text-center">
-              New<br />Workflow
+              {t('feed.newWorkflow', 'New Workflow')}
             </span>
           </button>
 
           {/* 3. Write Article */}
           <button
             onClick={() => navigate('/articles/create')}
-            className="h-[84px] p-2 flex flex-col items-center justify-between bg-white rounded-xl border border-slate-200/90 hover:border-emerald-400 hover:shadow-xs transition-all text-center group cursor-pointer"
+            className="h-[84px] p-2 flex flex-col items-center justify-between bg-white dark:bg-[#272727] rounded-2xl border border-slate-200/90 dark:border-transparent hover:border-emerald-400 dark:hover:border-[#444444] dark:hover:bg-[#333333] hover:shadow-xs transition-all text-center group cursor-pointer"
           >
             <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
               <FileText className="w-4 h-4" />
             </div>
             <span className="text-[10px] font-bold text-slate-700 leading-tight text-center">
-              Write<br />Article
+              {t('feed.writeArticle', 'Write Article')}
             </span>
           </button>
 
           {/* 4. Write Course Evaluation */}
           <button
             onClick={() => navigate('/course-evaluations?action=create')}
-            className="h-[84px] p-2 flex flex-col items-center justify-between bg-white rounded-xl border border-slate-200/90 hover:border-amber-400 hover:shadow-xs transition-all text-center group cursor-pointer"
+            className="h-[84px] p-2 flex flex-col items-center justify-between bg-white dark:bg-[#272727] rounded-2xl border border-slate-200/90 dark:border-transparent hover:border-amber-400 dark:hover:border-[#444444] dark:hover:bg-[#333333] hover:shadow-xs transition-all text-center group cursor-pointer"
           >
             <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
               <Star className="w-4 h-4" />
             </div>
             <span className="text-[10px] font-bold text-slate-700 leading-tight text-center">
-              Write<br />Evaluation
+              {t('feed.writeEvaluation', 'Write Evaluation')}
             </span>
           </button>
 
           {/* 5. Upload Study Material */}
           <button
             onClick={() => navigate('/materials?action=upload')}
-            className="h-[84px] p-2 flex flex-col items-center justify-between bg-white rounded-xl border border-slate-200/90 hover:border-rose-400 hover:shadow-xs transition-all text-center group cursor-pointer"
+            className="h-[84px] p-2 flex flex-col items-center justify-between bg-white dark:bg-[#272727] rounded-2xl border border-slate-200/90 dark:border-transparent hover:border-rose-400 dark:hover:border-[#444444] dark:hover:bg-[#333333] hover:shadow-xs transition-all text-center group cursor-pointer"
           >
             <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
               <Upload className="w-4 h-4" />
             </div>
             <span className="text-[10px] font-bold text-slate-700 leading-tight text-center">
-              Upload<br />Material
+              {t('feed.uploadMaterial', 'Upload Material')}
             </span>
           </button>
 
           {/* 6. Add External Material Link */}
           <button
             onClick={() => navigate('/materials?action=add-link')}
-            className="h-[84px] p-2 flex flex-col items-center justify-between bg-white rounded-xl border border-slate-200/90 hover:border-purple-400 hover:shadow-xs transition-all text-center group cursor-pointer"
+            className="h-[84px] p-2 flex flex-col items-center justify-between bg-white dark:bg-[#272727] rounded-2xl border border-slate-200/90 dark:border-transparent hover:border-purple-400 dark:hover:border-[#444444] dark:hover:bg-[#333333] hover:shadow-xs transition-all text-center group cursor-pointer"
           >
             <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
               <Link2 className="w-4 h-4" />
             </div>
             <span className="text-[10px] font-bold text-slate-700 leading-tight text-center">
-              Add<br />Link
+              {t('feed.addLink', 'Add Link')}
             </span>
           </button>
 
           {/* 7. New Conversation */}
           <button
             onClick={() => navigate('/messages')}
-            className="h-[84px] p-2 flex flex-col items-center justify-between bg-white rounded-xl border border-slate-200/90 hover:border-cyan-400 hover:shadow-xs transition-all text-center group cursor-pointer"
+            className="h-[84px] p-2 flex flex-col items-center justify-between bg-white dark:bg-[#272727] rounded-2xl border border-slate-200/90 dark:border-transparent hover:border-cyan-400 dark:hover:border-[#444444] dark:hover:bg-[#333333] hover:shadow-xs transition-all text-center group cursor-pointer"
           >
             <div className="w-8 h-8 rounded-lg bg-cyan-50 text-cyan-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
               <MessageSquare className="w-4 h-4" />
             </div>
             <span className="text-[10px] font-bold text-slate-700 leading-tight text-center">
-              New<br />Chat
+              {t('feed.newChat', 'New Chat')}
             </span>
           </button>
 
           {/* 8. Create Support Ticket */}
           <button
             onClick={() => navigate('/tickets')}
-            className="h-[84px] p-2 flex flex-col items-center justify-between bg-white rounded-xl border border-slate-200/90 hover:border-slate-400 hover:shadow-xs transition-all text-center group cursor-pointer"
+            className="h-[84px] p-2 flex flex-col items-center justify-between bg-white dark:bg-[#272727] rounded-2xl border border-slate-200/90 dark:border-transparent hover:border-slate-400 dark:hover:border-[#444444] dark:hover:bg-[#333333] hover:shadow-xs transition-all text-center group cursor-pointer"
           >
             <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
               <LifeBuoy className="w-4 h-4" />
             </div>
             <span className="text-[10px] font-bold text-slate-700 leading-tight text-center">
-              Support<br />Ticket
+              {t('feed.supportTicket', 'Support Ticket')}
             </span>
           </button>
         </div>
       </div>
 
       {/* 3.C Questions & Discussions (Primary Feed Section) (Figma #86:196) */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
+      <div className="bg-white dark:bg-[#272727] rounded-2xl border border-slate-200/90 dark:border-transparent dark:hover:border-[#444444] shadow-2xs overflow-hidden transition-colors">
         {/* Section Header */}
         <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
@@ -380,44 +382,44 @@ export const FeedPage: React.FC = () => {
               <HelpCircle className="w-4 h-4" />
             </div>
             <h2 className="text-lg font-bold text-slate-900 tracking-tight">
-              Questions & Discussions
+              {t('nav.questions', 'Questions & Discussions')}
             </h2>
           </div>
 
           <div className="flex items-center gap-3">
             {/* Sort Tabs */}
-            <div className="flex items-center bg-slate-100 p-0.5 rounded-lg text-xs font-semibold text-slate-600">
+            <div className="flex items-center bg-slate-100 dark:bg-[#2b2d32] p-0.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-[#949ba4]">
               <button
                 onClick={() => setQuestionTab('recent')}
                 className={`px-3 py-1 rounded-md transition-all cursor-pointer ${
-                  questionTab === 'recent' ? 'bg-white text-slate-900 shadow-2xs' : 'hover:text-slate-900'
+                  questionTab === 'recent' ? 'bg-white dark:bg-[#313338] text-slate-900 dark:text-[#f2f3f5] shadow-2xs font-bold' : 'hover:text-slate-900 dark:hover:text-[#f2f3f5]'
                 }`}
               >
-                Recent
+                {t('feed.tabTrending', 'Recent')}
               </button>
               <button
                 onClick={() => setQuestionTab('voted')}
                 className={`px-3 py-1 rounded-md transition-all cursor-pointer ${
-                  questionTab === 'voted' ? 'bg-white text-slate-900 shadow-2xs' : 'hover:text-slate-900'
+                  questionTab === 'voted' ? 'bg-white dark:bg-[#313338] text-slate-900 dark:text-[#f2f3f5] shadow-2xs font-bold' : 'hover:text-slate-900 dark:hover:text-[#f2f3f5]'
                 }`}
               >
-                Most Voted
+                {t('common.upvote', 'Most Voted')}
               </button>
               <button
                 onClick={() => setQuestionTab('unanswered')}
                 className={`px-3 py-1 rounded-md transition-all cursor-pointer ${
-                  questionTab === 'unanswered' ? 'bg-white text-slate-900 shadow-2xs' : 'hover:text-slate-900'
+                  questionTab === 'unanswered' ? 'bg-white dark:bg-[#313338] text-slate-900 dark:text-[#f2f3f5] shadow-2xs font-bold' : 'hover:text-slate-900 dark:hover:text-[#f2f3f5]'
                 }`}
               >
-                Unanswered
+                {t('feed.tabUnanswered', 'Unanswered')}
               </button>
             </div>
 
             <button
               onClick={() => setIsAskModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-[#0076D1] hover:bg-[#005DA7] transition-colors cursor-pointer shadow-2xs shrink-0"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-[#0076D1] dark:bg-[#3b82f6] hover:bg-[#005DA7] dark:hover:bg-[#2563eb] transition-colors cursor-pointer shadow-2xs shrink-0"
             >
-              <span>Ask Question</span>
+              <span>{t('feed.askQuestion', 'Ask Question')}</span>
             </button>
           </div>
         </div>
@@ -426,23 +428,23 @@ export const FeedPage: React.FC = () => {
         {questions.length === 0 ? (
           <div className="p-12 text-center text-slate-400 text-xs">
             <HelpCircle className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-            <p className="font-semibold text-slate-600">Chưa có câu hỏi hoặc thảo luận nào</p>
-            <p className="text-[11px] text-slate-400 mt-1">Hãy là người đầu tiên đặt câu hỏi để nhận trợ giúp từ bạn học và giảng viên!</p>
+            <p className="font-semibold text-slate-600">{t('feed.emptyQuestions', 'Chưa có câu hỏi hoặc thảo luận nào')}</p>
+            <p className="text-[11px] text-slate-400 mt-1">{t('feed.emptyQuestionsDesc', 'Hãy là người đầu tiên đặt câu hỏi để nhận trợ giúp từ bạn học và giảng viên!')}</p>
             <button
               onClick={() => setIsAskModalOpen(true)}
               className="mt-3 px-3 py-1.5 rounded-lg text-xs font-bold text-[#0076D1] bg-blue-50 hover:bg-blue-100 transition-colors"
             >
-              + Đặt câu hỏi ngay
+              + {t('feed.askQuestionNow', 'Đặt câu hỏi ngay')}
             </button>
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
             {questions.map((q, idx) => {
               const qId = String(q.questionId || q.id || idx);
-              const authorName = q.isAnonymous ? 'Ẩn danh FPTer' : (q.authorDisplayName || `User #${q.authorUserId || 1}`);
+              const authorName = q.isAnonymous ? t('common.anonymous', 'Ẩn danh FPTer') : (q.authorDisplayName || `User #${q.authorUserId || 1}`);
               const voteInfo = votes[qId] || { count: q.upvoteCount || 0, userVote: null };
               return (
-                <div key={qId} className="p-5 flex items-start gap-4 hover:bg-slate-50/60 transition-colors">
+                <div key={qId} className="p-5 flex items-start gap-4 border border-transparent dark:hover:border-[#444444] hover:bg-slate-50/60 dark:hover:bg-[#333333] rounded-xl transition-all">
                   {/* Vote Counter */}
                   <div className="flex flex-col items-center bg-slate-50 border border-slate-200/80 rounded-xl p-1 shrink-0">
                     <button
@@ -472,12 +474,12 @@ export const FeedPage: React.FC = () => {
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-slate-800">{authorName}</span>
                         <span className="text-slate-400">
-                          • {q.createdAt ? new Date(q.createdAt).toLocaleDateString('vi-VN') : 'Mới đây'}
+                          • {q.createdAt ? new Date(q.createdAt).toLocaleDateString(locale) : t('common.recent', 'Mới đây')}
                         </span>
                       </div>
                       {q.courseId && (
                         <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-blue-50 text-[#0076D1] border border-blue-100">
-                          [Course #{q.courseId}]
+                          [{t('common.course', 'Course')} #{q.courseId}]
                         </span>
                       )}
                       <ContentActionMenu
@@ -503,7 +505,7 @@ export const FeedPage: React.FC = () => {
                       <div className="flex items-center gap-4">
                         <span className="flex items-center gap-1.5 font-medium">
                           <MessageSquare className="w-3.5 h-3.5 text-slate-400" />
-                          {q.answerCount || 0} answers
+                          {q.answerCount || 0} {t('common.answersCount', 'answers')}
                         </span>
                         <button
                           onClick={() => toggleBookmark(qId)}
@@ -512,11 +514,11 @@ export const FeedPage: React.FC = () => {
                           }`}
                         >
                           <Bookmark className="w-3.5 h-3.5" />
-                          <span>Bookmark</span>
+                          <span>{t('common.bookmark', 'Bookmark')}</span>
                         </button>
                       </div>
                       <Link to={`/discussions/${qId}`} className="text-xs font-semibold text-[#0076D1] hover:underline flex items-center gap-1">
-                        View Question <ArrowRight className="w-3 h-3" />
+                        {t('common.viewQuestion', 'View Question')} <ArrowRight className="w-3 h-3" />
                       </Link>
                     </div>
                   </div>
@@ -532,7 +534,7 @@ export const FeedPage: React.FC = () => {
             to="/discussions"
             className="text-xs font-bold text-[#0076D1] hover:underline inline-flex items-center gap-1.5"
           >
-            <span>View All Questions</span>
+            <span>{t('common.viewAllQuestions', 'View All Questions')}</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
@@ -546,19 +548,19 @@ export const FeedPage: React.FC = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Code className="w-4 h-4 text-indigo-600" />
-                <h3 className="font-bold text-sm text-slate-900">Recent Shared Workflows</h3>
+                <h3 className="font-bold text-sm text-slate-900">{t('feed.recentWorkflows', 'Recent Shared Workflows')}</h3>
               </div>
               <button
                 onClick={() => navigate('/workflows?action=create')}
                 className="text-xs font-bold text-[#0076D1] hover:underline cursor-pointer"
               >
-                + New Workflow
+                + {t('feed.newWorkflow', 'New Workflow')}
               </button>
             </div>
 
             {workflows.length === 0 ? (
               <div className="p-6 text-center text-slate-400 text-xs">
-                Chưa có workflow nào được chia sẻ.
+                {t('feed.emptyWorkflows', 'Chưa có workflow nào được chia sẻ.')}
               </div>
             ) : (
               <div className="space-y-3">
@@ -568,12 +570,12 @@ export const FeedPage: React.FC = () => {
                       {wf.title}
                     </Link>
                     <p className="text-[11px] text-slate-500 mt-1 line-clamp-1">
-                      {wf.summary || 'Quy trình hướng dẫn thực hành kỹ thuật.'}
+                      {wf.summary || t("Quy trình hướng dẫn thực hành kỹ thuật.")}
                     </p>
                     <div className="mt-2 flex items-center justify-between">
-                      <span className="text-[10px] font-mono text-slate-400">Version {(wf as any).version || 1}</span>
+                      <span className="text-[10px] font-mono text-slate-400">{t("Version")} {(wf as any).version || 1}</span>
                       <Link to={`/workflows/${wf.workflowId}`} className="text-[11px] font-semibold text-[#0076D1] hover:underline">
-                        View →
+                        {t('common.view', 'View')} →
                       </Link>
                     </div>
                   </div>
@@ -584,7 +586,7 @@ export const FeedPage: React.FC = () => {
 
           <div className="pt-4 mt-2 border-t border-slate-100 text-center">
             <Link to="/workflows" className="text-xs font-bold text-[#0076D1] hover:underline inline-flex items-center gap-1">
-              <span>View All Workflows</span>
+              <span>{t('common.viewAllWorkflows', 'View All Workflows')}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
@@ -596,19 +598,19 @@ export const FeedPage: React.FC = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-emerald-600" />
-                <h3 className="font-bold text-sm text-slate-900">Recent Articles</h3>
+                <h3 className="font-bold text-sm text-slate-900">{t('feed.recentArticles', 'Recent Articles')}</h3>
               </div>
               <button
                 onClick={() => navigate('/articles/create')}
                 className="text-xs font-bold text-[#0076D1] hover:underline cursor-pointer"
               >
-                + Write Article
+                + {t('feed.writeArticle', 'Write Article')}
               </button>
             </div>
 
             {articles.length === 0 ? (
               <div className="p-6 text-center text-slate-400 text-xs">
-                Chưa có bài viết nào được đăng tải.
+                {t('feed.emptyArticles', 'Chưa có bài viết nào được đăng tải.')}
               </div>
             ) : (
               <div className="space-y-3">
@@ -618,14 +620,14 @@ export const FeedPage: React.FC = () => {
                       {art.title}
                     </Link>
                     <p className="text-[11px] text-slate-500 mt-1 line-clamp-1">
-                      {art.summary || 'Bài viết học tập và chia sẻ kinh nghiệm.'}
+                      {art.summary || t("Bài viết học tập và chia sẻ kinh nghiệm.")}
                     </p>
                     <div className="mt-2 flex items-center justify-between text-[11px]">
                       <span className="text-slate-400">
-                        {art.createdAt ? new Date(art.createdAt).toLocaleDateString('vi-VN') : 'Gần đây'}
+                        {art.createdAt ? new Date(art.createdAt).toLocaleDateString(locale) : t('common.recent', 'Gần đây')}
                       </span>
                       <Link to={`/articles/${art.articleId}`} className="font-semibold text-[#0076D1] hover:underline">
-                        Read →
+                        {t('common.read', 'Read')} →
                       </Link>
                     </div>
                   </div>
@@ -636,7 +638,7 @@ export const FeedPage: React.FC = () => {
 
           <div className="pt-4 mt-2 border-t border-slate-100 text-center">
             <Link to="/articles" className="text-xs font-bold text-[#0076D1] hover:underline inline-flex items-center gap-1">
-              <span>View All Articles</span>
+              <span>{t('common.viewAllArticles', 'View All Articles')}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
@@ -651,27 +653,27 @@ export const FeedPage: React.FC = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Upload className="w-4 h-4 text-rose-500" />
-                <h3 className="font-bold text-sm text-slate-900">Study Materials</h3>
+                <h3 className="font-bold text-sm text-slate-900">{t('nav.studyMaterials', 'Study Materials')}</h3>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => navigate('/materials?action=upload')}
                   className="text-xs font-semibold px-2.5 py-1 rounded-md bg-blue-50 text-[#0076D1] hover:bg-blue-100 cursor-pointer"
                 >
-                  Upload
+                  {t('common.upload', 'Upload')}
                 </button>
                 <button
                   onClick={() => navigate('/materials?action=add-link')}
                   className="text-xs font-semibold px-2.5 py-1 rounded-md bg-slate-100 text-slate-600 hover:bg-slate-200 cursor-pointer"
                 >
-                  Add Link
+                  {t('common.addLink', 'Add Link')}
                 </button>
               </div>
             </div>
 
             {materials.length === 0 ? (
               <div className="p-6 text-center text-slate-400 text-xs">
-                Chưa có tài liệu học tập nào được tải lên.
+                {t('feed.emptyMaterials', 'Chưa có tài liệu học tập nào được tải lên.')}
               </div>
             ) : (
               <div className="space-y-2.5">
@@ -684,12 +686,12 @@ export const FeedPage: React.FC = () => {
                       <div className="truncate">
                         <h5 className="font-bold text-xs text-slate-800 truncate">{mat.title}</h5>
                         <p className="text-[10px] text-slate-400">
-                          {mat.fileSizeBytes ? `${(mat.fileSizeBytes / (1024 * 1024)).toFixed(1)} MB` : 'Tài liệu môn học'}
+                          {mat.fileSizeBytes ? t("{p0} MB", undefined, { p0: (mat.fileSizeBytes / (1024 * 1024)).toFixed(1) }) : t("Tài liệu môn học")}
                         </p>
                       </div>
                     </div>
                     <Link to={`/materials/${mat.studyMaterialId}`} className="text-xs font-bold text-[#0076D1] hover:underline ml-2 shrink-0">
-                      Detail
+                      {t('common.detail', 'Detail')}
                     </Link>
                   </div>
                 ))}
@@ -699,7 +701,7 @@ export const FeedPage: React.FC = () => {
 
           <div className="pt-4 mt-2 border-t border-slate-100 text-center">
             <Link to="/materials" className="text-xs font-bold text-[#0076D1] hover:underline inline-flex items-center gap-1">
-              <span>View All Materials</span>
+              <span>{t('common.viewAllMaterials', 'View All Materials')}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
@@ -711,23 +713,23 @@ export const FeedPage: React.FC = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <BookOpen className="w-4 h-4 text-[#0076D1]" />
-                <h3 className="font-bold text-sm text-slate-900">Course Hub Shortcut</h3>
+                <h3 className="font-bold text-sm text-slate-900">{t('feed.courseHubShortcut', 'Course Hub Shortcut')}</h3>
               </div>
               <Link to="/courses" className="text-xs font-bold text-[#0076D1] hover:underline">
-                Browse Courses →
+                {t('feed.browseCourses', 'Browse Courses')} →
               </Link>
             </div>
 
             {courses.length === 0 ? (
               <div className="p-6 text-center text-slate-400 text-xs">
-                Chưa có môn học nào trong danh mục.
+                {t('feed.emptyCourses', 'Chưa có môn học nào trong danh mục.')}
               </div>
             ) : (
               <div className="space-y-2.5">
                 {courses.map((crs, idx) => {
                   const crsId = crs.courseNodeId || (crs as any).id || idx;
                   const crsCode = crs.courseCode || (crs as any).code || 'FPT';
-                  const crsName = crs.courseName || (crs as any).name || 'Môn học';
+                  const crsName = crs.courseName || (crs as any).name || t("Môn học");
                   return (
                     <div key={crsId} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50/40">
                       <div>
@@ -738,11 +740,11 @@ export const FeedPage: React.FC = () => {
                           <h5 className="font-bold text-xs text-slate-800">{crsName}</h5>
                         </div>
                         <p className="text-[11px] text-slate-500 mt-0.5">
-                          {crs.credits || 3} Tín chỉ • {crs.description || 'Chương trình đào tạo tiêu chuẩn FPT'}
+                          {crs.credits || 3} {t('common.credits', 'Tín chỉ')} • {crs.description || t("Chương trình đào tạo tiêu chuẩn FPT")}
                         </p>
                       </div>
                       <Link to={`/courses/${crsCode}`} className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-blue-50 text-[#0076D1] border border-blue-200 shrink-0">
-                        View
+                        {t('common.view', 'View')}
                       </Link>
                     </div>
                   );
@@ -753,7 +755,7 @@ export const FeedPage: React.FC = () => {
 
           <div className="pt-3 border-t border-slate-100 text-center">
             <span className="text-[11px] font-medium text-slate-400">
-              {courses.length} Môn học hiển thị
+              {courses.length} {t('courses.displayCount', 'Môn học hiển thị')}
             </span>
           </div>
         </div>
@@ -767,19 +769,19 @@ export const FeedPage: React.FC = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Star className="w-4 h-4 text-amber-500" />
-                <h3 className="font-bold text-sm text-slate-900">Course Evaluations</h3>
+                <h3 className="font-bold text-sm text-slate-900">{t('nav.courseEvaluations', 'Course Evaluations')}</h3>
               </div>
               <button
                 onClick={() => navigate('/course-evaluations?action=create')}
                 className="text-xs font-bold text-[#0076D1] hover:underline cursor-pointer"
               >
-                + Write Evaluation
+                + {t('feed.writeEvaluation', 'Write Evaluation')}
               </button>
             </div>
 
             {evaluations.length === 0 ? (
               <div className="p-6 text-center text-slate-400 text-xs">
-                Chưa có đánh giá môn học nào.
+                {t('feed.emptyEvaluations', 'Chưa có đánh giá môn học nào.')}
               </div>
             ) : (
               <div className="space-y-3">
@@ -787,17 +789,17 @@ export const FeedPage: React.FC = () => {
                   <div key={ev.courseReviewId || (ev as any).id || idx} className="p-3.5 rounded-xl border border-slate-100 bg-slate-50/40">
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-50 text-blue-700">
-                        Course #{ev.courseId}
+                        {t('common.course', 'Course')} #{ev.courseId}
                       </span>
                       <span className="text-[10px] text-slate-400">
                         {ev.semesterCode} {ev.academicYear}
                       </span>
                     </div>
                     <h5 className="font-bold text-xs text-slate-800">
-                      Overall Rating: {ev.overallRating}/5 ★
+                      {t('evaluations.overallRating', 'Overall Rating')}: {ev.overallRating}/5 ★
                     </h5>
                     <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">
-                      {ev.reviewContent || ev.survivalTips || 'Đánh giá môn học từ sinh viên.'}
+                      {ev.reviewContent || ev.survivalTips || t("Đánh giá môn học từ sinh viên.")}
                     </p>
                   </div>
                 ))}
@@ -807,7 +809,7 @@ export const FeedPage: React.FC = () => {
 
           <div className="pt-4 mt-2 border-t border-slate-100 text-center">
             <Link to="/course-evaluations" className="text-xs font-bold text-[#0076D1] hover:underline inline-flex items-center gap-1">
-              <span>View All Evaluations</span>
+              <span>{t('common.viewAllEvaluations', 'View All Evaluations')}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
@@ -819,20 +821,22 @@ export const FeedPage: React.FC = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <MessageSquare className="w-4 h-4 text-cyan-600" />
-                <h3 className="font-bold text-sm text-slate-900">Recent Conversations</h3>
+                <h3 className="font-bold text-sm text-slate-900">{t('feed.recentConversations', 'Recent Conversations')}</h3>
               </div>
               <Link to="/messages" className="text-xs font-bold text-[#0076D1] hover:underline">
-                View All Messages →
+                {t('feed.viewAllMessages', 'View All Messages')} →
               </Link>
             </div>
 
             <div className="p-6 text-center text-slate-400 text-xs">
-              Chưa có cuộc trò chuyện nào gần đây.
+              {t('feed.emptyConversations', 'Chưa có cuộc trò chuyện nào gần đây.')}
             </div>
           </div>
 
           <div className="pt-3 border-t border-slate-100 text-center">
-            <span className="text-[11px] font-medium text-slate-400">0 unread conversations</span>
+            <span className="text-[11px] font-medium text-slate-400">
+              0 {t('feed.unreadConversations', 'unread conversations')}
+            </span>
           </div>
         </div>
       </div>
@@ -845,21 +849,21 @@ export const FeedPage: React.FC = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Bell className="w-4 h-4 text-[#0076D1]" />
-                <h3 className="font-bold text-sm text-slate-900">Notifications Preview</h3>
+                <h3 className="font-bold text-sm text-slate-900">{t('feed.notificationsPreview', 'Notifications Preview')}</h3>
               </div>
               <div className="flex items-center gap-3 text-xs">
                 <Link to="/settings" className="text-slate-500 hover:text-slate-800">
-                  Delivery Settings
+                  {t('feed.deliverySettings', 'Delivery Settings')}
                 </Link>
                 <Link to="/notifications" className="font-bold text-[#0076D1] hover:underline">
-                  View All Notifications →
+                  {t('feed.viewAllNotifications', 'View All Notifications')} →
                 </Link>
               </div>
             </div>
 
             {notifications.length === 0 ? (
               <div className="p-6 text-center text-slate-400 text-xs">
-                Không có thông báo mới nào.
+                {t('feed.emptyNotifications', 'Không có thông báo mới nào.')}
               </div>
             ) : (
               <div className="space-y-2.5">
@@ -875,7 +879,7 @@ export const FeedPage: React.FC = () => {
                         </p>
                       </div>
                       <span className="text-[10px] text-slate-400 shrink-0 ml-2">
-                        {notif.createdAt ? new Date(notif.createdAt).toLocaleDateString('vi-VN') : 'Gần đây'}
+                        {notif.createdAt ? new Date(notif.createdAt).toLocaleDateString(locale) : t('common.recent', 'Gần đây')}
                       </span>
                     </div>
                   );
@@ -890,16 +894,16 @@ export const FeedPage: React.FC = () => {
           <div className="space-y-3">
             <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
               <LifeBuoy className="w-4 h-4 text-slate-500" />
-              <h3 className="font-bold text-sm text-slate-900">Support Helpdesk</h3>
+              <h3 className="font-bold text-sm text-slate-900">{t('feed.supportHelpdesk', 'Support Helpdesk')}</h3>
             </div>
             <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-400">Ticket Status:</span>
+              <span className="text-slate-400">{t('feed.ticketStatus', 'Ticket Status:')}</span>
               <span className="font-bold text-emerald-600 flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" /> 0 Open Issues
+                <CheckCircle2 className="w-3.5 h-3.5" /> 0 {t('feed.openIssues', 'Open Issues')}
               </span>
             </div>
             <p className="text-[11px] text-slate-500 leading-relaxed">
-              Need help with academic credentials, course mapping, or forum policy?
+              {t('feed.supportDesc', 'Need help with academic credentials, course mapping, or forum policy?')}
             </p>
           </div>
 
@@ -908,13 +912,13 @@ export const FeedPage: React.FC = () => {
               onClick={() => navigate('/tickets')}
               className="py-2 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
             >
-              View Tickets
+              {t('feed.viewTickets', 'View Tickets')}
             </button>
             <button
               onClick={() => navigate('/tickets')}
               className="py-2 text-xs font-bold rounded-lg bg-[#0076D1] hover:bg-[#005DA7] text-white transition-colors cursor-pointer shadow-2xs"
             >
-              Create Ticket
+              {t('feed.createTicket', 'Create Ticket')}
             </button>
           </div>
         </div>

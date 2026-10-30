@@ -1,3 +1,4 @@
+import { useLanguage } from '../../../context/LanguageContext';
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
@@ -17,6 +18,7 @@ import { DetailedMajor } from '../../../types';
 import { useMajorDetail, useAddCourseToSemester, useRemoveCourseFromSemester } from '../../../services/api';
 
 export const MajorDetailPage: React.FC = () => {
+  const { t } = useLanguage();
   const { code } = useParams<{ code: string }>();
   const { data: majorDetailData, refetch } = useMajorDetail(code);
   const addCourseMutation = useAddCourseToSemester();
@@ -41,9 +43,9 @@ export const MajorDetailPage: React.FC = () => {
         code: d.majorCode || '',
         name: d.majorName || '',
         vietnameseName: d.vietnameseName || d.majorName || '',
-        description: d.description || `Chương trình đào tạo ${d.vietnameseName || d.majorName || ''} tại FPT University.`,
-        department: d.department || 'Công nghệ thông tin',
-        headOfDepartment: d.headOfDepartment || 'Chưa chỉ định',
+        description: d.description || t("Chương trình đào tạo {p0} tại FPT University.", undefined, { p0: d.vietnameseName || d.majorName || '' }),
+        department: d.department || t("Công nghệ thông tin"),
+        headOfDepartment: d.headOfDepartment || t("Chưa chỉ định"),
         totalCreditsRequired: d.totalCreditsRequired || 0,
         durationSemesters: d.durationSemesters || 0,
         totalCourses: d.totalCourses || 0,
@@ -51,7 +53,7 @@ export const MajorDetailPage: React.FC = () => {
         curriculumRoadmap: (d.curriculumRoadmap && d.curriculumRoadmap.length > 0)
           ? d.curriculumRoadmap.map((s: any) => ({
               semester: s.semester,
-              semesterName: s.semesterName || `Học kỳ ${s.semester}`,
+              semesterName: s.semesterName || t("Học kỳ {p0}", undefined, { p0: s.semester }),
               courses: s.courses || [],
             }))
           : Array.from({ length: 9 }, (_, i) => ({
@@ -146,12 +148,12 @@ export const MajorDetailPage: React.FC = () => {
     setNewCourseCode('');
     setNewCourseTitle('');
     setNewPrerequisites('');
-    setSuccessNotice(`Added course ${newCourseCode.toUpperCase()} to Semester ${selectedSemester}`);
+    setSuccessNotice(t("Added course {p0} to Semester {p1}", undefined, { p0: newCourseCode.toUpperCase(), p1: selectedSemester }));
     setTimeout(() => setSuccessNotice(null), 3500);
   };
 
   const handleRemoveCourse = async (semNum: number, courseCode: string) => {
-    if (window.confirm(`Remove course ${courseCode} from Semester ${semNum}?`)) {
+    if (window.confirm(t("Remove course {p0} from Semester {p1}?", undefined, { p0: courseCode, p1: semNum }))) {
       try {
         await removeCourseMutation.mutateAsync({
           majorId: major.id,
@@ -173,7 +175,7 @@ export const MajorDetailPage: React.FC = () => {
         prev.map((m) => (m.id === major.id ? { ...m, curriculumRoadmap: updatedRoadmap } : m))
       );
 
-      setSuccessNotice(`Removed course ${courseCode} from Semester ${semNum}`);
+      setSuccessNotice(t("Removed course {p0} from Semester {p1}", undefined, { p0: courseCode, p1: semNum }));
       setTimeout(() => setSuccessNotice(null), 3000);
     }
   };
@@ -186,15 +188,14 @@ export const MajorDetailPage: React.FC = () => {
           to="/majors"
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700"
         >
-          <ArrowLeft className="w-4 h-4" /> Back to Major Tracks
-        </Link>
-        <span className="text-[11px] font-mono text-slate-400">Curriculum v2026.1</span>
+          <ArrowLeft className="w-4 h-4" />  {t("Back to Major Tracks")}</Link>
+        <span className="text-[11px] font-mono text-slate-400">{t("Curriculum v2026.1")}</span>
       </div>
 
       {successNotice && (
         <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center gap-2 animate-fadeIn">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span>{successNotice}</span>
+          <span>{t(successNotice)}</span>
         </div>
       )}
 
@@ -209,11 +210,10 @@ export const MajorDetailPage: React.FC = () => {
               <div className="flex items-center gap-2 mb-1">
                 <h1 className="text-lg font-bold text-slate-900">{major.vietnameseName}</h1>
                 <span className="text-[10px] font-bold px-2 py-0.2 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  ABET ACCREDITED
-                </span>
+                  {t("ABET ACCREDITED")}</span>
               </div>
-              <p className="text-xs text-slate-500 font-medium">{major.name} • Department: {major.department}</p>
-              <p className="text-xs text-slate-400 mt-0.5">Chair: <strong>{major.headOfDepartment}</strong></p>
+              <p className="text-xs text-slate-500 font-medium">{major.name}  {t("• Department:")} {major.department}</p>
+              <p className="text-xs text-slate-400 mt-0.5">{t("Chair:")} <strong>{major.headOfDepartment}</strong></p>
             </div>
           </div>
 
@@ -223,7 +223,7 @@ export const MajorDetailPage: React.FC = () => {
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition-colors cursor-pointer shadow-xs"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Add Course to Sem {selectedSemester}</span>
+              <span>{t("Add Course to Sem")} {selectedSemester}</span>
             </button>
           </div>
         </div>
@@ -231,20 +231,20 @@ export const MajorDetailPage: React.FC = () => {
         {/* Stats Row */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-slate-100">
           <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase">Graduation Requirement</span>
-            <p className="text-xl font-bold text-blue-600 mt-0.5">{major.totalCreditsRequired} Credits</p>
+            <span className="text-[10px] font-bold text-slate-400 uppercase">{t("Graduation Requirement")}</span>
+            <p className="text-xl font-bold text-blue-600 mt-0.5">{major.totalCreditsRequired}  {t("Credits")}</p>
           </div>
           <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase">Duration</span>
-            <p className="text-xl font-bold text-slate-900 mt-0.5">{major.durationSemesters} Semesters</p>
+            <span className="text-[10px] font-bold text-slate-400 uppercase">{t("Duration")}</span>
+            <p className="text-xl font-bold text-slate-900 mt-0.5">{major.durationSemesters}  {t("Semesters")}</p>
           </div>
           <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase">Industry Internship</span>
-            <p className="text-xl font-bold text-slate-900 mt-0.5">OJT Semester 6</p>
+            <span className="text-[10px] font-bold text-slate-400 uppercase">{t("Industry Internship")}</span>
+            <p className="text-xl font-bold text-slate-900 mt-0.5">{t("OJT Semester 6")}</p>
           </div>
           <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase">Graduation Thesis</span>
-            <p className="text-xl font-bold text-emerald-600 mt-0.5">Capstone Semester 9</p>
+            <span className="text-[10px] font-bold text-slate-400 uppercase">{t("Graduation Thesis")}</span>
+            <p className="text-xl font-bold text-emerald-600 mt-0.5">{t("Capstone Semester 9")}</p>
           </div>
         </div>
       </div>
@@ -261,7 +261,7 @@ export const MajorDetailPage: React.FC = () => {
                 : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
             }`}
           >
-            Semester {sem} {sem === 6 ? '(OJT)' : sem === 9 ? '(Capstone)' : ''}
+            {t("Semester")} {sem} {sem === 6 ? t("(OJT)") : sem === 9 ? '(Capstone)' : ''}
           </button>
         ))}
       </div>
@@ -271,19 +271,17 @@ export const MajorDetailPage: React.FC = () => {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
-              Courses Matrix - Semester {selectedSemester}
+              {t("Courses Matrix - Semester")} {selectedSemester}
             </h2>
             <p className="text-xs text-slate-400">
-              Mandatory and elective courses assigned to this semester.
-            </p>
+              {t("Mandatory and elective courses assigned to this semester.")}</p>
           </div>
 
           <button
             onClick={() => setShowAddCourseModal(true)}
             className="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 cursor-pointer"
           >
-            <Plus className="w-3.5 h-3.5" /> Add Course
-          </button>
+            <Plus className="w-3.5 h-3.5" />  {t("Add Course")}</button>
         </div>
 
         {(() => {
@@ -293,8 +291,7 @@ export const MajorDetailPage: React.FC = () => {
           if (courses.length === 0) {
             return (
               <div className="p-10 text-center text-slate-400 text-xs border border-dashed border-slate-200 rounded-xl">
-                No courses assigned to Semester {selectedSemester} yet. Click "+ Add Course" to map courses.
-              </div>
+                {t("No courses assigned to Semester")} {selectedSemester}  {t("yet. Click \"+ Add Course\" to map courses.")}</div>
             );
           }
 
@@ -314,16 +311,16 @@ export const MajorDetailPage: React.FC = () => {
                         <span className="font-semibold text-xs text-slate-800">{c.title}</span>
                       </div>
                       <div className="flex items-center gap-3 text-[11px] text-slate-400 mt-0.5">
-                        <span>{c.credits} Credits</span>
+                        <span>{c.credits}  {t("Credits")}</span>
                         {c.prerequisites.length > 0 ? (
                           <span className="text-amber-700 font-semibold">
-                            Prerequisites: {c.prerequisites.join(', ')}
+                            {t("Prerequisites:")} {c.prerequisites.join(', ')}
                           </span>
                         ) : (
-                          <span className="text-emerald-600 font-semibold">No prerequisites</span>
+                          <span className="text-emerald-600 font-semibold">{t("No prerequisites")}</span>
                         )}
                         <span className="text-slate-500">
-                          {c.isMandatory ? '● Mandatory' : '○ Elective'}
+                          {c.isMandatory ? t("● Mandatory") : t("○ Elective")}
                         </span>
                       </div>
                     </div>
@@ -334,12 +331,11 @@ export const MajorDetailPage: React.FC = () => {
                       to={`/courses/${c.code}`}
                       className="px-2.5 py-1 rounded-md text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100"
                     >
-                      Syllabus
-                    </Link>
+                      {t("Syllabus")}</Link>
                     <button
                       onClick={() => handleRemoveCourse(selectedSemester, c.code)}
                       className="p-1 text-slate-400 hover:text-rose-600 rounded cursor-pointer"
-                      title="Remove from semester"
+                      title={t("Remove from semester")}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -357,7 +353,7 @@ export const MajorDetailPage: React.FC = () => {
           <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full p-6 shadow-xl space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold text-slate-900">
-                Add Course to Semester {selectedSemester}
+                {t("Add Course to Semester")} {selectedSemester}
               </h2>
               <button
                 onClick={() => setShowAddCourseModal(false)}
@@ -370,18 +366,18 @@ export const MajorDetailPage: React.FC = () => {
             <form onSubmit={handleAddCourseToSemester} className="space-y-3">
               <div className="grid grid-cols-3 gap-2">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700">Course Code:</label>
+                  <label className="text-xs font-semibold text-slate-700">{t("Course Code:")}</label>
                   <input
                     type="text"
                     required
-                    placeholder="PRN231"
+                    placeholder={t("PRN231")}
                     value={newCourseCode}
                     onChange={(e) => setNewCourseCode(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono font-bold uppercase"
                   />
                 </div>
                 <div className="col-span-2 space-y-1">
-                  <label className="text-xs font-semibold text-slate-700">Credits:</label>
+                  <label className="text-xs font-semibold text-slate-700">{t("Credits:")}</label>
                   <input
                     type="number"
                     min={1}
@@ -394,11 +390,11 @@ export const MajorDetailPage: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">Course Title:</label>
+                <label className="text-xs font-semibold text-slate-700">{t("Course Title:")}</label>
                 <input
                   type="text"
                   required
-                  placeholder="Building Cross-Platform Web API with .NET"
+                  placeholder={t("Building Cross-Platform Web API with .NET")}
                   value={newCourseTitle}
                   onChange={(e) => setNewCourseTitle(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs"
@@ -406,10 +402,10 @@ export const MajorDetailPage: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">Prerequisites (comma-separated):</label>
+                <label className="text-xs font-semibold text-slate-700">{t("Prerequisites (comma-separated):")}</label>
                 <input
                   type="text"
-                  placeholder="PRN211, DBI202"
+                  placeholder={t("PRN211, DBI202")}
                   value={newPrerequisites}
                   onChange={(e) => setNewPrerequisites(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono"
@@ -422,13 +418,12 @@ export const MajorDetailPage: React.FC = () => {
                   onClick={() => setShowAddCourseModal(false)}
                   className="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold cursor-pointer"
                 >
-                  Cancel
-                </button>
+                  {t("Cancel")}</button>
                 <button
                   type="submit"
                   className="px-4 py-2 rounded-lg bg-blue-600 text-white text-xs font-semibold cursor-pointer hover:bg-blue-700"
                 >
-                  Assign to Sem {selectedSemester}
+                  {t("Assign to Sem")} {selectedSemester}
                 </button>
               </div>
             </form>

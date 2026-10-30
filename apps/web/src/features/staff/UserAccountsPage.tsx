@@ -1,3 +1,4 @@
+import { useLanguage } from '../../context/LanguageContext';
 import React, { useState } from 'react';
 import { Users, Search, Shield, Ban, VolumeX, Trash2, CheckCircle2, AlertTriangle, Eye } from 'lucide-react';
 import { User } from '../../types';
@@ -7,6 +8,7 @@ import { Table, Column } from '../../components/common/Table';
 import { Modal } from '../../components/common/Modal';
 
 export const UserAccountsPage: React.FC = () => {
+  const { t } = useLanguage();
   const [users, setUsers] = useState<User[]>([
     {
       id: 'u-1',
@@ -71,7 +73,7 @@ export const UserAccountsPage: React.FC = () => {
   };
 
   const handleWipeData = (userId: string) => {
-    if (confirm('CẢNH BÁO: Hành động này sẽ xóa vĩnh viễn toàn bộ dữ liệu (Wipe Data) của tài khoản này theo quy định bảo vệ dữ liệu. Tiếp tục?')) {
+    if (confirm(t("CẢNH BÁO: Hành động này sẽ xóa vĩnh viễn toàn bộ dữ liệu (Wipe Data) của tài khoản này theo quy định bảo vệ dữ liệu. Tiếp tục?"))) {
       setUsers(users.filter((u) => u.id !== userId));
       setSelectedUser(null);
     }
@@ -86,7 +88,7 @@ export const UserAccountsPage: React.FC = () => {
 
   const columns: Column<User>[] = [
     {
-      header: 'Sinh viên / Người dùng',
+      header: t("Sinh viên / Người dùng"),
       cell: (item) => (
         <div>
           <span className="font-bold text-slate-900 dark:text-slate-100">{item.fullName}</span>
@@ -95,7 +97,7 @@ export const UserAccountsPage: React.FC = () => {
       ),
     },
     {
-      header: 'MSSV & Campus',
+      header: t("MSSV & Campus"),
       cell: (item) => (
         <div>
           <span className="font-mono font-bold text-xs">{item.studentId || 'N/A'}</span>
@@ -105,17 +107,16 @@ export const UserAccountsPage: React.FC = () => {
       className: 'w-40',
     },
     {
-      header: 'Karma',
+      header: t("Karma"),
       accessorKey: 'karma',
       cell: (item) => (
         <span className={`font-bold font-mono ${item.karma < 0 ? 'text-rose-600' : 'text-[#2563eb]'}`}>
-          {item.karma} pts
-        </span>
+          {item.karma}  {t("pts")}</span>
       ),
       className: 'w-24',
     },
     {
-      header: 'Trạng thái tài khoản',
+      header: t("Trạng thái tài khoản"),
       accessorKey: 'status',
       cell: (item) => (
         <Badge
@@ -130,13 +131,13 @@ export const UserAccountsPage: React.FC = () => {
           }
           size="sm"
         >
-          {item.status}
+          {t(item.status)}
         </Badge>
       ),
       className: 'w-32',
     },
     {
-      header: 'Hành động',
+      header: t("Hành động"),
       cell: (item) => (
         <div className="flex items-center gap-1.5">
           <Button variant="ghost" size="sm" onClick={() => setSelectedUser(item)}>
@@ -146,7 +147,7 @@ export const UserAccountsPage: React.FC = () => {
             <button
               onClick={() => handleUpdateStatus(item.id, 'MUTED')}
               className="p-1.5 text-amber-600 hover:bg-amber-50 rounded-lg cursor-pointer"
-              title="Mute tài khoản"
+              title={t("Mute tài khoản")}
             >
               <VolumeX className="w-4 h-4" />
             </button>
@@ -154,7 +155,7 @@ export const UserAccountsPage: React.FC = () => {
             <button
               onClick={() => handleUpdateStatus(item.id, 'ACTIVE')}
               className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg cursor-pointer"
-              title="Kích hoạt lại"
+              title={t("Kích hoạt lại")}
             >
               <CheckCircle2 className="w-4 h-4" />
             </button>
@@ -162,7 +163,7 @@ export const UserAccountsPage: React.FC = () => {
           <button
             onClick={() => handleUpdateStatus(item.id, 'SUSPENDED')}
             className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg cursor-pointer"
-            title="Đình chỉ (Suspend)"
+            title={t("Đình chỉ (Suspend)")}
           >
             <Ban className="w-4 h-4" />
           </button>
@@ -178,11 +179,10 @@ export const UserAccountsPage: React.FC = () => {
         <div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
             <Users className="w-6 h-6 text-[#2563eb]" />
-            <span>User Account Management & Governance</span>
+            <span>{t("User Account Management & Governance")}</span>
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Quản trị trạng thái tài khoản sinh viên, xử lý vi phạm (Mute, Suspend) và xóa sạch dữ liệu Wipe Data (Governance Service).
-          </p>
+            {t("Quản trị trạng thái tài khoản sinh viên, xử lý vi phạm (Mute, Suspend) và xóa sạch dữ liệu Wipe Data (Governance Service).")}</p>
         </div>
 
         <div className="relative w-full sm:w-64">
@@ -191,7 +191,7 @@ export const UserAccountsPage: React.FC = () => {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Tìm theo tên, email, MSSV..."
+            placeholder={t("Tìm theo tên, email, MSSV...")}
             className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-9 pr-4 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-[#2563eb]"
           />
         </div>
@@ -203,15 +203,14 @@ export const UserAccountsPage: React.FC = () => {
       <Modal
         isOpen={!!selectedUser}
         onClose={() => setSelectedUser(null)}
-        title="Chi tiết tài khoản & Thao tác Quản trị"
+        title={t("Chi tiết tài khoản & Thao tác Quản trị")}
         size="lg"
         footer={
           <>
-            <Button variant="outline" onClick={() => setSelectedUser(null)}>Đóng</Button>
+            <Button variant="outline" onClick={() => setSelectedUser(null)}>{t("Đóng")}</Button>
             {selectedUser && (
               <Button variant="danger" onClick={() => handleWipeData(selectedUser.id)} leftIcon={<Trash2 className="w-4 h-4" />}>
-                Xóa sạch dữ liệu (Wipe Data)
-              </Button>
+                {t("Xóa sạch dữ liệu (Wipe Data)")}</Button>
             )}
           </>
         }
@@ -224,33 +223,30 @@ export const UserAccountsPage: React.FC = () => {
                 <p className="text-slate-500">{selectedUser.email}</p>
               </div>
               <Badge variant={selectedUser.status === 'ACTIVE' ? 'success' : 'danger'} size="md">
-                {selectedUser.status}
+                {t(selectedUser.status)}
               </Badge>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="p-3 border rounded-xl">
-                <span className="text-slate-400 block">Mã số sinh viên:</span>
-                <span className="font-bold text-sm">{selectedUser.studentId || 'Chưa cập nhật'}</span>
+                <span className="text-slate-400 block">{t("Mã số sinh viên:")}</span>
+                <span className="font-bold text-sm">{selectedUser.studentId || t("Chưa cập nhật")}</span>
               </div>
               <div className="p-3 border rounded-xl">
-                <span className="text-slate-400 block">Cơ sở Campus:</span>
+                <span className="text-slate-400 block">{t("Cơ sở Campus:")}</span>
                 <span className="font-bold text-sm">{selectedUser.campus}</span>
               </div>
             </div>
 
             <div className="pt-2 space-y-2">
-              <label className="font-bold block">Thay đổi trạng thái tài khoản:</label>
+              <label className="font-bold block">{t("Thay đổi trạng thái tài khoản:")}</label>
               <div className="flex gap-2">
                 <Button variant="success" size="sm" onClick={() => handleUpdateStatus(selectedUser.id, 'ACTIVE')}>
-                  Active (Bình thường)
-                </Button>
+                  {t("Active (Bình thường)")}</Button>
                 <Button variant="secondary" size="sm" onClick={() => handleUpdateStatus(selectedUser.id, 'MUTED')}>
-                  Mute (Chặn đăng bài)
-                </Button>
+                  {t("Mute (Chặn đăng bài)")}</Button>
                 <Button variant="danger" size="sm" onClick={() => handleUpdateStatus(selectedUser.id, 'SUSPENDED')}>
-                  Suspend (Khóa tài khoản)
-                </Button>
+                  {t("Suspend (Khóa tài khoản)")}</Button>
               </div>
             </div>
           </div>

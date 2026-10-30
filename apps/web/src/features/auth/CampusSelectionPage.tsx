@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLanguage } from '../../context/LanguageContext';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, ArrowLeft, ArrowRight, CheckCircle2, ShieldCheck } from 'lucide-react';
 
@@ -19,6 +20,7 @@ const CAMPUSES: CampusItem[] = [
 
 export const CampusSelectionPage: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [selectedCampus, setSelectedCampus] = useState<string>(() => {
     return localStorage.getItem('fhub_selected_campus') || 'HN';
   });
@@ -35,13 +37,13 @@ export const CampusSelectionPage: React.FC = () => {
         <div className="space-y-2 text-center">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200/60 text-[#0076D1] text-xs font-bold mx-auto">
             <MapPin className="w-3.5 h-3.5" />
-            <span>Bước 1: Chọn Cơ Sở Đào Tạo</span>
+            <span>{t('auth.campusStep', 'Bước 1: Chọn Cơ Sở Đào Tạo')}</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-            Campus Selection
+            {t('auth.campusTitle', 'Campus Selection')}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto">
-            Vui lòng chọn cơ sở đào tạo của bạn để hệ thống tối ưu hóa dữ liệu môn học và thông báo học vụ tương ứng.
+            {t('auth.campusSubtitle', 'Vui lòng chọn cơ sở đào tạo của bạn để hệ thống tối ưu hóa dữ liệu môn học và thông báo học vụ tương ứng.')}
           </p>
         </div>
 
@@ -61,12 +63,12 @@ export const CampusSelectionPage: React.FC = () => {
               >
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-2">
-                    <span className="font-extrabold text-sm text-slate-900">{c.name}</span>
+                    <span className="font-extrabold text-sm text-slate-900">{t(c.name)}</span>
                     <span className="text-[10px] font-bold px-1.5 py-0.2 bg-slate-100 text-slate-600 rounded">
                       {c.code}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500 line-clamp-1">{c.description}</p>
+                  <p className="text-xs text-slate-500 line-clamp-1">{t(c.description)}</p>
                 </div>
                 <div className="shrink-0 pl-3">
                   {isSelected ? (
@@ -88,14 +90,14 @@ export const CampusSelectionPage: React.FC = () => {
             className="w-full sm:w-1/3 py-3 px-4 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors flex items-center justify-center gap-2 cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Back</span>
+            <span>{t('auth.back', 'Back')}</span>
           </button>
           <button
             type="button"
             onClick={handleConfirmCampus}
             className="w-full sm:w-2/3 py-3 px-4 rounded-xl text-xs font-bold text-white bg-[#0076D1] hover:bg-[#005DA7] transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer"
           >
-            <span>Confirm Campus</span>
+            <span>{t('auth.confirmCampus', 'Confirm Campus')}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>

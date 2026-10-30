@@ -209,31 +209,10 @@ export interface StudyMaterial {
     avatarUrl?: string;
   };
   semesterUploaded: string;
+  tags?: string[];
   createdAt: string;
 }
 
-export interface MarketplaceListing {
-  id: string;
-  title: string;
-  description: string;
-  price: number;
-  currency: string;
-  category: 'Study Materials' | 'Books' | 'Electronics' | 'Accessories' | 'Other';
-  condition: 'NEW' | 'LIKE NEW' | 'GOOD' | 'FAIR';
-  status: 'AVAILABLE' | 'RESERVED' | 'SOLD';
-  images: string[];
-  campus: CampusCode;
-  seller: {
-    id: string;
-    fullName: string;
-    avatarUrl?: string;
-    studentId?: string;
-    contactPhone?: string;
-    contactEmail?: string;
-  };
-  viewsCount: number;
-  createdAt: string;
-}
 
 export interface CourseReview {
   id: string;

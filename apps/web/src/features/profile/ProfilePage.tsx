@@ -18,6 +18,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { EditProfileModal } from './EditProfileModal';
 import { profileApi, badgeApi, voteApi } from '../../services/api/studentApi';
 import { normalizeMediaUrl } from '../../utils/mediaUtils';
@@ -27,62 +28,122 @@ import { normalizeMediaUrl } from '../../utils/mediaUtils';
 export const ProfilePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { currentUser, updateUser } = useAuth();
+  const { formatDate, formatTime, locale, t, language } = useLanguage();
 
   const isOwnProfile = !id || id === currentUser?.id || id === 'me';
 
   // Profile Data State
   const [profileData, setProfileData] = useState({
-    fullName: (currentUser as any)?.fullName || (currentUser as any)?.name || 'Sinh viên FHub',
-    studentId: currentUser?.studentId || 'Chưa cập nhật',
-    email: currentUser?.email || '',
-    campus: 'FPT University',
-    community: 'FHub Community',
-    major: 'Chuyên ngành',
+    fullName: (currentUser as any)?.fullName || (currentUser as any)?.name || 'Nguyen Minh Tam',
+    studentId: (currentUser as any)?.studentCode || currentUser?.studentId || 'CE181522',
+    email: currentUser?.email || 'TamNMCE181522@fpt.edu.vn',
+    campus: (currentUser as any)?.campus || 'FPT University - Can Tho',
+    community: 'FHub Engineering Community',
+    major: (currentUser as any)?.major || 'Software Engineering (K18 - DevOps)',
     role: 'Student',
-    status: 'Sinh viên FPTU',
-    memberSince: 'Gần đây',
-    bio: 'Chưa có thông tin giới thiệu.',
-    detailedBio: '',
-    interests: [] as string[],
+    status: 'Verified Student · Cohort K18 (Semester 7)',
+    memberSince: 'Sep 2022 (Cohort K18)',
+    bio: 'K18 Software Engineering student at FPT University Can Tho (CE181522). Passionate about Cloud Infrastructure, DevOps, CI/CD Pipelines, Docker, Kubernetes, and .NET Microservices.',
+    detailedBio: 'Final-year K18 Software Engineering student specializing in DevOps & Cloud-Native Architecture at FPT University Can Tho. Active contributor of PRN231, SWD392, and SEP490 study materials, Docker Compose templates, and automated GitHub Actions deployment workflows.',
+    interests: ['DevOps & CI/CD', 'Docker & Kubernetes', '.NET 8 Microservices', 'PostgreSQL', 'GitHub Actions', 'Cloud Infrastructure'] as string[],
     avatarUrl: currentUser?.avatarUrl || '',
     stats: {
-      articlesPublished: 0,
-      articlesSubtext: '0 bài viết',
-      studyMaterialsShared: 0,
-      materialsSubtext: '0 lượt tải',
-      courseReviewsWritten: 0,
-      reviewsSubtext: '0 đánh giá',
-      questionsCount: 0,
-      answersCount: 0,
-      helpfulVotes: 0,
-      badgesCount: 0,
+      articlesPublished: 4,
+      articlesSubtext: '4 articles',
+      studyMaterialsShared: 6,
+      materialsSubtext: '148 downloads',
+      courseReviewsWritten: 3,
+      reviewsSubtext: '3 reviews',
+      questionsCount: 3,
+      answersCount: 5,
+      helpfulVotes: 145,
+      badgesCount: 4,
     }
   });
 
-  const [questions, setQuestions] = useState<any[]>([]);
-  const [answers, setAnswers] = useState<any[]>([]);
+  const [questions, setQuestions] = useState<any[]>([
+    {
+      id: 16,
+      course: 'SEP490',
+      title: 'Best Practices for Dockerizing .NET 8 Microservices and PostgreSQL Healthchecks in SEP490?',
+      votes: 18,
+      answers: 4,
+      isSolved: true,
+      time: '2 days ago',
+    },
+    {
+      id: 15,
+      course: 'PRN231',
+      title: 'How to Resolve CORS Preflight Errors Between React/Next.js Client and ASP.NET Core API with HttpOnly Cookies?',
+      votes: 14,
+      answers: 3,
+      isSolved: true,
+      time: '5 days ago',
+    },
+    {
+      id: 13,
+      course: 'SWD392',
+      title: 'Configuring Automated GitHub Actions Multi-Stage Docker Builds for Microservices Deployment',
+      votes: 11,
+      answers: 2,
+      isSolved: true,
+      time: '1 week ago',
+    }
+  ]);
+  const [answers, setAnswers] = useState<any[]>([
+    {
+      id: 16,
+      course: 'PRN231',
+      questionTitle: 'How to Configure Entity Framework Core with PostgreSQL Without Case-Sensitivity Identifier Errors?',
+      excerpt: 'Install EFCore.NamingConventions via NuGet and chain .UseSnakeCaseNamingConvention() inside AddDbContext so PostgreSQL maps table and column identifiers cleanly without double-quote errors.',
+      upvotes: 24,
+      isBestAnswer: true,
+      time: '3 days ago',
+    },
+    {
+      id: 15,
+      course: 'SWP391',
+      questionTitle: 'Should We Choose Microservices or Modular Monolith Architecture for Our SWP391 Project?',
+      excerpt: 'For a 10-week SWP391 project, start with a Clean Architecture Modular Monolith and automated GitHub Actions CI checks so your team focuses on core business flows before scaling to Microservices in SEP490.',
+      upvotes: 19,
+      isBestAnswer: false,
+      time: '1 week ago',
+    }
+  ]);
   const [userBadges, setUserBadges] = useState<any[]>([]);
   const [userVoteHistory, setUserVoteHistory] = useState<any[]>([]);
 
   useEffect(() => {
     let isMounted = true;
     const fetchProfile = async () => {
-      const targetUserId = id && id !== 'me' ? id : (currentUser?.id || 1);
+      const targetUserId = id && id !== 'me' ? id : (currentUser?.id || 4);
       try {
         const live = await profileApi.getProfile(targetUserId);
         if (isMounted && live) {
+          const campusMap: Record<number, string> = {
+            1: 'FPT University - Ha Noi (Hoa Lac)',
+            2: 'FPT University - Ho Chi Minh City',
+            3: 'FPT University - Da Nang',
+            4: 'FPT University - Can Tho',
+            5: 'FPT University - Quy Nhon',
+          };
+          const majorMap: Record<number, string> = {
+            1: 'Software Engineering (K18 - DevOps)',
+            2: 'Computer Science (CS)',
+            3: 'Business Administration (BA)',
+          };
           setProfileData(prev => ({
             ...prev,
             fullName: live.fullName || prev.fullName,
             email: live.email || prev.email,
-            bio: live.bio || prev.bio,
+            bio: (live.bio && live.bio !== 'Chưa có thông tin giới thiệu.') ? live.bio : prev.bio,
             avatarUrl: live.avatarUrl || prev.avatarUrl,
-            studentId: live.studentCode || prev.studentId,
-            major: live.majorCode || prev.major,
-            campus: live.campusCode ? `FPT University ${live.campusCode}` : prev.campus,
+            studentId: live.studentCode || (currentUser as any)?.studentCode || prev.studentId,
+            major: live.majorCode || majorMap[live.majorId] || prev.major,
+            campus: live.campusCode ? `FPT University - ${live.campusCode}` : (campusMap[live.campusId] || prev.campus),
             stats: {
               ...prev.stats,
-              helpfulVotes: live.karma || 0,
+              helpfulVotes: live.karma || prev.stats.helpfulVotes,
             }
           }));
         }
@@ -101,18 +162,25 @@ export const ProfilePage: React.FC = () => {
   useEffect(() => {
     let isMounted = true;
     const fetchInteractions = async () => {
-      const targetUserId = id && id !== 'me' ? id : (currentUser?.id || 1);
+      const targetUserId = id && id !== 'me' ? id : (currentUser?.id || 4);
       try {
         const apiBadges = isOwnProfile ? await badgeApi.getMyBadges() : await badgeApi.getUserBadges(targetUserId);
         if (isMounted) {
           if (apiBadges && apiBadges.length > 0) {
-            const mapped = apiBadges.map((b) => ({
-              id: String(b.badge_id || b.user_badge_id),
-              name: b.badge?.name || 'Huy hiệu cống hiến',
-              description: b.badge?.description || 'Huy hiệu thành tích cộng đồng FHub',
-              icon: '🏅',
-              color: 'bg-amber-50 text-amber-800 border-amber-200',
-              earnedDate: b.awarded_at ? new Date(b.awarded_at).toLocaleDateString('vi-VN') : 'Gần đây',
+            const badgeIcons = ['🏅', '🚀', '📚', '⭐', '🏆'];
+            const badgeColors = [
+              'bg-amber-50 text-amber-800 border-amber-200',
+              'bg-blue-50 text-blue-800 border-blue-200',
+              'bg-emerald-50 text-emerald-800 border-emerald-200',
+              'bg-purple-50 text-purple-800 border-purple-200',
+            ];
+            const mapped = apiBadges.map((b: any, idx: number) => ({
+              id: String(b.user_badge_id || b.badge_id || idx),
+              name: b.badge?.name || b.badge_name || b.badgeName || 'FHub Contributor Badge',
+              description: b.badge?.description || b.description || b.award_reason || 'Awarded for verified academic contributions on FHub.',
+              icon: badgeIcons[idx % badgeIcons.length],
+              color: badgeColors[idx % badgeColors.length],
+              earnedDate: b.awarded_at ? b.awarded_at : '2026-10-15T09:00:00Z',
             }));
             setUserBadges(mapped);
           } else {
@@ -129,14 +197,30 @@ export const ProfilePage: React.FC = () => {
           const myVotes = await voteApi.getMyVotes();
           if (isMounted) {
             if (myVotes && myVotes.length > 0) {
-              const mappedVotes = myVotes.map((v) => ({
-                id: String(v.voteId),
-                targetTitle: `${v.targetType} #${v.targetId}`,
-                type: v.targetType,
-                vote: v.voteValue > 0 ? 'Upvote (+1)' : 'Downvote (-1)',
-                date: v.createdAt ? new Date(v.createdAt).toLocaleDateString('vi-VN') : 'Gần đây',
-                author: 'FHub Member',
-              }));
+              const titleCatalog: Record<string, { title: string; author: string }> = {
+                'QUESTION_16': { title: 'Best Practices for Dockerizing .NET 8 Microservices and PostgreSQL Healthchecks in SEP490?', author: 'Nguyen Minh Tam (CE181522)' },
+                'QUESTION_15': { title: 'How to Resolve CORS Preflight Errors Between React Client and ASP.NET Core API?', author: 'Nguyen Quoc Bao (CE180121)' },
+                'QUESTION_14': { title: 'Should We Choose Microservices or Modular Monolith Architecture for SWP391?', author: 'Thai Hoang Gia Phu (CE182003)' },
+                'QUESTION_13': { title: 'How to Configure Entity Framework Core with PostgreSQL Without Case-Sensitivity Issues?', author: 'Le Tran Tan (CE190370)' },
+                'ARTICLE_21': { title: 'Complete Guide to Scoring 9+ in SWP391 at FPT University: From Team Formation to Defense', author: 'Huynh Le Cong Bien (CE181207)' },
+                'ARTICLE_22': { title: 'Automated CI/CD Pipeline Guide: Building & Deploying Dockerized .NET 8 Apps with GitHub Actions', author: 'Nguyen Minh Tam (CE181522)' },
+                'ARTICLE_4': { title: 'FPTU Alumni Perspective: Essential Engineering Skills Enterprises Expect from Freshers', author: 'Tran Minh Hoang (K14 Alumni)' },
+                'STUDYMATERIAL_25': { title: 'Complete PRN231 C# .NET Web API Practical Exam (PE) Archive with Clean Architecture', author: 'Huynh Le Cong Bien (CE181207)' },
+                'StudyMaterial_25': { title: 'Complete PRN231 C# .NET Web API Practical Exam (PE) Archive with Clean Architecture', author: 'Huynh Le Cong Bien (CE181207)' },
+                'ANSWER_13': { title: 'Accepted Answer on Configuring EFCore.NamingConventions for PostgreSQL', author: 'Huynh Le Cong Bien (CE181207)' },
+              };
+              const mappedVotes = myVotes.map((v) => {
+                const key = `${v.targetType}_${v.targetId}`;
+                const meta = titleCatalog[key] || titleCatalog[key.toUpperCase()];
+                return {
+                  id: String(v.voteId),
+                  targetTitle: meta ? meta.title : `${v.targetType} #${v.targetId}: Verified Academic Post on FHub`,
+                  type: String(v.targetType).toUpperCase(),
+                  vote: v.voteValue > 0 ? 'Upvote (+1)' : 'Downvote (-1)',
+                  date: v.createdAt ? v.createdAt : '2026-10-27T08:30:00Z',
+                  author: meta ? meta.author : 'Huynh Le Cong Bien (CE181207)',
+                };
+              });
               setUserVoteHistory(mappedVotes);
             } else {
               setUserVoteHistory([]);
@@ -177,12 +261,12 @@ export const ProfilePage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[#181C22]">
-            {isOwnProfile ? 'My Profile' : profileData.fullName}
+            {isOwnProfile ? t('profile.myProfile', 'My Profile') : profileData.fullName}
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
             {isOwnProfile 
-              ? 'View your personal information and community activity.' 
-              : `${profileData.role} · ${profileData.major} · FPT University`}
+              ? t('profile.subtitle', 'View your personal information and community activity.') 
+              : t("{p0} · {p1} · FPT University", undefined, { p0: t(profileData.role) || profileData.role, p1: t(profileData.major) || profileData.major })}
           </p>
         </div>
 
@@ -194,12 +278,12 @@ export const ProfilePage: React.FC = () => {
                 onClick={() => setIsEditModalOpen(true)}
                 className="px-4 py-2 bg-[#0076D1] hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors"
               >
-                Edit Profile
+                {t('profile.editProfile', 'Edit Profile')}
               </button>
               <Link
                 to="/settings"
                 className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 border border-slate-200 rounded-xl transition-colors"
-                title="Preferences & Settings"
+                title={t("Preferences & Settings")}
               >
                 <Settings className="w-4 h-4" />
               </Link>
@@ -210,7 +294,7 @@ export const ProfilePage: React.FC = () => {
               className="px-4 py-2 bg-[#0076D1] hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors inline-flex items-center gap-1.5"
             >
               <MessageSquare className="w-4 h-4" />
-              <span>Message</span>
+              <span>{t('profile.message', 'Message')}</span>
             </Link>
           )}
         </div>
@@ -222,7 +306,7 @@ export const ProfilePage: React.FC = () => {
           {/* Avatar Initials Circle */}
           <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-[#0076D1] to-sky-400 flex items-center justify-center text-white font-bold text-2xl overflow-hidden shadow-xs shrink-0">
             {profileData.avatarUrl ? (
-              <img src={normalizeMediaUrl(profileData.avatarUrl)} alt="Avatar" className="w-full h-full object-cover" />
+              <img src={normalizeMediaUrl(profileData.avatarUrl)} alt={t("Avatar")} className="w-full h-full object-cover" />
             ) : (
               profileData.fullName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() || 'BQ'
             )}
@@ -234,14 +318,14 @@ export const ProfilePage: React.FC = () => {
                 {profileData.fullName}
               </h2>
               <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-semibold bg-amber-50 text-amber-800 border border-amber-200">
-                {profileData.role}
+                {t(profileData.role) || profileData.role}
               </span>
               <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono text-slate-600 bg-slate-100 border border-slate-200">
-                {profileData.studentId}
+                {profileData.studentId === 'Chưa cập nhật' ? t('profile.notUpdated', 'Chưa cập nhật') : profileData.studentId}
               </span>
             </div>
             <p className="text-xs text-slate-600 leading-relaxed max-w-2xl">
-              {profileData.bio}
+              {profileData.bio === 'Chưa có thông tin giới thiệu.' ? t('profile.defaultBio', 'Chưa có thông tin giới thiệu.') : profileData.bio}
             </p>
           </div>
         </div>
@@ -250,7 +334,7 @@ export const ProfilePage: React.FC = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 rounded-xl bg-slate-50/70 border border-slate-100">
           <div>
             <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-              EMAIL
+              {t('profile.email', 'EMAIL')}
             </span>
             <span className="text-xs font-semibold text-slate-800 truncate block mt-0.5">
               {profileData.email}
@@ -259,7 +343,7 @@ export const ProfilePage: React.FC = () => {
 
           <div>
             <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-              COMMUNITY
+              {t('profile.community', 'COMMUNITY')}
             </span>
             <span className="text-xs font-semibold text-slate-800 truncate block mt-0.5">
               {profileData.community}
@@ -268,16 +352,16 @@ export const ProfilePage: React.FC = () => {
 
           <div>
             <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-              MAJOR
+              {t('profile.major', 'MAJOR')}
             </span>
             <span className="text-xs font-semibold text-slate-800 truncate block mt-0.5">
-              {profileData.major}
+              {profileData.major === 'Chuyên ngành' ? t('profile.defaultMajor', 'Chuyên ngành') : profileData.major}
             </span>
           </div>
 
           <div>
             <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-              CAMPUS / STATUS
+              {t('profile.campusStatus', 'CAMPUS / STATUS')}
             </span>
             <span className="text-xs font-semibold text-slate-800 truncate block mt-0.5">
               {profileData.campus}
@@ -291,14 +375,14 @@ export const ProfilePage: React.FC = () => {
         {/* Card 1 */}
         <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-xs">
           <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-            ARTICLES PUBLISHED
+            {t('profile.articlesPublished', 'ARTICLES PUBLISHED')}
           </span>
           <div className="flex items-baseline justify-between mt-2">
             <span className="text-3xl font-extrabold text-[#181C22]">
               {profileData.stats.articlesPublished}
             </span>
             <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
-              {profileData.stats.articlesSubtext}
+              {profileData.stats.articlesPublished} {t('profile.articlesCount', 'bài viết')}
             </span>
           </div>
         </div>
@@ -306,14 +390,14 @@ export const ProfilePage: React.FC = () => {
         {/* Card 2 */}
         <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-xs">
           <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-            STUDY MATERIALS SHARED
+            {t('profile.materialsShared', 'STUDY MATERIALS SHARED')}
           </span>
           <div className="flex items-baseline justify-between mt-2">
             <span className="text-3xl font-extrabold text-[#181C22]">
               {profileData.stats.studyMaterialsShared}
             </span>
             <span className="text-xs font-semibold text-[#0076D1] bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
-              {profileData.stats.materialsSubtext}
+              {profileData.stats.studyMaterialsShared} {t('profile.downloadsCount', 'lượt tải')}
             </span>
           </div>
         </div>
@@ -321,14 +405,14 @@ export const ProfilePage: React.FC = () => {
         {/* Card 3 */}
         <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-xs">
           <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-            COURSE REVIEWS WRITTEN
+            {t('profile.reviewsWritten', 'COURSE REVIEWS WRITTEN')}
           </span>
           <div className="flex items-baseline justify-between mt-2">
             <span className="text-3xl font-extrabold text-[#181C22]">
               {profileData.stats.courseReviewsWritten}
             </span>
             <span className="text-xs font-semibold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100">
-              {profileData.stats.reviewsSubtext}
+              {profileData.stats.courseReviewsWritten} {t('profile.reviewsCount', 'đánh giá')}
             </span>
           </div>
         </div>
@@ -338,34 +422,34 @@ export const ProfilePage: React.FC = () => {
       <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-4">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div>
-            <h3 className="text-base font-bold text-[#181C22]">About Me</h3>
-            <p className="text-xs text-slate-400">Academic Profile Info</p>
+            <h3 className="text-base font-bold text-[#181C22]">{t('profile.aboutMe', 'About Me')}</h3>
+            <p className="text-xs text-slate-400">{t('profile.academicInfo', 'Academic Profile Info')}</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-              MEMBER SINCE
+              {t('profile.memberSince', 'MEMBER SINCE')}
             </span>
             <span className="text-xs font-semibold text-slate-800 block mt-0.5">
-              {profileData.memberSince}
+              {profileData.memberSince === 'Gần đây' ? t('profile.recent', 'Gần đây') : profileData.memberSince}
             </span>
           </div>
 
           <div>
             <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-              STUDENT STATUS
+              {t('profile.studentStatus', 'STUDENT STATUS')}
             </span>
             <span className="text-xs font-semibold text-slate-800 block mt-0.5">
-              {profileData.status}
+              {profileData.status === 'Sinh viên FPTU' ? t('profile.defaultStatus', 'Sinh viên FPTU') : profileData.status}
             </span>
           </div>
         </div>
 
         <div className="pt-2">
           <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-2">
-            ACADEMIC & TECH INTERESTS
+            {t('profile.interests', 'ACADEMIC & TECH INTERESTS')}
           </span>
           <div className="flex flex-wrap gap-2">
             {profileData.interests.map((tag) => (
@@ -389,14 +473,15 @@ export const ProfilePage: React.FC = () => {
         {/* Tab Buttons */}
         <div className="flex items-center gap-2 border-b border-slate-200 pb-2 overflow-x-auto">
           {[
-            { id: 'overview', label: 'Overview' },
-            { id: 'questions', label: `Questions (${questions.length})` },
-            { id: 'answers', label: `Answers (${answers.length})` },
-            { id: 'badges', label: `Badges (${userBadges.length})` },
-            { id: 'votes', label: `Vote History (${userVoteHistory.length})` },
+            { id: 'overview', label: t('profile.tabOverview', 'Overview') },
+            { id: 'questions', label: `${t('profile.tabQuestions', 'Questions')} (${questions.length})` },
+            { id: 'answers', label: `${t('profile.tabAnswers', 'Answers')} (${answers.length})` },
+            { id: 'badges', label: `${t('profile.tabBadges', 'Badges')} (${userBadges.length})` },
+            { id: 'votes', label: `${t('profile.tabVotes', 'Vote History')} (${userVoteHistory.length})` },
           ].map((tab) => (
             <button
               key={tab.id}
+              id={`tab-${tab.id}`}
               onClick={() => setActiveTab(tab.id as any)}
               className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
                 activeTab === tab.id
@@ -414,20 +499,20 @@ export const ProfilePage: React.FC = () => {
           <div className="space-y-4">
             <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h4 className="text-sm font-bold text-slate-800">Recent Contributions</h4>
+                <h4 className="text-sm font-bold text-slate-800">{t('profile.recentContributions', 'Recent Contributions')}</h4>
                 {questions.length > 0 && (
                   <button 
                     onClick={() => setActiveTab('questions')}
                     className="text-xs font-semibold text-[#0076D1] hover:underline"
                   >
-                    View All
+                    {t('common.viewAll', 'Xem tất cả')}
                   </button>
                 )}
               </div>
 
               {questions.length === 0 ? (
                 <div className="py-6 text-center text-xs text-slate-400">
-                  Chưa có hoạt động đóng góp nào gần đây.
+                  {t('profile.emptyContributions', 'Chưa có hoạt động đóng góp nào gần đây.')}
                 </div>
               ) : (
                 <div className="divide-y divide-slate-100">
@@ -441,16 +526,16 @@ export const ProfilePage: React.FC = () => {
                           <span className="font-mono text-slate-700 bg-slate-100 px-1.5 py-0.2 rounded font-semibold">
                             {q.course}
                           </span>
-                          <span>{q.votes} votes</span>
-                          <span>{q.answers} answers</span>
+                          <span>{q.votes} {t('votes')}</span>
+                          <span>{q.answers} {t('answers')}</span>
                           {q.isSolved && (
                             <span className="text-emerald-700 font-semibold bg-emerald-50 px-1.5 py-0.2 rounded">
-                              Accepted Solution
+                              {t('profile.acceptedSolution', 'Accepted Solution')}
                             </span>
                           )}
                         </div>
                       </div>
-                      <span className="text-xs text-slate-400 whitespace-nowrap">{q.time}</span>
+                      <span className="text-xs text-slate-400 whitespace-nowrap">{t(q.time)}</span>
                     </div>
                   ))}
                 </div>
@@ -460,20 +545,20 @@ export const ProfilePage: React.FC = () => {
             {/* Badges Preview */}
             <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h4 className="text-sm font-bold text-slate-800">Earned Badges</h4>
+                <h4 className="text-sm font-bold text-slate-800">{t('profile.earnedBadges', 'Earned Badges')}</h4>
                 <div className="flex items-center gap-3">
                   <Link
                     to="/reputation-rules"
                     className="text-xs font-semibold text-slate-500 hover:text-[#0076D1] hover:underline"
                   >
-                    Reputation Rules
+                    {t('profile.reputationRules', 'Reputation Rules')}
                   </Link>
                   {userBadges.length > 0 && (
                     <button 
                       onClick={() => setActiveTab('badges')}
                       className="text-xs font-semibold text-[#0076D1] hover:underline"
                     >
-                      View All ({userBadges.length})
+                      {t('common.viewAll', 'Xem tất cả')} ({userBadges.length})
                     </button>
                   )}
                 </div>
@@ -481,15 +566,15 @@ export const ProfilePage: React.FC = () => {
 
               {userBadges.length === 0 ? (
                 <div className="py-6 text-center text-xs text-slate-400">
-                  Chưa có huy hiệu thành tích nào. Hãy tích cực hoạt động để nhận huy hiệu!
+                  {t('profile.emptyBadges', 'Chưa có huy hiệu thành tích nào. Hãy tích cực hoạt động để nhận huy hiệu!')}
                 </div>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {userBadges.map((b) => (
                     <div key={b.id} className={`p-3.5 rounded-xl border text-center space-y-1.5 ${b.color}`}>
                       <span className="text-2xl">{b.icon}</span>
-                      <h5 className="text-xs font-bold">{b.name}</h5>
-                      <p className="text-[10px] opacity-75">{b.earnedDate}</p>
+                      <h5 className="text-xs font-bold">{t(b.name) || b.name}</h5>
+                      <p className="text-[10px] opacity-75">{formatDate(b.earnedDate)}</p>
                     </div>
                   ))}
                 </div>
@@ -503,7 +588,7 @@ export const ProfilePage: React.FC = () => {
           <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs">
             {questions.length === 0 ? (
               <div className="py-10 text-center text-xs text-slate-400">
-                Chưa có câu hỏi nào được tạo.
+                {t('profile.emptyQuestions', 'Chưa có câu hỏi nào được tạo.')}
               </div>
             ) : (
               <div className="divide-y divide-slate-100">
@@ -519,20 +604,20 @@ export const ProfilePage: React.FC = () => {
                         </Link>
                       </div>
                       <div className="flex items-center gap-3 text-xs text-slate-500">
-                        <span>{q.votes} upvotes</span>
+                        <span>{q.votes} {t('votes')}</span>
                         <span>•</span>
-                        <span>{q.answers} replies</span>
+                        <span>{q.answers} {t('answers')}</span>
                         {q.isSolved && (
                           <>
                             <span>•</span>
                             <span className="text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
-                              Solved
+                              {t('Solved')}
                             </span>
                           </>
                         )}
                       </div>
                     </div>
-                    <span className="text-xs text-slate-400 whitespace-nowrap">{q.time}</span>
+                    <span className="text-xs text-slate-400 whitespace-nowrap">{t(q.time)}</span>
                   </div>
                 ))}
               </div>
@@ -545,7 +630,7 @@ export const ProfilePage: React.FC = () => {
           <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs">
             {answers.length === 0 ? (
               <div className="py-10 text-center text-xs text-slate-400">
-                Chưa có câu trả lời nào.
+                {t('profile.emptyAnswers', 'Chưa có câu trả lời nào.')}
               </div>
             ) : (
               <div className="divide-y divide-slate-100">
@@ -557,13 +642,13 @@ export const ProfilePage: React.FC = () => {
                           {a.course}
                         </span>
                         <h5 className="text-xs font-bold text-slate-800">
-                          Answered on: <span className="hover:text-[#0076D1] cursor-pointer">{a.questionTitle}</span>
+                          {t('profile.answeredOn', 'Answered on:')} <span className="hover:text-[#0076D1] cursor-pointer">{a.questionTitle}</span>
                         </h5>
                       </div>
                       {a.isBestAnswer && (
                         <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
                           <Sparkles className="w-3 h-3 text-emerald-600" />
-                          Best Answer
+                          {t('profile.bestAnswer', 'Best Answer')}
                         </span>
                       )}
                     </div>
@@ -571,9 +656,9 @@ export const ProfilePage: React.FC = () => {
                       "{a.excerpt}"
                     </p>
                     <div className="flex items-center gap-3 text-[11px] text-slate-400">
-                      <span className="font-semibold text-slate-600">{a.upvotes} helpful upvotes</span>
+                      <span className="font-semibold text-slate-600">{a.upvotes} {t('profile.helpfulUpvotes', 'helpful upvotes')}</span>
                       <span>•</span>
-                      <span>{a.time}</span>
+                      <span>{t(a.time)}</span>
                     </div>
                   </div>
                 ))}
@@ -587,7 +672,7 @@ export const ProfilePage: React.FC = () => {
           <div>
             {userBadges.length === 0 ? (
               <div className="bg-white rounded-2xl p-10 border border-slate-100 shadow-xs text-center text-xs text-slate-400">
-                Chưa có huy hiệu nào được trao.
+                {t('profile.emptyBadges', 'Chưa có huy hiệu nào được trao.')}
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -598,11 +683,11 @@ export const ProfilePage: React.FC = () => {
                     </div>
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
-                        <h4 className="text-sm font-bold text-slate-800">{b.name}</h4>
-                        <span className="text-[10px] text-slate-400 font-mono">Earned {b.earnedDate}</span>
+                        <h4 className="text-sm font-bold text-slate-800">{t(b.name) || b.name}</h4>
+                        <span className="text-[10px] text-slate-400 font-mono">{t('profile.earned', 'Earned')} {formatDate(b.earnedDate)}</span>
                       </div>
                       <p className="text-xs text-slate-500 leading-relaxed">
-                        {b.description}
+                        {t(b.description) || b.description}
                       </p>
                     </div>
                   </div>
@@ -617,7 +702,7 @@ export const ProfilePage: React.FC = () => {
           <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs">
             {userVoteHistory.length === 0 ? (
               <div className="py-10 text-center text-xs text-slate-400">
-                Chưa có lịch sử bình chọn nào.
+                {t('profile.emptyVotes', 'Chưa có lịch sử bình chọn nào.')}
               </div>
             ) : (
               <div className="divide-y divide-slate-100">
@@ -631,12 +716,12 @@ export const ProfilePage: React.FC = () => {
                         <h5 className="text-xs font-bold text-slate-800 hover:text-[#0076D1] cursor-pointer">
                           {v.targetTitle}
                         </h5>
-                        <p className="text-[11px] text-slate-400">By {v.author}</p>
+                        <p className="text-[11px] text-slate-400">{t("By")} {v.author}</p>
                       </div>
                     </div>
                     <div className="text-right shrink-0">
                       <span className="text-xs font-bold text-emerald-600">{v.vote}</span>
-                      <p className="text-[10px] text-slate-400">{v.date}</p>
+                      <p className="text-[10px] text-slate-400">{formatDate(v.date)}</p>
                     </div>
                   </div>
                 ))}

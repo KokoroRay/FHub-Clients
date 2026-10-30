@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLanguage } from '../../context/LanguageContext';
 import { Copy, Check } from 'lucide-react';
 
 interface MarkdownPreviewProps {
@@ -7,10 +8,11 @@ interface MarkdownPreviewProps {
 }
 
 export const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ content, className = '' }) => {
+  const { t } = useLanguage();
   if (!content || !content.trim()) {
     return (
       <div className={`p-4 text-xs text-slate-400 italic text-center ${className}`}>
-        Chưa có nội dung để hiển thị xem trước. Hãy nhập nội dung ở tab soạn thảo.
+        {t('markdown.emptyPreview', 'Chưa có nội dung để hiển thị xem trước. Hãy nhập nội dung ở tab soạn thảo.')}
       </div>
     );
   }
@@ -171,6 +173,7 @@ function parseMarkdownBlocks(raw: string): Block[] {
 }
 
 const CodeBlockRenderer: React.FC<{ language: string; code: string }> = ({ language, code }) => {
+  const { t } = useLanguage();
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
@@ -187,10 +190,10 @@ const CodeBlockRenderer: React.FC<{ language: string; code: string }> = ({ langu
           type="button"
           onClick={handleCopy}
           className="inline-flex items-center gap-1 hover:text-white transition-colors cursor-pointer text-[10px]"
-          title="Sao chép code"
+          title={t('common.copyCode', 'Sao chép code')}
         >
           {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-          <span>{copied ? 'Đã chép' : 'Sao chép'}</span>
+          <span>{copied ? t('common.copied', 'Đã chép') : t('common.copy', 'Sao chép')}</span>
         </button>
       </div>
       <pre className="p-3.5 overflow-x-auto text-slate-200 leading-relaxed">

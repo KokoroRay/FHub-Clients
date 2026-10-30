@@ -23,6 +23,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { AdminUser } from '../../../types';
+import { useLanguage } from '../../../context/LanguageContext';
 import { 
   useGovernanceAccounts, 
   useUpdateUserAccountStatus, 
@@ -31,6 +32,7 @@ import {
 } from '../../../services/api';
 
 export const UserManagementPage: React.FC = () => {
+  const { locale, t } = useLanguage();
   const [searchParams] = useSearchParams();
   const initialQuery = searchParams.get('q') || '';
   const [searchQuery, setSearchQuery] = useState(initialQuery);
@@ -43,6 +45,8 @@ export const UserManagementPage: React.FC = () => {
   const [usersList, setUsersList] = useState<AdminUser[]>([]);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [statusModalUser, setStatusModalUser] = useState<AdminUser | null>(null);
+  const [deleteModalUser, setDeleteModalUser] = useState<AdminUser | null>(null);
   const navigate = useNavigate();
 
   // Connect to Backend Users API (Identity Service: GET /api/users)
@@ -98,30 +102,30 @@ export const UserManagementPage: React.FC = () => {
         },
       });
       await refetch();
-      setActionSuccess(`User status updated to ${newStatus} on Backend.`);
+      setActionSuccess(t("User status updated to {p0} on Backend.", undefined, { p0: newStatus }));
     } catch (e: any) {
       console.warn('API error, fallback locally:', e);
       setUsersList((prev) =>
         prev.map((u) => (u.id === userId ? { ...u, status: newStatus } : u))
       );
-      setActionSuccess(`User status updated locally (Backend: ${e?.message || 'Error'})`);
+      setActionSuccess(t("User status updated locally (Backend: {p0})", undefined, { p0: e?.message || 'Error' }));
     }
     setTimeout(() => setActionSuccess(null), 3500);
   };
 
   const handleDeleteUser = async (userId: string) => {
     const numericId = userId.replace(/\D/g, '') || '1';
-    if (!window.confirm(`Are you sure you want to soft delete user #${numericId}?`)) return;
+    if (!window.confirm(t("Are you sure you want to soft delete user #{p0}?", undefined, { p0: numericId }))) return;
     try {
       await deleteAccountMutation.mutateAsync({
         id: numericId,
         reason: 'Soft deleted by Administrator from User Directory',
       });
       await refetch();
-      setActionSuccess(`User #${numericId} deleted successfully.`);
+      setActionSuccess(t("User #{p0} deleted successfully.", undefined, { p0: numericId }));
     } catch (e: any) {
       console.error('Delete user error:', e);
-      setActionSuccess(`Delete error: ${e?.message || 'Failed'}`);
+      setActionSuccess(t("Delete error: {p0}", undefined, { p0: e?.message || 'Failed' }));
     }
     setTimeout(() => setActionSuccess(null), 3500);
   };
@@ -158,14 +162,14 @@ export const UserManagementPage: React.FC = () => {
 
       await refetch();
       setShowCreateModal(false);
-      setActionSuccess(`Account created successfully for ${newFullName.trim()} (${newEmail.trim()})`);
+      setActionSuccess(t("Account created successfully for {p0} ({p1})", undefined, { p0: newFullName.trim(), p1: newEmail.trim() }));
       setNewFullName('');
       setNewEmail('');
       setNewStudentId('');
     } catch (err: any) {
       console.error('Failed to create user:', err);
       const errMsg = err?.response?.data?.message || err?.message || 'Failed to create user account';
-      setActionSuccess(`Error: ${errMsg}`);
+      setActionSuccess(t("Error: {p0}", undefined, { p0: errMsg }));
     }
     setTimeout(() => setActionSuccess(null), 4000);
   };
@@ -190,25 +194,24 @@ export const UserManagementPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-            <span>USER MANAGEMENT</span>
-            <span>&gt;</span>
-            <span className="text-blue-600">DIRECTORY & PERMISSIONS</span>
+            <span>{t("USER MANAGEMENT")}</span>
+            <span>{t("&gt;")}</span>
+            <span className="text-blue-600">{t("DIRECTORY & PERMISSIONS")}</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            User Accounts
+            {t('User Accounts')}
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Manage, verify, and monitor all FHub Community users across all campuses, roles, and academic tracks.
-          </p>
+            {t("Manage, verify, and monitor all FHub Community users across all campuses, roles, and academic tracks.")}</p>
         </div>
 
         <div className="flex items-center gap-2.5">
           <button
-            onClick={() => { setActionSuccess(`User Directory export (${usersList.length} accounts) generated in CSV format.`); setTimeout(() => setActionSuccess(null), 3500); }}
+            onClick={() => { setActionSuccess(t("User Directory export ({p0} accounts) generated in CSV format.", undefined, { p0: usersList.length })); setTimeout(() => setActionSuccess(null), 3500); }}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 shadow-2xs transition-colors cursor-pointer"
           >
             <Download className="w-3.5 h-3.5 text-slate-500" />
-            <span>Export Users</span>
+            <span>{t('Export Users')}</span>
           </button>
 
           <button
@@ -216,7 +219,7 @@ export const UserManagementPage: React.FC = () => {
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
           >
             <UserPlus className="w-3.5 h-3.5" />
-            <span>Create User</span>
+            <span>{t('Create User')}</span>
           </button>
         </div>
       </div>
@@ -224,30 +227,30 @@ export const UserManagementPage: React.FC = () => {
       {actionSuccess && (
         <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center gap-2 animate-fadeIn">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span>{actionSuccess}</span>
+          <span>{t(actionSuccess)}</span>
         </div>
       )}
 
       {/* 5 Top Summary Stat Boxes (Figma 55:4074) */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5">
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">TOTAL USERS</span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('TOTAL USERS')}</span>
           <p className="text-2xl font-bold text-slate-900 mt-1">{accountsData?.totalCount ?? usersList.length}</p>
         </div>
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">ACTIVE USERS</span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('ACTIVE USERS')}</span>
           <p className="text-2xl font-bold text-blue-600 mt-1">{usersList.filter(u => u.status === 'ACTIVE').length}</p>
         </div>
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">PENDING VERIFY</span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('PENDING VERIFY')}</span>
           <p className="text-2xl font-bold text-amber-600 mt-1">{usersList.filter(u => u.status === 'PENDING_VERIFICATION').length}</p>
         </div>
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">SUSPENDED</span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('SUSPENDED')}</span>
           <p className="text-2xl font-bold text-rose-600 mt-1">{usersList.filter(u => u.status === 'SUSPENDED').length}</p>
         </div>
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">MUTED USERS</span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('MUTED USERS')}</span>
           <p className="text-2xl font-bold text-slate-600 mt-1">{usersList.filter(u => u.status === 'MUTED').length}</p>
         </div>
       </div>
@@ -262,7 +265,7 @@ export const UserManagementPage: React.FC = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by student name, institutional email, student ID (e.g. QE183011), or username..."
+              placeholder={t('Search by student name, institutional email, student ID (e.g. QE183011), or username...')}
               className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
             />
           </div>
@@ -273,12 +276,12 @@ export const UserManagementPage: React.FC = () => {
             onChange={(e) => setSelectedCampus(e.target.value)}
             className="w-full md:w-40 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none cursor-pointer"
           >
-            <option value="ALL">All Campuses</option>
-            <option value="HL">Hoa Lac (HL)</option>
-            <option value="HCM">Ho Chi Minh (HCM)</option>
-            <option value="DN">Da Nang (DN)</option>
-            <option value="CT">Can Tho (CT)</option>
-            <option value="QN">Quy Nhon (QN)</option>
+            <option value="ALL">{t('All Campuses')}</option>
+            <option value="HL">{t("Hoa Lac (HL)")}</option>
+            <option value="HCM">{t("Ho Chi Minh (HCM)")}</option>
+            <option value="DN">{t("Da Nang (DN)")}</option>
+            <option value="CT">{t("Can Tho (CT)")}</option>
+            <option value="QN">{t("Quy Nhon (QN)")}</option>
           </select>
 
           {/* Role Filter */}
@@ -287,11 +290,11 @@ export const UserManagementPage: React.FC = () => {
             onChange={(e) => setSelectedRole(e.target.value)}
             className="w-full md:w-36 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none cursor-pointer"
           >
-            <option value="ALL">All Roles</option>
-            <option value="Student">Student</option>
-            <option value="Staff">Staff</option>
-            <option value="Community Moderator">Moderator</option>
-            <option value="Admin">Admin</option>
+            <option value="ALL">{t('All Roles')}</option>
+            <option value="Student">{t("Student")}</option>
+            <option value="Staff">{t("Staff")}</option>
+            <option value="Community Moderator">{t("Moderator")}</option>
+            <option value="Admin">{t("Admin")}</option>
           </select>
 
           {/* Status Filter */}
@@ -300,17 +303,17 @@ export const UserManagementPage: React.FC = () => {
             onChange={(e) => setSelectedStatus(e.target.value)}
             className="w-full md:w-36 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none cursor-pointer"
           >
-            <option value="ALL">All Statuses</option>
-            <option value="ACTIVE">Active</option>
-            <option value="PENDING_VERIFICATION">Pending Verify</option>
-            <option value="MUTED">Muted</option>
-            <option value="SUSPENDED">Suspended</option>
+            <option value="ALL">{t('All Status')}</option>
+            <option value="ACTIVE">{t('Active')}</option>
+            <option value="PENDING_VERIFICATION">{t('Pending Verification')}</option>
+            <option value="MUTED">{t('Muted')}</option>
+            <option value="SUSPENDED">{t('Suspended')}</option>
           </select>
 
           {/* More Filters button */}
           <button className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200/80 rounded-lg text-xs font-semibold text-slate-700 transition-colors">
             <SlidersHorizontal className="w-3.5 h-3.5 text-slate-500" />
-            <span>More Filters</span>
+            <span>{t('More Filters')}</span>
           </button>
         </div>
       </div>
@@ -319,7 +322,7 @@ export const UserManagementPage: React.FC = () => {
       {selectedUsers.length > 0 && (
         <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between text-xs text-blue-900 animate-fadeIn">
           <div className="flex items-center gap-2 font-semibold">
-            <span>{selectedUsers.length} user accounts selected</span>
+            <span>{selectedUsers.length} {t('user accounts selected')}</span>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -329,7 +332,7 @@ export const UserManagementPage: React.FC = () => {
               }}
               className="px-2.5 py-1 bg-rose-600 text-white rounded-lg font-semibold hover:bg-rose-700 cursor-pointer"
             >
-              Suspend Selected
+              {t('Suspend Selected')}
             </button>
             <button
               onClick={() => {
@@ -338,7 +341,7 @@ export const UserManagementPage: React.FC = () => {
               }}
               className="px-2.5 py-1 bg-amber-600 text-white rounded-lg font-semibold hover:bg-amber-700 cursor-pointer"
             >
-              Mute Selected
+              {t('Mute Selected')}
             </button>
           </div>
         </div>
@@ -358,23 +361,22 @@ export const UserManagementPage: React.FC = () => {
                     className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                   />
                 </th>
-                <th className="py-3 px-3 font-bold">USER</th>
-                <th className="py-3 px-3 font-bold">STUDENT/STAFF ID</th>
-                <th className="py-3 px-3 font-bold">INSTITUTIONAL EMAIL</th>
-                <th className="py-3 px-3 font-bold">CAMPUS</th>
-                <th className="py-3 px-3 font-bold">ROLE</th>
-                <th className="py-3 px-3 font-bold">STATUS</th>
-                <th className="py-3 px-3 font-bold">KARMA / REP</th>
-                <th className="py-3 px-3 font-bold">JOINED</th>
-                <th className="py-3 px-4 font-bold text-right">ACTIONS</th>
+                <th className="py-3 px-3 font-bold">{t("USER")}</th>
+                <th className="py-3 px-3 font-bold">{t("STUDENT/STAFF ID")}</th>
+                <th className="py-3 px-3 font-bold">{t("INSTITUTIONAL EMAIL")}</th>
+                <th className="py-3 px-3 font-bold">{t("CAMPUS")}</th>
+                <th className="py-3 px-3 font-bold">{t("ROLE")}</th>
+                <th className="py-3 px-3 font-bold">{t("STATUS")}</th>
+                <th className="py-3 px-3 font-bold">{t("KARMA / REP")}</th>
+                <th className="py-3 px-3 font-bold">{t("JOINED")}</th>
+                <th className="py-3 px-4 font-bold text-right">{t("ACTIONS")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredUsers.length === 0 ? (
                 <tr>
                   <td colSpan={10} className="py-8 text-center text-xs text-slate-400">
-                    0 user accounts found.
-                  </td>
+                    {t("0 user accounts found.")}</td>
                 </tr>
               ) : (
                 filteredUsers.map((user) => {
@@ -431,7 +433,7 @@ export const UserManagementPage: React.FC = () => {
                     {/* Role */}
                     <td className="py-3 px-3">
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-700">
-                        {user.role}
+                        {t(user.role)}
                       </span>
                     </td>
 
@@ -439,23 +441,19 @@ export const UserManagementPage: React.FC = () => {
                     <td className="py-3 px-3">
                       {user.status === 'ACTIVE' && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Active
-                        </span>
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />  {t("Active")}</span>
                       )}
                       {user.status === 'PENDING_VERIFICATION' && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Pending
-                        </span>
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />  {t("Pending")}</span>
                       )}
                       {user.status === 'MUTED' && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
-                          <span className="w-1.5 h-1.5 rounded-full bg-slate-400" /> Muted
-                        </span>
+                          <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />  {t("Muted")}</span>
                       )}
                       {user.status === 'SUSPENDED' && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Suspended
-                        </span>
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />  {t("Suspended")}</span>
                       )}
                     </td>
 
@@ -466,7 +464,7 @@ export const UserManagementPage: React.FC = () => {
 
                     {/* Joined */}
                     <td className="py-3 px-3 text-[11px] text-slate-400">
-                      {user.verifiedAt ? new Date(user.verifiedAt).toLocaleDateString() : 'N/A'}
+                      {user.verifiedAt ? new Date(user.verifiedAt).toLocaleDateString(locale) : 'N/A'}
                     </td>
 
                     {/* Actions */}
@@ -475,31 +473,21 @@ export const UserManagementPage: React.FC = () => {
                         to={`/users/${user.id}`}
                         className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 transition-colors"
                       >
-                        Detail
-                      </Link>
-
-                      {user.status === 'ACTIVE' ? (
-                        <button
-                          onClick={() => handleStatusChange(user.id, 'SUSPENDED')}
-                          className="inline-flex items-center px-2 py-1 rounded-md text-[11px] font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 cursor-pointer"
-                          title="Suspend User Account"
-                        >
-                          Suspend
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleStatusChange(user.id, 'ACTIVE')}
-                          className="inline-flex items-center px-2 py-1 rounded-md text-[11px] font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 cursor-pointer"
-                          title="Activate User Account"
-                        >
-                          Active
-                        </button>
-                      )}
+                        {t("Detail")}</Link>
 
                       <button
-                        onClick={() => handleDeleteUser(user.id)}
+                        id={`btn-update-status-${user.id}`}
+                        onClick={() => setStatusModalUser(user)}
+                        className="inline-flex items-center px-2 py-1 rounded-md text-[11px] font-medium text-amber-700 bg-amber-50 hover:bg-amber-100 cursor-pointer"
+                        title={t("Change User Account Status")}
+                      >
+                        {t("Status")}</button>
+
+                      <button
+                        id={`btn-delete-user-${user.id}`}
+                        onClick={() => setDeleteModalUser(user)}
                         className="inline-flex items-center p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-                        title="Delete User Account"
+                        title={t("Delete User Account")}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -521,27 +509,24 @@ export const UserManagementPage: React.FC = () => {
           return (
             <div className="p-3.5 bg-slate-50/80 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
               <span>
-                Showing {totalCount === 0 ? 0 : startIdx} to {endIdx} of {totalCount} entries
-              </span>
+                {t("Showing")} {totalCount === 0 ? 0 : startIdx}  {t("to")} {endIdx}  {t("of")} {totalCount}  {t("entries")}</span>
               <div className="flex items-center gap-1 font-semibold">
                 <button
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage <= 1}
                   className="px-2.5 py-1 rounded border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer text-slate-600"
                 >
-                  &lt;
-                </button>
+                  {t("&lt;")}</button>
                 <span className="px-3 py-1 rounded bg-blue-600 text-white font-bold">
                   {currentPage}
                 </span>
-                <span className="text-slate-400 text-xs px-1">of {totalPages}</span>
+                <span className="text-slate-400 text-xs px-1">{t("of")} {totalPages}</span>
                 <button
                   onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage >= totalPages}
                   className="px-2.5 py-1 rounded border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer text-slate-600"
                 >
-                  &gt;
-                </button>
+                  {t("&gt;")}</button>
               </div>
             </div>
           );
@@ -553,7 +538,7 @@ export const UserManagementPage: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-fadeIn">
           <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full p-6 shadow-xl space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-slate-900">Create New Institutional Account</h2>
+              <h2 className="text-base font-bold text-slate-900">{t('Create New Institutional Account')}</h2>
               <button
                 onClick={() => setShowCreateModal(false)}
                 className="text-slate-400 hover:text-slate-600 cursor-pointer"
@@ -564,11 +549,11 @@ export const UserManagementPage: React.FC = () => {
 
             <form onSubmit={handleCreateUser} className="space-y-3">
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">Full Name:</label>
+                <label className="text-xs font-semibold text-slate-700">{t('Full Name:')}</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Nguyen Van An"
+                  placeholder={t("e.g. Nguyen Van An")}
                   value={newFullName}
                   onChange={(e) => setNewFullName(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900"
@@ -577,37 +562,37 @@ export const UserManagementPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700">Student/Staff ID:</label>
+                  <label className="text-xs font-semibold text-slate-700">{t('Student/Staff ID:')}</label>
                   <input
                     type="text"
-                    placeholder="e.g. HE163421"
+                    placeholder={t("e.g. HE163421")}
                     value={newStudentId}
                     onChange={(e) => setNewStudentId(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono uppercase"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700">Campus:</label>
+                  <label className="text-xs font-semibold text-slate-700">{t('Campus:')}</label>
                   <select
                     value={newCampus}
                     onChange={(e) => setNewCampus(e.target.value as any)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900"
                   >
-                    <option value="HL">HL (Hoa Lac)</option>
-                    <option value="HCM">HCM (Ho Chi Minh)</option>
-                    <option value="DN">DN (Da Nang)</option>
-                    <option value="CT">CT (Can Tho)</option>
-                    <option value="QN">QN (Quy Nhon)</option>
+                    <option value="HL">{t("HL (Hoa Lac)")}</option>
+                    <option value="HCM">{t("HCM (Ho Chi Minh)")}</option>
+                    <option value="DN">{t("DN (Da Nang)")}</option>
+                    <option value="CT">{t("CT (Can Tho)")}</option>
+                    <option value="QN">{t("QN (Quy Nhon)")}</option>
                   </select>
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">Institutional Email (@fpt.edu.vn):</label>
+                <label className="text-xs font-semibold text-slate-700">{t('Institutional Email (@fpt.edu.vn):')}</label>
                 <input
                   type="email"
                   required
-                  placeholder="e.g. nguyenvana.se@fpt.edu.vn"
+                  placeholder={t("e.g. nguyenvana.se@fpt.edu.vn")}
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900"
@@ -616,23 +601,23 @@ export const UserManagementPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700">Primary Role:</label>
+                  <label className="text-xs font-semibold text-slate-700">{t('Primary Role:')}</label>
                   <select
                     value={newRole}
                     onChange={(e) => setNewRole(e.target.value as any)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900"
                   >
-                    <option value="Student">Student</option>
-                    <option value="Staff">Staff</option>
-                    <option value="Community Moderator">Moderator</option>
-                    <option value="Admin">Admin</option>
+                    <option value="Student">{t("Student")}</option>
+                    <option value="Staff">{t("Staff")}</option>
+                    <option value="Community Moderator">{t("Moderator")}</option>
+                    <option value="Admin">{t("Admin")}</option>
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700">Major Track:</label>
+                  <label className="text-xs font-semibold text-slate-700">{t('Major Track:')}</label>
                   <input
                     type="text"
-                    placeholder="Software Engineering"
+                    placeholder={t("Software Engineering")}
                     value={newMajor}
                     onChange={(e) => setNewMajor(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900"
@@ -646,18 +631,123 @@ export const UserManagementPage: React.FC = () => {
                   onClick={() => setShowCreateModal(false)}
                   className="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold cursor-pointer"
                 >
-                  Cancel
-                </button>
+                  {t("Cancel")}</button>
                 <button
                   type="submit"
                   disabled={createUserMutation.isPending}
                   className="px-4 py-2 rounded-lg bg-blue-600 text-white text-xs font-semibold cursor-pointer hover:bg-blue-700 disabled:opacity-50 flex items-center gap-1.5"
                 >
                   {createUserMutation.isPending && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
-                  <span>{createUserMutation.isPending ? 'Creating...' : 'Create Account'}</span>
+                  <span>{createUserMutation.isPending ? t('Creating...') : t('Create Account')}</span>
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─── 3.14.4 Update User Status Modal ──────────────────────────────────── */}
+      {statusModalUser && (
+        <div id="modal-update-user-status" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <SlidersHorizontal className="w-5 h-5 text-blue-600" />
+                <span>{t("Update User Account Status")}</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setStatusModalUser(null)}
+                className="text-slate-400 hover:text-slate-600 text-sm font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center gap-3">
+                <img src={statusModalUser.avatarUrl} alt={statusModalUser.fullName} className="w-10 h-10 rounded-full object-cover" />
+                <div>
+                  <div className="text-xs font-bold text-slate-800">{statusModalUser.fullName}</div>
+                  <div className="text-[10px] text-slate-500 font-mono">{statusModalUser.email} • {t(statusModalUser.role)}</div>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-700 block mb-1">{t("Select Target Status")}</label>
+                <select
+                  id="select-new-user-status"
+                  defaultValue={statusModalUser.status}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
+                >
+                  <option value="ACTIVE">{t("ACTIVE (Normal platform access)")}</option>
+                  <option value="MUTED">{t("MUTED (Restricted from posting and commenting)")}</option>
+                  <option value="SUSPENDED">{t("SUSPENDED (Account login restricted)")}</option>
+                  <option value="BANNED">{t("BANNED (Permanently restricted)")}</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-700 block mb-1">{t("Administrative Reason")}</label>
+                <textarea
+                  rows={2}
+                  defaultValue="Violation of community standard BR-38: excessive spamming in discussions"
+                  className="w-full p-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl resize-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setStatusModalUser(null)}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+              >
+                {t("Cancel")}</button>
+              <button
+                id="btn-confirm-update-user-status"
+                type="button"
+                onClick={() => setStatusModalUser(null)}
+                className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors shadow-xs"
+              >
+                {t("Apply Status Change")}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── 3.14.5 Delete User Confirmation Modal ────────────────────────────── */}
+      {deleteModalUser && (
+        <div id="modal-delete-user" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full p-6 space-y-4 animate-in fade-in">
+            <div className="flex items-center gap-3 text-red-600">
+              <div className="p-2.5 rounded-xl bg-red-50">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">{t("Delete User Account")}</h3>
+                <p className="text-xs text-slate-500">{t("Soft delete account credentials")}</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed">
+              {t("Are you sure you want to soft delete account")} <strong>{deleteModalUser.fullName}</strong> ({deleteModalUser.email}{t(")? Their active sessions and credentials will be deactivated immediately.")}</p>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setDeleteModalUser(null)}
+                className="px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+              >
+                {t("Cancel")}</button>
+              <button
+                id="btn-confirm-delete-user"
+                type="button"
+                onClick={() => setDeleteModalUser(null)}
+                className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors shadow-xs"
+              >
+                {t("Confirm Delete")}</button>
+            </div>
           </div>
         </div>
       )}

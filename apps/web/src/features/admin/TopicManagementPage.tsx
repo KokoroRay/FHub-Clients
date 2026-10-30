@@ -1,3 +1,4 @@
+import { useLanguage } from '../../context/LanguageContext';
 import React, { useState } from 'react';
 import { Hash, Plus, Edit2, Trash2 } from 'lucide-react';
 import { Button } from '../../components/common/Button';
@@ -15,6 +16,7 @@ interface Topic {
 }
 
 export const TopicManagementPage: React.FC = () => {
+  const { t } = useLanguage();
   const [topics, setTopics] = useState<Topic[]>([
     { id: '1', name: 'Software Architecture', slug: 'software-architecture', description: 'Kiến trúc phần mềm và microservices', postCount: 142 },
     { id: '2', name: 'Database & SQL', slug: 'database-sql', description: 'Cơ sở dữ liệu quan hệ và NoSQL', postCount: 98 },
@@ -42,7 +44,7 @@ export const TopicManagementPage: React.FC = () => {
   };
 
   const handleDelete = (id: string) => {
-    if (confirm('Bạn có chắc muốn xóa Topic này?')) {
+    if (confirm(t("Bạn có chắc muốn xóa Topic này?"))) {
       setTopics(topics.filter((t) => t.id !== id));
     }
   };
@@ -74,7 +76,7 @@ export const TopicManagementPage: React.FC = () => {
 
   const columns: Column<Topic>[] = [
     {
-      header: 'Tên Topic & Slug',
+      header: t("Tên Topic & Slug"),
       accessorKey: 'name',
       cell: (item) => (
         <div>
@@ -86,18 +88,18 @@ export const TopicManagementPage: React.FC = () => {
       ),
     },
     {
-      header: 'Mô tả chủ đề',
+      header: t("Mô tả chủ đề"),
       accessorKey: 'description',
       cell: (item) => <span className="text-xs text-slate-600 dark:text-slate-400">{item.description}</span>,
     },
     {
-      header: 'Số bài viết',
+      header: t("Số bài viết"),
       accessorKey: 'postCount',
-      cell: (item) => <Badge variant="neutral" size="sm">{item.postCount} bài</Badge>,
+      cell: (item) => <Badge variant="neutral" size="sm">{item.postCount}  {t("bài")}</Badge>,
       className: 'w-28',
     },
     {
-      header: 'Hành động',
+      header: t("Hành động"),
       cell: (item) => (
         <div className="flex items-center gap-2">
           <button onClick={() => openEdit(item)} className="p-1.5 text-slate-500 hover:text-[#2563eb] hover:bg-slate-100 rounded-lg cursor-pointer">
@@ -118,16 +120,14 @@ export const TopicManagementPage: React.FC = () => {
         <div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
             <Hash className="w-6 h-6 text-[#2563eb]" />
-            <span>Topic Management</span>
+            <span>{t("Topic Management")}</span>
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Quản lý các chủ đề bài viết và thảo luận học thuật (Academic Taxonomy Service).
-          </p>
+            {t("Quản lý các chủ đề bài viết và thảo luận học thuật (Academic Taxonomy Service).")}</p>
         </div>
 
         <Button variant="primary" onClick={openCreate} leftIcon={<Plus className="w-4 h-4" />}>
-          Thêm Topic mới
-        </Button>
+          {t("Thêm Topic mới")}</Button>
       </div>
 
       <Table columns={columns} data={topics} keyExtractor={(t) => t.id} />
@@ -135,24 +135,24 @@ export const TopicManagementPage: React.FC = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={editingTopic ? 'Cập nhật Topic' : 'Tạo Topic mới'}
+        title={editingTopic ? t("Cập nhật Topic") : t("Tạo Topic mới")}
         footer={
           <>
-            <Button variant="outline" onClick={() => setIsModalOpen(false)}>Hủy</Button>
-            <Button variant="primary" onClick={handleSubmit}>Lưu Topic</Button>
+            <Button variant="outline" onClick={() => setIsModalOpen(false)}>{t("Hủy")}</Button>
+            <Button variant="primary" onClick={handleSubmit}>{t("Lưu Topic")}</Button>
           </>
         }
       >
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           <Input
-            label="Tên chủ đề"
-            placeholder="Ví dụ: Cloud & DevOps"
+            label={t("Tên chủ đề")}
+            placeholder={t("Ví dụ: Cloud & DevOps")}
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
           />
           <Textarea
-            label="Mô tả chủ đề"
+            label={t("Mô tả chủ đề")}
             rows={3}
             value={description}
             onChange={(e) => setDescription(e.target.value)}

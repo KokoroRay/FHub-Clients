@@ -1,5 +1,6 @@
 import React from 'react';
 import { Loader2 } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'success';
@@ -20,6 +21,7 @@ export const Button: React.FC<ButtonProps> = ({
   disabled,
   ...props
 }) => {
+  const { t } = useLanguage();
   const baseStyles = 'inline-flex items-center justify-center font-medium transition-all duration-200 rounded-xl cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-1 select-none';
 
   const sizeStyles = {
@@ -37,6 +39,8 @@ export const Button: React.FC<ButtonProps> = ({
     success: 'bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white focus:ring-emerald-500 shadow-xs',
   };
 
+  const translatedContent = typeof children === 'string' ? t(children) : children;
+
   return (
     <button
       className={`${baseStyles} ${sizeStyles[size]} ${variantStyles[variant]} ${className}`}
@@ -44,7 +48,7 @@ export const Button: React.FC<ButtonProps> = ({
       {...props}
     >
       {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : leftIcon}
-      {children && <span>{children}</span>}
+      {translatedContent && <span>{translatedContent}</span>}
       {!isLoading && rightIcon}
     </button>
   );
