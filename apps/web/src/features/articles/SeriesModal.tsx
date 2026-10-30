@@ -26,22 +26,7 @@ export const SeriesModal: React.FC<SeriesModalProps> = ({
   const [title, setTitle] = useState(initialSeries?.title || '');
   const [description, setDescription] = useState(initialSeries?.description || '');
   const [items, setItems] = useState<Series['items']>(
-    initialSeries?.items || [
-      {
-        id: 'item-1',
-        type: 'ARTICLE',
-        title: 'Phần 1: Kiến trúc tổng quan Microservices và Docker Compose',
-        orderIndex: 1,
-        url: '/articles/art-1',
-      },
-      {
-        id: 'item-2',
-        type: 'WORKFLOW',
-        title: 'Phần 2: Cài đặt và cấu hình PostgreSQL trong Docker',
-        orderIndex: 2,
-        url: '/workflows/wf-1',
-      },
-    ]
+    initialSeries?.items || []
   );
 
   const [newItemTitle, setNewItemTitle] = useState('');
@@ -100,7 +85,7 @@ export const SeriesModal: React.FC<SeriesModalProps> = ({
             description: created.description || '',
             author: {
               id: currentUser?.id || 'u-self',
-              fullName: currentUser?.fullName || 'Sinh viên FHub',
+              fullName: currentUser?.fullName || t("Sinh viên FHub"),
               avatarUrl: currentUser?.avatarUrl,
             },
             itemCount: items.length,
@@ -124,7 +109,7 @@ export const SeriesModal: React.FC<SeriesModalProps> = ({
       description: description.trim(),
       author: {
         id: currentUser?.id || 'u-self',
-        fullName: currentUser?.fullName || 'Sinh viên FHub',
+        fullName: currentUser?.fullName || t("Sinh viên FHub"),
         avatarUrl: currentUser?.avatarUrl,
       },
       itemCount: items.length,
@@ -182,9 +167,9 @@ export const SeriesModal: React.FC<SeriesModalProps> = ({
               onChange={(e) => setNewItemType(e.target.value as any)}
               className="bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none"
             >
-              <option value="ARTICLE">Article</option>
-              <option value="WORKFLOW">Workflow</option>
-              <option value="QUESTION">Q&A Post</option>
+              <option value="ARTICLE">{t("Article")}</option>
+              <option value="WORKFLOW">{t("Workflow")}</option>
+              <option value="QUESTION">{t("Q&A Post")}</option>
             </select>
             <input
               type="text"

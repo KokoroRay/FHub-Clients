@@ -27,7 +27,7 @@ import {
 } from '../../utils/tagUtils';
 
 export const ArticleListPage: React.FC = () => {
-  const { t } = useLanguage();
+  const { locale, t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'articles' | 'series'>('articles');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -67,9 +67,9 @@ export const ArticleListPage: React.FC = () => {
           const mapped: Article[] = res.items.map((item) => {
             const tags = resolveTagNames(item.semanticTagIds, tagMap);
             if (tags.length === 0) {
-              tags.push('Chia sẻ kinh nghiệm', 'Học thuật');
+              tags.push(t("Chia sẻ kinh nghiệm"), t("Học thuật"));
             }
-            const category = resolveCategoryFromTags(item.semanticTagIds, tagMap) || tags[0] || 'Học thuật & Trải nghiệm';
+            const category = resolveCategoryFromTags(item.semanticTagIds, tagMap) || tags[0] || t("Học thuật & Trải nghiệm");
 
             return {
               id: String(item.articleId),
@@ -419,7 +419,7 @@ export const ArticleListPage: React.FC = () => {
                         {t(art.category || 'Development')}
                       </span>
                       <span className="text-slate-400 text-[11px]">
-                        {new Date(art.createdAt).toLocaleDateString('en-US', {
+                        {new Date(art.createdAt).toLocaleDateString(locale, {
                           month: 'short',
                           day: 'numeric',
                           year: 'numeric',
@@ -469,7 +469,7 @@ export const ArticleListPage: React.FC = () => {
 
                       {/* Metrics */}
                       <div className="flex items-center gap-3 text-slate-500 font-semibold">
-                        <span className="flex items-center gap-1" title="Views">
+                        <span className="flex items-center gap-1" title={t("Views")}>
                           <Eye className="w-3.5 h-3.5 text-slate-400" />
                           <span>{art.viewsCount || 0}</span>
                         </span>
@@ -478,7 +478,7 @@ export const ArticleListPage: React.FC = () => {
                           className={`flex items-center gap-1 transition-colors cursor-pointer ${
                             isLiked ? 'text-rose-500' : 'text-slate-500 hover:text-rose-500'
                           }`}
-                          title="Like"
+                          title={t("Like")}
                         >
                           <Heart
                             className={`w-3.5 h-3.5 ${isLiked ? 'fill-rose-500 text-rose-500' : ''}`}
@@ -535,8 +535,7 @@ export const ArticleListPage: React.FC = () => {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
-                    Series Collection
-                  </span>
+                    {t("Series Collection")}</span>
                   <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
                     {s.itemCount} {t('articles.countLabel', 'Articles')}
                   </span>
@@ -569,7 +568,7 @@ export const ArticleListPage: React.FC = () => {
                   to={`/series/${s.id}`}
                   className="inline-flex items-center gap-1 text-xs font-bold text-[#0076D1] hover:text-[#005DA7] transition-colors"
                 >
-                  <span>Explore Series</span>
+                  <span>{t("Explore Series")}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>

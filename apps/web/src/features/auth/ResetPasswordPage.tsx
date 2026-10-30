@@ -20,11 +20,11 @@ export const ResetPasswordPage: React.FC = () => {
   const handleConfirmNewPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newPassword || newPassword.length < 6) {
-      setErrorMessage('Mật khẩu mới phải có ít nhất 6 ký tự.');
+      setErrorMessage(t("Mật khẩu mới phải có ít nhất 6 ký tự."));
       return;
     }
     if (newPassword !== confirmPassword) {
-      setErrorMessage('Mật khẩu xác nhận không khớp.');
+      setErrorMessage(t("Mật khẩu xác nhận không khớp."));
       return;
     }
 
@@ -43,7 +43,7 @@ export const ResetPasswordPage: React.FC = () => {
         navigate('/landing');
       }, 1500);
     } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || 'Không thể đặt lại mật khẩu. Vui lòng thử lại.';
+      const msg = err.response?.data?.message || err.message || t("Không thể đặt lại mật khẩu. Vui lòng thử lại.");
       setErrorMessage(msg);
     } finally {
       setIsLoading(false);
@@ -65,7 +65,7 @@ export const ResetPasswordPage: React.FC = () => {
           </button>
           <div className="flex items-center gap-1.5">
             <Lock className="w-4 h-4 text-[#0076D1]" />
-            <span className="font-extrabold text-xs text-slate-800">New Password</span>
+            <span className="font-extrabold text-xs text-slate-800">{t("New Password")}</span>
           </div>
         </div>
 
@@ -80,14 +80,14 @@ export const ResetPasswordPage: React.FC = () => {
 
         {errorMessage && (
           <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold">
-            {errorMessage}
+            {t(errorMessage)}
           </div>
         )}
 
         {isSuccess && (
           <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-semibold flex items-center gap-2">
             <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-            <span>Đặt lại mật khẩu thành công! Đang chuyển hướng về trang đăng nhập...</span>
+            <span>{t("Đặt lại mật khẩu thành công! Đang chuyển hướng về trang đăng nhập...")}</span>
           </div>
         )}
 

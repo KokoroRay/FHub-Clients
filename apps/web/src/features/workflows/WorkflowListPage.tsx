@@ -91,13 +91,13 @@ export const WorkflowListPage: React.FC = () => {
             // Map tags
             const tags = resolveTagNames(item.semanticTagIds, tagMap);
             if (tags.length === 0) {
-              tags.push('Quy trình học tập', courseCode);
+              tags.push(t("Quy trình học tập"), courseCode);
             }
 
             // Derive category & tool/tech
-            let category = tags[0] || 'Phương pháp học tập';
+            let category = tags[0] || t("Phương pháp học tập");
             const titleLower = item.title.toLowerCase();
-            let technology = 'Quy trình chuẩn';
+            let technology = t("Quy trình chuẩn");
 
             if (titleLower.includes('figma') || titleLower.includes('ui/ux') || titleLower.includes('wireframe')) {
               technology = 'Figma / UI Design';
@@ -351,7 +351,7 @@ export const WorkflowListPage: React.FC = () => {
           </div>
         ) : filteredWorkflows.length === 0 ? (
           <div className="col-span-2 p-12 text-center text-slate-400 text-xs bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
-            <p>Không tìm thấy quy trình nào khớp với tiêu chí tìm kiếm của bạn.</p>
+            <p>{t("Không tìm thấy quy trình nào khớp với tiêu chí tìm kiếm của bạn.")}</p>
             <button
               onClick={() => {
                 setSelectedTag('ALL');
@@ -360,8 +360,7 @@ export const WorkflowListPage: React.FC = () => {
               }}
               className="text-xs font-bold text-[#0076D1] hover:underline cursor-pointer"
             >
-              Đặt lại tất cả bộ lọc
-            </button>
+              {t("Đặt lại tất cả bộ lọc")}</button>
           </div>
         ) : (
           filteredWorkflows.map((wf) => {
@@ -451,20 +450,20 @@ export const WorkflowListPage: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <span className="flex items-center gap-1" title="Lượt áp dụng">
+                      <span className="flex items-center gap-1" title={t("Lượt áp dụng")}>
                         <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
-                        <span>{wf.usageCount} dùng</span>
+                        <span>{wf.usageCount}  {t("dùng")}</span>
                       </span>
-                      <span className="flex items-center gap-1" title="Lượt xem">
+                      <span className="flex items-center gap-1" title={t("Lượt xem")}>
                         <Eye className="w-3.5 h-3.5 text-slate-400" />
-                        <span>{wf.viewsCount} xem</span>
+                        <span>{wf.viewsCount}  {t("xem")}</span>
                       </span>
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between pt-1">
                     <span className="text-[11px] text-slate-400">
-                      Đăng bởi <strong className="text-slate-700 dark:text-slate-300 font-semibold">{wf.author.fullName}</strong>
+                      {t("Đăng bởi")} <strong className="text-slate-700 dark:text-slate-300 font-semibold">{wf.author.fullName}</strong>
                     </span>
 
                     <Link

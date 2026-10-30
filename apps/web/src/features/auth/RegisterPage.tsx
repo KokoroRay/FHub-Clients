@@ -1,3 +1,4 @@
+import { useLanguage } from '../../context/LanguageContext';
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -28,6 +29,7 @@ import {
 type RegisterStep = 'form' | 'otp' | 'success';
 
 export const RegisterPage: React.FC = () => {
+  const { t } = useLanguage();
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -122,29 +124,29 @@ export const RegisterPage: React.FC = () => {
     setErrorMessage(null);
 
     if (!fullName.trim() || !email.trim() || !password) {
-      setErrorMessage('Vui lòng điền đầy đủ các thông tin bắt buộc.');
+      setErrorMessage(t("Vui lòng điền đầy đủ các thông tin bắt buộc."));
       return;
     }
 
     // Kiểm tra định dạng Email theo chính sách K18 / K19 của trường
     const emailValidation = validateFptEmail(email);
     if (!emailValidation.isValid) {
-      setErrorMessage(emailValidation.error || 'Email không hợp lệ theo quy chế của trường.');
+      setErrorMessage(emailValidation.error || t("Email không hợp lệ theo quy chế của trường."));
       return;
     }
 
     if (password.length < 6) {
-      setErrorMessage('Mật khẩu phải chứa ít nhất 6 ký tự.');
+      setErrorMessage(t("Mật khẩu phải chứa ít nhất 6 ký tự."));
       return;
     }
 
     if (password !== confirmPassword) {
-      setErrorMessage('Mật khẩu xác nhận không khớp.');
+      setErrorMessage(t("Mật khẩu xác nhận không khớp."));
       return;
     }
 
     if (!agreeTerms) {
-      setErrorMessage('Vui lòng đồng ý với điều khoản sử dụng FHub.');
+      setErrorMessage(t("Vui lòng đồng ý với điều khoản sử dụng FHub."));
       return;
     }
 
@@ -162,7 +164,7 @@ export const RegisterPage: React.FC = () => {
       setCanResend(false);
       setOtp(['', '', '', '', '', '']);
     } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || 'Không thể gửi mã xác nhận. Vui lòng thử lại.';
+      const msg = err.response?.data?.message || err.message || t("Không thể gửi mã xác nhận. Vui lòng thử lại.");
       setErrorMessage(msg);
     } finally {
       setIsLoading(false);
@@ -212,7 +214,7 @@ export const RegisterPage: React.FC = () => {
     e.preventDefault();
     const enteredCode = otp.join('');
     if (enteredCode.length < 6) {
-      setErrorMessage('Vui lòng nhập đủ 6 chữ số mã xác thực OTP.');
+      setErrorMessage(t("Vui lòng nhập đủ 6 chữ số mã xác thực OTP."));
       return;
     }
 
@@ -252,7 +254,7 @@ export const RegisterPage: React.FC = () => {
         navigate('/');
       }, 2500);
     } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || 'Mã OTP không chính xác hoặc đăng ký thất bại. Vui lòng kiểm tra lại.';
+      const msg = err.response?.data?.message || err.message || t("Mã OTP không chính xác hoặc đăng ký thất bại. Vui lòng kiểm tra lại.");
       setErrorMessage(msg);
     } finally {
       setIsLoading(false);
@@ -272,27 +274,24 @@ export const RegisterPage: React.FC = () => {
           <div className="relative">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-white/15 text-white backdrop-blur-sm border border-white/20">
               <ShieldCheck className="w-3.5 h-3.5 text-blue-200" />
-              Cổng Đăng Ký Sinh Viên FPT
-            </span>
+              {t("Cổng Đăng Ký Sinh Viên FPT")}</span>
           </div>
 
           {/* Main Greeting Center */}
           <div className="relative space-y-4 my-auto py-6">
             <h3 className="text-3xl font-black text-white tracking-tight leading-tight">
-              Gia nhập Mạng Tri thức FHub!
-            </h3>
+              {t("Gia nhập Mạng Tri thức FHub!")}</h3>
             <p className="text-xs text-blue-100/90 leading-relaxed max-w-xs">
-              Mạng xã hội học thuật chính thống kết nối sinh viên 5 cơ sở FPT University. Chia sẻ quy trình đồ án, tra cứu Course Node và trao đổi cùng bạn học.
-            </p>
+              {t("Mạng xã hội học thuật chính thống kết nối sinh viên 5 cơ sở FPT University. Chia sẻ quy trình đồ án, tra cứu Course Node và trao đổi cùng bạn học.")}</p>
 
             <div className="p-3.5 bg-white/10 backdrop-blur-md rounded-xl border border-white/15 space-y-2 text-left">
               <div className="flex items-center gap-2 text-xs font-bold text-amber-200">
                 <Sparkles className="w-4 h-4 shrink-0" />
-                <span>Chính sách Email mới:</span>
+                <span>{t("Chính sách Email mới:")}</span>
               </div>
               <ul className="text-[11px] text-blue-50/90 space-y-1 list-disc pl-4 leading-relaxed">
-                <li><strong>K18 trở về trước:</strong> Sử dụng mail edu <code className="bg-white/20 px-1 py-0.5 rounded text-[10px]">@fpt.edu.vn</code></li>
-                <li><strong>K19 trở đi:</strong> Sử dụng Gmail sinh viên chuẩn <code className="bg-white/20 px-1 py-0.5 rounded text-[10px]">TanLT.CE190370@gmail.com</code></li>
+                <li><strong>{t("K18 trở về trước:")}</strong>  {t("Sử dụng mail edu")} <code className="bg-white/20 px-1 py-0.5 rounded text-[10px]">{t("@fpt.edu.vn")}</code></li>
+                <li><strong>{t("K19 trở đi:")}</strong>  {t("Sử dụng Gmail sinh viên chuẩn")} <code className="bg-white/20 px-1 py-0.5 rounded text-[10px]">{t("TanLT.CE190370@gmail.com")}</code></li>
               </ul>
             </div>
 
@@ -301,7 +300,7 @@ export const RegisterPage: React.FC = () => {
                 to="/login"
                 className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold text-white border-2 border-white hover:bg-white hover:text-[#0076D1] transition-all shadow-md cursor-pointer"
               >
-                <span>ĐÃ CÓ TÀI KHOẢN? ĐĂNG NHẬP</span>
+                <span>{t("ĐÃ CÓ TÀI KHOẢN? ĐĂNG NHẬP")}</span>
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
@@ -310,12 +309,12 @@ export const RegisterPage: React.FC = () => {
           {/* Highlights Footer */}
           <div className="relative pt-6 border-t border-white/15 grid grid-cols-2 gap-3 text-left">
             <div>
-              <span className="block text-xs font-extrabold text-white">5 Campuses</span>
-              <span className="text-[10px] text-blue-200">HN • HCM • DN • CT • QN</span>
+              <span className="block text-xs font-extrabold text-white">{t("5 Campuses")}</span>
+              <span className="text-[10px] text-blue-200">{t("HN • HCM • DN • CT • QN")}</span>
             </div>
             <div>
-              <span className="block text-xs font-extrabold text-white">Xác thực 100%</span>
-              <span className="text-[10px] text-blue-200">Bảo mật mã OTP Sinh viên</span>
+              <span className="block text-xs font-extrabold text-white">{t("Xác thực 100%")}</span>
+              <span className="text-[10px] text-blue-200">{t("Bảo mật mã OTP Sinh viên")}</span>
             </div>
           </div>
         </div>
@@ -327,20 +326,20 @@ export const RegisterPage: React.FC = () => {
             <div className="mb-5 flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-2 mb-1.5">
-                  <img src="/fhub-remove-background.png" alt="FHub Logo" className="w-7 h-7 object-contain" />
+                  <img src="/fhub-remove-background.png" alt={t("FHub Logo")} className="w-7 h-7 object-contain" />
                   <span className="font-extrabold text-sm tracking-tight text-slate-800">
-                    FHub <span className="text-[10px] px-1 py-0.2 bg-blue-50 text-[#0076D1] rounded font-bold border border-blue-100">EDU</span>
+                    {t("FHub")} <span className="text-[10px] px-1 py-0.2 bg-blue-50 text-[#0076D1] rounded font-bold border border-blue-100">{t("EDU")}</span>
                   </span>
                 </div>
                 <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-                  {step === 'form' && 'Đăng Ký Tài Khoản'}
-                  {step === 'otp' && 'Xác Thực Tài Khoản (OTP)'}
-                  {step === 'success' && 'Đăng Ký Thành Công!'}
+                  {step === 'form' && t("Đăng Ký Tài Khoản")}
+                  {step === 'otp' && t("Xác Thực Tài Khoản (OTP)")}
+                  {step === 'success' && t("Đăng Ký Thành Công!")}
                 </h2>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  {step === 'form' && 'Nhập thông tin sinh viên để thiết lập tài khoản cá nhân.'}
-                  {step === 'otp' && `Nhập mã 6 chữ số đã gửi đến email ${email}`}
-                  {step === 'success' && 'Tài khoản của bạn đã được kích hoạt thành công.'}
+                  {step === 'form' && t("Nhập thông tin sinh viên để thiết lập tài khoản cá nhân.")}
+                  {step === 'otp' && t("Nhập mã 6 chữ số đã gửi đến email {p0}", undefined, { p0: email })}
+                  {step === 'success' && t("Tài khoản của bạn đã được kích hoạt thành công.")}
                 </p>
               </div>
 
@@ -351,7 +350,7 @@ export const RegisterPage: React.FC = () => {
                   className="inline-flex items-center gap-1 text-xs font-bold text-slate-500 hover:text-[#0076D1] transition-colors cursor-pointer"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>Sửa thông tin</span>
+                  <span>{t("Sửa thông tin")}</span>
                 </button>
               )}
             </div>
@@ -359,7 +358,7 @@ export const RegisterPage: React.FC = () => {
             {/* Error Banner */}
             {errorMessage && (
               <div className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold leading-relaxed">
-                {errorMessage}
+                {t(errorMessage)}
               </div>
             )}
 
@@ -371,15 +370,14 @@ export const RegisterPage: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Họ và Tên *
-                    </label>
+                      {t("Họ và Tên *")}</label>
                     <div className="relative">
                       <UserIcon className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                       <input
                         type="text"
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
-                        placeholder="Lê Tấn"
+                        placeholder={t("Lê Tấn")}
                         className="w-full bg-slate-50/60 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0076D1]/20 focus:border-[#0076D1] transition-all"
                         required
                       />
@@ -388,13 +386,12 @@ export const RegisterPage: React.FC = () => {
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Mã Số Sinh Viên (MSSV)
-                    </label>
+                      {t("Mã Số Sinh Viên (MSSV)")}</label>
                     <input
                       type="text"
                       value={studentId}
                       onChange={(e) => setStudentId(e.target.value.toUpperCase())}
-                      placeholder="CE190370"
+                      placeholder={t("CE190370")}
                       className="w-full bg-slate-50/60 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 uppercase placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0076D1]/20 focus:border-[#0076D1] transition-all"
                     />
                   </div>
@@ -404,11 +401,9 @@ export const RegisterPage: React.FC = () => {
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="block text-xs font-bold text-slate-700">
-                      Email Sinh Viên *
-                    </label>
+                      {t("Email Sinh Viên *")}</label>
                     <span className="text-[10px] text-slate-400 font-medium">
-                      K18: @fpt.edu.vn • K19+: @gmail.com
-                    </span>
+                      {t("K18: @fpt.edu.vn • K19+: @gmail.com")}</span>
                   </div>
                   <div className="relative">
                     <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -416,7 +411,7 @@ export const RegisterPage: React.FC = () => {
                       type="email"
                       value={email}
                       onChange={(e) => handleEmailChange(e.target.value)}
-                      placeholder="TanLT.CE190370@gmail.com"
+                      placeholder={t("TanLT.CE190370@gmail.com")}
                       className={`w-full bg-slate-50/60 border rounded-xl pl-9 pr-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 transition-all ${
                         emailInfo
                           ? emailInfo.isValid
@@ -436,8 +431,8 @@ export const RegisterPage: React.FC = () => {
                           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                           <span>
                             {emailInfo.type === 'GMAIL_K19_PLUS'
-                              ? `Đã nhận diện: Sinh viên Khóa K${emailInfo.cohort} • ${emailInfo.campusName} • Ngành: ${MAJOR_LETTER_MAP[emailInfo.majorLetter || ''] || 'Kỹ thuật'}`
-                              : 'Đã nhận diện: Email giáo dục FPT (@fpt.edu.vn / @fe.edu.vn)'}
+                              ? t("Đã nhận diện: Sinh viên Khóa K{p0} • {p1} • Ngành: {p2}", undefined, { p0: emailInfo.cohort, p1: emailInfo.campusName, p2: MAJOR_LETTER_MAP[emailInfo.majorLetter || ''] || 'Kỹ thuật' })
+                              : t("Đã nhận diện: Email giáo dục FPT (@fpt.edu.vn / @fe.edu.vn)")}
                           </span>
                         </div>
                       ) : (
@@ -452,8 +447,7 @@ export const RegisterPage: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Cơ Sở Học Tập (Campus) *
-                    </label>
+                      {t("Cơ Sở Học Tập (Campus) *")}</label>
                     <div className="relative">
                       <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                       <select
@@ -469,11 +463,11 @@ export const RegisterPage: React.FC = () => {
                           ))
                         ) : (
                           <>
-                            <option value="CT">CT - Phân hiệu Cần Thơ</option>
-                            <option value="HN">HN - Phân hiệu Hà Nội (Hòa Lạc)</option>
-                            <option value="HCM">HCM - Phân hiệu TP. Hồ Chí Minh</option>
-                            <option value="DN">DN - Phân hiệu Đà Nẵng</option>
-                            <option value="QN">QN - Phân hiệu Quy Nhơn</option>
+                            <option value="CT">{t("CT - Phân hiệu Cần Thơ")}</option>
+                            <option value="HN">{t("HN - Phân hiệu Hà Nội (Hòa Lạc)")}</option>
+                            <option value="HCM">{t("HCM - Phân hiệu TP. Hồ Chí Minh")}</option>
+                            <option value="DN">{t("DN - Phân hiệu Đà Nẵng")}</option>
+                            <option value="QN">{t("QN - Phân hiệu Quy Nhơn")}</option>
                           </>
                         )}
                       </select>
@@ -482,8 +476,7 @@ export const RegisterPage: React.FC = () => {
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Mật Khẩu *
-                    </label>
+                      {t("Mật Khẩu *")}</label>
                     <div className="relative">
                       <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                       <input
@@ -507,8 +500,7 @@ export const RegisterPage: React.FC = () => {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Xác Nhận Mật Khẩu *
-                  </label>
+                    {t("Xác Nhận Mật Khẩu *")}</label>
                   <div className="relative">
                     <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
@@ -532,7 +524,7 @@ export const RegisterPage: React.FC = () => {
                       className="w-4 h-4 rounded text-[#0076D1] border-slate-300 focus:ring-[#0076D1] mt-0.5"
                     />
                     <span className="text-[11px] text-slate-600 leading-snug">
-                      Tôi đồng ý với <Link to="/settings" className="text-[#0076D1] font-semibold underline">Điều khoản dịch vụ</Link> và <Link to="/settings" className="text-[#0076D1] font-semibold underline">Quy chế Cộng đồng FHub</Link>.
+                      {t("Tôi đồng ý với")} <Link to="/settings" className="text-[#0076D1] font-semibold underline">{t("Điều khoản dịch vụ")}</Link>  {t("và")} <Link to="/settings" className="text-[#0076D1] font-semibold underline">{t("Quy chế Cộng đồng FHub")}</Link>.
                     </span>
                   </label>
                 </div>
@@ -543,7 +535,7 @@ export const RegisterPage: React.FC = () => {
                   disabled={isLoading}
                   className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-[#0076D1] hover:bg-[#005DA7] transition-all shadow-md hover:shadow-lg cursor-pointer disabled:opacity-50"
                 >
-                  <span>{isLoading ? 'ĐANG XỬ LÝ...' : 'TIẾP TỤC & NHẬN MÃ XÁC THỰC OTP'}</span>
+                  <span>{isLoading ? t("ĐANG XỬ LÝ...") : t("TIẾP TỤC & NHẬN MÃ XÁC THỰC OTP")}</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </form>
@@ -557,18 +549,16 @@ export const RegisterPage: React.FC = () => {
                 <div className="bg-blue-50/60 border border-blue-200/80 rounded-2xl p-4 space-y-2">
                   <div className="flex items-center gap-2 text-xs font-bold text-[#0076D1]">
                     <KeyRound className="w-4 h-4" />
-                    <span>Xác nhận danh tính sinh viên</span>
+                    <span>{t("Xác nhận danh tính sinh viên")}</span>
                   </div>
                   <p className="text-xs text-slate-600 leading-relaxed">
-                    Hệ thống đã gửi mã xác thực gồm <strong>6 chữ số</strong> tới địa chỉ email: <strong className="text-slate-900 font-mono">{email}</strong>. Vui lòng nhập mã để kích hoạt tài khoản.
-                  </p>
+                    {t("Hệ thống đã gửi mã xác thực gồm")} <strong>{t("6 chữ số")}</strong>  {t("tới địa chỉ email:")} <strong className="text-slate-900 font-mono">{email}</strong>{t(". Vui lòng nhập mã để kích hoạt tài khoản.")}</p>
                 </div>
 
                 {/* 6-box OTP Input */}
                 <div className="space-y-2">
                   <label className="block text-center text-xs font-bold text-slate-700">
-                    Mã xác thực OTP (6 chữ số)
-                  </label>
+                    {t("Mã xác thực OTP (6 chữ số)")}</label>
                   <div className="flex items-center justify-center gap-2 sm:gap-3">
                     {otp.map((digit, idx) => (
                       <input
@@ -596,11 +586,11 @@ export const RegisterPage: React.FC = () => {
                       className="inline-flex items-center gap-1.5 font-bold text-[#0076D1] hover:underline cursor-pointer"
                     >
                       <RotateCcw className="w-3.5 h-3.5" />
-                      <span>Gửi lại mã OTP</span>
+                      <span>{t("Gửi lại mã OTP")}</span>
                     </button>
                   ) : (
                     <span className="text-slate-400">
-                      Gửi lại mã xác thực sau <strong>{timerSeconds}s</strong>
+                      {t("Gửi lại mã xác thực sau")} <strong>{timerSeconds}s</strong>
                     </span>
                   )}
                 </div>
@@ -612,7 +602,7 @@ export const RegisterPage: React.FC = () => {
                   className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-bold text-white bg-[#0076D1] hover:bg-[#005DA7] transition-all shadow-md hover:shadow-lg cursor-pointer disabled:opacity-50"
                 >
                   <ShieldCheck className="w-4 h-4" />
-                  <span>{isLoading ? 'ĐANG KÍCH HOẠT...' : 'XÁC NHẬN & HOÀN TẤT ĐĂNG KÝ'}</span>
+                  <span>{isLoading ? t("ĐANG KÍCH HOẠT...") : t("XÁC NHẬN & HOÀN TẤT ĐĂNG KÝ")}</span>
                 </button>
               </form>
             )}
@@ -627,28 +617,26 @@ export const RegisterPage: React.FC = () => {
                 </div>
                 <div className="space-y-1">
                   <h3 className="text-xl font-black text-slate-900">
-                    Chào mừng bạn gia nhập FHub!
-                  </h3>
+                    {t("Chào mừng bạn gia nhập FHub!")}</h3>
                   <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                    Tài khoản sinh viên của bạn đã được xác minh thành công. Đang tự động chuyển hướng đến trang chủ FHub...
-                  </p>
+                    {t("Tài khoản sinh viên của bạn đã được xác minh thành công. Đang tự động chuyển hướng đến trang chủ FHub...")}</p>
                 </div>
 
                 <div className="p-4 bg-slate-50 rounded-xl border border-slate-200/80 text-left text-xs space-y-1.5 max-w-sm mx-auto">
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Họ và tên:</span>
+                    <span className="text-slate-400">{t("Họ và tên:")}</span>
                     <span className="font-bold text-slate-800">{fullName}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Mã sinh viên:</span>
+                    <span className="text-slate-400">{t("Mã sinh viên:")}</span>
                     <span className="font-mono font-bold text-[#0076D1]">{studentId || emailInfo?.studentCode || 'N/A'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Email:</span>
+                    <span className="text-slate-400">{t("Email:")}</span>
                     <span className="font-mono text-slate-700">{email}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Cơ sở:</span>
+                    <span className="text-slate-400">{t("Cơ sở:")}</span>
                     <span className="font-bold text-slate-800">{campus}</span>
                   </div>
                 </div>
@@ -659,7 +647,7 @@ export const RegisterPage: React.FC = () => {
                     onClick={() => navigate('/')}
                     className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-[#0076D1] hover:bg-[#005DA7] transition-all cursor-pointer shadow-md"
                   >
-                    <span>VÀO BẢNG TIN NGAY</span>
+                    <span>{t("VÀO BẢNG TIN NGAY")}</span>
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
@@ -668,24 +656,21 @@ export const RegisterPage: React.FC = () => {
           </div>
 
           <div className="pt-4 text-center text-xs text-slate-500">
-            Đã có tài khoản sinh viên FHub?{' '}
+            {t("Đã có tài khoản sinh viên FHub?")}{' '}
             <Link to="/login" className="font-bold text-[#0076D1] hover:underline">
-              Đăng nhập ngay
-            </Link>
+              {t("Đăng nhập ngay")}</Link>
           </div>
         </div>
       </div>
 
       {/* Bottom Footer */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-slate-400 px-2">
-        <span>FPT University Academic Portal • Mạng trao đổi tri thức sinh viên FPT</span>
+        <span>{t("FPT University Academic Portal • Mạng trao đổi tri thức sinh viên FPT")}</span>
         <div className="flex items-center gap-3">
           <Link to="/tickets" className="hover:text-slate-600 transition-colors">
-            Hỗ trợ kỹ thuật
-          </Link>
+            {t("Hỗ trợ kỹ thuật")}</Link>
           <Link to="/settings" className="hover:text-slate-600 transition-colors">
-            Chính sách bảo mật
-          </Link>
+            {t("Chính sách bảo mật")}</Link>
         </div>
       </div>
     </div>

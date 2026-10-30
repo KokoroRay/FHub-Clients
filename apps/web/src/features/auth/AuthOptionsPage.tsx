@@ -34,7 +34,7 @@ export const AuthOptionsPage: React.FC = () => {
         const googleEmail = (payloadJson.email || '').trim().toLowerCase();
         if (googleEmail) {
           if (!googleEmail.endsWith('@fpt.edu.vn')) {
-            setErrorMessage(`Chỉ tài khoản Google có đuôi email @fpt.edu.vn mới được phép đăng nhập hoặc đăng ký qua Google. (Email hiện tại: ${googleEmail})`);
+            setErrorMessage(t("Chỉ tài khoản Google có đuôi email @fpt.edu.vn mới được phép đăng nhập hoặc đăng ký qua Google. (Email hiện tại: {p0})", undefined, { p0: googleEmail }));
             setIsLoading(false);
             return;
           }
@@ -75,7 +75,7 @@ export const AuthOptionsPage: React.FC = () => {
       login(userObj, result.accessToken, result.refreshToken);
       navigate('/');
     } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || 'Đăng nhập Google không thành công.';
+      const msg = err.response?.data?.message || err.message || t("Đăng nhập Google không thành công.");
       setErrorMessage(msg);
     } finally {
       setIsLoading(false);
@@ -142,7 +142,7 @@ export const AuthOptionsPage: React.FC = () => {
 
         {errorMessage && (
           <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold">
-            {errorMessage}
+            {t(errorMessage)}
           </div>
         )}
 
@@ -172,8 +172,7 @@ export const AuthOptionsPage: React.FC = () => {
               </div>
             </div>
             <span className="text-[11px] font-bold text-[#0076D1] opacity-0 group-hover:opacity-100 transition-opacity">
-              {t('auth.continueBtn', 'Tiếp tục')} &rarr;
-            </span>
+              {t('auth.continueBtn', 'Tiếp tục')}  {t("&rarr;")}</span>
           </button>
 
           {/* Button 2: Continue with Email */}
@@ -194,8 +193,7 @@ export const AuthOptionsPage: React.FC = () => {
               </div>
             </div>
             <span className="text-[11px] font-bold text-slate-600 opacity-0 group-hover:opacity-100 transition-opacity">
-              Tiếp tục &rarr;
-            </span>
+              {t("Tiếp tục &rarr;")}</span>
           </button>
         </div>
 

@@ -21,7 +21,7 @@ import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 import { useLanguage } from '../../context/LanguageContext';
 
 export const CourseEvaluationListPage: React.FC = () => {
-  const { t } = useLanguage();
+  const { locale, t } = useLanguage();
   const [searchParams] = useSearchParams();
   const courseFromUrl = searchParams.get('course') || searchParams.get('courseCode');
   const [evaluations, setEvaluations] = useState<(CourseReview & { courseTitle?: string; shortReview?: string })[]>([]);
@@ -59,7 +59,7 @@ export const CourseEvaluationListPage: React.FC = () => {
 
   const getCourseTitle = (code: string) => {
     const found = courses.find((c) => (c.code || c.courseCode || '').toLowerCase() === code.toLowerCase());
-    return found ? (found.name || found.courseName || 'Môn học FPT') : 'Môn học FPT';
+    return found ? (found.name || found.courseName || t("Môn học FPT")) : t("Môn học FPT");
   };
 
   // 2. Fetch reviews from backend & map with real course codes
@@ -104,10 +104,10 @@ export const CourseEvaluationListPage: React.FC = () => {
                 courseTitle,
                 shortReview:
                   item.survivalTips ||
-                  (item.reviewContent ? (item.reviewContent.length > 90 ? item.reviewContent.slice(0, 90) + '...' : item.reviewContent) : 'Đánh giá môn học chi tiết'),
+                  (item.reviewContent ? (item.reviewContent.length > 90 ? item.reviewContent.slice(0, 90) + '...' : item.reviewContent) : t("Đánh giá môn học chi tiết")),
                 reviewer: {
                   id: item.isAnonymous ? 'anon' : String(item.authorUserId || 'u-1'),
-                  fullName: item.isAnonymous ? 'Sinh viên ẩn danh' : `Sinh viên #${item.authorUserId || 'K18'}`,
+                  fullName: item.isAnonymous ? t("Sinh viên ẩn danh") : t("Sinh viên #{p0}", undefined, { p0: item.authorUserId || 'K18' }),
                   avatarUrl: '',
                 },
                 rating: item.overallRating || 5,
@@ -115,7 +115,7 @@ export const CourseEvaluationListPage: React.FC = () => {
                 difficultyRating: item.difficultyRating || 3,
                 comment: item.reviewContent || '',
                 semesterTaken: `${item.semesterCode || 'FA'} ${item.academicYear || 2025}`,
-                lecturerName: item.survivalTips?.startsWith('Giảng viên:') ? item.survivalTips.replace('Giảng viên:', '').trim() : undefined,
+                lecturerName: item.survivalTips?.startsWith(t("Giảng viên:")) ? item.survivalTips.replace('Giảng viên:', '').trim() : undefined,
                 upvotes: 8 + (Number(item.courseReviewId) % 15),
                 createdAt: item.createdAt || new Date().toISOString(),
               };
@@ -390,7 +390,7 @@ export const CourseEvaluationListPage: React.FC = () => {
                         <ContentActionMenu
                           targetType="OTHER"
                           targetId={ev.id}
-                          targetTitle={`Đánh giá môn ${ev.courseCode}`}
+                          targetTitle={t("Đánh giá môn {p0}", undefined, { p0: ev.courseCode })}
                           shareUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/course-evaluations?course=${ev.courseCode}`}
                         />
                       </div>
@@ -446,7 +446,7 @@ export const CourseEvaluationListPage: React.FC = () => {
                             {ev.reviewer.fullName.includes('#') ? `${t('common.student', 'Sinh viên')} #${ev.reviewer.fullName.split('#')[1]}` : t(ev.reviewer.fullName)}
                           </span>
                           <span className="text-[10px] text-slate-400">
-                            {new Date(ev.createdAt).toLocaleDateString()}
+                            {new Date(ev.createdAt).toLocaleDateString(locale)}
                             {ev.semesterTaken && ` · ${t('common.term', 'Học kỳ')} ${ev.semesterTaken}`}
                             {ev.lecturerName && ` · ${ev.lecturerName}`}
                           </span>

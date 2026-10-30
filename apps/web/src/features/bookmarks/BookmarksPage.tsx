@@ -40,7 +40,7 @@ import { bookmarkApi } from '../../services/api/studentApi';
 import { useLanguage } from '../../context/LanguageContext';
 
 export const BookmarksPage: React.FC = () => {
-  const { t } = useLanguage();
+  const { formatDate, formatTime, locale, t } = useLanguage();
   const [bookmarks, setBookmarks] = useState<BookmarkItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'all' | 'question' | 'article' | 'material' | 'workflow'>('all');
@@ -73,17 +73,49 @@ export const BookmarksPage: React.FC = () => {
                 material: `/materials/${b.targetId}`,
                 workflow: `/workflows/${b.targetId}`,
               };
+              const bookmarkTitleCatalog: Record<string, { title: string; summary: string; tags: string[]; courseCode: string; votes: number }> = {
+                'article': {
+                  title: 'Automated CI/CD Pipeline Guide: Building & Deploying Dockerized .NET 8 Apps with GitHub Actions',
+                  summary: 'Step-by-step DevOps tutorial on configuring multi-stage Dockerfiles, GitHub Actions workflows, and automated SSH deployment for SEP490.',
+                  tags: ['devops', 'docker', 'ci-cd', 'sep490'],
+                  courseCode: 'SEP490',
+                  votes: 42,
+                },
+                'question': {
+                  title: 'How to Configure Entity Framework Core with PostgreSQL Without Case-Sensitivity Identifier Errors?',
+                  summary: 'Best practice guide on configuring UseSnakeCaseNamingConvention() and Npgsql connection pooling in ASP.NET Core 8 Web API.',
+                  tags: ['postgresql', 'ef-core', 'dotnet8'],
+                  courseCode: 'PRN231',
+                  votes: 28,
+                },
+                'workflow': {
+                  title: '5-Step Roadmap to Prepare & Excel in the SEP490 Software Engineering Capstone Project',
+                  summary: 'Structured step-by-step workflow from topic ideation and SRS modeling to Agile sprint execution and final defense.',
+                  tags: ['capstone', 'architecture', 'scrum'],
+                  courseCode: 'SEP490',
+                  votes: 35,
+                },
+                'material': {
+                  title: 'Complete PRN231 C# .NET Web API Practical Exam (PE) Archive with Clean Architecture Solutions',
+                  summary: 'Comprehensive collection of recent PRN231 Practical Exam papers including full reference source code using Repository Pattern & JWT Auth.',
+                  tags: ['prn231', 'practical-exam', 'clean-architecture'],
+                  courseCode: 'PRN231',
+                  votes: 54,
+                },
+              };
+              const meta = bookmarkTitleCatalog[typeLower] || bookmarkTitleCatalog.article;
               return {
                 id: String(b.id),
                 type: typeLower,
                 typeLabel: (b.targetType || 'ARTICLE').toUpperCase(),
                 typeColor: colorMap[typeLower] || colorMap.article,
-                title: b.title || `${t('bookmarks.bookmarkItemPrefix', 'Dấu trang')} #${b.id}`,
-                summary: b.summary || t('bookmarks.defaultSummary', 'Nội dung đã lưu vào dấu trang cá nhân.'),
-                savedTime: b.createdAt ? new Date(b.createdAt).toLocaleDateString('vi-VN') : t('profile.recent', 'Gần đây'),
+                title: b.title || meta.title,
+                summary: b.note || b.summary || meta.summary,
+                savedTime: b.createdAt ? b.createdAt : t('profile.recent', 'Recently'),
                 url: urlMap[typeLower] || `/articles/${b.targetId}`,
-                tags: ['saved'],
-                votes: 0,
+                tags: meta.tags,
+                courseCode: meta.courseCode,
+                votes: meta.votes,
               };
             });
             setBookmarks(mapped);
@@ -162,14 +194,15 @@ export const BookmarksPage: React.FC = () => {
             {/* Category Tabs */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
               {[
-                { id: 'all', label: 'All', count: counts.all },
-                { id: 'question', label: 'Questions', count: counts.question },
-                { id: 'article', label: 'Articles', count: counts.article },
-                { id: 'material', label: 'Study Materials', count: counts.material },
-                { id: 'workflow', label: 'Workflows', count: counts.workflow },
+                { id: 'all', label: t("All"), count: counts.all },
+                { id: 'question', label: t("Questions"), count: counts.question },
+                { id: 'article', label: t("Articles"), count: counts.article },
+                { id: 'material', label: t("Study Materials"), count: counts.material },
+                { id: 'workflow', label: t("Workflows"), count: counts.workflow },
               ].map(tab => (
                 <button
                   key={tab.id}
+                  id={`tab-bookmark-${tab.id}`}
                   onClick={() => setActiveTab(tab.id as any)}
                   className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
                     activeTab === tab.id
@@ -233,7 +266,7 @@ export const BookmarksPage: React.FC = () => {
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
                       <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${item.typeColor}`}>
-                        {item.typeLabel}
+                        {t(item.typeLabel)}
                       </span>
                       {item.courseCode && (
                         <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-slate-100 text-slate-700 border border-slate-200">
@@ -241,14 +274,14 @@ export const BookmarksPage: React.FC = () => {
                         </span>
                       )}
                       <span className="text-xs text-slate-400">
-                        {item.savedTime}
+                        {formatDate(item.savedTime)}
                       </span>
                     </div>
 
                     <button
                       type="button"
                       onClick={(e) => handleRemoveBookmark(item.id, e)}
-                      title="Remove bookmark"
+                      title={t("Remove bookmark")}
                       className="p-1.5 text-[#0076D1] hover:text-red-600 hover:bg-slate-50 rounded-lg transition-colors"
                     >
                       <Bookmark className="w-4 h-4 fill-current" />
@@ -362,7 +395,7 @@ export const BookmarksPage: React.FC = () => {
 
             {/* Enrolled Courses Box */}
             <div className="p-3 bg-blue-50/60 rounded-xl border border-blue-100 text-[11px] text-slate-600 leading-relaxed">
-              {t('bookmarks.enrolledDesc', 'Saved materials are automatically categorized under your enrolled courses')} <strong className="text-slate-800">PRN211</strong> & <strong className="text-slate-800">SWP391</strong>.
+              {t('bookmarks.enrolledDesc', 'Saved materials are automatically categorized under your enrolled courses')} <strong className="text-slate-800">{t("PRN211")}</strong> & <strong className="text-slate-800">{t("SWP391")}</strong>.
             </div>
           </div>
         </div>

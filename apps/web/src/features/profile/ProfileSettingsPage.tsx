@@ -64,7 +64,7 @@ export const ProfileSettingsPage: React.FC = () => {
       const localPrefsStr = localStorage.getItem('fhub_user_preferences');
       if (localPrefsStr) {
         const p = JSON.parse(localPrefsStr);
-        if (p.language) setLanguage(p.language);
+        // LanguageProvider already restores the explicit language selection.
         if (p.defaultFeed) setDefaultFeed(p.defaultFeed);
         if (p.themeMode && (p.themeMode === 'light' || p.themeMode === 'dark')) {
           setTheme(p.themeMode);
@@ -96,7 +96,8 @@ export const ProfileSettingsPage: React.FC = () => {
           if (prefs.feedPreferenceJson) {
             try {
               const feedObj = JSON.parse(prefs.feedPreferenceJson);
-              if (feedObj.language) setLanguage(feedObj.language);
+              // Do not replace a newer local selection with a stale API response.
+              if (feedObj.language && !localStorage.getItem('fhub_language')) setLanguage(feedObj.language);
               if (feedObj.defaultFeed) setDefaultFeed(feedObj.defaultFeed);
               if (feedObj.themeMode && (feedObj.themeMode === 'light' || feedObj.themeMode === 'dark')) {
                 setTheme(feedObj.themeMode);
@@ -281,9 +282,9 @@ export const ProfileSettingsPage: React.FC = () => {
                   onChange={(e) => setLanguage(e.target.value as SupportedLanguage)}
                   className="w-full px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#0076D1] cursor-pointer"
                 >
-                  <option value="vi">🇻🇳 Tiếng Việt (Vietnamese)</option>
-                  <option value="en">🇺🇸 English (US)</option>
-                  <option value="ja">🇯🇵 日本語 (Japanese)</option>
+                  <option value="vi">🇻🇳 Tiếng Việt</option>
+                  <option value="en">🇺🇸 English</option>
+                  <option value="ja">🇯🇵 日本語</option>
                 </select>
               </div>
 
@@ -603,7 +604,7 @@ export const ProfileSettingsPage: React.FC = () => {
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{s.device}</span>
+                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{t(s.device)}</span>
                         {s.isCurrent && (
                           <span className="px-1.5 py-0.2 text-[10px] font-semibold bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 rounded-md">
                             {t('settings.currentDevice', 'Current')}
@@ -611,7 +612,7 @@ export const ProfileSettingsPage: React.FC = () => {
                         )}
                       </div>
                       <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                        {s.location} · {t('settings.activeNow', 'Active now')} · IP: {s.ip}
+                        {t(s.location)} · {t('settings.activeNow', 'Active now')}  {t("· IP:")} {s.ip}
                       </p>
                     </div>
                   </div>

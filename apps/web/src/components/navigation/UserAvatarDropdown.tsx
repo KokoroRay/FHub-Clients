@@ -36,7 +36,7 @@ export const UserAvatarDropdown: React.FC = () => {
 
   if (!currentUser) return null;
 
-  const studentName = currentUser.fullName || 'Sinh viên FHub';
+  const studentName = currentUser.fullName || t("Sinh viên FHub");
   const avatarInitials = studentName.charAt(0)?.toUpperCase() || 'U';
   const isAdminOrStaff =
     currentUser.role === 'Admin' ||

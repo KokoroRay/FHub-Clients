@@ -54,7 +54,7 @@ export const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
   }, [courseCode]);
 
   const [steps, setSteps] = useState([
-    { stepNumber: 1, title: 'Bước 1: Chuẩn bị công cụ & tài liệu', instruction: 'Chuẩn bị tài liệu đề tài và mở công cụ/phần mềm làm việc', codeSnippet: '', language: 'bash' },
+    { stepNumber: 1, title: '', instruction: '', codeSnippet: '', language: 'bash' },
   ]);
 
   const addStep = () => {
@@ -62,7 +62,7 @@ export const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
       ...steps,
       {
         stepNumber: steps.length + 1,
-        title: `Bước ${steps.length + 1}: `,
+        title: '',
         instruction: '',
         codeSnippet: '',
         language: 'bash',
@@ -105,7 +105,7 @@ export const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
       steps,
       author: {
         id: currentUser?.id || 'usr-1',
-        fullName: currentUser?.fullName || 'Sinh viên FHub',
+        fullName: currentUser?.fullName || t("Sinh viên FHub"),
         avatarUrl: currentUser?.avatarUrl,
         role: currentUser?.role || 'Student',
         campus: currentUser?.campus || 'FU-HL',
@@ -149,7 +149,7 @@ export const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
       <form onSubmit={handleSubmit} className="space-y-4 text-xs">
         {errorMessage && (
           <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold">
-            {errorMessage}
+            {t(errorMessage)}
           </div>
         )}
         <Input
@@ -169,7 +169,7 @@ export const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
           />
           <Input
             label={t('workflowModal.techLabel', 'Công cụ / Phần mềm / Công nghệ')}
-            placeholder="Figma, SPSS, Excel, Canva, React, Python, Premiere, Jira, Photoshop..."
+            placeholder={t("Figma, SPSS, Excel, Canva, React, Python, Premiere, Jira, Photoshop...")}
             value={technology}
             onChange={(e) => setTechnology(e.target.value)}
           />

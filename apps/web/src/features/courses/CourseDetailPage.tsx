@@ -35,7 +35,7 @@ import { useLanguage } from '../../context/LanguageContext';
 
 export const CourseDetailPage: React.FC = () => {
   const { code } = useParams<{ code: string }>();
-  const { t } = useLanguage();
+  const { locale, t } = useLanguage();
 
   const [course, setCourse] = useState<CourseNodeListItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -392,7 +392,7 @@ export const CourseDetailPage: React.FC = () => {
 
             <span className="flex items-center gap-1.5 text-slate-600">
               <Users className="w-4 h-4 text-[#0076D1]" />{' '}
-              {followers.toLocaleString()} {t('courses.followers', 'Sinh viên theo dõi')}
+              {followers.toLocaleString(locale)} {t('courses.followers', 'Sinh viên theo dõi')}
             </span>
           </div>
         </div>
@@ -453,22 +453,19 @@ export const CourseDetailPage: React.FC = () => {
                 <CardBody className="p-5 space-y-3.5 text-xs">
                   <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
                     <span className="text-slate-600 dark:text-slate-400">
-                      Progress Tests & Lab
-                    </span>
+                      {t("Progress Tests & Lab")}</span>
                     <span className="font-bold text-slate-900 dark:text-slate-100">
                       {t('courses.asPerSyllabus', 'Theo Syllabus')}
                     </span>
                   </div>
                   <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
                     <span className="text-slate-600 dark:text-slate-400">
-                      Practical Exam (PE)
-                    </span>
+                      {t("Practical Exam (PE)")}</span>
                     <span className="font-bold text-blue-600">{t('courses.asPerSyllabus', 'Theo Syllabus')}</span>
                   </div>
                   <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
                     <span className="text-slate-600 dark:text-slate-400">
-                      Final Exam (FE)
-                    </span>
+                      {t("Final Exam (FE)")}</span>
                     <span className="font-bold text-purple-600">{t('courses.asPerSyllabus', 'Theo Syllabus')}</span>
                   </div>
                   <div className="pt-1 flex items-center justify-between font-bold text-slate-900 dark:text-slate-100">
@@ -584,7 +581,7 @@ export const CourseDetailPage: React.FC = () => {
                         </h4>
                         <p className="text-[11px] text-slate-500">
                           {m.fileSizeBytes
-                            ? `${(m.fileSizeBytes / (1024 * 1024)).toFixed(1)} MB`
+                            ? t("{p0} MB", undefined, { p0: (m.fileSizeBytes / (1024 * 1024)).toFixed(1) })
                             : t('materials.document', 'Tài liệu')}{' '}
                           • {m.downloadCount || 0} {t('materials.downloadCount', 'lượt tải')}
                         </p>
@@ -728,7 +725,7 @@ export const CourseDetailPage: React.FC = () => {
                   </span>
                   <span className="text-sm font-bold text-[#0076D1] block mt-0.5">
                     {courseReviews.length > 0
-                      ? `${courseReviews.length}  ' + t('courses.reviewsSuffix', 'lượt review')`
+                      ? `${courseReviews.length} ${t('courses.reviewsSuffix', 'lượt review')}`
                       : t('courses.updating', 'Đang cập nhật')}
                   </span>
                 </div>
@@ -774,7 +771,7 @@ export const CourseDetailPage: React.FC = () => {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <div className="w-7 h-7 rounded-full bg-blue-100 text-[#0076D1] font-bold text-xs flex items-center justify-center">
-                              {r.isAnonymous ? '?' : 'SV'}
+                              {r.isAnonymous ? '?' : t("SV")}
                             </div>
                             <div>
                               <span className="font-bold text-xs text-slate-800 dark:text-slate-200 block">
@@ -785,7 +782,7 @@ export const CourseDetailPage: React.FC = () => {
                               <span className="text-[10px] text-slate-400">
                                 {t('common.term', 'Kỳ')} {r.semesterCode || 'FA24'} •{' '}
                                 {new Date(r.createdAt).toLocaleDateString(
-                                  'vi-VN'
+                                  locale
                                 )}
                               </span>
                             </div>

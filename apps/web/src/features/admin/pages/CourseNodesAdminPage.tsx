@@ -1,3 +1,4 @@
+import { useConfirmDialog } from '../../../components/common/useConfirmDialog';
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -24,6 +25,7 @@ import { useLanguage } from '../../../context/LanguageContext';
 import { useCourseNodes, useCreateCourseNode, useUpdateCourseNode, useDeleteCourseNode } from '../../../services/api';
 
 export const CourseNodesAdminPage: React.FC = () => {
+  const { confirm, confirmationDialog } = useConfirmDialog();
   const { t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMajor, setSelectedMajor] = useState('ALL');
@@ -127,7 +129,7 @@ export const CourseNodesAdminPage: React.FC = () => {
       .map((p) => p.trim().toUpperCase())
       .filter(Boolean);
 
-    const desc = newDescription.trim() || `Môn học ${newTitle.trim()} thuộc chuyên ngành ${newMajor} tại FPT University.`;
+    const desc = newDescription.trim() || t("Môn học {p0} thuộc chuyên ngành {p1} tại FPT University.", undefined, { p0: newTitle.trim(), p1: newMajor });
 
     try {
       await createCourseMutation.mutateAsync({
@@ -139,7 +141,7 @@ export const CourseNodesAdminPage: React.FC = () => {
       });
 
       setShowCreateModal(false);
-      setSuccessNotice(`Created Course in DB: ${newCode.toUpperCase()} - ${newTitle}`);
+      setSuccessNotice(t("Created Course in DB: {p0} - {p1}", undefined, { p0: newCode.toUpperCase(), p1: newTitle }));
       setTimeout(() => setSuccessNotice(null), 3500);
       refetch();
     } catch (err: any) {
@@ -168,7 +170,7 @@ export const CourseNodesAdminPage: React.FC = () => {
 
       setCourses((prev) => [...prev, created]);
       setShowCreateModal(false);
-      setSuccessNotice(`Created Course locally: ${created.code} - ${created.title}`);
+      setSuccessNotice(t("Created Course locally: {p0} - {p1}", undefined, { p0: created.code, p1: created.title }));
       setTimeout(() => setSuccessNotice(null), 3500);
     }
   };
@@ -193,7 +195,7 @@ export const CourseNodesAdminPage: React.FC = () => {
       .map((p) => p.trim().toUpperCase())
       .filter(Boolean);
 
-    const desc = editDescription.trim() || `Môn học ${editTitle.trim()} thuộc chuyên ngành ${editMajor} tại FPT University.`;
+    const desc = editDescription.trim() || t("Môn học {p0} thuộc chuyên ngành {p1} tại FPT University.", undefined, { p0: editTitle.trim(), p1: editMajor });
     const numericId = editingCourse.id.replace(/\D/g, '');
 
     try {
@@ -228,7 +230,7 @@ export const CourseNodesAdminPage: React.FC = () => {
       );
 
       setEditingCourse(null);
-      setSuccessNotice(`Updated Course: ${editCode.toUpperCase()} - ${editTitle}`);
+      setSuccessNotice(t("Updated Course: {p0} - {p1}", undefined, { p0: editCode.toUpperCase(), p1: editTitle }));
       setTimeout(() => setSuccessNotice(null), 3500);
       refetch();
     } catch (err: any) {
@@ -250,13 +252,13 @@ export const CourseNodesAdminPage: React.FC = () => {
         )
       );
       setEditingCourse(null);
-      setSuccessNotice(`Updated Course locally: ${editCode.toUpperCase()} - ${editTitle}`);
+      setSuccessNotice(t("Updated Course locally: {p0} - {p1}", undefined, { p0: editCode.toUpperCase(), p1: editTitle }));
       setTimeout(() => setSuccessNotice(null), 3500);
     }
   };
 
   const handleDeleteCourse = async (courseId: string, code: string) => {
-    if (window.confirm(`Delete Course ${code}?`)) {
+    if (await confirm(t("Delete Course {p0}?", undefined, { p0: code }))) {
       try {
         const numericId = courseId.replace(/\D/g, '');
         if (numericId) {
@@ -266,7 +268,7 @@ export const CourseNodesAdminPage: React.FC = () => {
         console.warn('Delete course fallback to local:', e);
       }
       setCourses((prev) => prev.filter((c) => c.id !== courseId));
-      setSuccessNotice(`Deleted Course ${code}`);
+      setSuccessNotice(t("Deleted Course {p0}", undefined, { p0: code }));
       setTimeout(() => setSuccessNotice(null), 3000);
     }
   };
@@ -276,20 +278,19 @@ export const CourseNodesAdminPage: React.FC = () => {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
+      {confirmationDialog}
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-            <span>ACADEMIC TAXONOMY</span>
-            <span>&gt;</span>
-            <span className="text-blue-600">COURSES REGISTRY ({totalCoursesCount} COURSES)</span>
+            <span>{t("ACADEMIC TAXONOMY")}</span>
+            <span>{t("&gt;")}</span>
+            <span className="text-blue-600">{t("COURSES REGISTRY (")}{totalCoursesCount}  {t("COURSES)")}</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            Courses Registry
-          </h1>
+            {t("Courses Registry")}</h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Manage course syllabus, prerequisites, credit mappings, and campus offerings across all degrees.
-          </p>
+            {t("Manage course syllabus, prerequisites, credit mappings, and campus offerings across all degrees.")}</p>
         </div>
 
         <div className="flex items-center gap-2.5">
@@ -297,7 +298,7 @@ export const CourseNodesAdminPage: React.FC = () => {
             onClick={() => refetch()}
             disabled={isRefetching}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 shadow-2xs transition-colors cursor-pointer"
-            title="Refresh courses"
+            title={t("Refresh courses")}
           >
             <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${isRefetching ? 'animate-spin' : ''}`} />
             <span>{t('Refresh')}</span>
@@ -316,7 +317,7 @@ export const CourseNodesAdminPage: React.FC = () => {
       {successNotice && (
         <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center gap-2 animate-fadeIn">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span>{successNotice}</span>
+          <span>{t(successNotice)}</span>
         </div>
       )}
 
@@ -328,7 +329,7 @@ export const CourseNodesAdminPage: React.FC = () => {
             type="text"
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder="Search by course code (PRN211, SWP391), English title, or Vietnamese name..."
+            placeholder={t("Search by course code (PRN211, SWP391), English title, or Vietnamese name...")}
             className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
           />
         </div>
@@ -339,10 +340,10 @@ export const CourseNodesAdminPage: React.FC = () => {
           className="w-full md:w-44 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none cursor-pointer"
         >
           <option value="ALL">{t('common.allMajors') || 'All Majors'}</option>
-          <option value="SE">Software Engineering (SE)</option>
-          <option value="IA">Information Assurance (IA)</option>
-          <option value="AI">Artificial Intelligence (AI)</option>
-          <option value="GD">Graphic Design (GD)</option>
+          <option value="SE">{t("Software Engineering (SE)")}</option>
+          <option value="IA">{t("Information Assurance (IA)")}</option>
+          <option value="AI">{t("Artificial Intelligence (AI)")}</option>
+          <option value="GD">{t("Graphic Design (GD)")}</option>
         </select>
 
         <select
@@ -353,7 +354,7 @@ export const CourseNodesAdminPage: React.FC = () => {
           <option value="ALL">{t('common.allSemesters') || 'All Semesters'}</option>
           {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((s) => (
             <option key={s} value={s.toString()}>
-              Semester {s}
+              {t("Semester")} {s}
             </option>
           ))}
         </select>
@@ -364,27 +365,26 @@ export const CourseNodesAdminPage: React.FC = () => {
         {isLoading ? (
           <div className="p-12 text-center text-slate-500 flex flex-col items-center justify-center gap-2">
             <Loader2 className="w-7 h-7 animate-spin text-blue-600" />
-            <p className="text-xs font-medium text-slate-500">Loading courses registry...</p>
+            <p className="text-xs font-medium text-slate-500">{t("Loading courses registry...")}</p>
           </div>
         ) : filteredCourses.length === 0 ? (
           <div className="p-12 text-center text-slate-500">
             <BookOpen className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-            <h3 className="text-sm font-semibold text-slate-700">No courses found</h3>
+            <h3 className="text-sm font-semibold text-slate-700">{t("No courses found")}</h3>
             <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-              No matching course records found in database. Adjust your search keywords or add a new course.
-            </p>
+              {t("No matching course records found in database. Adjust your search keywords or add a new course.")}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50/80 text-[10px] font-bold text-slate-400 uppercase border-b border-slate-200">
                 <tr>
-                  <th className="py-3 px-4 font-bold">COURSE CODE & TITLE</th>
-                  <th className="py-3 px-3 font-bold">MAJOR & SEM</th>
-                  <th className="py-3 px-3 font-bold">CREDITS</th>
-                  <th className="py-3 px-3 font-bold">CAMPUSES ACTIVE</th>
-                  <th className="py-3 px-3 font-bold">MATERIALS / Q&A</th>
-                  <th className="py-3 px-4 font-bold text-right">ACTIONS</th>
+                  <th className="py-3 px-4 font-bold">{t("COURSE CODE & TITLE")}</th>
+                  <th className="py-3 px-3 font-bold">{t("MAJOR & SEM")}</th>
+                  <th className="py-3 px-3 font-bold">{t("CREDITS")}</th>
+                  <th className="py-3 px-3 font-bold">{t("CAMPUSES ACTIVE")}</th>
+                  <th className="py-3 px-3 font-bold">{t("MATERIALS / Q&A")}</th>
+                  <th className="py-3 px-4 font-bold text-right">{t("ACTIONS")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -412,12 +412,11 @@ export const CourseNodesAdminPage: React.FC = () => {
                       <span className="px-1.5 py-0.5 rounded font-bold font-mono text-[10px] bg-slate-100 text-slate-700">
                         {c.majorCode || 'N/A'}
                       </span>
-                      <span className="text-slate-500 text-[11px] ml-1.5">{c.semester ? `Sem ${c.semester}` : 'N/A'}</span>
+                      <span className="text-slate-500 text-[11px] ml-1.5">{c.semester ? t("Sem {p0}", undefined, { p0: c.semester }) : 'N/A'}</span>
                     </td>
 
                     <td className="py-3 px-3 font-bold text-slate-800">
-                      {c.credits} Credits
-                    </td>
+                      {c.credits}  {t("Credits")}</td>
 
                     <td className="py-3 px-3">
                       <div className="flex items-center gap-1">
@@ -453,13 +452,12 @@ export const CourseNodesAdminPage: React.FC = () => {
                         to={`/courses/${c.code}`}
                         className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 transition-colors"
                       >
-                        Syllabus
-                      </Link>
+                        {t("Syllabus")}</Link>
 
                       <button
                         onClick={() => handleOpenEditModal(c)}
                         className="p-1 rounded text-slate-400 hover:text-blue-600 cursor-pointer"
-                        title="Edit course"
+                        title={t("Edit course")}
                       >
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
@@ -467,7 +465,7 @@ export const CourseNodesAdminPage: React.FC = () => {
                       <button
                         onClick={() => handleDeleteCourse(c.id, c.code)}
                         className="p-1 rounded text-slate-400 hover:text-rose-600 cursor-pointer"
-                        title="Delete course"
+                        title={t("Delete course")}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -483,16 +481,15 @@ export const CourseNodesAdminPage: React.FC = () => {
         {totalCoursesCount > 0 && (
           <div className="p-3.5 bg-slate-50/60 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
             <div>
-              Showing{' '}
+              {t("Showing")}{' '}
               <span className="font-semibold text-slate-800">
                 {(pageNumber - 1) * pageSize + 1}
               </span>{' '}
-              to{' '}
+              {t("to")}{' '}
               <span className="font-semibold text-slate-800">
                 {Math.min(pageNumber * pageSize, totalCoursesCount)}
               </span>{' '}
-              of <span className="font-semibold text-slate-800">{totalCoursesCount}</span> courses
-            </div>
+              {t("of")} <span className="font-semibold text-slate-800">{totalCoursesCount}</span>  {t("courses")}</div>
 
             <div className="flex items-center gap-1">
               <button
@@ -501,7 +498,7 @@ export const CourseNodesAdminPage: React.FC = () => {
                 className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded text-xs font-semibold text-slate-700 shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 cursor-pointer"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
-                <span>Prev</span>
+                <span>{t("Prev")}</span>
               </button>
 
               <div className="flex items-center gap-1 px-1">
@@ -533,7 +530,7 @@ export const CourseNodesAdminPage: React.FC = () => {
                 disabled={pageNumber >= totalPages}
                 className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded text-xs font-semibold text-slate-700 shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 cursor-pointer"
               >
-                <span>Next</span>
+                <span>{t("Next")}</span>
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -546,7 +543,7 @@ export const CourseNodesAdminPage: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-fadeIn">
           <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full p-6 shadow-xl space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-slate-900">Add Course</h2>
+              <h2 className="text-base font-bold text-slate-900">{t("Add Course")}</h2>
               <button
                 onClick={() => setShowCreateModal(false)}
                 className="text-slate-400 hover:text-slate-600 cursor-pointer"
@@ -558,22 +555,22 @@ export const CourseNodesAdminPage: React.FC = () => {
             <form onSubmit={handleCreateCourse} className="space-y-3">
               <div className="grid grid-cols-3 gap-2">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700">Code:</label>
+                  <label className="text-xs font-semibold text-slate-700">{t("Code:")}</label>
                   <input
                     type="text"
                     required
-                    placeholder="PRM392"
+                    placeholder={t("PRM392")}
                     value={newCode}
                     onChange={(e) => setNewCode(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono font-bold uppercase"
                   />
                 </div>
                 <div className="col-span-2 space-y-1">
-                  <label className="text-xs font-semibold text-slate-700">English Title:</label>
+                  <label className="text-xs font-semibold text-slate-700">{t("English Title:")}</label>
                   <input
                     type="text"
                     required
-                    placeholder="Mobile Programming"
+                    placeholder={t("Mobile Programming")}
                     value={newTitle}
                     onChange={(e) => setNewTitle(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs"
@@ -582,10 +579,10 @@ export const CourseNodesAdminPage: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">Vietnamese Title:</label>
+                <label className="text-xs font-semibold text-slate-700">{t("Vietnamese Title:")}</label>
                 <input
                   type="text"
-                  placeholder="Lập trình thiết bị di động"
+                  placeholder={t("Lập trình thiết bị di động")}
                   value={newVnTitle}
                   onChange={(e) => setNewVnTitle(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs"
@@ -594,20 +591,20 @@ export const CourseNodesAdminPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700">Major:</label>
+                  <label className="text-xs font-semibold text-slate-700">{t("Major:")}</label>
                   <select
                     value={newMajor}
                     onChange={(e) => setNewMajor(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-xs"
                   >
-                    <option value="SE">Software Engineering (SE)</option>
-                    <option value="IA">Information Assurance (IA)</option>
-                    <option value="AI">Artificial Intelligence (AI)</option>
-                    <option value="GD">Graphic Design (GD)</option>
+                    <option value="SE">{t("Software Engineering (SE)")}</option>
+                    <option value="IA">{t("Information Assurance (IA)")}</option>
+                    <option value="AI">{t("Artificial Intelligence (AI)")}</option>
+                    <option value="GD">{t("Graphic Design (GD)")}</option>
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700">Credits:</label>
+                  <label className="text-xs font-semibold text-slate-700">{t("Credits:")}</label>
                   <input
                     type="number"
                     min={1}
@@ -620,10 +617,10 @@ export const CourseNodesAdminPage: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">Description:</label>
+                <label className="text-xs font-semibold text-slate-700">{t("Description:")}</label>
                 <textarea
                   rows={3}
-                  placeholder="Mô tả tóm tắt nội dung môn học, chuẩn đầu ra..."
+                  placeholder={t("Mô tả tóm tắt nội dung môn học, chuẩn đầu ra...")}
                   value={newDescription}
                   onChange={(e) => setNewDescription(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
@@ -631,10 +628,10 @@ export const CourseNodesAdminPage: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">Prerequisites (comma-separated):</label>
+                <label className="text-xs font-semibold text-slate-700">{t("Prerequisites (comma-separated):")}</label>
                 <input
                   type="text"
-                  placeholder="PRO192, CSD201"
+                  placeholder={t("PRO192, CSD201")}
                   value={newPrereqs}
                   onChange={(e) => setNewPrereqs(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono"
@@ -647,14 +644,12 @@ export const CourseNodesAdminPage: React.FC = () => {
                   onClick={() => setShowCreateModal(false)}
                   className="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold cursor-pointer hover:bg-slate-200"
                 >
-                  Cancel
-                </button>
+                  {t("Cancel")}</button>
                 <button
                   type="submit"
                   className="px-4 py-2 rounded-lg bg-blue-600 text-white text-xs font-semibold cursor-pointer hover:bg-blue-700"
                 >
-                  Add Course
-                </button>
+                  {t("Add Course")}</button>
               </div>
             </form>
           </div>
@@ -667,8 +662,8 @@ export const CourseNodesAdminPage: React.FC = () => {
           <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full p-6 shadow-xl space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-base font-bold text-slate-900">Edit Course</h2>
-                <p className="text-xs text-slate-500">Update course details and credit information</p>
+                <h2 className="text-base font-bold text-slate-900">{t("Edit Course")}</h2>
+                <p className="text-xs text-slate-500">{t("Update course details and credit information")}</p>
               </div>
               <button
                 onClick={() => setEditingCourse(null)}
@@ -681,22 +676,22 @@ export const CourseNodesAdminPage: React.FC = () => {
             <form onSubmit={handleUpdateCourse} className="space-y-3">
               <div className="grid grid-cols-3 gap-2">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700">Code:</label>
+                  <label className="text-xs font-semibold text-slate-700">{t("Code:")}</label>
                   <input
                     type="text"
                     required
-                    placeholder="PRN231"
+                    placeholder={t("PRN231")}
                     value={editCode}
                     onChange={(e) => setEditCode(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono font-bold uppercase"
                   />
                 </div>
                 <div className="col-span-2 space-y-1">
-                  <label className="text-xs font-semibold text-slate-700">English Title:</label>
+                  <label className="text-xs font-semibold text-slate-700">{t("English Title:")}</label>
                   <input
                     type="text"
                     required
-                    placeholder="Course title..."
+                    placeholder={t("Course title...")}
                     value={editTitle}
                     onChange={(e) => setEditTitle(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs"
@@ -705,10 +700,10 @@ export const CourseNodesAdminPage: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">Vietnamese Title:</label>
+                <label className="text-xs font-semibold text-slate-700">{t("Vietnamese Title:")}</label>
                 <input
                   type="text"
-                  placeholder="Tên môn học tiếng Việt..."
+                  placeholder={t("Tên môn học tiếng Việt...")}
                   value={editVnTitle}
                   onChange={(e) => setEditVnTitle(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs"
@@ -717,20 +712,20 @@ export const CourseNodesAdminPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700">Major:</label>
+                  <label className="text-xs font-semibold text-slate-700">{t("Major:")}</label>
                   <select
                     value={editMajor}
                     onChange={(e) => setEditMajor(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-xs"
                   >
-                    <option value="SE">Software Engineering (SE)</option>
-                    <option value="IA">Information Assurance (IA)</option>
-                    <option value="AI">Artificial Intelligence (AI)</option>
-                    <option value="GD">Graphic Design (GD)</option>
+                    <option value="SE">{t("Software Engineering (SE)")}</option>
+                    <option value="IA">{t("Information Assurance (IA)")}</option>
+                    <option value="AI">{t("Artificial Intelligence (AI)")}</option>
+                    <option value="GD">{t("Graphic Design (GD)")}</option>
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700">Credits:</label>
+                  <label className="text-xs font-semibold text-slate-700">{t("Credits:")}</label>
                   <input
                     type="number"
                     min={1}
@@ -743,10 +738,10 @@ export const CourseNodesAdminPage: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">Description:</label>
+                <label className="text-xs font-semibold text-slate-700">{t("Description:")}</label>
                 <textarea
                   rows={3}
-                  placeholder="Mô tả tóm tắt nội dung môn học, chuẩn đầu ra..."
+                  placeholder={t("Mô tả tóm tắt nội dung môn học, chuẩn đầu ra...")}
                   value={editDescription}
                   onChange={(e) => setEditDescription(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
@@ -754,10 +749,10 @@ export const CourseNodesAdminPage: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">Prerequisites (comma-separated):</label>
+                <label className="text-xs font-semibold text-slate-700">{t("Prerequisites (comma-separated):")}</label>
                 <input
                   type="text"
-                  placeholder="PRO192, CSD201"
+                  placeholder={t("PRO192, CSD201")}
                   value={editPrereqs}
                   onChange={(e) => setEditPrereqs(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono"
@@ -770,14 +765,12 @@ export const CourseNodesAdminPage: React.FC = () => {
                   onClick={() => setEditingCourse(null)}
                   className="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold cursor-pointer hover:bg-slate-200"
                 >
-                  Cancel
-                </button>
+                  {t("Cancel")}</button>
                 <button
                   type="submit"
                   className="px-4 py-2 rounded-lg bg-blue-600 text-white text-xs font-semibold cursor-pointer hover:bg-blue-700"
                 >
-                  Save Changes
-                </button>
+                  {t("Save Changes")}</button>
               </div>
             </form>
           </div>

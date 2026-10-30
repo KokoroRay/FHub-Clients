@@ -63,12 +63,12 @@ export const CampusSelectionPage: React.FC = () => {
               >
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-2">
-                    <span className="font-extrabold text-sm text-slate-900">{c.name}</span>
+                    <span className="font-extrabold text-sm text-slate-900">{t(c.name)}</span>
                     <span className="text-[10px] font-bold px-1.5 py-0.2 bg-slate-100 text-slate-600 rounded">
                       {c.code}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500 line-clamp-1">{c.description}</p>
+                  <p className="text-xs text-slate-500 line-clamp-1">{t(c.description)}</p>
                 </div>
                 <div className="shrink-0 pl-3">
                   {isSelected ? (

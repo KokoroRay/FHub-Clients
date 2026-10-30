@@ -47,9 +47,9 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           )}
         </div>
         {error ? (
-          <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">{error}</p>
+          <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">{t(error)}</p>
         ) : helperText ? (
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{helperText}</p>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t(helperText)}</p>
         ) : null}
       </div>
     );
@@ -87,9 +87,9 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
           {...props}
         />
         {error ? (
-          <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">{error}</p>
+          <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">{t(error)}</p>
         ) : helperText ? (
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{helperText}</p>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t(helperText)}</p>
         ) : null}
       </div>
     );
@@ -134,9 +134,9 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             : children}
         </select>
         {error ? (
-          <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">{error}</p>
+          <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">{t(error)}</p>
         ) : helperText ? (
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{helperText}</p>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{t(helperText)}</p>
         ) : null}
       </div>
     );

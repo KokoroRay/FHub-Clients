@@ -24,7 +24,7 @@ import { UserAvatarDropdown } from './UserAvatarDropdown';
 
 export const Header: React.FC = () => {
   const { currentUser, currentCampus, setCurrentCampus } = useAuth();
-  const { t, language } = useLanguage();
+  const { locale, t, language } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotifDrawer, setShowNotifDrawer] = useState(false);
   const [campuses, setCampuses] = useState<Array<{ code: string; name: string }>>([]);
@@ -123,7 +123,7 @@ export const Header: React.FC = () => {
       label: (
         <div className="flex flex-col">
           <span className="font-semibold text-xs text-[#0076D1]">{t('header.allCampuses', 'Toàn quốc (Global)')}</span>
-          <span className="text-[10px] text-slate-400">Tất cả phân hiệu FPT</span>
+          <span className="text-[10px] text-slate-400">{t("Tất cả phân hiệu FPT")}</span>
         </div>
       ),
       onClick: () => setCurrentCampus('ALL' as any),
@@ -132,8 +132,8 @@ export const Header: React.FC = () => {
       id: c.code,
       label: (
         <div className="flex flex-col">
-          <span className="font-semibold text-xs">{c.name}</span>
-          <span className="text-[10px] text-slate-400">Campus {c.code}</span>
+          <span className="font-semibold text-xs">{t(c.name)}</span>
+          <span className="text-[10px] text-slate-400">{t("Campus")} {c.code}</span>
         </div>
       ),
       onClick: () => setCurrentCampus(c.code as any),
@@ -176,13 +176,12 @@ export const Header: React.FC = () => {
             <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
               <img
                 src="/fhub-remove-background.png"
-                alt="FHub Logo"
+                alt={t("FHub Logo")}
                 className="w-full h-full object-contain"
               />
             </div>
             <span className="font-extrabold text-base tracking-tight text-slate-900 dark:text-white">
-              FHub Community
-            </span>
+              {t("FHub Community")}</span>
           </Link>
 
           {/* Campus Selector */}
@@ -289,7 +288,7 @@ export const Header: React.FC = () => {
                             <div className="flex items-start justify-between gap-2">
                               <span className="font-bold text-slate-800 dark:text-slate-200">{n.title}</span>
                               <span className="text-[10px] text-slate-400 shrink-0">
-                                {n.createdAt ? new Date(n.createdAt).toLocaleDateString(language === 'vi' ? 'vi-VN' : language === 'ja' ? 'ja-JP' : 'en-US') : ''}
+                                {n.createdAt ? new Date(n.createdAt).toLocaleDateString(locale) : ''}
                               </span>
                             </div>
                             <p className="text-slate-600 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">

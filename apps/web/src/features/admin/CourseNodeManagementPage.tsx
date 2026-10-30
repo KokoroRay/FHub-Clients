@@ -1,3 +1,4 @@
+import { useLanguage } from '../../context/LanguageContext';
 import React, { useState } from 'react';
 import { Network, Plus, Edit2, Trash2, BookOpen } from 'lucide-react';
 import { mockCourses, mockMajors } from '../../services/mockData';
@@ -9,6 +10,7 @@ import { Modal } from '../../components/common/Modal';
 import { Input, Textarea, Select } from '../../components/common/Input';
 
 export const CourseNodeManagementPage: React.FC = () => {
+  const { t } = useLanguage();
   const [courses, setCourses] = useState<CourseNode[]>(mockCourses);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<CourseNode | null>(null);
@@ -43,7 +45,7 @@ export const CourseNodeManagementPage: React.FC = () => {
   };
 
   const handleDelete = (id: string) => {
-    if (confirm('Bạn có chắc chắn muốn xóa môn học (Course) này?')) {
+    if (confirm(t("Bạn có chắc chắn muốn xóa môn học (Course) này?"))) {
       setCourses(courses.filter((c) => c.id !== id));
     }
   };
@@ -91,13 +93,13 @@ export const CourseNodeManagementPage: React.FC = () => {
 
   const columns: Column<CourseNode>[] = [
     {
-      header: 'Mã Môn',
+      header: t("Mã Môn"),
       accessorKey: 'code',
       cell: (item) => <Badge variant="primary" size="md">{item.code}</Badge>,
       className: 'w-24',
     },
     {
-      header: 'Tên môn học & Mô tả',
+      header: t("Tên môn học & Mô tả"),
       accessorKey: 'title',
       cell: (item) => (
         <div>
@@ -107,23 +109,23 @@ export const CourseNodeManagementPage: React.FC = () => {
       ),
     },
     {
-      header: 'Ngành & Kỳ',
+      header: t("Ngành & Kỳ"),
       cell: (item) => (
         <div className="flex items-center gap-1.5">
           <Badge variant="purple" size="sm">{item.majorCode}</Badge>
-          <span className="text-xs text-slate-500">HK {item.semester}</span>
+          <span className="text-xs text-slate-500">{t("HK")} {item.semester}</span>
         </div>
       ),
       className: 'w-32',
     },
     {
-      header: 'Tín chỉ',
+      header: t("Tín chỉ"),
       accessorKey: 'credits',
-      cell: (item) => <span className="font-bold">{item.credits} TC</span>,
+      cell: (item) => <span className="font-bold">{item.credits}  {t("TC")}</span>,
       className: 'w-20',
     },
     {
-      header: 'Hành động',
+      header: t("Hành động"),
       cell: (item) => (
         <div className="flex items-center gap-2">
           <button
@@ -150,16 +152,14 @@ export const CourseNodeManagementPage: React.FC = () => {
         <div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
             <BookOpen className="w-6 h-6 text-[#2563eb]" />
-            <span>Quản lý Khóa học (Courses)</span>
+            <span>{t("Quản lý Khóa học (Courses)")}</span>
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Quản lý danh sách các khóa học (Courses), metadata và điều kiện tiên quyết.
-          </p>
+            {t("Quản lý danh sách các khóa học (Courses), metadata và điều kiện tiên quyết.")}</p>
         </div>
 
         <Button variant="primary" onClick={openCreate} leftIcon={<Plus className="w-4 h-4" />}>
-          Thêm Khóa học (Course)
-        </Button>
+          {t("Thêm Khóa học (Course)")}</Button>
       </div>
 
       <Table columns={columns} data={courses} keyExtractor={(c) => c.id} />
@@ -167,25 +167,25 @@ export const CourseNodeManagementPage: React.FC = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={editingCourse ? 'Cập nhật Khóa học (Course)' : 'Tạo Khóa học (Course) mới'}
+        title={editingCourse ? t("Cập nhật Khóa học (Course)") : t("Tạo Khóa học (Course) mới")}
         footer={
           <>
-            <Button variant="outline" onClick={() => setIsModalOpen(false)}>Hủy</Button>
-            <Button variant="primary" onClick={handleSubmit}>Lưu Khóa học</Button>
+            <Button variant="outline" onClick={() => setIsModalOpen(false)}>{t("Hủy")}</Button>
+            <Button variant="primary" onClick={handleSubmit}>{t("Lưu Khóa học")}</Button>
           </>
         }
       >
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           <div className="grid grid-cols-2 gap-4">
             <Input
-              label="Mã môn học (Code)"
-              placeholder="PRN211"
+              label={t("Mã môn học (Code)")}
+              placeholder={t("PRN211")}
               value={code}
               onChange={(e) => setCode(e.target.value)}
               required
             />
             <Select
-              label="Chuyên ngành"
+              label={t("Chuyên ngành")}
               value={majorCode}
               onChange={(e) => setMajorCode(e.target.value)}
               options={mockMajors.map((m) => ({ value: m.code, label: `${m.code} - ${m.name}` }))}
@@ -193,8 +193,8 @@ export const CourseNodeManagementPage: React.FC = () => {
           </div>
 
           <Input
-            label="Tên môn học đầy đủ"
-            placeholder="Basic Cross-Platform Application Programming with .NET"
+            label={t("Tên môn học đầy đủ")}
+            placeholder={t("Basic Cross-Platform Application Programming with .NET")}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
@@ -202,13 +202,13 @@ export const CourseNodeManagementPage: React.FC = () => {
 
           <div className="grid grid-cols-2 gap-4">
             <Input
-              label="Học kỳ (Semester 1-9)"
+              label={t("Học kỳ (Semester 1-9)")}
               type="number"
               value={semester}
               onChange={(e) => setSemester(e.target.value)}
             />
             <Input
-              label="Số tín chỉ (Credits)"
+              label={t("Số tín chỉ (Credits)")}
               type="number"
               value={credits}
               onChange={(e) => setCredits(e.target.value)}
@@ -216,7 +216,7 @@ export const CourseNodeManagementPage: React.FC = () => {
           </div>
 
           <Textarea
-            label="Mô tả tóm tắt môn học"
+            label={t("Mô tả tóm tắt môn học")}
             rows={3}
             value={description}
             onChange={(e) => setDescription(e.target.value)}

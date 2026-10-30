@@ -197,14 +197,13 @@ export const AdminSubdomainLayout: React.FC = () => {
               <div className="w-9 h-9 rounded-lg overflow-hidden flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
                 <img
                   src="/fhub-remove-background.png"
-                  alt="FHub Logo"
+                  alt={t("FHub Logo")}
                   className="w-full h-full object-contain"
                 />
               </div>
               <div className="flex flex-col">
                 <span className="font-bold text-sm tracking-tight text-slate-900 dark:text-white flex items-center gap-1.5">
-                  FHub Operations
-                  <span
+                  {t("FHub Operations")}<span
                     className={`text-[10px] px-1.5 py-0.2 rounded font-semibold border ${
                       isMod
                         ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
@@ -215,7 +214,7 @@ export const AdminSubdomainLayout: React.FC = () => {
                   </span>
                 </span>
                 <span className="text-[10px] text-slate-400 dark:text-slate-500 font-normal">
-                  {isMod ? 'Content & Governance Desk' : 'Academic Platform Control'}
+                  {isMod ? t("Content & Governance Desk") : t("Academic Platform Control")}
                 </span>
               </div>
             </Link>
@@ -251,12 +250,12 @@ export const AdminSubdomainLayout: React.FC = () => {
               trigger={
                 <button className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200/70 dark:hover:bg-slate-700 transition-colors cursor-pointer">
                   <MapPin className="w-3.5 h-3.5 text-blue-600" />
-                  <span>{selectedPartition === 'ALL' ? `${t('header.allCampuses', 'All Campuses')} (${campusOptions.length})` : `Campus: ${selectedPartition}`}</span>
+                  <span>{selectedPartition === 'ALL' ? `${t('header.allCampuses', 'All Campuses')} (${campusOptions.length})` : t("Campus: {p0}", undefined, { p0: selectedPartition })}</span>
                   <ChevronDown className="w-3 h-3 text-slate-400" />
                 </button>
               }
               items={[
-                { id: 'ALL', label: `${t('header.allCampuses', 'All Campuses')} (${campusOptions.length} Phân hiệu)`, onClick: () => setSelectedPartition('ALL') },
+                { id: 'ALL', label: t("{p0} ({p1} Phân hiệu)", undefined, { p0: t('header.allCampuses', 'All Campuses'), p1: campusOptions.length }), onClick: () => setSelectedPartition('ALL') },
                 ...campusOptions.map((c: any) => ({
                   id: c.code,
                   label: `${c.code} - ${c.name}`,
@@ -294,7 +293,7 @@ export const AdminSubdomainLayout: React.FC = () => {
                 <div className="flex items-center gap-2 pl-1 cursor-pointer">
                   <img
                     src={currentUser?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'}
-                    alt="Admin User"
+                    alt={t("Admin User")}
                     className="w-7 h-7 rounded-lg object-cover ring-1 ring-slate-200 dark:ring-slate-700"
                   />
                   <div className="hidden xl:flex flex-col text-left">

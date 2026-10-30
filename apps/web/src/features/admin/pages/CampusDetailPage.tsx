@@ -1,3 +1,4 @@
+import { useLanguage } from '../../../context/LanguageContext';
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
@@ -21,6 +22,7 @@ import { DetailedCampus } from '../../../types';
 import { useCampuses, useMajors } from '../../../services/api';
 
 export const CampusDetailPage: React.FC = () => {
+  const { locale, t } = useLanguage();
   const { code } = useParams<{ code: string }>();
   const { data: campusesData } = useCampuses();
   const { data: majorsData } = useMajors();
@@ -37,7 +39,7 @@ export const CampusDetailPage: React.FC = () => {
         location: c.address || c.city || 'FPT University Campus',
         isActive: c.isActive ?? true,
         studentCount: c.studentsCount || 0,
-        regionalDirector: c.directorName || 'Chưa chỉ định',
+        regionalDirector: c.directorName || t("Chưa chỉ định"),
         contactEmail: c.email || 'N/A',
         contactPhone: c.phone || 'N/A',
         totalFaculty: c.totalFaculty || 0,
@@ -96,7 +98,7 @@ export const CampusDetailPage: React.FC = () => {
   const handleToggleGlocalRouting = () => {
     const next = !glocalRouting;
     setGlocalRouting(next);
-    setSuccessMessage(`Glocal Cross-Campus Feed Routing ${next ? 'ENABLED' : 'DISABLED'} for campus ${campus.code}`);
+    setSuccessMessage(t("Glocal Cross-Campus Feed Routing {p0} for campus {p1}", undefined, { p0: next ? 'ENABLED' : 'DISABLED', p1: campus.code }));
     setTimeout(() => setSuccessMessage(null), 3500);
   };
 
@@ -108,15 +110,14 @@ export const CampusDetailPage: React.FC = () => {
           to="/campuses"
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700"
         >
-          <ArrowLeft className="w-4 h-4" /> Back to Campuses
-        </Link>
-        <span className="text-[11px] font-mono text-slate-400">Partition: {campus.serverPartition.nodeId}</span>
+          <ArrowLeft className="w-4 h-4" />  {t("Back to Campuses")}</Link>
+        <span className="text-[11px] font-mono text-slate-400">{t("Partition:")} {campus.serverPartition.nodeId}</span>
       </div>
 
       {successMessage && (
         <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center gap-2 animate-fadeIn">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span>{successMessage}</span>
+          <span>{t(successMessage)}</span>
         </div>
       )}
 
@@ -131,8 +132,7 @@ export const CampusDetailPage: React.FC = () => {
               <div className="flex items-center gap-2 mb-1">
                 <h1 className="text-lg font-bold text-slate-900">{campus.name}</h1>
                 <span className="text-[10px] font-bold px-2 py-0.2 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  OPTIMAL 99.9%
-                </span>
+                  {t("OPTIMAL 99.9%")}</span>
               </div>
               <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
                 <span className="flex items-center gap-1">
@@ -154,20 +154,20 @@ export const CampusDetailPage: React.FC = () => {
         {/* Stats Row */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-slate-100">
           <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase">Enrolled Students</span>
-            <p className="text-xl font-bold text-blue-600 mt-0.5">{campus.studentCount.toLocaleString()} SV</p>
+            <span className="text-[10px] font-bold text-slate-400 uppercase">{t("Enrolled Students")}</span>
+            <p className="text-xl font-bold text-blue-600 mt-0.5">{campus.studentCount.toLocaleString(locale)}  {t("SV")}</p>
           </div>
           <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase">Faculty & Staff</span>
-            <p className="text-xl font-bold text-slate-900 mt-0.5">{campus.totalFaculty} Lecturers</p>
+            <span className="text-[10px] font-bold text-slate-400 uppercase">{t("Faculty & Staff")}</span>
+            <p className="text-xl font-bold text-slate-900 mt-0.5">{campus.totalFaculty}  {t("Lecturers")}</p>
           </div>
           <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase">Academic Majors</span>
-            <p className="text-xl font-bold text-slate-900 mt-0.5">{campus.totalMajors} Majors</p>
+            <span className="text-[10px] font-bold text-slate-400 uppercase">{t("Academic Majors")}</span>
+            <p className="text-xl font-bold text-slate-900 mt-0.5">{campus.totalMajors}  {t("Majors")}</p>
           </div>
           <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase">Active Courses</span>
-            <p className="text-xl font-bold text-emerald-600 mt-0.5">{campus.activeCourseNodes} Courses</p>
+            <span className="text-[10px] font-bold text-slate-400 uppercase">{t("Active Courses")}</span>
+            <p className="text-xl font-bold text-emerald-600 mt-0.5">{campus.activeCourseNodes}  {t("Courses")}</p>
           </div>
         </div>
       </div>
@@ -178,24 +178,24 @@ export const CampusDetailPage: React.FC = () => {
         <div className="p-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-3.5">
           <div className="flex items-center gap-2">
             <Server className="w-4 h-4 text-blue-600" />
-            <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Edge Partition Node Telemetry</h3>
+            <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">{t("Edge Partition Node Telemetry")}</h3>
           </div>
 
           <div className="space-y-2 text-xs divide-y divide-slate-100">
             <div className="pt-2 first:pt-0 flex justify-between">
-              <span className="text-slate-500">Node Identifier:</span>
+              <span className="text-slate-500">{t("Node Identifier:")}</span>
               <span className="font-mono font-bold text-slate-800">{campus.serverPartition.nodeId}</span>
             </div>
             <div className="pt-2 flex justify-between">
-              <span className="text-slate-500">Region DC:</span>
+              <span className="text-slate-500">{t("Region DC:")}</span>
               <span className="font-semibold text-slate-800">{campus.serverPartition.region}</span>
             </div>
             <div className="pt-2 flex justify-between">
-              <span className="text-slate-500">Latency (RTT):</span>
-              <span className="font-mono font-bold text-emerald-600">{campus.serverPartition.latencyMs} ms</span>
+              <span className="text-slate-500">{t("Latency (RTT):")}</span>
+              <span className="font-mono font-bold text-emerald-600">{campus.serverPartition.latencyMs}  {t("ms")}</span>
             </div>
             <div className="pt-2 flex justify-between">
-              <span className="text-slate-500">Replication Lag:</span>
+              <span className="text-slate-500">{t("Replication Lag:")}</span>
               <span className="font-mono font-bold text-emerald-600">{campus.serverPartition.replicationLagSec}s</span>
             </div>
           </div>
@@ -206,16 +206,15 @@ export const CampusDetailPage: React.FC = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-amber-500" />
-              <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Glocal Routing Policy</h3>
+              <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">{t("Glocal Routing Policy")}</h3>
             </div>
             <span className={`text-[10px] font-bold px-2 py-0.2 rounded-full ${glocalRouting ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
-              {glocalRouting ? 'ENABLED' : 'DISABLED'}
+              {glocalRouting ? t("ENABLED") : t("DISABLED")}
             </span>
           </div>
 
           <p className="text-xs text-slate-500 leading-relaxed">
-            Prioritizes local campus feed items for students at {campus.name} while continuing seamless cross-campus federation.
-          </p>
+            {t("Prioritizes local campus feed items for students at")} {campus.name}  {t("while continuing seamless cross-campus federation.")}</p>
 
           <div className="pt-2">
             <button
@@ -226,7 +225,7 @@ export const CampusDetailPage: React.FC = () => {
                   : 'bg-blue-600 hover:bg-blue-700 text-white'
               }`}
             >
-              {glocalRouting ? 'Disable Glocal Sync (Campus Isolate)' : 'Enable Glocal Sync'}
+              {glocalRouting ? t("Disable Glocal Sync (Campus Isolate)") : t("Enable Glocal Sync")}
             </button>
           </div>
         </div>
@@ -235,17 +234,15 @@ export const CampusDetailPage: React.FC = () => {
       {/* Majors Active at this Campus */}
       <div className="p-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-3.5">
         <div className="flex items-center justify-between">
-          <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Campus Majors & Curriculums</h3>
+          <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">{t("Campus Majors & Curriculums")}</h3>
           <Link to="/majors" className="text-xs font-semibold text-blue-600 hover:text-blue-700">
-            View All Majors
-          </Link>
+            {t("View All Majors")}</Link>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
           {displayMajors.length === 0 ? (
             <div className="col-span-full p-4 text-center text-xs text-slate-400">
-              0 majors registered for this campus.
-            </div>
+              {t("0 majors registered for this campus.")}</div>
           ) : (
             displayMajors.map((m: any) => (
               <div key={m.id || m.majorId} className="p-3 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between">

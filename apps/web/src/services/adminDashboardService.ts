@@ -150,7 +150,7 @@ export async function fetchAdminDashboardStats(timeframe: 'Today' | '7 Days' | '
         title: t.subject || t.title || 'Support Request',
         priority: t.priority || 'NORMAL',
         campus: t.campusCode || 'ALL',
-        timeAgo: t.createdAt ? new Date(t.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently',
+        timeAgo: t.createdAt || 'Recently',
       }));
       openCount = items.filter((t: any) => t.status === 'OPEN').length;
       inProgressCount = items.filter((t: any) => t.status === 'IN_PROGRESS').length;

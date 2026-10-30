@@ -1,3 +1,4 @@
+import { useLanguage } from '../../context/LanguageContext';
 import React, { useState } from 'react';
 import { KeyRound, Shield, Plus, Check, X, Users, Lock } from 'lucide-react';
 import { Button } from '../../components/common/Button';
@@ -22,6 +23,7 @@ interface RoleItem {
 }
 
 export const RolePolicyManagementPage: React.FC = () => {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'roles' | 'policies'>('roles');
 
   const [policies, setPolicies] = useState<Policy[]>([
@@ -81,22 +83,20 @@ export const RolePolicyManagementPage: React.FC = () => {
         <div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
             <KeyRound className="w-6 h-6 text-[#2563eb]" />
-            <span>Role & Policy Management (IAM)</span>
+            <span>{t("Role & Policy Management (IAM)")}</span>
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Quản trị phân quyền truy cập, danh sách vai trò và chính sách bảo mật (Identity Service).
-          </p>
+            {t("Quản trị phân quyền truy cập, danh sách vai trò và chính sách bảo mật (Identity Service).")}</p>
         </div>
 
         <Button variant="primary" onClick={() => setIsPolicyModalOpen(true)} leftIcon={<Plus className="w-4 h-4" />}>
-          Tạo Policy mới
-        </Button>
+          {t("Tạo Policy mới")}</Button>
       </div>
 
       <Tabs
         tabs={[
-          { id: 'roles', label: 'Quản lý Roles & Gán Policy', icon: <Shield className="w-4 h-4" /> },
-          { id: 'policies', label: 'Danh mục Policies', count: policies.length, icon: <Lock className="w-4 h-4" /> },
+          { id: 'roles', label: t("Quản lý Roles & Gán Policy"), icon: <Shield className="w-4 h-4" /> },
+          { id: 'policies', label: t("Danh mục Policies"), count: policies.length, icon: <Lock className="w-4 h-4" /> },
         ]}
         activeTab={activeTab}
         onChange={(t) => setActiveTab(t as any)}
@@ -110,18 +110,17 @@ export const RolePolicyManagementPage: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">{role.name}</h3>
-                      <Badge variant="purple" size="sm">{role.policies.length} Policies</Badge>
+                      <h3 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">{t(role.name)}</h3>
+                      <Badge variant="purple" size="sm">{role.policies.length}  {t("Policies")}</Badge>
                     </div>
-                    <p className="text-xs text-slate-400 mt-0.5">{role.description}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">{t(role.description)}</p>
                   </div>
                 </div>
 
                 {/* Policies matrix for this role */}
                 <div className="pt-3 border-t border-slate-100 dark:border-slate-800">
                   <span className="text-[11px] font-bold text-slate-400 block mb-2">
-                    Bật / Tắt chính sách áp dụng cho vai trò này:
-                  </span>
+                    {t("Bật / Tắt chính sách áp dụng cho vai trò này:")}</span>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                     {policies.map((p) => {
                       const isAttached = role.policies.includes(p.id);
@@ -140,7 +139,7 @@ export const RolePolicyManagementPage: React.FC = () => {
                           </div>
                           <div>
                             <span className="font-mono font-bold block text-[11px]">{p.name}</span>
-                            <span className="text-[10px] text-slate-400 line-clamp-1">{p.description}</span>
+                            <span className="text-[10px] text-slate-400 line-clamp-1">{t(p.description)}</span>
                           </div>
                         </button>
                       );
@@ -157,11 +156,11 @@ export const RolePolicyManagementPage: React.FC = () => {
             <Card key={p.id}>
               <CardBody className="p-4 space-y-2">
                 <div className="flex items-center justify-between">
-                  <Badge variant="primary" size="sm">{p.service}</Badge>
-                  <span className="text-[10px] font-mono text-slate-400">ID: {p.id}</span>
+                  <Badge variant="primary" size="sm">{t(p.service)}</Badge>
+                  <span className="text-[10px] font-mono text-slate-400">{t("ID:")} {p.id}</span>
                 </div>
                 <h4 className="font-mono font-bold text-xs text-slate-900 dark:text-slate-100">{p.name}</h4>
-                <p className="text-xs text-slate-500">{p.description}</p>
+                <p className="text-xs text-slate-500">{t(p.description)}</p>
               </CardBody>
             </Card>
           ))}
@@ -172,30 +171,30 @@ export const RolePolicyManagementPage: React.FC = () => {
       <Modal
         isOpen={isPolicyModalOpen}
         onClose={() => setIsPolicyModalOpen(false)}
-        title="Định nghĩa Security Policy mới"
+        title={t("Định nghĩa Security Policy mới")}
         footer={
           <>
-            <Button variant="outline" onClick={() => setIsPolicyModalOpen(false)}>Hủy</Button>
-            <Button variant="primary" onClick={handleCreatePolicy}>Tạo Policy</Button>
+            <Button variant="outline" onClick={() => setIsPolicyModalOpen(false)}>{t("Hủy")}</Button>
+            <Button variant="primary" onClick={handleCreatePolicy}>{t("Tạo Policy")}</Button>
           </>
         }
       >
         <form onSubmit={handleCreatePolicy} className="space-y-4 text-xs">
           <Input
-            label="Tên Policy (Mã định danh)"
-            placeholder="CAN_EXPORT_GLOBAL_REPORT"
+            label={t("Tên Policy (Mã định danh)")}
+            placeholder={t("CAN_EXPORT_GLOBAL_REPORT")}
             value={newPolicyName}
             onChange={(e) => setNewPolicyName(e.target.value)}
             required
           />
           <Input
-            label="Service sở hữu"
-            placeholder="Governance / Identity / Academic Taxonomy"
+            label={t("Service sở hữu")}
+            placeholder={t("Governance / Identity / Academic Taxonomy")}
             value={newPolicyService}
             onChange={(e) => setNewPolicyService(e.target.value)}
           />
           <Textarea
-            label="Mô tả chức năng và phạm vi cho phép của Policy"
+            label={t("Mô tả chức năng và phạm vi cho phép của Policy")}
             rows={3}
             value={newPolicyDesc}
             onChange={(e) => setNewPolicyDesc(e.target.value)}

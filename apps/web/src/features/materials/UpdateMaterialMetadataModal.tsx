@@ -84,11 +84,11 @@ export const UpdateMaterialMetadataModal: React.FC<UpdateMaterialMetadataModalPr
             value={fileType}
             onChange={(e) => setFileType(e.target.value as any)}
             options={[
-              { value: 'PDF', label: 'PDF Document (.pdf)' },
-              { value: 'DOCX', label: 'Word Document (.docx)' },
-              { value: 'ZIP', label: 'Archive / Source (.zip)' },
-              { value: 'PPTX', label: 'Slide Presentation (.pptx)' },
-              { value: 'CODE', label: 'Source Code File (.cs, .sql)' },
+              { value: 'PDF', label: t("PDF Document (.pdf)") },
+              { value: 'DOCX', label: t("Word Document (.docx)") },
+              { value: 'ZIP', label: t("Archive / Source (.zip)") },
+              { value: 'PPTX', label: t("Slide Presentation (.pptx)") },
+              { value: 'CODE', label: t("Source Code File (.cs, .sql)") },
             ]}
           />
         </div>

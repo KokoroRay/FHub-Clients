@@ -16,11 +16,11 @@ export const RightSidebar: React.FC = () => {
   const { t } = useLanguage();
   const campusInfo = useCampusDetails(currentUser?.campus || currentCampus);
 
-  const studentName = currentUser?.fullName || 'Sinh viên FHub';
-  const studentId = currentUser?.studentId || '';
-  const avatarInitials = studentName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'SV';
-  const majorDisplay = (currentUser as any)?.majorName || (currentUser as any)?.major || 'N/A';
-  const semesterDisplay = (currentUser as any)?.term || (currentUser as any)?.semester || 'N/A';
+  const studentName = currentUser?.fullName || 'Nguyen Minh Tam';
+  const studentId = currentUser?.studentId || 'CE181522';
+  const avatarInitials = studentName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'NT';
+  const majorDisplay = (currentUser as any)?.majorName || (currentUser as any)?.major || 'Software Engineering (K18 - DevOps)';
+  const semesterDisplay = (currentUser as any)?.term || (currentUser as any)?.semester || 'Semester 7';
 
   const activities: Array<{
     id: string;
@@ -67,9 +67,9 @@ export const RightSidebar: React.FC = () => {
             <span className="text-slate-400 shrink-0">{t('common.campus', 'Campus')}:</span>
             <span
               className="font-medium text-slate-700 dark:text-slate-300 truncate text-right cursor-default"
-              title={`${campusInfo.fullName}${campusInfo.address ? `\nĐịa chỉ: ${campusInfo.address}` : ''}`}
+              title={`${t(campusInfo.fullName)}${campusInfo.address ? `\n${t('Địa chỉ:')} ${campusInfo.address}` : ''}`}
             >
-              {campusInfo.shortName}
+              {(currentUser as any)?.campus || t(campusInfo.shortName)}
             </span>
           </div>
           <div className="flex items-center justify-between">

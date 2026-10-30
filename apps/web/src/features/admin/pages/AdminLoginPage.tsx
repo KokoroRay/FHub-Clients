@@ -42,7 +42,7 @@ export const AdminLoginPage: React.FC = () => {
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !password.trim()) {
-      setErrorMessage('Vui lòng nhập đầy đủ Email quản trị viên và Mật khẩu.');
+      setErrorMessage(t("Vui lòng nhập đầy đủ Email quản trị viên và Mật khẩu."));
       return;
     }
 
@@ -62,7 +62,7 @@ export const AdminLoginPage: React.FC = () => {
       completeAdminLogin(result);
     } catch (err: any) {
       console.warn('API login failed:', err);
-      setErrorMessage(err.message || 'Email hoặc mật khẩu quản trị viên không chính xác.');
+      setErrorMessage(err.message || t("Email hoặc mật khẩu quản trị viên không chính xác."));
     } finally {
       setIsLoading(false);
     }
@@ -71,7 +71,7 @@ export const AdminLoginPage: React.FC = () => {
   const handle2FaSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!twoFactorCode.trim()) {
-      setErrorMessage('Vui lòng nhập mã OTP 6 chữ số.');
+      setErrorMessage(t("Vui lòng nhập mã OTP 6 chữ số."));
       return;
     }
 
@@ -82,7 +82,7 @@ export const AdminLoginPage: React.FC = () => {
       const result = await authApi.verify2FA(twoFactorToken, twoFactorCode.trim());
       completeAdminLogin(result);
     } catch (err: any) {
-      setErrorMessage(err.message || 'Mã xác thực 2FA không hợp lệ hoặc đã hết hạn.');
+      setErrorMessage(err.message || t("Mã xác thực 2FA không hợp lệ hoặc đã hết hạn."));
     } finally {
       setIsLoading(false);
     }
@@ -96,7 +96,7 @@ export const AdminLoginPage: React.FC = () => {
 
     if (!isOps) {
       setErrorMessage(
-        'Tài khoản không thuộc ban vận hành hệ thống (Admin / Community Moderator / Staff). Vui lòng đăng nhập tại Cổng Sinh Viên.'
+        t("Tài khoản không thuộc ban vận hành hệ thống (Admin / Community Moderator / Staff). Vui lòng đăng nhập tại Cổng Sinh Viên.")
       );
       return;
     }
@@ -160,15 +160,14 @@ export const AdminLoginPage: React.FC = () => {
           <div className="w-8 h-8 rounded-lg overflow-hidden bg-white border border-slate-200 flex items-center justify-center p-0.5 shadow-2xs">
             <img
               src="/fhub.jpg"
-              alt="FHub Logo"
+              alt={t("FHub Logo")}
               className="w-full h-full object-cover"
             />
           </div>
           <div className="flex items-center gap-2">
-            <span className="font-bold text-sm text-slate-900 tracking-tight">FHub Operations</span>
+            <span className="font-bold text-sm text-slate-900 tracking-tight">{t("FHub Operations")}</span>
             <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-100">
-              Ops Portal
-            </span>
+              {t("Ops Portal")}</span>
           </div>
         </div>
 
@@ -194,18 +193,16 @@ export const AdminLoginPage: React.FC = () => {
               <Shield className="w-6 h-6" />
             </div>
             <h1 className="text-xl font-bold tracking-tight text-slate-900">
-              Đăng nhập Vận hành
-            </h1>
+              {t("Đăng nhập Vận hành")}</h1>
             <p className="text-xs text-slate-500">
-              Dành riêng cho Quản trị viên (Admin) & Kiểm duyệt viên (Moderator)
-            </p>
+              {t("Dành riêng cho Quản trị viên (Admin) & Kiểm duyệt viên (Moderator)")}</p>
           </div>
 
           {/* Error Message */}
           {errorMessage && (
             <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 flex items-start gap-2.5 animate-fadeIn">
               <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-              <span>{errorMessage}</span>
+              <span>{t(errorMessage)}</span>
             </div>
           )}
 
@@ -214,8 +211,7 @@ export const AdminLoginPage: React.FC = () => {
             <form onSubmit={handleLoginSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Email Vận hành (Admin / Mod)
-                </label>
+                  {t("Email Vận hành (Admin / Mod)")}</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                     <Mail className="w-4 h-4" />
@@ -225,7 +221,7 @@ export const AdminLoginPage: React.FC = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    placeholder="admin@fhub.com.vn"
+                    placeholder={t("admin@fhub.com.vn")}
                     className="w-full pl-10 pr-4 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all"
                   />
                 </div>
@@ -233,8 +229,7 @@ export const AdminLoginPage: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Mật khẩu
-                </label>
+                  {t("Mật khẩu")}</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                     <Lock className="w-4 h-4" />
@@ -265,9 +260,9 @@ export const AdminLoginPage: React.FC = () => {
                     onChange={(e) => setRememberMe(e.target.checked)}
                     className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                   />
-                  <span>Ghi nhớ đăng nhập</span>
+                  <span>{t("Ghi nhớ đăng nhập")}</span>
                 </label>
-                <span className="text-[11px] text-slate-400">Bảo mật SSL 256-bit</span>
+                <span className="text-[11px] text-slate-400">{t("Bảo mật SSL 256-bit")}</span>
               </div>
 
               <button
@@ -278,11 +273,11 @@ export const AdminLoginPage: React.FC = () => {
                 {isLoading ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>Đang đăng nhập...</span>
+                    <span>{t("Đang đăng nhập...")}</span>
                   </>
                 ) : (
                   <>
-                    <span>Đăng nhập</span>
+                    <span>{t("Đăng nhập")}</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -292,13 +287,11 @@ export const AdminLoginPage: React.FC = () => {
             /* 2FA Step Form */
             <form onSubmit={handle2FaSubmit} className="space-y-4 animate-fadeIn">
               <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-800 leading-relaxed">
-                Tài khoản yêu cầu xác thực 2 lớp (2FA). Vui lòng nhập mã OTP 6 số từ ứng dụng Authenticator của bạn.
-              </div>
+                {t("Tài khoản yêu cầu xác thực 2 lớp (2FA). Vui lòng nhập mã OTP 6 số từ ứng dụng Authenticator của bạn.")}</div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Mã xác thực 2FA (OTP)
-                </label>
+                  {t("Mã xác thực 2FA (OTP)")}</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                     <KeyRound className="w-4 h-4" />
@@ -322,8 +315,7 @@ export const AdminLoginPage: React.FC = () => {
                   onClick={() => setIs2FaStep(false)}
                   className="flex-1 py-2.5 px-4 rounded-xl border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-semibold transition-colors cursor-pointer"
                 >
-                  Quay lại
-                </button>
+                  {t("Quay lại")}</button>
                 <button
                   type="submit"
                   disabled={isLoading}
@@ -332,7 +324,7 @@ export const AdminLoginPage: React.FC = () => {
                   {isLoading ? (
                     <RefreshCw className="w-4 h-4 animate-spin" />
                   ) : (
-                    <span>Xác nhận</span>
+                    <span>{t("Xác nhận")}</span>
                   )}
                 </button>
               </div>
@@ -344,8 +336,7 @@ export const AdminLoginPage: React.FC = () => {
             <div className="flex items-center justify-between text-[11px] text-slate-400 mb-2">
               <span className="flex items-center gap-1 font-medium text-slate-500">
                 <Sparkles className="w-3 h-3 text-amber-500" />
-                Tài khoản mẫu:
-              </span>
+                {t("Tài khoản mẫu:")}</span>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <button
@@ -357,8 +348,8 @@ export const AdminLoginPage: React.FC = () => {
                     : 'border-slate-200 hover:bg-slate-50 text-slate-600'
                 }`}
               >
-                <div className="font-semibold text-slate-800">Admin Thường</div>
-                <div className="text-[10px] text-slate-400 truncate">admin@fhub.com.vn</div>
+                <div className="font-semibold text-slate-800">{t("Admin Thường")}</div>
+                <div className="text-[10px] text-slate-400 truncate">{t("admin@fhub.com.vn")}</div>
               </button>
               <button
                 type="button"
@@ -369,8 +360,8 @@ export const AdminLoginPage: React.FC = () => {
                     : 'border-slate-200 hover:bg-slate-50 text-slate-600'
                 }`}
               >
-                <div className="font-semibold text-slate-800">Admin + 2FA</div>
-                <div className="text-[10px] text-slate-400 truncate">admin2fa@fhub.com.vn</div>
+                <div className="font-semibold text-slate-800">{t("Admin + 2FA")}</div>
+                <div className="text-[10px] text-slate-400 truncate">{t("admin2fa@fhub.com.vn")}</div>
               </button>
             </div>
           </div>
@@ -379,8 +370,7 @@ export const AdminLoginPage: React.FC = () => {
 
       {/* Simple Clean Footer */}
       <footer className="w-full px-6 py-4 text-center text-xs text-slate-400 border-t border-slate-200/80 bg-white">
-        © 2026 FHub Platform • Đại học FPT
-      </footer>
+        {t("© 2026 FHub Platform • Đại học FPT")}</footer>
     </div>
   );
 };

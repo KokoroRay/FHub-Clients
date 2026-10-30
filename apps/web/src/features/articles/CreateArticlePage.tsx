@@ -82,7 +82,7 @@ export const CreateArticlePage: React.FC = () => {
     } catch (err: any) {
       console.warn('Backend article create notice:', err);
       // If backend throws an error or requires specific role, show feedback
-      const msg = err.response?.data?.message || err.message || 'Lỗi khi tạo bài viết.';
+      const msg = err.response?.data?.message || err.message || t("Lỗi khi tạo bài viết.");
       setErrorMessage(msg);
     } finally {
       setIsSubmitting(false);
@@ -106,7 +106,7 @@ export const CreateArticlePage: React.FC = () => {
           {errorMessage && (
             <div className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
-              <span>{errorMessage}</span>
+              <span>{t(errorMessage)}</span>
             </div>
           )}
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -137,24 +137,24 @@ export const CreateArticlePage: React.FC = () => {
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 options={[
-                  { value: 'Học thuật & Trải nghiệm sinh viên', label: 'Học thuật & Trải nghiệm sinh viên (FPT Survival)' },
-                  { value: 'Lập trình & Kỹ thuật phần mềm', label: 'Kỹ thuật phần mềm & Lập trình' },
-                  { value: 'Thiết kế Đồ họa, 3D & UI/UX', label: 'Thiết kế Đồ họa, Mỹ thuật số & UI/UX' },
-                  { value: 'Kinh doanh, Quản trị & Chuỗi cung ứng', label: 'Kinh doanh, Quản trị & Chuỗi cung ứng' },
-                  { value: 'Digital Marketing & Truyền thông', label: 'Digital Marketing & Truyền thông' },
-                  { value: 'Tài chính, Kế toán & Fintech', label: 'Tài chính, Kế toán & Fintech' },
-                  { value: 'Du lịch, Khách sạn & Sự kiện', label: 'Du lịch, Khách sạn & Sự kiện' },
-                  { value: 'Pháp luật & Luật kinh tế', label: 'Luật kinh tế & Pháp lý' },
-                  { value: 'Ngoại ngữ (Anh - Nhật - Hàn - Trung)', label: 'Ngoại ngữ (Anh - Nhật - Hàn - Trung)' },
-                  { value: 'Trí tuệ nhân tạo & Khoa học dữ liệu', label: 'Trí tuệ nhân tạo & Khoa học dữ liệu' },
-                  { value: 'An toàn thông tin & Mạng máy tính', label: 'An toàn thông tin & Mạng' },
-                  { value: 'Khởi nghiệp & Đổi mới sáng tạo', label: 'Khởi nghiệp & Đổi mới sáng tạo' },
+                  { value: 'Học thuật & Trải nghiệm sinh viên', label: t("Học thuật & Trải nghiệm sinh viên (FPT Survival)") },
+                  { value: 'Lập trình & Kỹ thuật phần mềm', label: t("Kỹ thuật phần mềm & Lập trình") },
+                  { value: 'Thiết kế Đồ họa, 3D & UI/UX', label: t("Thiết kế Đồ họa, Mỹ thuật số & UI/UX") },
+                  { value: 'Kinh doanh, Quản trị & Chuỗi cung ứng', label: t("Kinh doanh, Quản trị & Chuỗi cung ứng") },
+                  { value: 'Digital Marketing & Truyền thông', label: t("Digital Marketing & Truyền thông") },
+                  { value: 'Tài chính, Kế toán & Fintech', label: t("Tài chính, Kế toán & Fintech") },
+                  { value: 'Du lịch, Khách sạn & Sự kiện', label: t("Du lịch, Khách sạn & Sự kiện") },
+                  { value: 'Pháp luật & Luật kinh tế', label: t("Luật kinh tế & Pháp lý") },
+                  { value: 'Ngoại ngữ (Anh - Nhật - Hàn - Trung)', label: t("Ngoại ngữ (Anh - Nhật - Hàn - Trung)") },
+                  { value: 'Trí tuệ nhân tạo & Khoa học dữ liệu', label: t("Trí tuệ nhân tạo & Khoa học dữ liệu") },
+                  { value: 'An toàn thông tin & Mạng máy tính', label: t("An toàn thông tin & Mạng") },
+                  { value: 'Khởi nghiệp & Đổi mới sáng tạo', label: t("Khởi nghiệp & Đổi mới sáng tạo") },
                 ]}
               />
 
               <Input
                 label={t('articleCreate.tagsLabel', 'Tags (Cách nhau bằng dấu phẩy)')}
-                placeholder="swp391, mkt101, figma, assignment, kinh-nghiem..."
+                placeholder={t("swp391, mkt101, figma, assignment, kinh-nghiem...")}
                 value={tags}
                 onChange={(e) => setTags(e.target.value)}
               />
@@ -162,7 +162,7 @@ export const CreateArticlePage: React.FC = () => {
 
             <Input
               label={t('articleCreate.coverLabel', 'Link ảnh bìa Cover Image (Tùy chọn)')}
-              placeholder="https://images.unsplash.com/..."
+              placeholder={t("https://images.unsplash.com/...")}
               value={coverUrl}
               onChange={(e) => setCoverUrl(e.target.value)}
               leftIcon={<ImageIcon className="w-4 h-4" />}

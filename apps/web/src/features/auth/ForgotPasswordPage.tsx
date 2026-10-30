@@ -15,13 +15,13 @@ export const ForgotPasswordPage: React.FC = () => {
   const handleSendOtpCode = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) {
-      setErrorMessage('Vui lòng nhập địa chỉ email.');
+      setErrorMessage(t("Vui lòng nhập địa chỉ email."));
       return;
     }
 
     const emailCheck = validateFptEmail(email.trim());
     if (!emailCheck.isValid) {
-      setErrorMessage(emailCheck.error || 'Email không đúng định dạng của trường.');
+      setErrorMessage(emailCheck.error || t("Email không đúng định dạng của trường."));
       return;
     }
 
@@ -37,7 +37,7 @@ export const ForgotPasswordPage: React.FC = () => {
       }
       navigate('/otp-verify?mode=forgot');
     } catch (err: any) {
-      setErrorMessage('Không thể gửi mã xác thực. Vui lòng kiểm tra lại email.');
+      setErrorMessage(t("Không thể gửi mã xác thực. Vui lòng kiểm tra lại email."));
     } finally {
       setIsLoading(false);
     }
@@ -58,7 +58,7 @@ export const ForgotPasswordPage: React.FC = () => {
           </button>
           <div className="flex items-center gap-1.5">
             <KeyRound className="w-4 h-4 text-[#0076D1]" />
-            <span className="font-extrabold text-xs text-slate-800">Password Recovery</span>
+            <span className="font-extrabold text-xs text-slate-800">{t("Password Recovery")}</span>
           </div>
         </div>
 
@@ -73,7 +73,7 @@ export const ForgotPasswordPage: React.FC = () => {
 
         {errorMessage && (
           <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold">
-            {errorMessage}
+            {t(errorMessage)}
           </div>
         )}
 
@@ -88,7 +88,7 @@ export const ForgotPasswordPage: React.FC = () => {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="TanLT.CE190370@gmail.com hoặc user@fpt.edu.vn"
+                placeholder={t("TanLT.CE190370@gmail.com hoặc user@fpt.edu.vn")}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0076D1]/20 focus:border-[#0076D1] transition-all"
                 required
               />

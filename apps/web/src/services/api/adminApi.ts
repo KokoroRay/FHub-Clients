@@ -784,8 +784,8 @@ export const coursesApi = courseNodesApi;
 // ---------------------------------------------------------------------------
 export const reputationApi = {
   getRules: async (): Promise<ReputationRule[]> => {
-    const res = await apiClient.get<any[]>('/api/reputation/rules');
-    const rawList = Array.isArray(res.data) ? res.data : [];
+    const res = await apiClient.get<ReputationRule[] | { data: any[] }>('/api/reputation/rules');
+    const rawList = Array.isArray(res.data) ? res.data : (res.data.data || []);
     return rawList.map((r: any) => ({
       id: String(r.id || r.rule_id || `rep-${Math.random()}`),
       actionCode: r.actionCode || r.rule_code || r.code || '',
@@ -825,7 +825,10 @@ export const reputationApi = {
   },
 
   updateRule: async (id: number | string, payload: { actionName: string; category?: string; pointDelta: number; dailyCap: number; description?: string; isActive?: boolean }) => {
-    const res = await apiClient.put<any>(`/api/admin/reputation/rules/${id}`, payload);
+    const res = await apiClient.put<any>(`/api/admin/reputation/rules/${id}`, {
+      rule_name: payload.actionName, points_delta: payload.pointDelta,
+      daily_limit: payload.dailyCap, description: payload.description, is_active: payload.isActive,
+    });
     return res.data;
   },
 
@@ -840,8 +843,8 @@ export const reputationApi = {
 // ---------------------------------------------------------------------------
 export const badgesApi = {
   getBadges: async (): Promise<DetailedBadge[]> => {
-    const res = await apiClient.get<any[]>('/api/badges');
-    const rawList = Array.isArray(res.data) ? res.data : [];
+    const res = await apiClient.get<DetailedBadge[] | { data: any[] }>('/api/badges');
+    const rawList = Array.isArray(res.data) ? res.data : (res.data.data || []);
     return rawList.map((b: any) => ({
       id: String(b.id || b.badge_id || `badge-${Math.random()}`),
       code: b.code || b.badge_code || '',
@@ -883,7 +886,10 @@ export const badgesApi = {
   },
 
   updateBadge: async (id: number | string, payload: { name: string; description?: string; tier?: string; category?: string; triggerCriteria?: string; pointValue?: number; isActive?: boolean }) => {
-    const res = await apiClient.put<any>(`/api/admin/badges/${id}`, payload);
+    const res = await apiClient.put<any>(`/api/admin/badges/${id}`, {
+      badge_name: payload.name, description: payload.description,
+      criteria_type: payload.triggerCriteria, criteria_value: payload.pointValue, is_active: payload.isActive,
+    });
     return res.data;
   },
 
@@ -1054,7 +1060,11 @@ export const governanceModerationApi = {
   // Reports Queue
   getReports: async (params?: { status?: string; targetType?: string; pageNumber?: number; pageSize?: number }) => {
     const res = await apiClient.get<ApiResponse<PagedResult<ContentReportItem>>>('/api/governance/reports', { params });
-    return res.data.data;
+    const data = res.data.data;
+    return { ...data, items: data.items.map((r: ContentReportItem & { reasonCode?: string; description?: string; submittedAt?: string }) => ({
+      ...r, reason: r.reason || r.reasonCode || '', details: r.details || r.description,
+      createdAt: r.createdAt || r.submittedAt || '',
+    })) };
   },
 
   getReportById: async (id: number | string) => {
@@ -1070,7 +1080,11 @@ export const governanceModerationApi = {
   // Community Content Moderation
   getContentList: async (params?: { contentType?: string; status?: string; nodeId?: number; search?: string; pageNumber?: number; pageSize?: number }) => {
     const res = await apiClient.get<ApiResponse<PagedResult<ModerationContentItem>>>('/api/governance/moderation/content', { params });
-    return res.data.data;
+    const data = res.data.data;
+    return { ...data, items: data.items.map((c: ModerationContentItem & { id?: number; authorUserId?: number; courseNodeId?: number; reportCount?: number }) => ({
+      ...c, contentId: c.contentId ?? c.id ?? 0, authorId: c.authorId ?? c.authorUserId ?? 0,
+      nodeId: c.nodeId ?? c.courseNodeId, pendingReportsCount: c.pendingReportsCount ?? c.reportCount ?? 0,
+    })) };
   },
 
   getContentDetail: async (contentType: string, contentId: number | string) => {
@@ -1210,7 +1224,10 @@ export interface UpdateStaffPayload {
 export const staffApi = {
   getStaffList: async (params?: { search?: string; role?: string; campus?: string; status?: string; isActive?: boolean; pageNumber?: number; pageSize?: number }) => {
     const res = await apiClient.get<ApiResponse<PagedResult<StaffSummaryDto>>>('/api/staff', { params });
-    return res.data.data;
+    const data = res.data.data;
+    return { ...data, items: data.items.map((s: StaffSummaryDto & { roleCode?: string; accountStatus?: string; isActive?: boolean }) => ({
+      ...s, role: s.role || s.roleCode || '', status: s.status || s.accountStatus || (s.isActive ? 'ACTIVE' : 'INACTIVE'),
+    })) };
   },
   getStaffById: async (id: number | string) => {
     const res = await apiClient.get<ApiResponse<StaffSummaryDto>>(`/api/staff/${id}`);

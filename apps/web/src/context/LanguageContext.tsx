@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { SupportedLanguage, translations, phraseTranslations } from './translations';
+import { SupportedLanguage } from './translations';
+import { translateText, normalizeLanguage, formatLocalizedDate, formatLocalizedTime, LANGUAGE_LOCALES, type TranslationParams } from './translate';
 import { profileApi } from '../services/api/studentApi';
 
 export type { SupportedLanguage };
@@ -19,28 +20,30 @@ export const LANGUAGE_OPTIONS: LanguageOption[] = [
 
 interface LanguageContextType {
   language: SupportedLanguage;
+  locale: string;
+  formatDate: (value: string, options?: Intl.DateTimeFormatOptions) => string;
+  formatTime: (value: string) => string;
   setLanguage: (lang: SupportedLanguage) => void;
-  t: (keyOrPhrase: string, fallback?: string, params?: Record<string, string | number>) => string;
+  t: (keyOrPhrase: string, fallback?: string, params?: TranslationParams) => string;
   options: LanguageOption[];
 }
 
-const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
+export const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 const getInitialLanguage = (): SupportedLanguage => {
   // 1. Direct language cache
-  const cachedLang = localStorage.getItem('fhub_language');
-  if (cachedLang === 'vi' || cachedLang === 'en' || cachedLang === 'ja') {
-    return cachedLang;
-  }
+  try {
+    const cachedLang = normalizeLanguage(localStorage.getItem('fhub_language'));
+    if (cachedLang) return cachedLang;
+  } catch {}
 
   // 2. User preferences cache
   try {
     const prefs = localStorage.getItem('fhub_user_preferences');
     if (prefs) {
       const parsed = JSON.parse(prefs);
-      if (parsed.language === 'vi' || parsed.language === 'en' || parsed.language === 'ja') {
-        return parsed.language;
-      }
+      const preference = normalizeLanguage(parsed.language);
+      if (preference) return preference;
     }
   } catch {}
 
@@ -59,20 +62,27 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const [language, setLanguageState] = useState<SupportedLanguage>(getInitialLanguage);
 
   const setLanguage = useCallback((newLang: SupportedLanguage) => {
+    const normalized = normalizeLanguage(newLang);
+    if (!normalized) return;
+    newLang = normalized;
     setLanguageState(newLang);
     try {
       localStorage.setItem('fhub_language', newLang);
 
       // Sync with preferences JSON
       const prefsStr = localStorage.getItem('fhub_user_preferences');
-      const prefs = prefsStr ? JSON.parse(prefsStr) : {};
+      let prefs: Record<string, unknown> = {};
+      try {
+        const parsed = prefsStr ? JSON.parse(prefsStr) : {};
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) prefs = parsed;
+      } catch {}
       prefs.language = newLang;
       localStorage.setItem('fhub_user_preferences', JSON.stringify(prefs));
 
       // Asynchronously update profile backend if logged in
       const token = localStorage.getItem('fhub_token') || sessionStorage.getItem('fhub_token');
       if (token) {
-        profileApi.updateFeedPreferences({ language: newLang as any }).catch(() => {});
+        profileApi.updateFeedPreferences(prefs).catch(() => {});
       }
     } catch (e) {
       console.warn('Failed to persist language preference:', e);
@@ -82,78 +92,34 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Listen to cross-tab storage changes
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'fhub_language' && e.newValue) {
-        if (e.newValue === 'vi' || e.newValue === 'en' || e.newValue === 'ja') {
-          setLanguageState(e.newValue);
-        }
+      if (e.key === 'fhub_language') {
+        const updatedLanguage = normalizeLanguage(e.newValue);
+        if (updatedLanguage) setLanguageState(updatedLanguage);
       }
     };
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
+  useEffect(() => {
+    document.documentElement.lang = language;
+  }, [language]);
+
   const t = useCallback(
-    (keyOrPhrase: string, fallback?: string, params?: Record<string, string | number>): string => {
-      if (!keyOrPhrase || typeof keyOrPhrase !== 'string') return '';
-      const rawText = keyOrPhrase.trim();
-
-      // 1. Direct translation key lookup
-      let result = translations[language]?.[rawText];
-
-      // 2. Direct phrase lookup in current language
-      if (!result) {
-        result = phraseTranslations[language]?.[rawText];
-      }
-
-      // 3. Case-insensitive lookup in current language
-      if (!result) {
-        const lower = rawText.toLowerCase();
-        const foundKey = Object.keys(phraseTranslations[language] || {}).find(
-          (k) => k.toLowerCase() === lower
-        );
-        if (foundKey) {
-          result = phraseTranslations[language][foundKey];
-        }
-      }
-
-      // 4. Fallback phrase lookup if fallback text is in dictionary
-      if (!result && fallback && typeof fallback === 'string') {
-        const fallbackTrim = fallback.trim();
-        result =
-          translations[language]?.[fallbackTrim] ||
-          phraseTranslations[language]?.[fallbackTrim];
-        if (!result) {
-          const lowerFallback = fallbackTrim.toLowerCase();
-          const foundFallbackKey = Object.keys(phraseTranslations[language] || {}).find(
-            (k) => k.toLowerCase() === lowerFallback
-          );
-          if (foundFallbackKey) {
-            result = phraseTranslations[language][foundFallbackKey];
-          }
-        }
-      }
-
-      // 5. Fallback or key itself
-      if (!result) {
-        result = fallback !== undefined ? fallback : keyOrPhrase;
-      }
-
-      // 5. Parameter substitution
-      if (params && typeof result === 'string') {
-        Object.entries(params).forEach(([k, v]) => {
-          result = result!.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v));
-        });
-      }
-
-      return result;
-    },
+    (keyOrPhrase: string, fallback?: string, params?: TranslationParams) =>
+      translateText(language, keyOrPhrase, fallback, params),
     [language]
   );
-
+  const formatDate = useCallback((value: string, options?: Intl.DateTimeFormatOptions) =>
+    formatLocalizedDate(language, value, options), [language]);
+  const formatTime = useCallback((value: string) => formatLocalizedTime(language, value), [language]);
   return (
     <LanguageContext.Provider
       value={{
         language,
+        locale: LANGUAGE_LOCALES[language],
+        formatDate,
+        formatTime,
         setLanguage,
         t,
         options: LANGUAGE_OPTIONS,

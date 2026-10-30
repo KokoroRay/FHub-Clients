@@ -33,7 +33,7 @@ import {
 
 export const QuestionListPage: React.FC = () => {
   const { currentCampus } = useAuth();
-  const { t } = useLanguage();
+  const { locale, t } = useLanguage();
   const [searchParams] = useSearchParams();
   const initialTag = searchParams.get('tag');
   const shouldOpenCreate = searchParams.get('action') === 'create';
@@ -493,7 +493,7 @@ export const QuestionListPage: React.FC = () => {
                   <div className="flex sm:flex-col items-center gap-1">
                     <button
                       onClick={(e) => handleVote(q.id, 'UP', e)}
-                      title="Upvote"
+                      title={t("Upvote")}
                       className={`p-1 rounded hover:bg-slate-100 transition-colors cursor-pointer ${
                         currentUserVote === 'UP' ? 'text-[#0076D1] font-bold' : 'text-slate-400'
                       }`}
@@ -505,7 +505,7 @@ export const QuestionListPage: React.FC = () => {
                     </span>
                     <button
                       onClick={(e) => handleVote(q.id, 'DOWN', e)}
-                      title="Downvote"
+                      title={t("Downvote")}
                       className={`p-1 rounded hover:bg-slate-100 transition-colors cursor-pointer ${
                         currentUserVote === 'DOWN' ? 'text-rose-600 font-bold' : 'text-slate-400'
                       }`}
@@ -609,7 +609,7 @@ export const QuestionListPage: React.FC = () => {
                       )}
                       <span>·</span>
                       <span>
-                        {new Date(q.createdAt).toLocaleDateString('en-US', {
+                        {new Date(q.createdAt).toLocaleDateString(locale, {
                           month: 'short',
                           day: 'numeric',
                         })}

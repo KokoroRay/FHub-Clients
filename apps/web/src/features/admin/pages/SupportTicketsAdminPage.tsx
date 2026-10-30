@@ -1,3 +1,5 @@
+import { Button } from '../../../components/common/Button';
+import { Textarea, Select } from '../../../components/common/Input';
 import React, { useState } from 'react';
 import {
   LifeBuoy,
@@ -108,7 +110,7 @@ export const SupportTicketsAdminPage: React.FC = () => {
     if (selectedTicket && selectedTicket.id === ticketId) {
       setSelectedTicket({ ...selectedTicket, status: newStatus });
     }
-    setSuccessMessage(`Ticket status updated to ${newStatus}`);
+    setSuccessMessage(t("Ticket status updated to {p0}", undefined, { p0: newStatus }));
     setTimeout(() => setSuccessMessage(null), 3000);
   };
 
@@ -130,7 +132,7 @@ export const SupportTicketsAdminPage: React.FC = () => {
           t.id === selectedTicket.id ? { ...t, repliesCount: t.repliesCount + 1, status: 'IN_PROGRESS' } : t
         )
       );
-      setSuccessMessage('Official response sent and ticket status set to IN_PROGRESS');
+      setSuccessMessage(t("Official response sent and ticket status set to IN_PROGRESS"));
       setReplyMessage('');
       setTimeout(() => setSuccessMessage(null), 3500);
     }
@@ -143,7 +145,7 @@ export const SupportTicketsAdminPage: React.FC = () => {
         <div>
           <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
             <span>{t('GOVERNANCE & SUPPORT')}</span>
-            <span>&gt;</span>
+            <span>{t("&gt;")}</span>
             <span className="text-blue-600">{t('INCIDENT & TICKET QUEUE')}</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
@@ -164,7 +166,7 @@ export const SupportTicketsAdminPage: React.FC = () => {
       {successMessage && (
         <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center gap-2 animate-fadeIn">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span>{successMessage}</span>
+          <span>{t(successMessage)}</span>
         </div>
       )}
 
@@ -259,23 +261,19 @@ export const SupportTicketsAdminPage: React.FC = () => {
                   <div className="flex items-center gap-1.5">
                     {ticketItem.priority === 'URGENT' && (
                       <span className="text-[9px] px-1.5 py-0.2 rounded font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                        URGENT
-                      </span>
+                        {t("URGENT")}</span>
                     )}
                     {ticketItem.priority === 'HIGH' && (
                       <span className="text-[9px] px-1.5 py-0.2 rounded font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                        HIGH
-                      </span>
+                        {t("HIGH")}</span>
                     )}
                     {ticketItem.priority === 'MEDIUM' && (
                       <span className="text-[9px] px-1.5 py-0.2 rounded font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                        MED
-                      </span>
+                        {t("MED")}</span>
                     )}
                     {ticketItem.priority === 'LOW' && (
                       <span className="text-[9px] px-1.5 py-0.2 rounded font-bold bg-slate-100 text-slate-600 border border-slate-200">
-                        LOW
-                      </span>
+                        {t("LOW")}</span>
                     )}
 
                     <span
@@ -287,7 +285,7 @@ export const SupportTicketsAdminPage: React.FC = () => {
                           : 'bg-blue-50 text-blue-700 border border-blue-200'
                       }`}
                     >
-                      {ticketItem.status}
+                      {t(ticketItem.status)}
                     </span>
                   </div>
                 </div>
@@ -311,7 +309,7 @@ export const SupportTicketsAdminPage: React.FC = () => {
         <div className="lg:col-span-7">
           {selectedTicket ? (
             <div className="bg-white rounded-xl border border-slate-200/90 p-5 shadow-2xs space-y-5 sticky top-20">
-              <div className="flex items-start justify-between gap-4 pb-4 border-b border-slate-100">
+              <div className="flex flex-col sm:flex-row items-start justify-between gap-4 pb-4 border-b border-slate-100">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <span className="font-mono text-xs font-bold text-blue-600">{selectedTicket.ticketCode}</span>
@@ -323,16 +321,18 @@ export const SupportTicketsAdminPage: React.FC = () => {
                   </p>
                 </div>
 
-                <select
-                  value={selectedTicket.status}
+                <div className="w-full sm:w-44 shrink-0">
+                <Select
+                  id="select-ticket-status-admin" value={selectedTicket.status}
                   onChange={(e) => handleUpdateStatus(selectedTicket.id, e.target.value as any)}
-                  className="bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-700 cursor-pointer"
+                  className="min-w-40"
                 >
-                  <option value="OPEN">Status: OPEN</option>
-                  <option value="IN_PROGRESS">Status: IN PROGRESS</option>
-                  <option value="RESOLVED">Status: RESOLVED</option>
-                  <option value="CLOSED">Status: CLOSED</option>
-                </select>
+                  <option value="OPEN">{t("Status: OPEN")}</option>
+                  <option value="IN_PROGRESS">{t("Status: IN PROGRESS")}</option>
+                  <option value="RESOLVED">{t("Status: RESOLVED")}</option>
+                  <option value="CLOSED">{t("Status: CLOSED")}</option>
+                </Select>
+                </div>
               </div>
 
               <div className="p-3 bg-slate-50 rounded-lg text-xs flex items-center justify-between">
@@ -350,28 +350,22 @@ export const SupportTicketsAdminPage: React.FC = () => {
               </div>
 
               <form onSubmit={handleSendReply} className="space-y-3">
-                <label className="block text-xs font-bold text-slate-700">
-                  {t('Official Helpdesk Response:')}
-                </label>
-                <textarea
+                <Textarea
+                  id="official-helpdesk-response"
+                  label={t('Official Helpdesk Response:')}
                   rows={4}
                   value={replyMessage}
                   onChange={(e) => setReplyMessage(e.target.value)}
                   placeholder={t('Enter official resolution, instructions, or actions taken...')}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 />
 
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] text-slate-400">
                     {t('The user will be notified via email and system notification.')}
                   </span>
-                  <button
-                    type="submit"
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    <span>{t('Send Reply')}</span>
-                  </button>
+                  <Button type="submit" size="sm" leftIcon={<Send className="w-3.5 h-3.5" />}>
+                    {t('Send Reply')}
+                  </Button>
                 </div>
               </form>
             </div>

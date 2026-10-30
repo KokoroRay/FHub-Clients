@@ -79,7 +79,7 @@ export const ReportContentModal: React.FC<ReportContentModalProps> = ({
     setIsSubmitting(true);
     setErrorMessage(null);
 
-    const typeLabel = TARGET_TYPE_LABELS[targetType] || 'Nội dung';
+    const typeLabel = TARGET_TYPE_LABELS[targetType] || t("Nội dung");
     const reasonObj = REPORT_REASONS.find((r) => r.id === selectedReason);
 
     try {
@@ -126,7 +126,7 @@ ${details.trim()}
               {t('Cảm ơn bạn đã hỗ trợ bảo vệ cộng đồng FHub!', 'Cảm ơn bạn đã hỗ trợ bảo vệ cộng đồng FHub!')}
             </h4>
             <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
-              Ticket <strong className="text-slate-700 dark:text-slate-200">#{createdTicketId}</strong>
+              {t("Ticket")} <strong className="text-slate-700 dark:text-slate-200">#{createdTicketId}</strong>
             </p>
           </div>
 
@@ -201,7 +201,7 @@ ${details.trim()}
           {errorMessage && (
             <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-lg text-rose-700 flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 shrink-0" />
-              <span>{errorMessage}</span>
+              <span>{t(errorMessage)}</span>
             </div>
           )}
 

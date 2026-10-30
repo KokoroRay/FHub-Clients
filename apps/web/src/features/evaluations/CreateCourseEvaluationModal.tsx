@@ -110,7 +110,7 @@ export const CreateCourseEvaluationModal: React.FC<CreateCourseEvaluationModalPr
         difficultyRating,
         workloadRating,
         reviewContent: comment.trim(),
-        survivalTips: lecturerName.trim() ? `Giảng viên: ${lecturerName.trim()}` : undefined,
+        survivalTips: lecturerName.trim() ? t("Giảng viên: {p0}", undefined, { p0: lecturerName.trim() }) : undefined,
       });
 
       const newReview: CourseReview = {
@@ -118,7 +118,7 @@ export const CreateCourseEvaluationModal: React.FC<CreateCourseEvaluationModalPr
         courseCode,
         reviewer: {
           id: currentUser?.id || 'u-self',
-          fullName: currentUser?.fullName || 'Sinh viên FHub',
+          fullName: currentUser?.fullName || t("Sinh viên FHub"),
           avatarUrl: currentUser?.avatarUrl,
         },
         rating: res.overallRating,
@@ -142,7 +142,7 @@ export const CreateCourseEvaluationModal: React.FC<CreateCourseEvaluationModalPr
         courseCode,
         reviewer: {
           id: currentUser?.id || 'u-self',
-          fullName: currentUser?.fullName || 'Sinh viên FHub',
+          fullName: currentUser?.fullName || t("Sinh viên FHub"),
           avatarUrl: currentUser?.avatarUrl,
         },
         rating,
@@ -180,7 +180,7 @@ export const CreateCourseEvaluationModal: React.FC<CreateCourseEvaluationModalPr
         {errorMessage && (
           <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
-            <span>{errorMessage}</span>
+            <span>{t(errorMessage)}</span>
           </div>
         )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

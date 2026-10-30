@@ -1,3 +1,4 @@
+import { useLanguage } from '../../../context/LanguageContext';
 import React, { useState } from 'react';
 import {
   Activity,
@@ -13,6 +14,7 @@ import {
 import { useSystemHealthStatus } from '../../../services/api';
 
 export const SystemHealthAdminPage: React.FC = () => {
+  const { t } = useLanguage();
   const { data: healthData, isLoading, refetch } = useSystemHealthStatus();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
@@ -47,16 +49,14 @@ export const SystemHealthAdminPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-            <span>DEVOPS & TELEMETRY</span>
-            <span>&gt;</span>
-            <span className="text-blue-600">SYSTEM HEALTH & SLA</span>
+            <span>{t("DEVOPS & TELEMETRY")}</span>
+            <span>{t("&gt;")}</span>
+            <span className="text-blue-600">{t("SYSTEM HEALTH & SLA")}</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            Microservices SLA & System Health
-          </h1>
+            {t("Microservices SLA & System Health")}</h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Realtime SLA monitoring, p95 latencies, and cluster telemetry across all 7 core microservices.
-          </p>
+            {t("Realtime SLA monitoring, p95 latencies, and cluster telemetry across all 7 core microservices.")}</p>
         </div>
 
         <button
@@ -65,7 +65,7 @@ export const SystemHealthAdminPage: React.FC = () => {
           className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition-colors cursor-pointer shadow-xs"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-          <span>{isRefreshing ? 'Pinging...' : 'Ping Telemetry'}</span>
+          <span>{isRefreshing ? t("Pinging...") : t("Ping Telemetry")}</span>
         </button>
       </div>
 
@@ -79,20 +79,20 @@ export const SystemHealthAdminPage: React.FC = () => {
       {/* Cluster Overview Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">OVERALL UPTIME SLA</span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t("OVERALL UPTIME SLA")}</span>
           <p className="text-2xl font-bold text-emerald-600 mt-1">{avgUptime}%</p>
         </div>
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">AVG P95 LATENCY</span>
-          <p className="text-2xl font-bold text-slate-900 mt-1">{avgLatency} ms</p>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t("AVG P95 LATENCY")}</span>
+          <p className="text-2xl font-bold text-slate-900 mt-1">{avgLatency}  {t("ms")}</p>
         </div>
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">REDIS CACHE HIT</span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t("REDIS CACHE HIT")}</span>
           <p className="text-2xl font-bold text-blue-600 mt-1">98.4%</p>
         </div>
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">POSTGRES HEALTH</span>
-          <p className="text-2xl font-bold text-slate-900 mt-1">ONLINE</p>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t("POSTGRES HEALTH")}</span>
+          <p className="text-2xl font-bold text-slate-900 mt-1">{t("ONLINE")}</p>
         </div>
       </div>
 
@@ -101,22 +101,21 @@ export const SystemHealthAdminPage: React.FC = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Server className="w-4 h-4 text-blue-600" />
-            <h2 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Microservice Cluster Health</h2>
+            <h2 className="font-bold text-xs text-slate-900 uppercase tracking-wider">{t("Microservice Cluster Health")}</h2>
           </div>
           <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
             healthyCount === (healthList.length || 7) && healthyCount > 0
               ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
               : 'bg-amber-50 text-amber-700 border-amber-200'
           }`}>
-            {healthyCount} / {healthList.length || 7} SERVICES HEALTHY
-          </span>
+            {healthyCount} / {healthList.length || 7}  {t("SERVICES HEALTHY")}</span>
         </div>
 
         <div className="divide-y divide-slate-100 text-xs">
           {isLoading && healthList.length === 0 ? (
             <div className="py-8 text-center text-slate-400">
               <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-blue-600" />
-              <span>Probing cluster SLA endpoints across all microservices...</span>
+              <span>{t("Probing cluster SLA endpoints across all microservices...")}</span>
             </div>
           ) : (
             healthList.map((srv) => {
@@ -130,20 +129,20 @@ export const SystemHealthAdminPage: React.FC = () => {
                     }`} />
                     <div>
                       <span className="font-semibold text-slate-800">{srv.serviceName}</span>
-                      <div className="text-[10px] text-slate-400">Checked: {srv.lastChecked}</div>
+                      <div className="text-[10px] text-slate-400">{t("Checked:")} {srv.lastChecked}</div>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-6">
                     <div className="text-right">
-                      <span className="text-[10px] text-slate-400 block">Uptime:</span>
+                      <span className="text-[10px] text-slate-400 block">{t("Uptime:")}</span>
                       <span className={`font-mono font-bold ${isHealthy ? 'text-emerald-600' : 'text-amber-600'}`}>
                         {srv.uptimePercentage}%
                       </span>
                     </div>
                     <div className="text-right">
-                      <span className="text-[10px] text-slate-400 block">Latency:</span>
-                      <span className="font-mono font-bold text-slate-800">{srv.latencyMs} ms</span>
+                      <span className="text-[10px] text-slate-400 block">{t("Latency:")}</span>
+                      <span className="font-mono font-bold text-slate-800">{srv.latencyMs}  {t("ms")}</span>
                     </div>
                     <span className={`px-2 py-0.2 rounded-full text-[10px] font-bold border ${
                       isHealthy
@@ -152,7 +151,7 @@ export const SystemHealthAdminPage: React.FC = () => {
                         ? 'bg-amber-50 text-amber-700 border-amber-200'
                         : 'bg-rose-50 text-rose-700 border-rose-200'
                     }`}>
-                      {srv.status}
+                      {t(srv.status)}
                     </span>
                   </div>
                 </div>

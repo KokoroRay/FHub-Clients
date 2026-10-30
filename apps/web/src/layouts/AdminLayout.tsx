@@ -76,7 +76,7 @@ export const AdminLayout: React.FC = () => {
               <h3 className="font-extrabold text-xs text-blue-600 dark:text-blue-400 uppercase tracking-wide">
                 {currentRole === 'Admin' ? t('header.adminPortal', 'Admin Portal') : t('nav.staffManagement', 'Staff Governance')}
               </h3>
-              <p className="text-[10px] text-slate-500 dark:text-slate-400">SEP Core Control Center</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400">{t("SEP Core Control Center")}</p>
             </div>
             <Link to="/" className="text-xs text-blue-700 dark:text-blue-400 hover:underline flex items-center gap-0.5" title={t('header.switchToMain', 'Về trang chủ')}>
               <ArrowLeft className="w-3.5 h-3.5" />

@@ -96,10 +96,19 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   const [fullName, setFullName] = useState(initialData.fullName);
 
   // Normalize initial campus
-  const initialCampusCode = CAMPUS_OPTIONS.find(
-    (c) => c.code.toLowerCase() === (initialData.campus || '').toLowerCase() ||
-           c.name.toLowerCase().includes((initialData.campus || '').toLowerCase())
-  )?.code || 'HN';
+  const rawCampus = (initialData.campus || '').toLowerCase();
+  const initialCampusCode =
+    rawCampus.includes('can tho') || rawCampus.includes('cần thơ') || rawCampus === 'ct'
+      ? 'CT'
+      : rawCampus.includes('ho chi minh') || rawCampus.includes('hcm')
+      ? 'HCM'
+      : rawCampus.includes('da nang') || rawCampus.includes('dn')
+      ? 'DN'
+      : rawCampus.includes('quy nhon') || rawCampus.includes('qn')
+      ? 'QN'
+      : CAMPUS_OPTIONS.find(
+          (c) => c.code.toLowerCase() === rawCampus || c.name.toLowerCase().includes(rawCampus)
+        )?.code || 'CT';
   const [campus, setCampus] = useState(initialCampusCode);
 
   // Normalize initial major
@@ -258,7 +267,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
         {errorMessage && (
           <div className="mx-6 mt-4 p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-2.5 text-rose-800 text-xs font-semibold">
             <X className="w-4 h-4 text-rose-600 shrink-0" />
-            <span>{errorMessage}</span>
+            <span>{t(errorMessage)}</span>
           </div>
         )}
 
@@ -267,7 +276,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
           <div className="flex items-start gap-4 pb-4 border-b border-slate-100">
             <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#0076D1] to-sky-400 flex items-center justify-center text-white font-bold text-xl overflow-hidden shadow-xs shrink-0">
               {photoPreview ? (
-                <img src={normalizeMediaUrl(photoPreview)} alt="Avatar" className="w-full h-full object-cover" />
+                <img src={normalizeMediaUrl(photoPreview)} alt={t("Avatar")} className="w-full h-full object-cover" />
               ) : (
                 fullName.split(' ').map((n) => n[0]).join('').substring(0, 2).toUpperCase() || 'FU'
               )}
@@ -353,7 +362,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 >
                   {CAMPUS_OPTIONS.map((c) => (
                     <option key={c.id} value={c.code}>
-                      {c.name}
+                      {t(c.name)}
                     </option>
                   ))}
                 </select>
@@ -374,7 +383,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 >
                   {MAJOR_OPTIONS.map((m) => (
                     <option key={m.id} value={m.code}>
-                      {m.name}
+                      {t(m.name)}
                     </option>
                   ))}
                 </select>
@@ -395,7 +404,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 >
                   {currentSpecializations.map((s) => (
                     <option key={s.id} value={s.code}>
-                      {s.name}
+                      {t(s.name)}
                     </option>
                   ))}
                 </select>

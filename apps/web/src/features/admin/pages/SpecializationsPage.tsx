@@ -122,15 +122,15 @@ export const SpecializationsPage: React.FC = () => {
     setFormError(null);
 
     if (!formMajorId) {
-      setFormError('Vui lòng chọn ngành đào tạo trực thuộc.');
+      setFormError(t("Vui lòng chọn ngành đào tạo trực thuộc."));
       return;
     }
     if (!formCode.trim()) {
-      setFormError('Mã chuyên ngành không được để trống.');
+      setFormError(t("Mã chuyên ngành không được để trống."));
       return;
     }
     if (!formName.trim()) {
-      setFormError('Tên chuyên ngành không được để trống.');
+      setFormError(t("Tên chuyên ngành không được để trống."));
       return;
     }
 
@@ -144,10 +144,10 @@ export const SpecializationsPage: React.FC = () => {
       });
 
       setShowCreateModal(false);
-      showNotification('success', `Đã tạo thành công chuyên ngành ${formCode.toUpperCase()}`);
+      showNotification('success', t("Đã tạo thành công chuyên ngành {p0}", undefined, { p0: formCode.toUpperCase() }));
       refetch();
     } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || 'Không thể tạo chuyên ngành.';
+      const msg = err.response?.data?.message || err.message || t("Không thể tạo chuyên ngành.");
       setFormError(msg);
     }
   };
@@ -158,7 +158,7 @@ export const SpecializationsPage: React.FC = () => {
     setFormError(null);
 
     if (!formName.trim()) {
-      setFormError('Tên chuyên ngành không được để trống.');
+      setFormError(t("Tên chuyên ngành không được để trống."));
       return;
     }
 
@@ -173,10 +173,10 @@ export const SpecializationsPage: React.FC = () => {
       });
 
       setEditingSpec(null);
-      showNotification('success', `Cập nhật thành công chuyên ngành ${editingSpec.specializationCode}`);
+      showNotification('success', t("Cập nhật thành công chuyên ngành {p0}", undefined, { p0: editingSpec.specializationCode }));
       refetch();
     } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || 'Không thể cập nhật chuyên ngành.';
+      const msg = err.response?.data?.message || err.message || t("Không thể cập nhật chuyên ngành.");
       setFormError(msg);
     }
   };
@@ -187,10 +187,10 @@ export const SpecializationsPage: React.FC = () => {
     try {
       await deleteMutation.mutateAsync(deletingSpec.specializationId);
       setDeletingSpec(null);
-      showNotification('success', `Đã xóa chuyên ngành ${deletingSpec.specializationCode}`);
+      showNotification('success', t("Đã xóa chuyên ngành {p0}", undefined, { p0: deletingSpec.specializationCode }));
       refetch();
     } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || 'Không thể xóa chuyên ngành.';
+      const msg = err.response?.data?.message || err.message || t("Không thể xóa chuyên ngành.");
       showNotification('error', msg);
       setDeletingSpec(null);
     }
@@ -202,16 +202,15 @@ export const SpecializationsPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-            <span>ACADEMIC TAXONOMY</span>
-            <span>&gt;</span>
-            <span className="text-blue-600">SPECIALIZATIONS ({totalCount})</span>
+            <span>{t("ACADEMIC TAXONOMY")}</span>
+            <span>{t("&gt;")}</span>
+            <span className="text-blue-600">{t("SPECIALIZATIONS (")}{totalCount})</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
             {t('Specializations Registry', 'Specializations Registry')}
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Manage academic specializations, curriculum alignments, and parent degree tracks across all campuses.
-          </p>
+            {t("Manage academic specializations, curriculum alignments, and parent degree tracks across all campuses.")}</p>
         </div>
 
         <div className="flex items-center gap-2.5">
@@ -219,7 +218,7 @@ export const SpecializationsPage: React.FC = () => {
             onClick={() => refetch()}
             disabled={isRefetching}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 shadow-2xs transition-colors cursor-pointer"
-            title="Refresh specializations"
+            title={t("Refresh specializations")}
           >
             <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${isRefetching ? 'animate-spin' : ''}`} />
             <span>{t('common.refresh', 'Refresh')}</span>
@@ -250,14 +249,13 @@ export const SpecializationsPage: React.FC = () => {
             ) : (
               <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
             )}
-            <span className="font-medium">{notice.message}</span>
+            <span className="font-medium">{t(notice.message)}</span>
           </div>
           <button
             onClick={() => setNotice(null)}
             className="text-[10px] font-bold uppercase tracking-wider underline hover:opacity-75 cursor-pointer ml-3"
           >
-            Đóng
-          </button>
+            {t("Đóng")}</button>
         </div>
       )}
 
@@ -266,25 +264,25 @@ export const SpecializationsPage: React.FC = () => {
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('TOTAL SPECIALIZATIONS', 'TOTAL SPECIALIZATIONS')}</span>
           <h3 className="text-2xl font-bold text-slate-900 tracking-tight mt-1">{totalCount}</h3>
-          <p className="text-[11px] text-slate-400 mt-0.5">Defined academic sub-tracks</p>
+          <p className="text-[11px] text-slate-400 mt-0.5">{t("Defined academic sub-tracks")}</p>
         </div>
 
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
           <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">{t('ACTIVE TRACKS', 'ACTIVE TRACKS')}</span>
           <h3 className="text-2xl font-bold text-emerald-600 tracking-tight mt-1">{activeCount}</h3>
-          <p className="text-[11px] text-slate-400 mt-0.5">Currently enrolling students</p>
+          <p className="text-[11px] text-slate-400 mt-0.5">{t("Currently enrolling students")}</p>
         </div>
 
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
           <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">{t('CURRICULA LINKED', 'CURRICULA LINKED')}</span>
           <h3 className="text-2xl font-bold text-blue-600 tracking-tight mt-1">{totalCurricula}</h3>
-          <p className="text-[11px] text-slate-400 mt-0.5">Roadmap matrices active</p>
+          <p className="text-[11px] text-slate-400 mt-0.5">{t("Roadmap matrices active")}</p>
         </div>
 
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t('PARENT MAJORS', 'PARENT MAJORS')}</span>
           <h3 className="text-2xl font-bold text-slate-900 tracking-tight mt-1">{majors.length}</h3>
-          <p className="text-[11px] text-slate-400 mt-0.5">Undergraduate degree programs</p>
+          <p className="text-[11px] text-slate-400 mt-0.5">{t("Undergraduate degree programs")}</p>
         </div>
       </div>
 
@@ -296,7 +294,7 @@ export const SpecializationsPage: React.FC = () => {
             type="text"
             value={searchQuery}
             onChange={(e) => handleSearchChange(e.target.value)}
-            placeholder="Search by specialization code (SE_IS, SE_AI), title, or parent major..."
+            placeholder={t("Search by specialization code (SE_IS, SE_AI), title, or parent major...")}
             className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
           />
         </div>
@@ -307,7 +305,7 @@ export const SpecializationsPage: React.FC = () => {
             onChange={(e) => handleMajorChange(e.target.value)}
             className="w-full md:w-56 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none cursor-pointer"
           >
-            <option value="ALL">All Majors (Degree Tracks)</option>
+            <option value="ALL">{t("All Majors (Degree Tracks)")}</option>
             {majors.map((m: any) => (
               <option key={m.majorId} value={m.majorId}>
                 {m.majorCode} - {m.majorName}
@@ -320,9 +318,9 @@ export const SpecializationsPage: React.FC = () => {
             onChange={(e) => handleStatusChange(e.target.value)}
             className="w-full md:w-36 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none cursor-pointer"
           >
-            <option value="ALL">All Status</option>
-            <option value="ACTIVE">Active</option>
-            <option value="INACTIVE">Inactive</option>
+            <option value="ALL">{t("All Status")}</option>
+            <option value="ACTIVE">{t("Active")}</option>
+            <option value="INACTIVE">{t("Inactive")}</option>
           </select>
         </div>
       </div>
@@ -332,26 +330,25 @@ export const SpecializationsPage: React.FC = () => {
         {isLoading ? (
           <div className="p-12 text-center text-slate-500 flex flex-col items-center justify-center gap-2">
             <Loader2 className="w-7 h-7 animate-spin text-blue-600" />
-            <p className="text-xs font-medium text-slate-500">Loading specializations registry...</p>
+            <p className="text-xs font-medium text-slate-500">{t("Loading specializations registry...")}</p>
           </div>
         ) : specializations.length === 0 ? (
           <div className="p-12 text-center text-slate-500">
             <Layers className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-            <h3 className="text-sm font-semibold text-slate-700">No specializations found</h3>
+            <h3 className="text-sm font-semibold text-slate-700">{t("No specializations found")}</h3>
             <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-              No matching records found. Adjust your search keywords or add a new specialization.
-            </p>
+              {t("No matching records found. Adjust your search keywords or add a new specialization.")}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50/80 text-[10px] font-bold text-slate-400 uppercase border-b border-slate-200">
                 <tr>
-                  <th className="py-3 px-4 font-bold">SPECIALIZATION CODE & TITLE</th>
-                  <th className="py-3 px-3 font-bold">PARENT MAJOR</th>
-                  <th className="py-3 px-3 font-bold text-center">CURRICULA</th>
-                  <th className="py-3 px-3 font-bold">STATUS</th>
-                  <th className="py-3 px-4 font-bold text-right">ACTIONS</th>
+                  <th className="py-3 px-4 font-bold">{t("SPECIALIZATION CODE & TITLE")}</th>
+                  <th className="py-3 px-3 font-bold">{t("PARENT MAJOR")}</th>
+                  <th className="py-3 px-3 font-bold text-center">{t("CURRICULA")}</th>
+                  <th className="py-3 px-3 font-bold">{t("STATUS")}</th>
+                  <th className="py-3 px-4 font-bold text-right">{t("ACTIONS")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -394,12 +391,10 @@ export const SpecializationsPage: React.FC = () => {
                     <td className="py-3 px-3">
                       {spec.isActive ? (
                         <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                          <CheckCircle2 className="w-3 h-3" /> Active
-                        </span>
+                          <CheckCircle2 className="w-3 h-3" />  {t("Active")}</span>
                       ) : (
                         <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
-                          <XCircle className="w-3 h-3" /> Inactive
-                        </span>
+                          <XCircle className="w-3 h-3" />  {t("Inactive")}</span>
                       )}
                     </td>
 
@@ -407,7 +402,7 @@ export const SpecializationsPage: React.FC = () => {
                       <button
                         onClick={() => handleOpenEdit(spec)}
                         className="p-1 rounded text-slate-400 hover:text-blue-600 cursor-pointer"
-                        title="Edit specialization"
+                        title={t("Edit specialization")}
                       >
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
@@ -415,7 +410,7 @@ export const SpecializationsPage: React.FC = () => {
                       <button
                         onClick={() => setDeletingSpec(spec)}
                         className="p-1 rounded text-slate-400 hover:text-rose-600 cursor-pointer"
-                        title="Delete specialization"
+                        title={t("Delete specialization")}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -431,16 +426,15 @@ export const SpecializationsPage: React.FC = () => {
         {totalCount > 0 && (
           <div className="p-3.5 bg-slate-50/60 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
             <div>
-              Showing{' '}
+              {t("Showing")}{' '}
               <span className="font-semibold text-slate-800">
                 {(pageNumber - 1) * pageSize + 1}
               </span>{' '}
-              to{' '}
+              {t("to")}{' '}
               <span className="font-semibold text-slate-800">
                 {Math.min(pageNumber * pageSize, totalCount)}
               </span>{' '}
-              of <span className="font-semibold text-slate-800">{totalCount}</span> specializations
-            </div>
+              {t("of")} <span className="font-semibold text-slate-800">{totalCount}</span>  {t("specializations")}</div>
 
             <div className="flex items-center gap-1">
               <button
@@ -449,7 +443,7 @@ export const SpecializationsPage: React.FC = () => {
                 className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded text-xs font-semibold text-slate-700 shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 cursor-pointer"
               >
                 <ChevronLeft className="w-3.5 h-3.5" />
-                <span>Prev</span>
+                <span>{t("Prev")}</span>
               </button>
 
               <div className="flex items-center gap-1 px-1">
@@ -481,7 +475,7 @@ export const SpecializationsPage: React.FC = () => {
                 disabled={pageNumber >= totalPages}
                 className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded text-xs font-semibold text-slate-700 shadow-2xs disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1 cursor-pointer"
               >
-                <span>Next</span>
+                <span>{t("Next")}</span>
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -495,8 +489,7 @@ export const SpecializationsPage: React.FC = () => {
           <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full p-6 shadow-xl space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Plus className="w-4 h-4 text-blue-600" /> Add Specialization
-              </h2>
+                <Plus className="w-4 h-4 text-blue-600" />  {t("Add Specialization")}</h2>
               <button
                 onClick={() => setShowCreateModal(false)}
                 className="text-slate-400 hover:text-slate-600 cursor-pointer"
@@ -515,7 +508,7 @@ export const SpecializationsPage: React.FC = () => {
             <form onSubmit={handleCreateSubmit} className="space-y-3">
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700">
-                  Parent Major (Degree Track) <span className="text-rose-500">*</span>
+                  {t("Parent Major (Degree Track)")} <span className="text-rose-500">*</span>
                 </label>
                 <select
                   value={formMajorId}
@@ -523,7 +516,7 @@ export const SpecializationsPage: React.FC = () => {
                   required
                   className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 cursor-pointer"
                 >
-                  <option value="" disabled>-- Select Degree Track --</option>
+                  <option value="" disabled>{t("-- Select Degree Track --")}</option>
                   {majors.map((m: any) => (
                     <option key={m.majorId} value={m.majorId}>
                       {m.majorCode} - {m.majorName}
@@ -534,11 +527,11 @@ export const SpecializationsPage: React.FC = () => {
 
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700">
-                  Specialization Code <span className="text-rose-500">*</span>
+                  {t("Specialization Code")} <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. SE_IS, SE_AI, IA_NET"
+                  placeholder={t("e.g. SE_IS, SE_AI, IA_NET")}
                   value={formCode}
                   onChange={(e) => setFormCode(e.target.value)}
                   maxLength={30}
@@ -549,11 +542,11 @@ export const SpecializationsPage: React.FC = () => {
 
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700">
-                  Specialization Title <span className="text-rose-500">*</span>
+                  {t("Specialization Title")} <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Information Systems, Artificial Intelligence"
+                  placeholder={t("e.g. Information Systems, Artificial Intelligence")}
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
                   maxLength={200}
@@ -563,10 +556,10 @@ export const SpecializationsPage: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">Description</label>
+                <label className="text-xs font-semibold text-slate-700">{t("Description")}</label>
                 <textarea
                   rows={3}
-                  placeholder="Describe academic focus, specialization competencies..."
+                  placeholder={t("Describe academic focus, specialization competencies...")}
                   value={formDescription}
                   onChange={(e) => setFormDescription(e.target.value)}
                   maxLength={1000}
@@ -583,8 +576,7 @@ export const SpecializationsPage: React.FC = () => {
                   className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
                 />
                 <label htmlFor="createIsActive" className="text-xs text-slate-700 cursor-pointer">
-                  Activate specialization immediately
-                </label>
+                  {t("Activate specialization immediately")}</label>
               </div>
 
               <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
@@ -593,15 +585,14 @@ export const SpecializationsPage: React.FC = () => {
                   onClick={() => setShowCreateModal(false)}
                   className="px-3.5 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
                 >
-                  Cancel
-                </button>
+                  {t("Cancel")}</button>
                 <button
                   type="submit"
                   disabled={createMutation.isPending}
                   className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
                 >
                   {createMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                  <span>Save Specialization</span>
+                  <span>{t("Save Specialization")}</span>
                 </button>
               </div>
             </form>
@@ -615,7 +606,7 @@ export const SpecializationsPage: React.FC = () => {
           <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full p-6 shadow-xl space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Edit2 className="w-4 h-4 text-blue-600" /> Edit Specialization: {editingSpec.specializationCode}
+                <Edit2 className="w-4 h-4 text-blue-600" />  {t("Edit Specialization:")} {editingSpec.specializationCode}
               </h2>
               <button
                 onClick={() => setEditingSpec(null)}
@@ -635,8 +626,7 @@ export const SpecializationsPage: React.FC = () => {
             <form onSubmit={handleUpdateSubmit} className="space-y-3">
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700">
-                  Specialization Code (Immutable)
-                </label>
+                  {t("Specialization Code (Immutable)")}</label>
                 <input
                   type="text"
                   disabled
@@ -647,7 +637,7 @@ export const SpecializationsPage: React.FC = () => {
 
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700">
-                  Specialization Title <span className="text-rose-500">*</span>
+                  {t("Specialization Title")} <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -660,7 +650,7 @@ export const SpecializationsPage: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">Description</label>
+                <label className="text-xs font-semibold text-slate-700">{t("Description")}</label>
                 <textarea
                   rows={3}
                   value={formDescription}
@@ -679,8 +669,7 @@ export const SpecializationsPage: React.FC = () => {
                   className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
                 />
                 <label htmlFor="editIsActive" className="text-xs text-slate-700 cursor-pointer">
-                  Active in academic catalog
-                </label>
+                  {t("Active in academic catalog")}</label>
               </div>
 
               <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
@@ -689,15 +678,14 @@ export const SpecializationsPage: React.FC = () => {
                   onClick={() => setEditingSpec(null)}
                   className="px-3.5 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
                 >
-                  Cancel
-                </button>
+                  {t("Cancel")}</button>
                 <button
                   type="submit"
                   disabled={updateMutation.isPending}
                   className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
                 >
                   {updateMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                  <span>Update Changes</span>
+                  <span>{t("Update Changes")}</span>
                 </button>
               </div>
             </form>
@@ -715,10 +703,10 @@ export const SpecializationsPage: React.FC = () => {
 
             <div className="text-center">
               <h3 className="text-base font-bold text-slate-900">
-                Delete {deletingSpec.specializationCode}?
+                {t("Delete")} {deletingSpec.specializationCode}?
               </h3>
               <p className="text-xs text-slate-500 mt-1">
-                Are you sure you want to delete <span className="font-semibold text-slate-800">{deletingSpec.specializationName}</span>?
+                {t("Are you sure you want to delete")} <span className="font-semibold text-slate-800">{deletingSpec.specializationName}</span>?
               </p>
             </div>
 
@@ -726,8 +714,7 @@ export const SpecializationsPage: React.FC = () => {
               <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-xl flex items-start gap-2">
                 <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                 <span>
-                  This specialization has <strong>{deletingSpec.curriculaCount} linked curricula</strong>. Deletion will be rejected if curricula exist.
-                </span>
+                  {t("This specialization has")} <strong>{deletingSpec.curriculaCount}  {t("linked curricula")}</strong>{t(". Deletion will be rejected if curricula exist.")}</span>
               </div>
             )}
 
@@ -737,8 +724,7 @@ export const SpecializationsPage: React.FC = () => {
                 onClick={() => setDeletingSpec(null)}
                 className="px-3.5 py-1.5 border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
               >
-                Cancel
-              </button>
+                {t("Cancel")}</button>
               <button
                 type="button"
                 onClick={handleDeleteSubmit}
@@ -746,7 +732,7 @@ export const SpecializationsPage: React.FC = () => {
                 className="px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold shadow-xs disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
               >
                 {deleteMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                <span>Delete Specialization</span>
+                <span>{t("Delete Specialization")}</span>
               </button>
             </div>
           </div>

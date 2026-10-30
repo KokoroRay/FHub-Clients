@@ -17,7 +17,7 @@ import { courseNodesApi, majorsApi, CourseNodeListItem, MajorListItem } from '..
 import { useLanguage } from '../../context/LanguageContext';
 
 export const CourseListPage: React.FC = () => {
-  const { t } = useLanguage();
+  const { locale, t } = useLanguage();
   const [selectedMajor, setSelectedMajor] = useState<string>('ALL');
   const [selectedSemester, setSelectedSemester] = useState<string>('ALL');
   const [sortBy, setSortBy] = useState<'code' | 'rating' | 'popular'>('code');
@@ -198,7 +198,7 @@ export const CourseListPage: React.FC = () => {
             </h1>
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#D3E3FF] text-[#001C39]">
               <BookOpen className="w-3.5 h-3.5 text-[#0076D1]" />
-              <span>{filteredCourses.length.toLocaleString()} / {courses.length.toLocaleString()} {t('courses.coursesCount', 'môn học')}</span>
+              <span>{filteredCourses.length.toLocaleString(locale)} / {courses.length.toLocaleString(locale)} {t('courses.coursesCount', 'môn học')}</span>
             </span>
           </div>
           <p className="text-xs sm:text-sm text-[#404753] mt-1">
@@ -249,7 +249,7 @@ export const CourseListPage: React.FC = () => {
             <option value="ALL">{t('common.allMajors', 'Tất cả ngành học (All Departments)')}</option>
             {availableMajors.map((m) => (
               <option key={m.code} value={m.code}>
-                {m.code} - {m.name}
+                {m.code} - {t(m.name)}
               </option>
             ))}
           </select>
@@ -327,7 +327,7 @@ export const CourseListPage: React.FC = () => {
                             ? 'bg-blue-50 border-blue-200 text-[#0076D1]'
                             : 'border-transparent text-slate-400 hover:bg-slate-100 hover:text-slate-600'
                         }`}
-                        title="Bookmark Course"
+                        title={t("Bookmark Course")}
                       >
                         <Bookmark className={`w-4 h-4 ${isBookmarked ? 'fill-[#0076D1]' : ''}`} />
                       </button>
@@ -343,7 +343,7 @@ export const CourseListPage: React.FC = () => {
 
                     {/* Description */}
                     <p className="text-xs text-[#404753] line-clamp-2 leading-relaxed">
-                      {c.description || 'Chương trình đào tạo tiêu chuẩn của trường Đại học FPT.'}
+                      {c.description || t("Chương trình đào tạo tiêu chuẩn của trường Đại học FPT.")}
                     </p>
 
                     {/* Metadata Row: Term, Credits, Rating */}
@@ -375,7 +375,7 @@ export const CourseListPage: React.FC = () => {
                   <div className="pt-4 mt-3 border-t border-slate-100 flex items-center justify-between">
                     <span className="text-[11px] text-slate-400 flex items-center gap-1">
                       <Users className="w-3.5 h-3.5 text-[#0076D1]" />
-                      <span>{enrolled.toLocaleString()} {t('courses.followers', 'theo dõi')}</span>
+                      <span>{enrolled.toLocaleString(locale)} {t('courses.followers', 'theo dõi')}</span>
                     </span>
 
                     <Link
@@ -396,7 +396,7 @@ export const CourseListPage: React.FC = () => {
             <div className="text-xs text-slate-600">
               {t('common.showing', 'Hiển thị')} <span className="font-bold text-slate-900">{(currentPage - 1) * pageSize + 1}</span> -{' '}
               <span className="font-bold text-slate-900">{Math.min(currentPage * pageSize, totalCount)}</span> {t('common.of', 'trong tổng số')}{' '}
-              <span className="font-bold text-[#0076D1]">{totalCount.toLocaleString()}</span> {t('courses.coursesCount', 'môn học')}{' '}
+              <span className="font-bold text-[#0076D1]">{totalCount.toLocaleString(locale)}</span> {t('courses.coursesCount', 'môn học')}{' '}
               <span className="text-slate-400 font-normal">({t('common.page', 'Trang')} {currentPage} / {totalPages})</span>
             </div>
 

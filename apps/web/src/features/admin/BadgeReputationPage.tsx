@@ -1,3 +1,4 @@
+import { useLanguage } from '../../context/LanguageContext';
 import React, { useState } from 'react';
 import { Award, Plus, Edit2, Trash2, Zap, Star, ShieldCheck } from 'lucide-react';
 import { Button } from '../../components/common/Button';
@@ -24,6 +25,7 @@ interface ReputationRule {
 }
 
 export const BadgeReputationPage: React.FC = () => {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'badges' | 'karma'>('badges');
 
   const [badges] = useState<BadgeRule[]>([
@@ -43,34 +45,34 @@ export const BadgeReputationPage: React.FC = () => {
 
   const badgeColumns: Column<BadgeRule>[] = [
     {
-      header: 'Tên Huy hiệu & Tier',
+      header: t("Tên Huy hiệu & Tier"),
       cell: (item) => (
         <div className="flex items-center gap-2">
           <Award className="w-5 h-5 text-amber-500" />
           <div>
-            <span className="font-bold text-slate-900 dark:text-slate-100">{item.name}</span>
+            <span className="font-bold text-slate-900 dark:text-slate-100">{t(item.name)}</span>
             <Badge variant={item.tier === 'PLATINUM' ? 'purple' : item.tier === 'GOLD' ? 'warning' : 'neutral'} size="sm" className="ml-2">
-              {item.tier}
+              {t(item.tier)}
             </Badge>
           </div>
         </div>
       ),
     },
     {
-      header: 'Điều kiện mở khóa',
+      header: t("Điều kiện mở khóa"),
       accessorKey: 'condition',
-      cell: (item) => <span className="text-xs text-slate-600 dark:text-slate-300">{item.condition}</span>,
+      cell: (item) => <span className="text-xs text-slate-600 dark:text-slate-300">{t(item.condition)}</span>,
     },
     {
-      header: 'Thưởng Karma',
+      header: t("Thưởng Karma"),
       accessorKey: 'karmaBonus',
-      cell: (item) => <span className="font-bold text-emerald-600">+{item.karmaBonus} pts</span>,
+      cell: (item) => <span className="font-bold text-emerald-600">+{item.karmaBonus}  {t("pts")}</span>,
       className: 'w-32',
     },
     {
-      header: 'Số người đạt',
+      header: t("Số người đạt"),
       accessorKey: 'unlockedCount',
-      cell: (item) => <span className="font-bold font-mono text-slate-500">{item.unlockedCount} sinh viên</span>,
+      cell: (item) => <span className="font-bold font-mono text-slate-500">{item.unlockedCount}  {t("sinh viên")}</span>,
       className: 'w-32',
     },
   ];
@@ -81,18 +83,17 @@ export const BadgeReputationPage: React.FC = () => {
         <div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
             <Award className="w-6 h-6 text-[#2563eb]" />
-            <span>Badges & Reputation Rule Management</span>
+            <span>{t("Badges & Reputation Rule Management")}</span>
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Thiết lập quy tắc cấp Huy hiệu vinh danh và tính điểm danh tiếng Karma (Interaction Service).
-          </p>
+            {t("Thiết lập quy tắc cấp Huy hiệu vinh danh và tính điểm danh tiếng Karma (Interaction Service).")}</p>
         </div>
       </div>
 
       <Tabs
         tabs={[
-          { id: 'badges', label: 'Quy tắc Huy hiệu (Badge Rules)', icon: <Award className="w-4 h-4" /> },
-          { id: 'karma', label: 'Quy tắc Điểm Karma (Reputation)', icon: <Zap className="w-4 h-4" /> },
+          { id: 'badges', label: t("Quy tắc Huy hiệu (Badge Rules)"), icon: <Award className="w-4 h-4" /> },
+          { id: 'karma', label: t("Quy tắc Điểm Karma (Reputation)"), icon: <Zap className="w-4 h-4" /> },
         ]}
         activeTab={activeTab}
         onChange={(t) => setActiveTab(t as any)}
@@ -109,12 +110,12 @@ export const BadgeReputationPage: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <span className="font-mono font-bold text-xs text-slate-900 dark:text-slate-100">{r.action}</span>
                     <Badge variant={r.type === 'ADD' ? 'success' : 'danger'} size="sm">
-                      {r.type === 'ADD' ? `+${r.points} Karma` : `-${r.points} Karma`}
+                      {r.type === 'ADD' ? t("+{p0} Karma", undefined, { p0: r.points }) : t("-{p0} Karma", undefined, { p0: r.points })}
                     </Badge>
                   </div>
-                  <p className="text-xs text-slate-500">{r.description}</p>
+                  <p className="text-xs text-slate-500">{t(r.description)}</p>
                 </div>
-                <Button variant="outline" size="sm">Sửa</Button>
+                <Button variant="outline" size="sm">{t("Sửa")}</Button>
               </CardBody>
             </Card>
           ))}

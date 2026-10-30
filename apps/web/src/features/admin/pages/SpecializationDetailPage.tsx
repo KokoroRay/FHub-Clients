@@ -1,3 +1,4 @@
+import { useLanguage } from '../../../context/LanguageContext';
 import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
@@ -22,6 +23,7 @@ import {
 } from '../../../services/api';
 
 export const SpecializationDetailPage: React.FC = () => {
+  const { locale, t } = useLanguage();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
@@ -62,7 +64,7 @@ export const SpecializationDetailPage: React.FC = () => {
       setIsEditing(false);
       refetch();
     } catch (err: any) {
-      setFormError(err.response?.data?.message || err.message || 'Không thể cập nhật chuyên ngành.');
+      setFormError(err.response?.data?.message || err.message || t("Không thể cập nhật chuyên ngành."));
     }
   };
 
@@ -73,7 +75,7 @@ export const SpecializationDetailPage: React.FC = () => {
       await deleteMutation.mutateAsync(spec.specializationId);
       navigate('/specializations');
     } catch (err: any) {
-      alert(err.response?.data?.message || err.message || 'Không thể xóa chuyên ngành.');
+      alert(err.response?.data?.message || err.message || t("Không thể xóa chuyên ngành."));
       setShowDeleteModal(false);
     }
   };
@@ -81,8 +83,8 @@ export const SpecializationDetailPage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="p-12 text-center text-slate-500 flex flex-col items-center justify-center gap-3">
-        <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
-        <p className="text-sm font-medium">Đang tải thông tin chuyên ngành...</p>
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <p className="text-sm font-medium">{t("Đang tải thông tin chuyên ngành...")}</p>
       </div>
     );
   }
@@ -91,14 +93,13 @@ export const SpecializationDetailPage: React.FC = () => {
     return (
       <div className="p-8 text-center bg-white rounded-2xl border border-slate-200">
         <AlertTriangle className="w-12 h-12 text-rose-500 mx-auto mb-3" />
-        <h2 className="text-xl font-bold text-slate-800">Không tìm thấy chuyên ngành</h2>
-        <p className="text-slate-500 text-sm mt-1">Chuyên ngành yêu cầu không tồn tại hoặc đã bị xóa.</p>
+        <h2 className="text-xl font-bold text-slate-800">{t("Không tìm thấy chuyên ngành")}</h2>
+        <p className="text-slate-500 text-sm mt-1">{t("Chuyên ngành yêu cầu không tồn tại hoặc đã bị xóa.")}</p>
         <Link
           to="/specializations"
-          className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-colors"
+          className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" /> Quay lại danh sách
-        </Link>
+          <ArrowLeft className="w-4 h-4" />  {t("Quay lại danh sách")}</Link>
       </div>
     );
   }
@@ -109,23 +110,20 @@ export const SpecializationDetailPage: React.FC = () => {
       <div className="flex items-center justify-between">
         <Link
           to="/specializations"
-          className="inline-flex items-center gap-2 text-slate-600 hover:text-indigo-600 font-semibold text-sm transition-colors"
+          className="inline-flex items-center gap-2 text-slate-600 hover:text-blue-600 font-semibold text-sm transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" /> Quay lại danh sách Chuyên ngành
-        </Link>
+          <ArrowLeft className="w-4 h-4" />  {t("Quay lại danh sách Chuyên ngành")}</Link>
         <div className="flex items-center gap-3">
           <button
             onClick={handleOpenEdit}
             className="px-4 py-2 bg-white border border-slate-300 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-50 transition-colors flex items-center gap-1.5 shadow-sm"
           >
-            <Edit2 className="w-4 h-4 text-blue-600" /> Chỉnh sửa
-          </button>
+            <Edit2 className="w-4 h-4 text-blue-600" />  {t("Chỉnh sửa")}</button>
           <button
             onClick={() => setShowDeleteModal(true)}
             className="px-4 py-2 bg-white border border-rose-300 text-rose-600 rounded-lg text-sm font-semibold hover:bg-rose-50 transition-colors flex items-center gap-1.5 shadow-sm"
           >
-            <Trash2 className="w-4 h-4" /> Xóa
-          </button>
+            <Trash2 className="w-4 h-4" />  {t("Xóa")}</button>
         </div>
       </div>
 
@@ -134,32 +132,30 @@ export const SpecializationDetailPage: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <span className="font-mono text-xs font-bold px-3 py-1 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg">
+              <span className="font-mono text-xs font-bold px-3 py-1 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg">
                 {spec.specializationCode}
               </span>
               {spec.isActive ? (
                 <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> Đang hoạt động
-                </span>
+                  <CheckCircle2 className="w-3.5 h-3.5" />  {t("Đang hoạt động")}</span>
               ) : (
                 <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200">
-                  <XCircle className="w-3.5 h-3.5" /> Tạm dừng
-                </span>
+                  <XCircle className="w-3.5 h-3.5" />  {t("Tạm dừng")}</span>
               )}
             </div>
             <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900">{spec.specializationName}</h1>
             <p className="text-slate-500 text-sm mt-2 max-w-2xl">
-              {spec.description || 'Chưa có mô tả cho chuyên ngành này.'}
+              {spec.description || t("Chưa có mô tả cho chuyên ngành này.")}
             </p>
           </div>
 
           <div className="flex flex-col items-end border-t md:border-t-0 md:border-l border-slate-200 pt-4 md:pt-0 md:pl-6 min-w-[200px]">
-            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Ngành Trực Thuộc</div>
+            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t("Ngành Trực Thuộc")}</div>
             <Link
               to={`/majors/${spec.majorCode}`}
               className="mt-1 flex items-center gap-2 group text-right"
             >
-              <div className="font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">
+              <div className="font-bold text-slate-800 group-hover:text-blue-600 transition-colors">
                 {spec.majorName}
               </div>
               <span className="px-2 py-0.5 rounded font-mono text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
@@ -176,7 +172,7 @@ export const SpecializationDetailPage: React.FC = () => {
         <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-indigo-600" /> Khung Chương Trình Đào Tạo ({spec.curricula?.length || 0})
+              <BookOpen className="w-5 h-5 text-blue-600" />  {t("Khung Chương Trình Đào Tạo (")}{spec.curricula?.length || 0})
             </h2>
           </div>
 
@@ -196,22 +192,20 @@ export const SpecializationDetailPage: React.FC = () => {
                     )}
                     <div className="flex items-center gap-4 text-xs text-slate-400 mt-2">
                       <span className="flex items-center gap-1">
-                        <Calendar className="w-3.5 h-3.5" /> Áp dụng từ: {curr.effectiveFromYear}
+                        <Calendar className="w-3.5 h-3.5" />  {t("Áp dụng từ:")} {curr.effectiveFromYear}
                       </span>
                       <span>•</span>
-                      <span>{curr.totalCourses || 0} môn học</span>
+                      <span>{curr.totalCourses || 0}  {t("môn học")}</span>
                     </div>
                   </div>
 
                   <div>
                     {curr.isActive ? (
                       <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                        Áp dụng
-                      </span>
+                        {t("Áp dụng")}</span>
                     ) : (
                       <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
-                        Hết hiệu lực
-                      </span>
+                        {t("Hết hiệu lực")}</span>
                     )}
                   </div>
                 </div>
@@ -220,7 +214,7 @@ export const SpecializationDetailPage: React.FC = () => {
           ) : (
             <div className="p-8 text-center text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
               <BookOpen className="w-8 h-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm font-medium">Chưa có khung chương trình nào liên kết với chuyên ngành này.</p>
+              <p className="text-sm font-medium">{t("Chưa có khung chương trình nào liên kết với chuyên ngành này.")}</p>
             </div>
           )}
         </div>
@@ -228,28 +222,27 @@ export const SpecializationDetailPage: React.FC = () => {
         {/* Audit & Metadata (1 col) */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
           <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-            <Clock className="w-5 h-5 text-slate-600" /> Thông Tin Quản Trị
-          </h2>
+            <Clock className="w-5 h-5 text-slate-600" />  {t("Thông Tin Quản Trị")}</h2>
 
           <div className="space-y-3 text-sm">
             <div>
-              <div className="text-xs font-semibold text-slate-400 uppercase">Specialization ID</div>
+              <div className="text-xs font-semibold text-slate-400 uppercase">{t("Specialization ID")}</div>
               <div className="font-mono font-bold text-slate-700 mt-0.5">#{spec.specializationId}</div>
             </div>
 
             <div className="border-t border-slate-100 pt-3">
-              <div className="text-xs font-semibold text-slate-400 uppercase">Thời Gian Tạo</div>
-              <div className="text-slate-700 mt-0.5">{new Date(spec.createdAt).toLocaleString('vi-VN')}</div>
+              <div className="text-xs font-semibold text-slate-400 uppercase">{t("Thời Gian Tạo")}</div>
+              <div className="text-slate-700 mt-0.5">{new Date(spec.createdAt).toLocaleString(locale)}</div>
             </div>
 
             <div className="border-t border-slate-100 pt-3">
-              <div className="text-xs font-semibold text-slate-400 uppercase">Cập Nhật Lần Cuối</div>
-              <div className="text-slate-700 mt-0.5">{new Date(spec.updatedAt).toLocaleString('vi-VN')}</div>
+              <div className="text-xs font-semibold text-slate-400 uppercase">{t("Cập Nhật Lần Cuối")}</div>
+              <div className="text-slate-700 mt-0.5">{new Date(spec.updatedAt).toLocaleString(locale)}</div>
             </div>
 
             {spec.createdByStaffId && (
               <div className="border-t border-slate-100 pt-3">
-                <div className="text-xs font-semibold text-slate-400 uppercase">Người Tạo (Staff ID)</div>
+                <div className="text-xs font-semibold text-slate-400 uppercase">{t("Người Tạo (Staff ID)")}</div>
                 <div className="text-slate-700 mt-0.5 flex items-center gap-1.5">
                   <User className="w-3.5 h-3.5 text-slate-400" /> #{spec.createdByStaffId}
                 </div>
@@ -258,7 +251,7 @@ export const SpecializationDetailPage: React.FC = () => {
 
             {spec.updatedByStaffId && (
               <div className="border-t border-slate-100 pt-3">
-                <div className="text-xs font-semibold text-slate-400 uppercase">Người Sửa (Staff ID)</div>
+                <div className="text-xs font-semibold text-slate-400 uppercase">{t("Người Sửa (Staff ID)")}</div>
                 <div className="text-slate-700 mt-0.5 flex items-center gap-1.5">
                   <User className="w-3.5 h-3.5 text-slate-400" /> #{spec.updatedByStaffId}
                 </div>
@@ -273,7 +266,7 @@ export const SpecializationDetailPage: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100">
             <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2 mb-4">
-              <Edit2 className="w-5 h-5 text-blue-600" /> Chỉnh Sửa Chuyên Ngành: {spec.specializationCode}
+              <Edit2 className="w-5 h-5 text-blue-600" />  {t("Edit Specialization:")} {spec.specializationCode}
             </h3>
 
             {formError && (
@@ -285,7 +278,7 @@ export const SpecializationDetailPage: React.FC = () => {
 
             <form onSubmit={handleUpdate} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Tên chuyên ngành</label>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">{t("Specialization Name")}</label>
                 <input
                   type="text"
                   value={formName}
@@ -297,7 +290,7 @@ export const SpecializationDetailPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Mô tả</label>
+                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">{t("Mô tả")}</label>
                 <textarea
                   rows={4}
                   value={formDescription}
@@ -316,8 +309,7 @@ export const SpecializationDetailPage: React.FC = () => {
                   className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
                 />
                 <label htmlFor="modalIsActive" className="text-sm font-medium text-slate-700">
-                  Kích hoạt chuyên ngành
-                </label>
+                  {t("Active Specialization")}</label>
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
@@ -326,16 +318,14 @@ export const SpecializationDetailPage: React.FC = () => {
                   onClick={() => setIsEditing(false)}
                   className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-50 transition-colors"
                 >
-                  Hủy bỏ
-                </button>
+                  {t("Hủy bỏ")}</button>
                 <button
                   type="submit"
                   disabled={updateMutation.isPending}
                   className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
                 >
                   {updateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                  Lưu Thay Đổi
-                </button>
+                  {t("Lưu Thay Đổi")}</button>
               </div>
             </form>
           </div>
@@ -351,18 +341,17 @@ export const SpecializationDetailPage: React.FC = () => {
             </div>
 
             <h3 className="text-lg font-bold text-slate-800">
-              Xác nhận xóa chuyên ngành {spec.specializationCode}?
+              {t("Delete Specialization")} {spec.specializationCode}?
             </h3>
             <p className="text-sm text-slate-500 mt-1">
-              Bạn có chắc chắn muốn xóa chuyên ngành <span className="font-semibold text-slate-800">{spec.specializationName}</span>?
+              {t("Are you sure you want to delete this specialization")} <span className="font-semibold text-slate-800">{spec.specializationName}</span>?
             </p>
 
             {spec.curricula && spec.curricula.length > 0 && (
               <div className="my-4 p-3 bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-lg flex items-start gap-2">
                 <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
                 <span>
-                  <strong>Cảnh báo:</strong> Chuyên ngành này đang liên kết với <strong>{spec.curricula.length} khung chương trình</strong>. Hệ thống sẽ chặn xóa để bảo đảm toàn vẹn dữ liệu.
-                </span>
+                  <strong>{t("Cảnh báo:")}</strong>  {t("This specialization is linked to")} <strong>{spec.curricula.length}  {t("khung chương trình")}</strong>{t(". Hệ thống sẽ chặn xóa để bảo đảm toàn vẹn dữ liệu.")}</span>
               </div>
             )}
 
@@ -372,8 +361,7 @@ export const SpecializationDetailPage: React.FC = () => {
                 onClick={() => setShowDeleteModal(false)}
                 className="px-4 py-2 border border-slate-300 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-50 transition-colors"
               >
-                Hủy bỏ
-              </button>
+                {t("Hủy bỏ")}</button>
               <button
                 type="button"
                 onClick={handleDelete}
@@ -381,8 +369,7 @@ export const SpecializationDetailPage: React.FC = () => {
                 className="px-5 py-2 bg-rose-600 text-white rounded-lg text-sm font-semibold hover:bg-rose-700 transition-colors disabled:opacity-50 flex items-center gap-2"
               >
                 {deleteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                Xác Nhận Xóa
-              </button>
+                {t("Xác Nhận Xóa")}</button>
             </div>
           </div>
         </div>

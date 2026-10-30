@@ -1,3 +1,4 @@
+import { useLanguage } from '../../context/LanguageContext';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ShieldCheck, Sparkles, Building2 } from 'lucide-react';
@@ -7,6 +8,7 @@ import { validateFptEmail } from '../../utils/fptEmailValidator';
 import { User } from '../../types';
 
 export const FPTSSOPage: React.FC = () => {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
@@ -26,7 +28,7 @@ export const FPTSSOPage: React.FC = () => {
         const googleEmail = (payloadJson.email || '').trim().toLowerCase();
         if (googleEmail) {
           if (!googleEmail.endsWith('@fpt.edu.vn')) {
-            setErrorMessage(`Chỉ tài khoản Google có đuôi email @fpt.edu.vn mới được phép đăng nhập hoặc đăng ký qua Google. (Email hiện tại: ${googleEmail})`);
+            setErrorMessage(t("Chỉ tài khoản Google có đuôi email @fpt.edu.vn mới được phép đăng nhập hoặc đăng ký qua Google. (Email hiện tại: {p0})", undefined, { p0: googleEmail }));
             setIsLoading(false);
             return;
           }
@@ -67,7 +69,7 @@ export const FPTSSOPage: React.FC = () => {
       login(userObj, result.accessToken, result.refreshToken);
       navigate('/');
     } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || 'Xác thực Google SSO không thành công.';
+      const msg = err.response?.data?.message || err.message || t("Xác thực Google SSO không thành công.");
       setErrorMessage(msg);
     } finally {
       setIsLoading(false);
@@ -118,11 +120,9 @@ export const FPTSSOPage: React.FC = () => {
           </div>
           <div>
             <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-              FPT University Google SSO
-            </h1>
+              {t("FPT University Google SSO")}</h1>
             <p className="text-xs text-slate-500 mt-1">
-              Cổng Đăng Nhập Xác Thực Google Đại Học FPT
-            </p>
+              {t("Cổng Đăng Nhập Xác Thực Google Đại Học FPT")}</p>
           </div>
         </div>
 
@@ -130,18 +130,17 @@ export const FPTSSOPage: React.FC = () => {
         <div className="bg-orange-50/60 border border-orange-200/80 rounded-xl p-4 text-xs text-orange-950 space-y-2">
           <div className="flex items-center gap-2 font-bold text-[#F26522]">
             <Sparkles className="w-4 h-4 shrink-0" />
-            <span>Chính sách tài khoản sinh viên K19 trở đi:</span>
+            <span>{t("Chính sách tài khoản sinh viên K19 trở đi:")}</span>
           </div>
           <p className="leading-relaxed text-slate-700">
-            Từ khóa K19, sinh viên đăng nhập hệ thống thông qua hòm thư Gmail đã đăng ký với nhà trường theo định dạng chuẩn:
-            <br />
-            <strong className="font-mono text-slate-900">TanLT.CE190370@gmail.com</strong>
+            {t("Từ khóa K19, sinh viên đăng nhập hệ thống thông qua hòm thư Gmail đã đăng ký với nhà trường theo định dạng chuẩn:")}<br />
+            <strong className="font-mono text-slate-900">{t("TanLT.CE190370@gmail.com")}</strong>
           </p>
         </div>
 
         {errorMessage && (
           <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold">
-            {errorMessage}
+            {t(errorMessage)}
           </div>
         )}
 
@@ -159,7 +158,7 @@ export const FPTSSOPage: React.FC = () => {
               <path fill="#ffffff" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
               <path fill="#ffffff" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
             </svg>
-            <span>{isLoading ? 'ĐANG XÁC THỰC...' : 'Login with Google Student Account'}</span>
+            <span>{isLoading ? t("ĐANG XÁC THỰC...") : t("Login with Google Student Account")}</span>
           </button>
 
           <button
@@ -168,7 +167,7 @@ export const FPTSSOPage: React.FC = () => {
             className="w-full py-2.5 px-4 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors flex items-center justify-center gap-2 cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Back</span>
+            <span>{t("Back")}</span>
           </button>
         </div>
       </div>

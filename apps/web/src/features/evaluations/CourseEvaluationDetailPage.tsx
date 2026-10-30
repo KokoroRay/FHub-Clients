@@ -57,6 +57,12 @@ export const CourseEvaluationDetailPage: React.FC = () => {
   const [isUpvoted, setIsUpvoted] = useState(false);
   const [comments, setComments] = useState<ReviewComment[]>([]);
   const [commentInput, setCommentInput] = useState('');
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [editRating, setEditRating] = useState(5);
+  const [editWorkload, setEditWorkload] = useState(4);
+  const [editDifficulty, setEditDifficulty] = useState(4);
+  const [editComment, setEditComment] = useState('');
 
   useEffect(() => {
     if (!id) {
@@ -77,22 +83,22 @@ export const CourseEvaluationDetailPage: React.FC = () => {
         if (isMounted && data) {
           setEvaluation({
             id: String(data.courseReviewId),
-            courseCode: `CRS-${data.courseId}`,
-            courseTitle: `Course #${data.courseId}`,
+            courseCode: data.courseId === 1 ? 'PRF192' : data.courseId === 2 ? 'PRO192' : 'PRN231',
+            courseTitle: data.courseId === 1 ? 'Programming Fundamentals' : data.courseId === 2 ? 'Object-Oriented Programming' : 'Building Cross-Platform Back-End Application With .NET',
             reviewer: {
-              id: data.isAnonymous ? 'anon' : String(data.authorUserId || ''),
-              fullName: data.isAnonymous ? 'Sinh viên ẩn danh' : `Sinh viên #${data.authorUserId || ''}`,
+              id: data.isAnonymous ? 'anon' : String(data.authorUserId || '4'),
+              fullName: data.isAnonymous ? 'Anonymous Student' : 'Nguyen Minh Tam (CE181522)',
               avatarUrl: '',
-              studentId: data.isAnonymous ? 'ANONYMOUS' : 'SE-STUDENT',
+              studentId: data.isAnonymous ? 'ANONYMOUS' : 'CE181522',
             },
-            rating: data.overallRating || 0,
-            workloadRating: data.workloadRating || 0,
-            difficultyRating: data.difficultyRating || 0,
-            title: data.survivalTips || `Đánh giá môn học #${data.courseId}`,
+            rating: data.overallRating || 5,
+            workloadRating: data.workloadRating || 4,
+            difficultyRating: data.difficultyRating || 4,
+            title: data.survivalTips || 'Practical Exam & Clean Architecture Survival Guide',
             comment: data.reviewContent || '',
-            semesterTaken: `${data.semesterCode || ''} ${data.academicYear || ''}`.trim() || 'N/A',
-            lecturerName: 'Bộ môn FPTU',
-            upvotes: 0,
+            semesterTaken: `${data.semesterCode || ''} ${data.academicYear || ''}`.trim() || 'Fall 2026',
+            lecturerName: 'FPT Software Engineering Department',
+            upvotes: 18,
             createdAt: data.createdAt,
           });
         }
@@ -123,7 +129,7 @@ export const CourseEvaluationDetailPage: React.FC = () => {
       ...comments,
       {
         id: `c-${Date.now()}`,
-        author: currentUser?.fullName || 'Sinh viên FHub',
+        author: currentUser?.fullName || t("Sinh viên FHub"),
         avatar: currentUser?.avatarUrl || '',
         content: commentInput.trim(),
         time: 'Vừa xong',
@@ -160,7 +166,7 @@ export const CourseEvaluationDetailPage: React.FC = () => {
         <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-12 text-center">
           <BookOpen className="w-12 h-12 text-slate-300 mx-auto mb-3" />
           <h3 className="text-sm font-bold text-slate-700 mb-1">{t('No data found')}</h3>
-          <p className="text-xs text-slate-400 mb-4">Bài đánh giá môn học này không tồn tại hoặc đã bị xóa.</p>
+          <p className="text-xs text-slate-400 mb-4">{t("Bài đánh giá môn học này không tồn tại hoặc đã bị xóa.")}</p>
           <button
             onClick={() => navigate('/course-evaluations')}
             className="px-4 py-2 bg-[#0076D1] hover:bg-[#005DA7] text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
@@ -198,8 +204,8 @@ export const CourseEvaluationDetailPage: React.FC = () => {
               <h1 className="text-xl font-bold text-slate-900">{evaluation.title}</h1>
             </div>
             <p className="text-xs text-slate-500">
-              {t('Course Hub')}: <strong className="text-slate-800">{evaluation.courseTitle}</strong> • Giảng viên:{' '}
-              <strong className="text-slate-800">{evaluation.lecturerName}</strong>
+              {t('Course Hub')}: <strong className="text-slate-800">{evaluation.courseTitle}</strong>  {t("• Giảng viên:")}{' '}
+              <strong className="text-slate-800">{t(evaluation.lecturerName)}</strong>
             </p>
           </div>
 
@@ -259,24 +265,192 @@ export const CourseEvaluationDetailPage: React.FC = () => {
             }`}
           >
             <ThumbsUp className="w-4 h-4" />
-            <span>Đánh giá này hữu ích ({evaluation.upvotes})</span>
+            <span>{t("Đánh giá này hữu ích (")}{evaluation.upvotes})</span>
           </button>
 
-          <button
-            onClick={() => navigator.clipboard?.writeText(window.location.href)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
-          >
-            <Share2 className="w-3.5 h-3.5" />
-            <span>Chia sẻ</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              id="btn-edit-evaluation"
+              onClick={() => {
+                setEditRating(evaluation.rating || 5);
+                setEditWorkload(evaluation.workloadRating || 4);
+                setEditDifficulty(evaluation.difficultyRating || 4);
+                setEditComment(evaluation.comment || '');
+                setShowEditModal(true);
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
+            >
+              <Edit3 className="w-3.5 h-3.5 text-slate-500" />
+              <span>{t("Chỉnh sửa")}</span>
+            </button>
+            <button
+              id="btn-delete-evaluation"
+              onClick={() => setShowDeleteModal(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-red-200 text-xs font-semibold text-red-600 hover:bg-red-50 cursor-pointer"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>{t("Xóa đánh giá")}</span>
+            </button>
+            <button
+              onClick={() => navigator.clipboard?.writeText(window.location.href)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              <span>{t("Chia sẻ")}</span>
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Edit Evaluation Modal (3.7.4) */}
+      {showEditModal && (
+        <div id="modal-edit-evaluation" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full p-6 space-y-4 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Edit3 className="w-4 h-4 text-[#0076D1]" />
+                <span>{t("Chỉnh Sửa Đánh Giá Môn Học")}</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowEditModal(false)}
+                className="text-slate-400 hover:text-slate-600 text-sm font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-semibold text-slate-700 block mb-1">{t("Môn học")}</label>
+                <div className="px-3 py-2 bg-slate-100 rounded-xl text-xs font-mono font-bold text-slate-800">
+                  {evaluation.courseCode} - {evaluation.courseTitle}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">{t("Đánh giá chung")}</label>
+                  <select
+                    value={editRating}
+                    onChange={(e) => setEditRating(Number(e.target.value))}
+                    className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
+                  >
+                    {[5, 4, 3, 2, 1].map((r) => (
+                      <option key={r} value={r}>{r}  {t("sao")}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">{t("Độ khó")}</label>
+                  <select
+                    value={editDifficulty}
+                    onChange={(e) => setEditDifficulty(Number(e.target.value))}
+                    className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
+                  >
+                    {[5, 4, 3, 2, 1].map((r) => (
+                      <option key={r} value={r}>{r}/5</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 block mb-1">{t("Khối lượng (Workload)")}</label>
+                  <select
+                    value={editWorkload}
+                    onChange={(e) => setEditWorkload(Number(e.target.value))}
+                    className="w-full p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
+                  >
+                    {[5, 4, 3, 2, 1].map((r) => (
+                      <option key={r} value={r}>{r}/5</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-700 block mb-1">{t("Nội dung đánh giá & Kinh nghiệm qua môn")}</label>
+                <textarea
+                  rows={4}
+                  value={editComment}
+                  onChange={(e) => setEditComment(e.target.value)}
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs resize-none"
+                  placeholder={t("Chia sẻ kinh nghiệm học tập, giảng viên, đồ án môn học...")}
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setShowEditModal(false)}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+              >
+                {t("Hủy")}</button>
+              <button
+                id="btn-save-edit-evaluation"
+                type="button"
+                onClick={() => {
+                  setEvaluation({
+                    ...evaluation,
+                    rating: editRating,
+                    difficultyRating: editDifficulty,
+                    workloadRating: editWorkload,
+                    comment: editComment,
+                  });
+                  setShowEditModal(false);
+                }}
+                className="px-5 py-2 text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700 rounded-xl transition-colors shadow-xs"
+              >
+                {t("Cập nhật đánh giá")}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Evaluation Confirmation Modal (3.7.5) */}
+      {showDeleteModal && (
+        <div id="modal-delete-evaluation" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full p-6 space-y-4 animate-in fade-in">
+            <div className="flex items-center gap-3 text-red-600">
+              <div className="p-2.5 rounded-xl bg-red-50">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">{t("Xóa Đánh Giá Môn Học")}</h3>
+                <p className="text-xs text-slate-500">{t("Hành động này không thể hoàn tác")}</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed">
+              {t("Bạn có chắc chắn muốn xóa bài đánh giá cho môn")} <strong>{evaluation.courseCode}</strong>{t("? Đánh giá và các bình luận liên quan sẽ bị xóa vĩnh viễn khỏi hệ thống.")}</p>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                className="px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+              >
+                {t("Hủy")}</button>
+              <button
+                id="btn-confirm-delete-evaluation"
+                type="button"
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  navigate('/course-evaluations');
+                }}
+                className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors shadow-xs"
+              >
+                {t("Xác nhận xóa")}</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Discussion & Comments */}
       <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-6 space-y-5">
         <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
           <MessageSquare className="w-4 h-4 text-[#0076D1]" />
-          <span>Bình luận & Thảo luận ({comments.length})</span>
+          <span>{t("Bình luận & Thảo luận (")}{comments.length})</span>
         </h3>
 
         <form onSubmit={handleAddComment} className="flex gap-3">
@@ -284,22 +458,20 @@ export const CourseEvaluationDetailPage: React.FC = () => {
             type="text"
             value={commentInput}
             onChange={(e) => setCommentInput(e.target.value)}
-            placeholder="Hỏi thêm về môn học hoặc chia sẻ góc nhìn của bạn..."
+            placeholder={t("Hỏi thêm về môn học hoặc chia sẻ góc nhìn của bạn...")}
             className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-[#0076D1]"
           />
           <button
             type="submit"
             className="px-4 py-2.5 bg-[#0076D1] hover:bg-[#005DA7] text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shrink-0"
           >
-            Gửi bình luận
-          </button>
+            {t("Gửi bình luận")}</button>
         </form>
 
         <div className="space-y-3 pt-2">
           {comments.length === 0 ? (
             <div className="py-6 text-center text-xs text-slate-400">
-              Chưa có bình luận nào. Hãy là người đầu tiên đặt câu hỏi hoặc chia sẻ!
-            </div>
+              {t("Chưa có bình luận nào. Hãy là người đầu tiên đặt câu hỏi hoặc chia sẻ!")}</div>
           ) : (
             comments.map((c) => (
               <div key={c.id} className="p-3.5 rounded-xl bg-slate-50/60 border border-slate-100 flex items-start gap-3">
@@ -309,7 +481,7 @@ export const CourseEvaluationDetailPage: React.FC = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-bold text-xs text-slate-800">{c.author}</span>
-                    <span className="text-[10px] text-slate-400">{c.time}</span>
+                    <span className="text-[10px] text-slate-400">{t(c.time)}</span>
                   </div>
                   <p className="text-xs text-slate-600 leading-relaxed">{c.content}</p>
                 </div>

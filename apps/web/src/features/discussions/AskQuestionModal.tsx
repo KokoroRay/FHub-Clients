@@ -117,7 +117,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
           const mapped: CourseItem[] = filtered.map((c: any, index: number) => ({
             id: Number(c.id || c.courseNodeId || index + 1),
             code: c.code || c.courseCode || 'COURSE',
-            title: c.name || c.title || c.code || 'Môn học',
+            title: c.name || c.title || c.code || t("Môn học"),
           }));
           setCourses(mapped);
           // courseCode remains '' by default so choosing a course is optional!
@@ -359,11 +359,11 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
   };
 
   const insertCodeBlock = (lang: string = 'csharp') => {
-    insertFormatting(`\`\`\`${lang}\n`, '\n```\n', '// Nhập đoạn mã của bạn ở đây');
+    insertFormatting(`\`\`\`${lang}\n`, '\n```\n', t("// Nhập đoạn mã của bạn ở đây"));
   };
 
   const insertTable = () => {
-    const tableTemplate = `\n| Cột 1 | Cột 2 | Cột 3 |\n| :--- | :--- | :--- |\n| Dữ liệu A | Dữ liệu B | Dữ liệu C |\n| Dữ liệu D | Dữ liệu E | Dữ liệu F |\n`;
+    const tableTemplate = t("\n| Cột 1 | Cột 2 | Cột 3 |\n| :--- | :--- | :--- |\n| Dữ liệu A | Dữ liệu B | Dữ liệu C |\n| Dữ liệu D | Dữ liệu E | Dữ liệu F |\n");
     insertFormatting(tableTemplate, '');
   };
 
@@ -403,8 +403,8 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
         author: {
           id: isAnonymous ? 'anon' : String(res.authorUserId || currentUser?.id || 'usr'),
           fullName: isAnonymous
-            ? 'Ẩn danh FPTer'
-            : res.authorDisplayName || currentUser?.fullName || 'Sinh viên FHub',
+            ? t("Ẩn danh FPTer")
+            : res.authorDisplayName || currentUser?.fullName || t("Sinh viên FHub"),
           avatarUrl: isAnonymous ? undefined : currentUser?.avatarUrl,
           role: currentUser?.role || 'Student',
           karma: isAnonymous ? 0 : currentUser?.karma || 0,
@@ -433,7 +433,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
         courseCode: courseCode || undefined,
         author: {
           id: isAnonymous ? 'anon' : currentUser?.id || 'usr',
-          fullName: isAnonymous ? 'Ẩn danh FPTer' : currentUser?.fullName || 'Sinh viên FHub',
+          fullName: isAnonymous ? t("Ẩn danh FPTer") : currentUser?.fullName || t("Sinh viên FHub"),
           avatarUrl: isAnonymous ? undefined : currentUser?.avatarUrl,
           role: currentUser?.role || 'Student',
           karma: isAnonymous ? 0 : currentUser?.karma || 0,
@@ -488,7 +488,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
         {errorMessage && (
           <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold flex items-center gap-2">
             <HelpCircle className="w-4 h-4 text-rose-500 shrink-0" />
-            <span>{errorMessage}</span>
+            <span>{t(errorMessage)}</span>
           </div>
         )}
 
@@ -524,17 +524,17 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
 
             <div className="relative">
               <div className="flex items-center flex-wrap gap-1 p-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus-within:ring-1 focus-within:ring-blue-600 focus-within:border-blue-600 min-h-[42px]">
-                {selectedTags.map((t) => (
+                {selectedTags.map((tag) => (
                   <span
-                    key={t.name}
+                    key={tag.name}
                     className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800"
                   >
-                    #{t.name}
+                    #{tag.name}
                     <button
                       type="button"
-                      onClick={() => removeTag(t.name)}
+                      onClick={() => removeTag(tag.name)}
                       className="hover:text-rose-500 transition-colors cursor-pointer"
-                      title="Xóa tag"
+                      title={t("Xóa tag")}
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -582,7 +582,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
                     ))
                   ) : (
                     <div className="p-2 text-xs text-slate-500">
-                      Nhấn <kbd className="px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border text-[10px]">Enter</kbd> để thêm <strong>#{tagInput.trim().toLowerCase()}</strong>
+                      {t("Nhấn")} <kbd className="px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800 border text-[10px]">{t("Enter")}</kbd>  {t("để thêm")} <strong>#{tagInput.trim().toLowerCase()}</strong>
                     </div>
                   )}
                 </div>
@@ -660,7 +660,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
                     ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs'
                     : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                 }`}
-                title="Chế độ soạn thảo"
+                title={t("Chế độ soạn thảo")}
               >
                 <Edit3 className="w-3 h-3" />
                 <span>{t('askModal.modeWrite', 'Viết')}</span>
@@ -673,7 +673,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
                     ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs'
                     : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                 }`}
-                title="Chế độ chia đôi"
+                title={t("Chế độ chia đôi")}
               >
                 <Columns className="w-3 h-3" />
                 <span>{t('askModal.modeSplit', 'Chia đôi')}</span>
@@ -686,7 +686,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
                     ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs'
                     : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
                 }`}
-                title="Xem trước kết quả"
+                title={t("Xem trước kết quả")}
               >
                 <Eye className="w-3 h-3" />
                 <span>{t('askModal.modePreview', 'Xem trước')}</span>
@@ -709,7 +709,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
 
               <button
                 type="button"
-                onClick={() => insertFormatting('**', '**', 'in đậm')}
+                onClick={() => insertFormatting('**', '**', t("in đậm"))}
                 className="p-1.5 hover:bg-slate-200/70 dark:hover:bg-slate-800 rounded"
                 title={t('askModal.toolbarBold', 'In đậm (Bold)')}
               >
@@ -717,7 +717,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => insertFormatting('*', '*', 'in nghiêng')}
+                onClick={() => insertFormatting('*', '*', t("in nghiêng"))}
                 className="p-1.5 hover:bg-slate-200/70 dark:hover:bg-slate-800 rounded"
                 title={t('askModal.toolbarItalic', 'In nghiêng (Italic)')}
               >
@@ -725,7 +725,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => insertFormatting('~~', '~~', 'gạch ngang')}
+                onClick={() => insertFormatting('~~', '~~', t("gạch ngang"))}
                 className="p-1.5 hover:bg-slate-200/70 dark:hover:bg-slate-800 rounded"
                 title={t('askModal.toolbarStrike', 'Gạch ngang (Strikethrough)')}
               >
@@ -748,8 +748,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
                 className="px-1.5 py-1 hover:bg-slate-200/70 dark:hover:bg-slate-800 rounded font-mono font-bold text-[11px] text-blue-600"
                 title={t('askModal.toolbarCodeBlock', 'Khối mã nguồn (Code Block)')}
               >
-                &lt;/&gt;
-              </button>
+                {t("&lt;/&gt;")}</button>
 
               <div className="w-[1px] h-4 bg-slate-200 dark:bg-slate-700 mx-1" />
 
@@ -763,7 +762,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => insertFormatting('[', '](https://example.com)', 'Tiêu đề link')}
+                onClick={() => insertFormatting('[', '](https://example.com)', t("Tiêu đề link"))}
                 className="p-1.5 hover:bg-slate-200/70 dark:hover:bg-slate-800 rounded"
                 title={t('askModal.toolbarLink', 'Chèn liên kết (Link)')}
               >
@@ -771,7 +770,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => insertFormatting('![Mô tả ảnh](', ')', 'https://')}
+                onClick={() => insertFormatting(t("![Mô tả ảnh]("), ')', 'https://')}
                 className="p-1.5 hover:bg-slate-200/70 dark:hover:bg-slate-800 rounded"
                 title={t('askModal.toolbarImage', 'Chèn ảnh (Image)')}
               >
@@ -829,14 +828,14 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
             {/* Markdown Cheat Sheet Help */}
             {showMarkdownHelp && (
               <div className="p-2.5 bg-blue-50/70 dark:bg-blue-950/40 border-b border-blue-100 dark:border-blue-900/60 text-[11px] grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-slate-700 dark:text-slate-300 animate-in fade-in">
-                <div><code>**in đậm**</code></div>
-                <div><code>*in nghiêng*</code></div>
-                <div><code>`code nội dòng`</code></div>
-                <div><code>```csharp ... ```</code></div>
-                <div><code>&gt; trích dẫn</code></div>
-                <div><code>- danh sách</code></div>
-                <div><code>[Tiêu đề](link)</code></div>
-                <div><code>| Cột 1 | Cột 2 |</code></div>
+                <div><code>{t("**in đậm**")}</code></div>
+                <div><code>{t("*in nghiêng*")}</code></div>
+                <div><code>{t("`code nội dòng`")}</code></div>
+                <div><code>{t("```csharp ... ```")}</code></div>
+                <div><code>{t("&gt; trích dẫn")}</code></div>
+                <div><code>{t("- danh sách")}</code></div>
+                <div><code>{t("[Tiêu đề](link)")}</code></div>
+                <div><code>{t("| Cột 1 | Cột 2 |")}</code></div>
               </div>
             )}
 

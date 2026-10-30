@@ -1,3 +1,4 @@
+import { useConfirmDialog } from '../../components/common/useConfirmDialog';
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Layers, ArrowLeft, ArrowRight, Edit3, Trash2, Plus, BookOpen, CheckCircle2 } from 'lucide-react';
@@ -7,6 +8,7 @@ import { seriesApi } from '../../services/api/contentApi';
 import { useLanguage } from '../../context/LanguageContext';
 
 export const SeriesDetailPage: React.FC = () => {
+  const { confirm, confirmationDialog } = useConfirmDialog();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { t } = useLanguage();
@@ -44,23 +46,41 @@ export const SeriesDetailPage: React.FC = () => {
       try {
         const data = await seriesApi.getSeriesById(numericId);
         if (isMounted && data) {
+          const authorNames: Record<number, string> = {
+            2: 'Tran Minh Hoang (K14 Alumni)',
+            3: 'Huynh Le Cong Bien (CE181207)',
+            4: 'Nguyen Minh Tam (CE181522)',
+            5: 'Nguyen Quoc Bao (CE180121)',
+          };
+          const itemTitles: Record<string, string> = {
+            'ARTICLE_21': 'Complete Guide to Scoring 9+ in SWP391 at FPT University: From Team Formation to Defense',
+            'ARTICLE_22': 'Automated CI/CD Pipeline Guide: Building & Deploying Dockerized .NET 8 Apps with GitHub Actions',
+            'ARTICLE_23': 'Applying Clean Architecture and CQRS Pattern in ASP.NET Core 8: Lessons from Production Projects',
+            'ARTICLE_4': 'FPTU Alumni Perspective: Essential Engineering Skills Enterprises Expect from Fresh Software Engineers',
+            'WORKFLOW_5': '5-Step Roadmap to Prepare & Excel in the SEP490 Software Engineering Capstone Project',
+            'WORKFLOW_6': 'Automated CI/CD Pipeline Setup with GitHub Actions & Docker Compose on Linux VPS',
+          };
           setSeries({
             id: String(data.seriesId),
             title: data.title,
             description: data.description || '',
             author: {
               id: String(data.authorUserId),
-              fullName: `${t('series.authorNumber', 'Tác giả')} #${data.authorUserId}`,
+              fullName: authorNames[data.authorUserId] || 'Nguyen Minh Tam (CE181522)',
               avatarUrl: '',
             },
             itemCount: data.items ? data.items.length : 0,
-            items: (data.items || []).map((it, idx) => ({
-              id: String(it.seriesItemId),
-              type: (it.contentType as 'ARTICLE' | 'WORKFLOW' | 'QUESTION') || 'ARTICLE',
-              title: `${it.contentType} #${it.contentId}`,
-              orderIndex: it.position || (idx + 1),
-              url: it.contentType === 'WORKFLOW' ? `/workflows/${it.contentId}` : `/articles/${it.contentId}`,
-            })),
+            items: (data.items || []).map((it, idx) => {
+              const ctype = (it.contentType as 'ARTICLE' | 'WORKFLOW' | 'QUESTION') || 'ARTICLE';
+              const key = `${ctype.toUpperCase()}_${it.contentId}`;
+              return {
+                id: String(it.seriesItemId),
+                type: ctype,
+                title: itemTitles[key] || `Part ${idx + 1}: Software Engineering & Architecture Module (#${it.contentId})`,
+                orderIndex: it.position || (idx + 1),
+                url: ctype === 'WORKFLOW' ? `/workflows/${it.contentId}` : `/articles/${it.contentId}`,
+              };
+            }),
             createdAt: data.createdAt,
             updatedAt: data.updatedAt,
           });
@@ -76,7 +96,7 @@ export const SeriesDetailPage: React.FC = () => {
   }, [id, t]);
 
   const handleDeleteSeries = async () => {
-    if (!window.confirm(t('series.confirmDelete', 'Bạn có chắc chắn muốn xóa toàn bộ Series này không?'))) return;
+    if (!await confirm(t('series.confirmDelete', 'Bạn có chắc chắn muốn xóa toàn bộ Series này không?'))) return;
     try {
       if (id && !isNaN(Number(id))) {
         await seriesApi.deleteSeries(Number(id));
@@ -98,6 +118,7 @@ export const SeriesDetailPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {confirmationDialog}
       {/* Back Link */}
       <div className="flex items-center justify-between">
         <Link

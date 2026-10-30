@@ -1,3 +1,7 @@
+import { RecordDialog } from '../../../components/common/RecordDialog';
+import { Button } from '../../../components/common/Button';
+import { badgesApi } from '../../../services/api/adminApi';
+import { useConfirmDialog } from '../../../components/common/useConfirmDialog';
 import { useLanguage } from '../../../context/LanguageContext';
 import React, { useState, useEffect } from 'react';
 import {
@@ -21,6 +25,7 @@ import { DetailedBadge } from '../../../types';
 import { useBadges, useCreateBadge, useDeleteBadge } from '../../../services/api';
 
 export const AchievementBadgesPage: React.FC = () => {
+  const { confirm, confirmationDialog } = useConfirmDialog();
   const { t } = useLanguage();
   const { data: badgesData, isLoading, refetch } = useBadges();
   const createBadgeMutation = useCreateBadge();
@@ -30,6 +35,8 @@ export const AchievementBadgesPage: React.FC = () => {
   const [selectedTier, setSelectedTier] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [activeBadge, setActiveBadge] = useState<DetailedBadge | null>(null);
+  const [badgeMode, setBadgeMode] = useState<'detail' | 'edit'>('detail');
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
 
   // Form State
@@ -92,12 +99,12 @@ export const AchievementBadgesPage: React.FC = () => {
 
     setBadges((prev) => [...prev, created]);
     setShowCreateModal(false);
-    setSuccessNotice(`Created achievement badge: ${created.name} (${created.tier})`);
+    setSuccessNotice(t("Created achievement badge: {p0} ({p1})", undefined, { p0: created.name, p1: created.tier }));
     setTimeout(() => setSuccessNotice(null), 3500);
   };
 
   const handleDeleteBadge = async (badgeId: string, badgeName: string) => {
-    if (window.confirm(`Delete badge ${badgeName}?`)) {
+    if (await confirm(t("Delete badge {p0}?", undefined, { p0: badgeName }))) {
       try {
         const numericId = badgeId.replace(/\D/g, '') || badgeId;
         await deleteBadgeMutation.mutateAsync(numericId);
@@ -106,27 +113,34 @@ export const AchievementBadgesPage: React.FC = () => {
         console.warn('Delete badge fallback to local:', e);
       }
       setBadges((prev) => prev.filter((b) => b.id !== badgeId));
-      setSuccessNotice(`Deleted badge ${badgeName}`);
+      setSuccessNotice(t("Deleted badge {p0}", undefined, { p0: badgeName }));
       setTimeout(() => setSuccessNotice(null), 3000);
     }
   };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
+      {activeBadge && <RecordDialog key={activeBadge.id + badgeMode} title={t(badgeMode === 'edit' ? 'Edit Achievement Badge' : 'Achievement Badge Details')} onClose={() => setActiveBadge(null)} fields={[
+        {key:'code', label:'Badge Code', value:activeBadge.code, readOnly:true},
+        {key:'name', label:'Display Name', value:activeBadge.name},
+        {key:'tier', label:'Tier', value:activeBadge.tier, readOnly:true},
+        {key:'points', label:'Criteria Value', value:String(activeBadge.pointValue), type:'number'},
+        {key:'criteria', label:'Trigger Rule', value:activeBadge.triggerCriteria},
+        {key:'description', label:'Description', value:activeBadge.description, multiline:true},
+      ]} onSave={badgeMode === 'edit' ? async v => { await badgesApi.updateBadge(activeBadge.id, {name:v.name, tier:v.tier, pointValue:Number(v.points), triggerCriteria:v.criteria, description:v.description}); await refetch(); } : undefined} />}
+      {confirmationDialog}
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-            <span>GAMIFICATION & RECOGNITION</span>
-            <span>&gt;</span>
-            <span className="text-blue-600">BADGES CATALOGUE</span>
+            <span>{t("GAMIFICATION & RECOGNITION")}</span>
+            <span>{t("&gt;")}</span>
+            <span className="text-blue-600">{t("BADGES CATALOGUE")}</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            {t('Achievement Badges Registry', 'Achievement Badges Registry')} Catalogue
-          </h1>
+            {t('Achievement Badges Registry', 'Achievement Badges Registry')}  {t("Catalogue")}</h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Manage student milestone honors, tier rankings (Bronze, Silver, Gold, Platinum, Legendary), and trigger expressions.
-          </p>
+            {t("Manage student milestone honors, tier rankings (Bronze, Silver, Gold, Platinum, Legendary), and trigger expressions.")}</p>
         </div>
 
         <button
@@ -134,14 +148,14 @@ export const AchievementBadgesPage: React.FC = () => {
           className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
         >
           <Plus className="w-3.5 h-3.5" />
-          <span>Add New Badge</span>
+          <span>{t("Add New Badge")}</span>
         </button>
       </div>
 
       {successNotice && (
         <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center gap-2 animate-fadeIn">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span>{successNotice}</span>
+          <span>{t(successNotice)}</span>
         </div>
       )}
 
@@ -153,7 +167,7 @@ export const AchievementBadgesPage: React.FC = () => {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by badge code or name..."
+            placeholder={t("Search by badge code or name...")}
             className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
           />
         </div>
@@ -163,12 +177,12 @@ export const AchievementBadgesPage: React.FC = () => {
           onChange={(e) => setSelectedTier(e.target.value)}
           className="w-full md:w-48 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none cursor-pointer"
         >
-          <option value="ALL">All Tiers</option>
-          <option value="BRONZE">BRONZE</option>
-          <option value="SILVER">SILVER</option>
-          <option value="GOLD">GOLD</option>
-          <option value="PLATINUM">PLATINUM</option>
-          <option value="LEGENDARY">LEGENDARY</option>
+          <option value="ALL">{t("All Tiers")}</option>
+          <option value="BRONZE">{t("BRONZE")}</option>
+          <option value="SILVER">{t("SILVER")}</option>
+          <option value="GOLD">{t("GOLD")}</option>
+          <option value="PLATINUM">{t("PLATINUM")}</option>
+          <option value="LEGENDARY">{t("LEGENDARY")}</option>
         </select>
       </div>
 
@@ -176,8 +190,7 @@ export const AchievementBadgesPage: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredBadges.length === 0 ? (
           <div className="col-span-full p-8 text-center bg-white rounded-xl border border-slate-200 text-slate-400 text-xs">
-            0 achievement badges found matching your filters.
-          </div>
+            {t("0 achievement badges found matching your filters.")}</div>
         ) : (
           filteredBadges.map((badge) => (
           <div
@@ -221,7 +234,7 @@ export const AchievementBadgesPage: React.FC = () => {
                       : 'bg-slate-100 text-slate-700 border border-slate-200'
                   }`}
                 >
-                  {badge.tier}
+                  {t(badge.tier)}
                 </span>
               </div>
 
@@ -230,22 +243,24 @@ export const AchievementBadgesPage: React.FC = () => {
               </p>
 
               <div className="p-2.5 bg-slate-50 rounded-lg space-y-0.5 text-xs font-mono">
-                <span className="text-[10px] text-slate-400 uppercase font-sans font-bold block">Trigger Rule:</span>
+                <span className="text-[10px] text-slate-400 uppercase font-sans font-bold block">{t("Trigger Rule:")}</span>
                 <span className="text-slate-700 text-[11px]">{badge.triggerCriteria}</span>
               </div>
 
               <div className="flex items-center justify-between text-xs pt-1">
-                <span className="text-slate-500">Awarded to:</span>
-                <strong className="text-slate-900 font-bold">{badge.awardedCount} Students</strong>
+                <span className="text-slate-500">{t("Awarded to:")}</span>
+                <strong className="text-slate-900 font-bold">{badge.awardedCount}  {t("Students")}</strong>
               </div>
             </div>
 
             <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-              <span className="text-xs font-bold text-amber-600">+{badge.pointValue} pts Karma</span>
+              <span className="text-xs font-bold text-amber-600">+{badge.pointValue}  {t("pts Karma")}</span>
+              <Button size="sm" variant="ghost" onClick={() => { setActiveBadge(badge); setBadgeMode('detail'); }}>{t('View Details')}</Button>
+              <Button size="sm" variant="ghost" onClick={() => { setActiveBadge(badge); setBadgeMode('edit'); }}>{t('Edit')}</Button>
               <button
                 onClick={() => handleDeleteBadge(badge.id, badge.name)}
                 className="p-1 text-slate-400 hover:text-rose-600 rounded transition-colors cursor-pointer"
-                title="Delete badge"
+                title={t("Delete badge")}
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
@@ -259,7 +274,7 @@ export const AchievementBadgesPage: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-fadeIn">
           <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full p-6 shadow-xl space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-slate-900">Add Milestone Badge</h2>
+              <h2 className="text-base font-bold text-slate-900">{t("Add Milestone Badge")}</h2>
               <button
                 onClick={() => setShowCreateModal(false)}
                 className="text-slate-400 hover:text-slate-600 cursor-pointer"
@@ -270,11 +285,11 @@ export const AchievementBadgesPage: React.FC = () => {
 
             <form onSubmit={handleCreateBadge} className="space-y-3">
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">Badge Code:</label>
+                <label className="text-xs font-semibold text-slate-700">{t("Badge Code:")}</label>
                 <input
                   type="text"
                   required
-                  placeholder="TOP_CONTRIBUTOR_2026"
+                  placeholder={t("TOP_CONTRIBUTOR_2026")}
                   value={newCode}
                   onChange={(e) => setNewCode(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono font-bold uppercase"
@@ -282,11 +297,11 @@ export const AchievementBadgesPage: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">Display Name:</label>
+                <label className="text-xs font-semibold text-slate-700">{t("Display Name:")}</label>
                 <input
                   type="text"
                   required
-                  placeholder="Top Contributor 2026"
+                  placeholder={t("Top Contributor 2026")}
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs"
@@ -295,21 +310,21 @@ export const AchievementBadgesPage: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700">Tier:</label>
+                  <label className="text-xs font-semibold text-slate-700">{t("Tier:")}</label>
                   <select
                     value={newTier}
                     onChange={(e) => setNewTier(e.target.value as any)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-xs"
                   >
-                    <option value="BRONZE">BRONZE</option>
-                    <option value="SILVER">SILVER</option>
-                    <option value="GOLD">GOLD</option>
-                    <option value="PLATINUM">PLATINUM</option>
-                    <option value="LEGENDARY">LEGENDARY</option>
+                    <option value="BRONZE">{t("BRONZE")}</option>
+                    <option value="SILVER">{t("SILVER")}</option>
+                    <option value="GOLD">{t("GOLD")}</option>
+                    <option value="PLATINUM">{t("PLATINUM")}</option>
+                    <option value="LEGENDARY">{t("LEGENDARY")}</option>
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700">Karma Delta:</label>
+                  <label className="text-xs font-semibold text-slate-700">{t("Karma Delta:")}</label>
                   <input
                     type="number"
                     value={newPoints}
@@ -320,10 +335,10 @@ export const AchievementBadgesPage: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">Trigger Expression:</label>
+                <label className="text-xs font-semibold text-slate-700">{t("Trigger Expression:")}</label>
                 <input
                   type="text"
-                  placeholder="articles_count >= 10"
+                  placeholder={t("articles_count >= 10")}
                   value={newCriteria}
                   onChange={(e) => setNewCriteria(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono"
@@ -331,12 +346,12 @@ export const AchievementBadgesPage: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">Description:</label>
+                <label className="text-xs font-semibold text-slate-700">{t("Description:")}</label>
                 <textarea
                   rows={2}
                   value={newDesc}
                   onChange={(e) => setNewDesc(e.target.value)}
-                  placeholder="Significance of this honor..."
+                  placeholder={t("Significance of this honor...")}
                   className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs"
                 />
               </div>
@@ -347,14 +362,12 @@ export const AchievementBadgesPage: React.FC = () => {
                   onClick={() => setShowCreateModal(false)}
                   className="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold cursor-pointer"
                 >
-                  Cancel
-                </button>
+                  {t("Cancel")}</button>
                 <button
                   type="submit"
                   className="px-4 py-2 rounded-lg bg-blue-600 text-white text-xs font-semibold cursor-pointer hover:bg-blue-700"
                 >
-                  Create Badge
-                </button>
+                  {t("Create Badge")}</button>
               </div>
             </form>
           </div>

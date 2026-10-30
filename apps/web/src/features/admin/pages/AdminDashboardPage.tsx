@@ -40,7 +40,7 @@ import { fetchAdminDashboardStats, AdminDashboardData } from '../../../services/
 
 export const AdminDashboardPage: React.FC = () => {
   const { currentUser } = useAuth();
-  const { t, language } = useLanguage();
+  const { formatTime, locale, t, language } = useLanguage();
   const [activityTimeframe, setActivityTimeframe] = useState<'Today' | '7 Days' | '30 Days'>('Today');
   const [showQuickActions, setShowQuickActions] = useState(false);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
@@ -48,7 +48,7 @@ export const AdminDashboardPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const navigate = useNavigate();
 
-  const formattedDate = new Date().toLocaleDateString('en-US', {
+  const formattedDate = new Date().toLocaleDateString(locale, {
     weekday: 'long',
     month: 'short',
     day: 'numeric',
@@ -70,7 +70,7 @@ export const AdminDashboardPage: React.FC = () => {
   }, [activityTimeframe]);
 
   const handleExportReport = () => {
-    setActionNotice('Report generated and downloaded: FHub_Admin_Executive_Summary_2026.pdf');
+    setActionNotice(t("Report generated and downloaded: FHub_Admin_Executive_Summary_2026.pdf"));
     setTimeout(() => setActionNotice(null), 3500);
   };
 
@@ -172,7 +172,7 @@ export const AdminDashboardPage: React.FC = () => {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 shadow-2xs transition-colors cursor-pointer"
           >
             <Download className="w-3.5 h-3.5 text-slate-500" />
-            <span>Export Report</span>
+            <span>{t("Export Report")}</span>
           </button>
 
           {/* Quick Actions Button */}
@@ -182,7 +182,7 @@ export const AdminDashboardPage: React.FC = () => {
               className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Quick Actions</span>
+              <span>{t("Quick Actions")}</span>
             </button>
 
             {showQuickActions && (
@@ -192,28 +192,28 @@ export const AdminDashboardPage: React.FC = () => {
                   className="w-full text-left px-3.5 py-2 hover:bg-slate-50 text-slate-700 flex items-center gap-2"
                 >
                   <Users className="w-3.5 h-3.5 text-blue-600" />
-                  <span>Create User Account</span>
+                  <span>{t("Create User Account")}</span>
                 </button>
                 <button
                   onClick={() => { setShowQuickActions(false); navigate('/campuses?action=create'); }}
                   className="w-full text-left px-3.5 py-2 hover:bg-slate-50 text-slate-700 flex items-center gap-2"
                 >
                   <Building2 className="w-3.5 h-3.5 text-blue-600" />
-                  <span>Add Campus Node</span>
+                  <span>{t("Add Campus Node")}</span>
                 </button>
                 <button
                   onClick={() => { setShowQuickActions(false); navigate('/majors?action=create'); }}
                   className="w-full text-left px-3.5 py-2 hover:bg-slate-50 text-slate-700 flex items-center gap-2"
                 >
                   <GraduationCap className="w-3.5 h-3.5 text-blue-600" />
-                  <span>Add Major Track</span>
+                  <span>{t("Add Major Track")}</span>
                 </button>
                 <button
                   onClick={() => { setShowQuickActions(false); navigate('/courses?action=create'); }}
                   className="w-full text-left px-3.5 py-2 hover:bg-slate-50 text-slate-700 flex items-center gap-2"
                 >
                   <BookOpen className="w-3.5 h-3.5 text-blue-600" />
-                  <span>Add Course</span>
+                  <span>{t("Add Course")}</span>
                 </button>
               </div>
             )}
@@ -224,7 +224,7 @@ export const AdminDashboardPage: React.FC = () => {
       {actionNotice && (
         <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center gap-2 animate-fadeIn">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span>{actionNotice}</span>
+          <span>{t(actionNotice)}</span>
         </div>
       )}
 
@@ -236,15 +236,15 @@ export const AdminDashboardPage: React.FC = () => {
           className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs hover:border-blue-400 transition-all group"
         >
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">TOTAL USERS</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t("TOTAL USERS")}</span>
             <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
               {dashboardData?.topStats.usersDelta ?? '0%'}
             </span>
           </div>
           <h3 className="text-2xl font-bold text-slate-900 tracking-tight">
-            {(dashboardData?.topStats.totalUsers ?? 0).toLocaleString()}
+            {(dashboardData?.topStats.totalUsers ?? 0).toLocaleString(locale)}
           </h3>
-          <p className="text-[11px] text-slate-400 mt-1">Registered + staff accounts</p>
+          <p className="text-[11px] text-slate-400 mt-1">{t("Registered + staff accounts")}</p>
         </Link>
 
         {/* Card 2: SUPPORT TICKETS */}
@@ -253,7 +253,7 @@ export const AdminDashboardPage: React.FC = () => {
           className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs hover:border-amber-400 transition-all group"
         >
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">SUPPORT TICKETS</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t("SUPPORT TICKETS")}</span>
             <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200">
               {dashboardData?.topStats.ticketsQueueNote ?? '0 in queue'}
             </span>
@@ -261,7 +261,7 @@ export const AdminDashboardPage: React.FC = () => {
           <h3 className="text-2xl font-bold text-slate-900 tracking-tight">
             {dashboardData?.topStats.supportTickets ?? 0}
           </h3>
-          <p className="text-[11px] text-slate-400 mt-1">{dashboardData?.topStats.urgentTicketsCount ?? 0} urgent priority</p>
+          <p className="text-[11px] text-slate-400 mt-1">{dashboardData?.topStats.urgentTicketsCount ?? 0}  {t("urgent priority")}</p>
         </Link>
 
         {/* Card 3: COURSES */}
@@ -270,15 +270,14 @@ export const AdminDashboardPage: React.FC = () => {
           className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs hover:border-blue-400 transition-all group"
         >
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">COURSES</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t("COURSES")}</span>
             <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200">
-              {dashboardData?.academicOverview.discussionsCount ?? 0} active discussions
-            </span>
+              {dashboardData?.academicOverview.discussionsCount ?? 0}  {t("active discussions")}</span>
           </div>
           <h3 className="text-2xl font-bold text-slate-900 tracking-tight">
             {dashboardData?.topStats.courseNodes ?? 0}
           </h3>
-          <p className="text-[11px] text-slate-400 mt-1">Across {dashboardData?.academicOverview.majorsCount ?? 0} majors</p>
+          <p className="text-[11px] text-slate-400 mt-1">{t("Across")} {dashboardData?.academicOverview.majorsCount ?? 0}  {t("majors")}</p>
         </Link>
 
         {/* Card 4: ACTIVE CAMPUSES */}
@@ -287,10 +286,9 @@ export const AdminDashboardPage: React.FC = () => {
           className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs hover:border-emerald-400 transition-all group"
         >
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">ACTIVE CAMPUSES</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t("ACTIVE CAMPUSES")}</span>
             <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
-              100% operational
-            </span>
+              {t("100% operational")}</span>
           </div>
           <h3 className="text-2xl font-bold text-slate-900 tracking-tight">
             {dashboardData?.topStats.activeCampuses ?? 0}
@@ -298,7 +296,7 @@ export const AdminDashboardPage: React.FC = () => {
           <p className="text-[11px] text-slate-400 mt-1">
             {dashboardData?.campusDistribution && dashboardData.campusDistribution.length > 0
               ? dashboardData.campusDistribution.map((c) => c.campusCode).join(' • ')
-              : 'HL • HCM • DN • CT • QN'}
+              : t("HL • HCM • DN • CT • QN")}
           </p>
         </Link>
 
@@ -308,16 +306,16 @@ export const AdminDashboardPage: React.FC = () => {
           className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs hover:border-rose-400 transition-all group"
         >
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">SYSTEM ALERTS</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t("SYSTEM ALERTS")}</span>
             <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.2 rounded border border-rose-200">
-              {dashboardData?.topStats.systemAlerts ? 'Action required' : 'Optimal'}
+              {dashboardData?.topStats.systemAlerts ? t("Action required") : t("Optimal")}
             </span>
           </div>
           <h3 className="text-2xl font-bold text-slate-900 tracking-tight">
             {dashboardData?.topStats.systemAlerts ?? 0}
           </h3>
           <p className="text-[11px] text-slate-400 mt-1">
-            {dashboardData?.topStats.systemAlerts ? `${dashboardData.topStats.systemAlerts} warnings` : '0 issues'}
+            {dashboardData?.topStats.systemAlerts ? t("{p0} warnings", undefined, { p0: dashboardData.topStats.systemAlerts }) : t("0 issues")}
           </p>
         </Link>
       </div>
@@ -330,23 +328,23 @@ export const AdminDashboardPage: React.FC = () => {
           <div className="p-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
-                <h3 className="font-bold text-sm text-slate-900">User Activity</h3>
-                <p className="text-[11px] text-slate-400">Daily active users, discussions, and interactions.</p>
+                <h3 className="font-bold text-sm text-slate-900">{t("User Activity")}</h3>
+                <p className="text-[11px] text-slate-400">{t("Daily active users, discussions, and interactions.")}</p>
               </div>
 
               {/* Timeframe Segmented Control */}
               <div className="flex items-center bg-slate-100 p-0.5 rounded-lg text-xs font-semibold">
-                {(['Today', '7 Days', '30 Days'] as const).map((t) => (
+                {(['Today', '7 Days', '30 Days'] as const).map((timeframe) => (
                   <button
-                    key={t}
-                    onClick={() => setActivityTimeframe(t)}
+                    key={timeframe}
+                    onClick={() => setActivityTimeframe(timeframe)}
                     className={`px-3 py-1 rounded-md text-[11px] transition-all cursor-pointer ${
-                      activityTimeframe === t
+                      activityTimeframe === timeframe
                         ? 'bg-white text-blue-600 shadow-2xs font-bold'
                         : 'text-slate-500 hover:text-slate-800'
                     }`}
                   >
-                    {t}
+                    {t(timeframe)}
                   </button>
                 ))}
               </div>
@@ -355,10 +353,10 @@ export const AdminDashboardPage: React.FC = () => {
             {/* Stat Counters Row */}
             <div className="flex items-center gap-6 pt-1">
               <div>
-                <span className="text-[10px] text-slate-400 uppercase font-semibold">Active Users</span>
+                <span className="text-[10px] text-slate-400 uppercase font-semibold">{t("Active Users")}</span>
                 <div className="flex items-baseline gap-1.5">
                   <span className="text-lg font-bold text-slate-900">
-                    {dashboardData?.userActivity.activeUsers.toLocaleString() ?? '0'}
+                    {dashboardData?.userActivity.activeUsers.toLocaleString(locale) ?? '0'}
                   </span>
                   <span className="text-[10px] font-bold text-emerald-600">
                     {dashboardData?.userActivity.activeUsersDelta ?? '+0%'}
@@ -366,10 +364,10 @@ export const AdminDashboardPage: React.FC = () => {
                 </div>
               </div>
               <div className="border-l border-slate-100 pl-6">
-                <span className="text-[10px] text-slate-400 uppercase font-semibold">New Signups</span>
+                <span className="text-[10px] text-slate-400 uppercase font-semibold">{t("New Signups")}</span>
                 <div className="flex items-baseline gap-1.5">
                   <span className="text-lg font-bold text-slate-900">
-                    {dashboardData?.userActivity.newSignups.toLocaleString() ?? '0'}
+                    {dashboardData?.userActivity.newSignups.toLocaleString(locale) ?? '0'}
                   </span>
                   <span className="text-[10px] font-bold text-emerald-600">
                     {dashboardData?.userActivity.newSignupsDelta ?? '+0%'}
@@ -377,12 +375,12 @@ export const AdminDashboardPage: React.FC = () => {
                 </div>
               </div>
               <div className="border-l border-slate-100 pl-6">
-                <span className="text-[10px] text-slate-400 uppercase font-semibold">Discussions</span>
+                <span className="text-[10px] text-slate-400 uppercase font-semibold">{t("Discussions")}</span>
                 <div className="flex items-baseline gap-1.5">
                   <span className="text-lg font-bold text-slate-900">
-                    {dashboardData?.userActivity.discussionsDailyAvg.toLocaleString() ?? '0'}
+                    {dashboardData?.userActivity.discussionsDailyAvg.toLocaleString(locale) ?? '0'}
                   </span>
-                  <span className="text-[10px] text-slate-400">Daily avg</span>
+                  <span className="text-[10px] text-slate-400">{t("Daily avg")}</span>
                 </div>
               </div>
             </div>
@@ -427,7 +425,7 @@ export const AdminDashboardPage: React.FC = () => {
                           strokeWidth="2"
                           className="transition-all hover:r-5 cursor-pointer"
                         />
-                        <title>{`${pt.label}: ${pt.val} active interactions`}</title>
+                        <title>{t("{p0}: {p1} active interactions", undefined, { p0: pt.label, p1: pt.val })}</title>
                       </g>
                     ))}
                 </svg>
@@ -435,8 +433,7 @@ export const AdminDashboardPage: React.FC = () => {
                 {activityData.isZero && (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <span className="text-xs text-slate-400 bg-white/80 px-3 py-1 rounded-full border border-slate-200 shadow-2xs">
-                      No active interactions recorded in this timeframe
-                    </span>
+                      {t("No active interactions recorded in this timeframe")}</span>
                   </div>
                 )}
               </div>
@@ -448,7 +445,7 @@ export const AdminDashboardPage: React.FC = () => {
                     key={idx}
                     className={idx === activityData.labels.length - 1 ? 'font-semibold text-slate-700' : ''}
                   >
-                    {lbl}
+                    {t(lbl)}
                   </span>
                 ))}
               </div>
@@ -461,20 +458,16 @@ export const AdminDashboardPage: React.FC = () => {
             <div className="p-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-3.5 flex flex-col justify-between">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-bold text-xs text-slate-900">Support Tickets</h3>
+                  <h3 className="font-bold text-xs text-slate-900">{t("Support Tickets")}</h3>
                   <div className="flex items-center gap-1 text-[10px]">
                     <span className="px-1.5 py-0.2 rounded bg-blue-50 text-blue-700 font-bold">
-                      {dashboardData?.ticketsQueue.openCount ?? 0} Open
-                    </span>
+                      {dashboardData?.ticketsQueue.openCount ?? 0}  {t("Open")}</span>
                     <span className="px-1.5 py-0.2 rounded bg-amber-50 text-amber-700 font-bold">
-                      {dashboardData?.ticketsQueue.inProgressCount ?? 0} In Prog
-                    </span>
+                      {dashboardData?.ticketsQueue.inProgressCount ?? 0}  {t("In Prog")}</span>
                     <span className="px-1.5 py-0.2 rounded bg-slate-100 text-slate-600">
-                      {dashboardData?.ticketsQueue.waitingCount ?? 0} Waiting
-                    </span>
+                      {dashboardData?.ticketsQueue.waitingCount ?? 0}  {t("Waiting")}</span>
                     <span className="px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700">
-                      {dashboardData?.ticketsQueue.resolvedCount ?? 0} Resolved
-                    </span>
+                      {dashboardData?.ticketsQueue.resolvedCount ?? 0}  {t("Resolved")}</span>
                   </div>
                 </div>
 
@@ -493,27 +486,26 @@ export const AdminDashboardPage: React.FC = () => {
                               ? 'bg-amber-50 text-amber-700 border border-amber-200'
                               : 'bg-blue-50 text-blue-700 border border-blue-200'
                           }`}>
-                            {ticket.priority}
+                            {t(ticket.priority)}
                           </span>
                         </div>
                         <div className="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5">
-                          <span>Campus {ticket.campus}</span>
+                          <span>{t("Campus")} {ticket.campus}</span>
                           <span>•</span>
-                          <span>{ticket.timeAgo}</span>
+                          <span>{formatTime(ticket.timeAgo)}</span>
                         </div>
                       </div>
                     ))
                   ) : (
                     <div className="text-center py-6 text-xs text-slate-400">
-                      Chưa có yêu cầu hỗ trợ nào trong hàng đợi
-                    </div>
+                      {t("Chưa có yêu cầu hỗ trợ nào trong hàng đợi")}</div>
                   )}
                 </div>
               </div>
 
               <div className="pt-3 border-t border-slate-100">
                 <Link to="/tickets" className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center justify-between">
-                  <span>View All Tickets</span>
+                  <span>{t("View All Tickets")}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
@@ -523,10 +515,9 @@ export const AdminDashboardPage: React.FC = () => {
             <div className="p-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-3.5 flex flex-col justify-between">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-bold text-xs text-slate-900">Recent User Activity</h3>
+                  <h3 className="font-bold text-xs text-slate-900">{t("Recent User Activity")}</h3>
                   <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-600">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Live Stream
-                  </span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />  {t("Live Stream")}</span>
                 </div>
 
                 <div className="space-y-2.5 divide-y divide-slate-100 text-xs">
@@ -540,7 +531,7 @@ export const AdminDashboardPage: React.FC = () => {
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="text-[11px] text-slate-800 leading-snug">
-                              <strong>{log.action}</strong> on {log.target}
+                              <strong>{log.action}</strong>  {t("on")} {log.target}
                             </div>
                             <span className="text-[10px] text-slate-400">{log.timestamp || 'Recent'}</span>
                           </div>
@@ -549,15 +540,14 @@ export const AdminDashboardPage: React.FC = () => {
                     })
                   ) : (
                     <div className="text-center py-6 text-xs text-slate-400">
-                      Chưa có hoạt động người dùng gần đây
-                    </div>
+                      {t("Chưa có hoạt động người dùng gần đây")}</div>
                   )}
                 </div>
               </div>
 
               <div className="pt-3 border-t border-slate-100">
                 <Link to="/users" className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center justify-between">
-                  <span>View Full User Activity</span>
+                  <span>{t("View Full User Activity")}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
@@ -567,45 +557,45 @@ export const AdminDashboardPage: React.FC = () => {
           {/* Academic Platform Overview Card (Figma 55:2) */}
           <div className="p-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-4">
             <div>
-              <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Academic Platform Overview</h3>
-              <p className="text-[11px] text-slate-400">Comprehensive taxonomy across campuses, majors, courses, and community index.</p>
+              <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">{t("Academic Platform Overview")}</h3>
+              <p className="text-[11px] text-slate-400">{t("Comprehensive taxonomy across campuses, majors, courses, and community index.")}</p>
             </div>
 
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
               <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 text-center">
                 <div className="text-lg font-bold text-slate-900">{dashboardData?.academicOverview.campusesCount ?? 0}</div>
-                <div className="text-[10px] font-bold text-slate-500 uppercase mt-0.5">CAMPUSES</div>
-                <div className="text-[9px] text-slate-400">All nodes synced</div>
+                <div className="text-[10px] font-bold text-slate-500 uppercase mt-0.5">{t("CAMPUSES")}</div>
+                <div className="text-[9px] text-slate-400">{t("All nodes synced")}</div>
               </div>
 
               <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 text-center">
                 <div className="text-lg font-bold text-slate-900">{dashboardData?.academicOverview.majorsCount ?? 0}</div>
-                <div className="text-[10px] font-bold text-slate-500 uppercase mt-0.5">MAJORS</div>
-                <div className="text-[9px] text-slate-400">Active curricula</div>
+                <div className="text-[10px] font-bold text-slate-500 uppercase mt-0.5">{t("MAJORS")}</div>
+                <div className="text-[9px] text-slate-400">{t("Active curricula")}</div>
               </div>
 
               <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 text-center">
                 <div className="text-lg font-bold text-slate-900">{dashboardData?.academicOverview.courseNodesCount ?? 0}</div>
-                <div className="text-[10px] font-bold text-slate-500 uppercase mt-0.5">COURSES</div>
-                <div className="text-[9px] text-slate-400">Syllabus live</div>
+                <div className="text-[10px] font-bold text-slate-500 uppercase mt-0.5">{t("COURSES")}</div>
+                <div className="text-[9px] text-slate-400">{t("Syllabus live")}</div>
               </div>
 
               <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 text-center">
-                <div className="text-lg font-bold text-slate-900">{(dashboardData?.academicOverview.materialsCount ?? 0).toLocaleString()}</div>
-                <div className="text-[10px] font-bold text-slate-500 uppercase mt-0.5">MATERIALS</div>
-                <div className="text-[9px] text-slate-400">Uploaded & verified</div>
+                <div className="text-lg font-bold text-slate-900">{(dashboardData?.academicOverview.materialsCount ?? 0).toLocaleString(locale)}</div>
+                <div className="text-[10px] font-bold text-slate-500 uppercase mt-0.5">{t("MATERIALS")}</div>
+                <div className="text-[9px] text-slate-400">{t("Uploaded & verified")}</div>
               </div>
 
               <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 text-center">
-                <div className="text-lg font-bold text-slate-900">{(dashboardData?.academicOverview.discussionsCount ?? 0).toLocaleString()}</div>
-                <div className="text-[10px] font-bold text-slate-500 uppercase mt-0.5">DISCUSSIONS</div>
-                <div className="text-[9px] text-slate-400">Community threads</div>
+                <div className="text-lg font-bold text-slate-900">{(dashboardData?.academicOverview.discussionsCount ?? 0).toLocaleString(locale)}</div>
+                <div className="text-[10px] font-bold text-slate-500 uppercase mt-0.5">{t("DISCUSSIONS")}</div>
+                <div className="text-[9px] text-slate-400">{t("Community threads")}</div>
               </div>
 
               <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 text-center">
-                <div className="text-lg font-bold text-slate-900">{(dashboardData?.academicOverview.workflowsCount ?? 0).toLocaleString()}</div>
-                <div className="text-[10px] font-bold text-slate-500 uppercase mt-0.5">WORKFLOWS</div>
-                <div className="text-[9px] text-slate-400">Standard guides</div>
+                <div className="text-lg font-bold text-slate-900">{(dashboardData?.academicOverview.workflowsCount ?? 0).toLocaleString(locale)}</div>
+                <div className="text-[10px] font-bold text-slate-500 uppercase mt-0.5">{t("WORKFLOWS")}</div>
+                <div className="text-[9px] text-slate-400">{t("Standard guides")}</div>
               </div>
             </div>
           </div>
@@ -614,11 +604,11 @@ export const AdminDashboardPage: React.FC = () => {
           <div className="p-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-3.5">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Recent Audit Logs</h3>
-                <p className="text-[11px] text-slate-400">Immutable cryptographic ledger of recent system transactions</p>
+                <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">{t("Recent Audit Logs")}</h3>
+                <p className="text-[11px] text-slate-400">{t("Immutable cryptographic ledger of recent system transactions")}</p>
               </div>
               <Link to="/audit-logs" className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1">
-                <span>View All Logs</span>
+                <span>{t("View All Logs")}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
@@ -627,10 +617,10 @@ export const AdminDashboardPage: React.FC = () => {
               <table className="w-full text-left text-xs">
                 <thead className="text-[10px] font-bold text-slate-400 uppercase border-b border-slate-100">
                   <tr>
-                    <th className="py-2 px-3">TIME</th>
-                    <th className="py-2 px-3">USER</th>
-                    <th className="py-2 px-3">ACTION</th>
-                    <th className="py-2 px-3">TARGET</th>
+                    <th className="py-2 px-3">{t("TIME")}</th>
+                    <th className="py-2 px-3">{t("USER")}</th>
+                    <th className="py-2 px-3">{t("ACTION")}</th>
+                    <th className="py-2 px-3">{t("TARGET")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -656,8 +646,7 @@ export const AdminDashboardPage: React.FC = () => {
                   ) : (
                     <tr>
                       <td colSpan={4} className="py-6 text-center text-xs text-slate-400">
-                        Chưa có nhật ký kiểm toán hệ thống nào
-                      </td>
+                        {t("Chưa có nhật ký kiểm toán hệ thống nào")}</td>
                     </tr>
                   )}
                 </tbody>
@@ -671,62 +660,61 @@ export const AdminDashboardPage: React.FC = () => {
           {/* System Status Card (Figma 55:2) */}
           <div className="p-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-3.5">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">System Status</h3>
+              <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">{t("System Status")}</h3>
               <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> 99.9% HEALTHY
-              </span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />  {t("99.9% HEALTHY")}</span>
             </div>
 
             <div className="space-y-2.5 text-xs divide-y divide-slate-100">
               <div className="pt-2 first:pt-0 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                  <span className="font-semibold text-slate-800">Database (Postgres)</span>
+                  <span className="font-semibold text-slate-800">{t("Database (Postgres)")}</span>
                 </div>
                 <div className="text-right">
                   <span className="font-mono text-emerald-600 font-bold">
                     {dashboardData?.systemStatus.databaseUptime ?? '99.98%'}
                   </span>
-                  <span className="text-[10px] text-slate-400 block">Master + 2 replicas</span>
+                  <span className="text-[10px] text-slate-400 block">{t("Master + 2 replicas")}</span>
                 </div>
               </div>
 
               <div className="pt-2 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                  <span className="font-semibold text-slate-800">API Cluster</span>
+                  <span className="font-semibold text-slate-800">{t("API Cluster")}</span>
                 </div>
                 <div className="text-right">
                   <span className="font-mono text-slate-800 font-bold">
-                    {dashboardData?.systemStatus.apiClusterLatency ?? '42ms Latency'}
+                    {t(dashboardData?.systemStatus.apiClusterLatency ?? '42ms Latency')}
                   </span>
-                  <span className="text-[10px] text-slate-400 block">7/7 nodes active</span>
+                  <span className="text-[10px] text-slate-400 block">{t("7/7 nodes active")}</span>
                 </div>
               </div>
 
               <div className="pt-2 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                  <span className="font-semibold text-slate-800">Search & Cache</span>
+                  <span className="font-semibold text-slate-800">{t("Search & Cache")}</span>
                 </div>
                 <div className="text-right">
                   <span className="font-mono text-emerald-600 font-bold">
-                    {dashboardData?.systemStatus.searchServiceStatus ?? 'Optimal'}
+                    {t(dashboardData?.systemStatus.searchServiceStatus ?? 'Optimal')}
                   </span>
-                  <span className="text-[10px] text-slate-400 block">Redis Cluster</span>
+                  <span className="text-[10px] text-slate-400 block">{t("Redis Cluster")}</span>
                 </div>
               </div>
 
               <div className="pt-2 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                  <span className="font-semibold text-slate-800">Telemetry SLA</span>
+                  <span className="font-semibold text-slate-800">{t("Telemetry SLA")}</span>
                 </div>
                 <div className="text-right">
                   <span className="font-mono text-emerald-600 font-bold">
-                    {dashboardData?.systemStatus.cdnDeliveryUptime ?? '99.9% Uptime'}
+                    {t(dashboardData?.systemStatus.cdnDeliveryUptime ?? '99.9% Uptime')}
                   </span>
-                  <span className="text-[10px] text-slate-400 block">Automated health checks</span>
+                  <span className="text-[10px] text-slate-400 block">{t("Automated health checks")}</span>
                 </div>
               </div>
             </div>
@@ -735,10 +723,9 @@ export const AdminDashboardPage: React.FC = () => {
           {/* Pending Tasks Card (Figma 55:2) */}
           <div className="p-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-3.5">
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Pending Tasks</h3>
+              <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">{t("Pending Tasks")}</h3>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
-                {dashboardData?.pendingTasks.length ?? 0} Tasks
-              </span>
+                {dashboardData?.pendingTasks.length ?? 0}  {t("Tasks")}</span>
             </div>
 
             <div className="space-y-2.5 text-xs">
@@ -746,25 +733,24 @@ export const AdminDashboardPage: React.FC = () => {
                 dashboardData.pendingTasks.map((task, idx) => (
                   <div key={idx} className="p-2.5 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-between">
                     <div>
-                      <div className="font-semibold text-slate-800">{task.title}</div>
-                      <div className="text-[10px] text-slate-500">{task.description}</div>
+                      <div className="font-semibold text-slate-800">{t(task.title)}</div>
+                      <div className="text-[10px] text-slate-500">{t(task.description)}</div>
                     </div>
                     <Link to={task.targetUrl} className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded text-[11px] font-semibold text-slate-700 shadow-2xs">
-                      {task.actionLabel}
+                      {t(task.actionLabel)}
                     </Link>
                   </div>
                 ))
               ) : (
                 <div className="text-center py-4 text-xs text-slate-400">
-                  Không có tác vụ nào đang chờ xử lý
-                </div>
+                  {t("Không có tác vụ nào đang chờ xử lý")}</div>
               )}
             </div>
           </div>
 
           {/* Campus Distribution Card (Figma 55:2) */}
           <div className="p-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-3.5">
-            <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">Campus Distribution</h3>
+            <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">{t("Campus Distribution")}</h3>
 
             <div className="space-y-3 text-xs">
               {dashboardData?.campusDistribution && dashboardData.campusDistribution.length > 0 ? (
@@ -772,7 +758,7 @@ export const AdminDashboardPage: React.FC = () => {
                   <div key={campus.campusCode}>
                     <div className="flex justify-between text-[11px] mb-1">
                       <span className="font-semibold text-slate-700">{campus.campusName}</span>
-                      <span className="text-slate-500">{campus.studentsCount.toLocaleString()} students ({campus.percentage}%)</span>
+                      <span className="text-slate-500">{campus.studentsCount.toLocaleString(locale)}  {t("students (")}{campus.percentage}%)</span>
                     </div>
                     <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
                       <div
@@ -784,14 +770,13 @@ export const AdminDashboardPage: React.FC = () => {
                 ))
               ) : (
                 <div className="text-center py-4 text-xs text-slate-400">
-                  Chưa có thống kê phân bổ phân hiệu
-                </div>
+                  {t("Chưa có thống kê phân bổ phân hiệu")}</div>
               )}
             </div>
 
             <div className="pt-3 border-t border-slate-100">
               <Link to="/campuses" className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center justify-between">
-                <span>Manage campus partitions and nodes</span>
+                <span>{t("Manage campus partitions and nodes")}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>

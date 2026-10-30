@@ -1,8 +1,10 @@
+import { useLanguage } from '../../context/LanguageContext';
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Compass, BookOpen, HelpCircle, ArrowLeft, Search } from 'lucide-react';
 
 export const NotFoundPage: React.FC = () => {
+  const { t } = useLanguage();
   return (
     <div className="min-h-[70vh] flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 max-w-lg w-full p-8 text-center space-y-6 animate-in fade-in">
@@ -12,11 +14,9 @@ export const NotFoundPage: React.FC = () => {
 
         <div className="space-y-2">
           <h1 className="text-2xl font-bold text-[#181C22]">
-            Không tìm thấy trang
-          </h1>
+            {t("Không tìm thấy trang")}</h1>
           <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
-            Đường dẫn bạn yêu cầu không tồn tại hoặc đã được thay đổi cấu trúc trong hệ thống FHub.
-          </p>
+            {t("Đường dẫn bạn yêu cầu không tồn tại hoặc đã được thay đổi cấu trúc trong hệ thống FHub.")}</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
@@ -28,8 +28,8 @@ export const NotFoundPage: React.FC = () => {
               <Compass className="w-4 h-4" />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-slate-800 group-hover:text-[#0076D1] transition-colors">Global Feed</h4>
-              <p className="text-[10px] text-slate-400">Xem bảng tin học thuật</p>
+              <h4 className="text-xs font-bold text-slate-800 group-hover:text-[#0076D1] transition-colors">{t("Global Feed")}</h4>
+              <p className="text-[10px] text-slate-400">{t("Xem bảng tin học thuật")}</p>
             </div>
           </Link>
 
@@ -41,8 +41,8 @@ export const NotFoundPage: React.FC = () => {
               <BookOpen className="w-4 h-4" />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-slate-800 group-hover:text-[#0076D1] transition-colors">Course Hub</h4>
-              <p className="text-[10px] text-slate-400">Tra cứu ngân hàng môn học</p>
+              <h4 className="text-xs font-bold text-slate-800 group-hover:text-[#0076D1] transition-colors">{t("Course Hub")}</h4>
+              <p className="text-[10px] text-slate-400">{t("Tra cứu ngân hàng môn học")}</p>
             </div>
           </Link>
         </div>
@@ -53,7 +53,7 @@ export const NotFoundPage: React.FC = () => {
             className="inline-flex items-center gap-1.5 text-slate-600 hover:text-[#0076D1] font-semibold"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Quay lại trang trước</span>
+            <span>{t("Quay lại trang trước")}</span>
           </Link>
 
           <Link
@@ -61,7 +61,7 @@ export const NotFoundPage: React.FC = () => {
             className="inline-flex items-center gap-1 text-[#0076D1] font-semibold hover:underline"
           >
             <HelpCircle className="w-4 h-4" />
-            <span>Báo cáo sự cố liên kết</span>
+            <span>{t("Báo cáo sự cố liên kết")}</span>
           </Link>
         </div>
       </div>

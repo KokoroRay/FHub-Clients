@@ -70,7 +70,7 @@ export const UploadStudyMaterialModal: React.FC<UploadStudyMaterialModalProps> =
       return;
     }
     if (fileSizeMb > 50) {
-      setErrorMessage('Dung lượng file không được vượt quá 50MB.');
+      setErrorMessage(t("Dung lượng file không được vượt quá 50MB."));
       return;
     }
 
@@ -94,7 +94,7 @@ export const UploadStudyMaterialModal: React.FC<UploadStudyMaterialModalProps> =
       const newMat: StudyMaterial = {
         id: String(created.studyMaterialId),
         title: created.title,
-        description: created.description || description.trim() || 'Tài liệu học tập FHub',
+        description: created.description || description.trim() || t("Tài liệu học tập FHub"),
         courseCode: courseCode || selectedCourse?.courseCode || selectedCourse?.code || `COURSE-${created.courseId}`,
         fileType: fileType,
         fileSizeMb: created.fileSizeBytes ? Number((created.fileSizeBytes / (1024 * 1024)).toFixed(1)) : fileSizeMb,
@@ -102,7 +102,7 @@ export const UploadStudyMaterialModal: React.FC<UploadStudyMaterialModalProps> =
         downloadsCount: created.downloadCount || 0,
         author: {
           id: currentUser?.id || String(created.uploaderUserId),
-          fullName: currentUser?.fullName || 'Sinh viên FHub',
+          fullName: currentUser?.fullName || t("Sinh viên FHub"),
           avatarUrl: currentUser?.avatarUrl,
         },
         semesterUploaded: '',
@@ -117,7 +117,7 @@ export const UploadStudyMaterialModal: React.FC<UploadStudyMaterialModalProps> =
       setErrorMessage(null);
       onClose();
     } catch (err: any) {
-      const msg = err?.response?.data?.message || err?.message || 'Có lỗi xảy ra khi tải lên tài liệu.';
+      const msg = err?.response?.data?.message || err?.message || t("Có lỗi xảy ra khi tải lên tài liệu.");
       setErrorMessage(msg);
     } finally {
       setIsSubmitting(false);
@@ -141,7 +141,7 @@ export const UploadStudyMaterialModal: React.FC<UploadStudyMaterialModalProps> =
         {errorMessage && (
           <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
-            <span>{errorMessage}</span>
+            <span>{t(errorMessage)}</span>
           </div>
         )}
 
@@ -159,7 +159,7 @@ export const UploadStudyMaterialModal: React.FC<UploadStudyMaterialModalProps> =
               <span className="font-bold text-xs text-emerald-600 flex items-center justify-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4" /> {t('materialUploadModal.fileSelected', 'Đã chọn:')} {selectedFileName}
               </span>
-              <span className="text-[11px] text-slate-400">{t('materialUploadModal.fileSize', 'Dung lượng:')} {fileSizeMb} MB</span>
+              <span className="text-[11px] text-slate-400">{t('materialUploadModal.fileSize', 'Dung lượng:')} {fileSizeMb}  {t("MB")}</span>
             </div>
           ) : (
             <div>
@@ -194,11 +194,11 @@ export const UploadStudyMaterialModal: React.FC<UploadStudyMaterialModalProps> =
             value={fileType}
             onChange={(e) => setFileType(e.target.value as any)}
             options={[
-              { value: 'PDF', label: 'PDF Document (.pdf)' },
-              { value: 'DOCX', label: 'Word Document (.docx, .doc)' },
-              { value: 'ZIP', label: 'Archive / Compressed (.zip, .rar, .7z)' },
-              { value: 'PPTX', label: 'Slide Presentation (.pptx, .ppt)' },
-              { value: 'CODE', label: 'Source Code File (.cs, .java, .py, .sql, .cpp, .c)' },
+              { value: 'PDF', label: t("PDF Document (.pdf)") },
+              { value: 'DOCX', label: t("Word Document (.docx, .doc)") },
+              { value: 'ZIP', label: t("Archive / Compressed (.zip, .rar, .7z)") },
+              { value: 'PPTX', label: t("Slide Presentation (.pptx, .ppt)") },
+              { value: 'CODE', label: t("Source Code File (.cs, .java, .py, .sql, .cpp, .c)") },
             ]}
           />
         </div>

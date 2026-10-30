@@ -69,7 +69,7 @@ export const ReputationRulesPage: React.FC = () => {
     setRules((prev) =>
       prev.map((r) => (r.id === ruleId ? { ...r, isActive: !r.isActive } : r))
     );
-    setSuccessNotice('Updated reputation rule active status');
+    setSuccessNotice(t("Updated reputation rule active status"));
     setTimeout(() => setSuccessNotice(null), 3000);
   };
 
@@ -107,7 +107,7 @@ export const ReputationRulesPage: React.FC = () => {
 
     setRules((prev) => [...prev, created]);
     setShowCreateModal(false);
-    setSuccessNotice(`Created reputation rule: ${created.actionName} (${created.pointDelta > 0 ? `+${created.pointDelta}` : created.pointDelta} pts)`);
+    setSuccessNotice(t("Created reputation rule: {p0} ({p1} pts)", undefined, { p0: created.actionName, p1: created.pointDelta > 0 ? `+${created.pointDelta}` : created.pointDelta }));
     setTimeout(() => setSuccessNotice(null), 3500);
   };
 
@@ -129,7 +129,7 @@ export const ReputationRulesPage: React.FC = () => {
       prev.map((r) => (r.id === editingRule.id ? editingRule : r))
     );
     setEditingRule(null);
-    setSuccessNotice(`Saved configuration for ${editingRule.actionName}`);
+    setSuccessNotice(t("Saved configuration for {p0}", undefined, { p0: editingRule.actionName }));
     setTimeout(() => setSuccessNotice(null), 3000);
   };
 
@@ -139,16 +139,14 @@ export const ReputationRulesPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-            <span>GAMIFICATION & REPUTATION</span>
-            <span>&gt;</span>
-            <span className="text-blue-600">RULES ENGINE</span>
+            <span>{t("GAMIFICATION & REPUTATION")}</span>
+            <span>{t("&gt;")}</span>
+            <span className="text-blue-600">{t("RULES ENGINE")}</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-            Reputation Points & Karma Rules
-          </h1>
+            {t("Reputation Points & Karma Rules")}</h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Configure action-based positive and negative karma point deltas, daily caps, and anti-abuse cooldowns.
-          </p>
+            {t("Configure action-based positive and negative karma point deltas, daily caps, and anti-abuse cooldowns.")}</p>
         </div>
 
         <button
@@ -156,14 +154,14 @@ export const ReputationRulesPage: React.FC = () => {
           className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
         >
           <Plus className="w-3.5 h-3.5" />
-          <span>Add Reputation Rule</span>
+          <span>{t("Add Reputation Rule")}</span>
         </button>
       </div>
 
       {successNotice && (
         <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center gap-2 animate-fadeIn">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span>{successNotice}</span>
+          <span>{t(successNotice)}</span>
         </div>
       )}
 
@@ -175,7 +173,7 @@ export const ReputationRulesPage: React.FC = () => {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by action code (e.g. BEST_ANSWER_ACCEPTED) or rule title..."
+            placeholder={t("Search by action code (e.g. BEST_ANSWER_ACCEPTED) or rule title...")}
             className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-9 pr-4 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
           />
         </div>
@@ -185,11 +183,11 @@ export const ReputationRulesPage: React.FC = () => {
           onChange={(e) => setSelectedCategory(e.target.value)}
           className="w-full md:w-48 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none cursor-pointer"
         >
-          <option value="ALL">All Categories</option>
-          <option value="DISCUSSION">DISCUSSION</option>
-          <option value="ACADEMIC">ACADEMIC</option>
-          <option value="CONTENT">CONTENT</option>
-          <option value="PENALTY">PENALTY</option>
+          <option value="ALL">{t("All Categories")}</option>
+          <option value="DISCUSSION">{t("DISCUSSION")}</option>
+          <option value="ACADEMIC">{t("ACADEMIC")}</option>
+          <option value="CONTENT">{t("CONTENT")}</option>
+          <option value="PENALTY">{t("PENALTY")}</option>
         </select>
       </div>
 
@@ -199,20 +197,19 @@ export const ReputationRulesPage: React.FC = () => {
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50/80 text-[10px] font-bold text-slate-400 uppercase border-b border-slate-200">
               <tr>
-                <th className="py-3 px-4 font-bold">ACTION & CODE</th>
-                <th className="py-3 px-3 font-bold">CATEGORY</th>
-                <th className="py-3 px-3 font-bold">POINT DELTA</th>
-                <th className="py-3 px-3 font-bold">DAILY CAP</th>
-                <th className="py-3 px-3 font-bold">STATUS</th>
-                <th className="py-3 px-4 font-bold text-right">ACTIONS</th>
+                <th className="py-3 px-4 font-bold">{t("ACTION & CODE")}</th>
+                <th className="py-3 px-3 font-bold">{t("CATEGORY")}</th>
+                <th className="py-3 px-3 font-bold">{t("POINT DELTA")}</th>
+                <th className="py-3 px-3 font-bold">{t("DAILY CAP")}</th>
+                <th className="py-3 px-3 font-bold">{t("STATUS")}</th>
+                <th className="py-3 px-4 font-bold text-right">{t("ACTIONS")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredRules.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="py-8 text-center text-xs text-slate-400">
-                    0 reputation rules found matching your filters.
-                  </td>
+                    {t("0 reputation rules found matching your filters.")}</td>
                 </tr>
               ) : (
                 filteredRules.map((rule) => (
@@ -225,7 +222,7 @@ export const ReputationRulesPage: React.FC = () => {
 
                   <td className="py-3 px-3">
                     <span className="px-1.5 py-0.5 rounded font-mono font-bold text-[10px] bg-slate-100 text-slate-700">
-                      {rule.category}
+                      {t(rule.category)}
                     </span>
                   </td>
 
@@ -237,12 +234,11 @@ export const ReputationRulesPage: React.FC = () => {
                           : 'bg-rose-50 text-rose-700 border border-rose-200'
                       }`}
                     >
-                      {rule.pointDelta > 0 ? `+${rule.pointDelta}` : rule.pointDelta} pts
-                    </span>
+                      {rule.pointDelta > 0 ? `+${rule.pointDelta}` : rule.pointDelta}  {t("pts")}</span>
                   </td>
 
                   <td className="py-3 px-3 font-mono font-semibold text-slate-700">
-                    {rule.dailyCap ? `${rule.dailyCap} pts/day` : 'Unlimited'}
+                    {rule.dailyCap ? t("{p0} pts/day", undefined, { p0: rule.dailyCap }) : t("Unlimited")}
                   </td>
 
                   <td className="py-3 px-3">
@@ -254,7 +250,7 @@ export const ReputationRulesPage: React.FC = () => {
                           : 'bg-slate-100 text-slate-500 border border-slate-200'
                       }`}
                     >
-                      {rule.isActive ? 'ACTIVE' : 'DISABLED'}
+                      {rule.isActive ? t("ACTIVE") : t("DISABLED")}
                     </button>
                   </td>
 
@@ -263,8 +259,7 @@ export const ReputationRulesPage: React.FC = () => {
                       onClick={() => setEditingRule(rule)}
                       className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 cursor-pointer"
                     >
-                      Edit
-                    </button>
+                      {t("Edit")}</button>
                   </td>
                 </tr>
               )))}
@@ -279,7 +274,7 @@ export const ReputationRulesPage: React.FC = () => {
           <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full p-6 shadow-xl space-y-4">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-bold text-slate-900">
-                Edit Karma Delta: {editingRule.actionName}
+                {t("Edit Karma Delta:")} {editingRule.actionName}
               </h2>
               <button
                 onClick={() => setEditingRule(null)}
@@ -292,7 +287,7 @@ export const ReputationRulesPage: React.FC = () => {
             <form onSubmit={handleSaveEdit} className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700">Point Delta:</label>
+                  <label className="text-xs font-semibold text-slate-700">{t("Point Delta:")}</label>
                   <input
                     type="number"
                     value={editingRule.pointDelta}
@@ -301,7 +296,7 @@ export const ReputationRulesPage: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700">Daily Cap:</label>
+                  <label className="text-xs font-semibold text-slate-700">{t("Daily Cap:")}</label>
                   <input
                     type="number"
                     value={editingRule.dailyCap || 0}
@@ -312,7 +307,7 @@ export const ReputationRulesPage: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">Description:</label>
+                <label className="text-xs font-semibold text-slate-700">{t("Description:")}</label>
                 <textarea
                   rows={2}
                   value={editingRule.description}
@@ -327,14 +322,12 @@ export const ReputationRulesPage: React.FC = () => {
                   onClick={() => setEditingRule(null)}
                   className="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold cursor-pointer"
                 >
-                  Cancel
-                </button>
+                  {t("Cancel")}</button>
                 <button
                   type="submit"
                   className="px-4 py-2 rounded-lg bg-blue-600 text-white text-xs font-semibold cursor-pointer hover:bg-blue-700"
                 >
-                  Save Changes
-                </button>
+                  {t("Save Changes")}</button>
               </div>
             </form>
           </div>
@@ -346,7 +339,7 @@ export const ReputationRulesPage: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-fadeIn">
           <div className="bg-white rounded-2xl border border-slate-200 max-w-md w-full p-6 shadow-xl space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-slate-900">Add New Reputation Rule</h2>
+              <h2 className="text-base font-bold text-slate-900">{t("Add New Reputation Rule")}</h2>
               <button
                 onClick={() => setShowCreateModal(false)}
                 className="text-slate-400 hover:text-slate-600 cursor-pointer"
@@ -357,11 +350,11 @@ export const ReputationRulesPage: React.FC = () => {
 
             <form onSubmit={handleCreateRule} className="space-y-3">
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">Action Code:</label>
+                <label className="text-xs font-semibold text-slate-700">{t("Action Code:")}</label>
                 <input
                   type="text"
                   required
-                  placeholder="STUDY_GROUP_HOSTED"
+                  placeholder={t("STUDY_GROUP_HOSTED")}
                   value={newActionCode}
                   onChange={(e) => setNewActionCode(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono font-bold uppercase"
@@ -369,11 +362,11 @@ export const ReputationRulesPage: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">Action Name:</label>
+                <label className="text-xs font-semibold text-slate-700">{t("Action Name:")}</label>
                 <input
                   type="text"
                   required
-                  placeholder="Host collaborative study session"
+                  placeholder={t("Host collaborative study session")}
                   value={newActionName}
                   onChange={(e) => setNewActionName(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs"
@@ -382,20 +375,20 @@ export const ReputationRulesPage: React.FC = () => {
 
               <div className="grid grid-cols-3 gap-2">
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700">Category:</label>
+                  <label className="text-xs font-semibold text-slate-700">{t("Category:")}</label>
                   <select
                     value={newCategory}
                     onChange={(e) => setNewCategory(e.target.value as any)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-xs"
                   >
-                    <option value="DISCUSSION">DISCUSSION</option>
-                    <option value="ACADEMIC">ACADEMIC</option>
-                    <option value="CONTENT">CONTENT</option>
-                    <option value="PENALTY">PENALTY</option>
+                    <option value="DISCUSSION">{t("DISCUSSION")}</option>
+                    <option value="ACADEMIC">{t("ACADEMIC")}</option>
+                    <option value="CONTENT">{t("CONTENT")}</option>
+                    <option value="PENALTY">{t("PENALTY")}</option>
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700">Points:</label>
+                  <label className="text-xs font-semibold text-slate-700">{t("Points:")}</label>
                   <input
                     type="number"
                     value={newPointDelta}
@@ -404,7 +397,7 @@ export const ReputationRulesPage: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-700">Daily Cap:</label>
+                  <label className="text-xs font-semibold text-slate-700">{t("Daily Cap:")}</label>
                   <input
                     type="number"
                     value={newDailyCap}
@@ -415,12 +408,12 @@ export const ReputationRulesPage: React.FC = () => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-700">Description:</label>
+                <label className="text-xs font-semibold text-slate-700">{t("Description:")}</label>
                 <textarea
                   rows={2}
                   value={newDesc}
                   onChange={(e) => setNewDesc(e.target.value)}
-                  placeholder="Criteria to trigger point award..."
+                  placeholder={t("Criteria to trigger point award...")}
                   className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs"
                 />
               </div>
@@ -431,14 +424,12 @@ export const ReputationRulesPage: React.FC = () => {
                   onClick={() => setShowCreateModal(false)}
                   className="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 text-xs font-semibold cursor-pointer"
                 >
-                  Cancel
-                </button>
+                  {t("Cancel")}</button>
                 <button
                   type="submit"
                   className="px-4 py-2 rounded-lg bg-blue-600 text-white text-xs font-semibold cursor-pointer hover:bg-blue-700"
                 >
-                  Create Rule
-                </button>
+                  {t("Create Rule")}</button>
               </div>
             </form>
           </div>

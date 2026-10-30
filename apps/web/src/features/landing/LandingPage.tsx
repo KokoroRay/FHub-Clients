@@ -1,3 +1,4 @@
+import { useLanguage } from '../../context/LanguageContext';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
@@ -17,6 +18,7 @@ import { validateFptEmail } from '../../utils/fptEmailValidator';
 import { User } from '../../types';
 
 export const LandingPage: React.FC = () => {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const { login } = useAuth();
 
@@ -76,20 +78,20 @@ export const LandingPage: React.FC = () => {
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) {
-      setErrorMessage('Vui lòng nhập email trường hoặc mã sinh viên.');
+      setErrorMessage(t("Vui lòng nhập email trường hoặc mã sinh viên."));
       return;
     }
 
     if (email.trim().includes('@')) {
       const emailCheck = validateFptEmail(email.trim());
       if (!emailCheck.isValid) {
-        setErrorMessage(emailCheck.error || 'Email không đúng định dạng quy định của Trường Đại học FPT.');
+        setErrorMessage(emailCheck.error || t("Email không đúng định dạng quy định của Trường Đại học FPT."));
         return;
       }
     }
 
     if (!password) {
-      setErrorMessage('Vui lòng nhập mật khẩu.');
+      setErrorMessage(t("Vui lòng nhập mật khẩu."));
       return;
     }
 
@@ -103,7 +105,7 @@ export const LandingPage: React.FC = () => {
       const msg =
         err.response?.data?.message ||
         err.message ||
-        'Đăng nhập không thành công. Vui lòng kiểm tra lại thông tin xác thực.';
+        t("Đăng nhập không thành công. Vui lòng kiểm tra lại thông tin xác thực.");
       setErrorMessage(msg);
     } finally {
       setIsLoading(false);
@@ -121,7 +123,7 @@ export const LandingPage: React.FC = () => {
         const googleEmail = (payloadJson.email || '').trim().toLowerCase();
         if (googleEmail) {
           if (!googleEmail.endsWith('@fpt.edu.vn')) {
-            setErrorMessage(`Chỉ tài khoản Google có đuôi email @fpt.edu.vn mới được phép đăng nhập hoặc đăng ký qua Google. (Email hiện tại: ${googleEmail})`);
+            setErrorMessage(t("Chỉ tài khoản Google có đuôi email @fpt.edu.vn mới được phép đăng nhập hoặc đăng ký qua Google. (Email hiện tại: {p0})", undefined, { p0: googleEmail }));
             setIsLoading(false);
             return;
           }
@@ -135,7 +137,7 @@ export const LandingPage: React.FC = () => {
       const result = await authApi.googleLogin(idToken);
       handleLoginSuccess(result, result.user?.email || 'google.student@fpt.edu.vn');
     } catch (err: any) {
-      setErrorMessage(err.response?.data?.message || err.message || 'Đăng nhập Google SSO không thành công.');
+      setErrorMessage(err.response?.data?.message || err.message || t("Đăng nhập Google SSO không thành công."));
     } finally {
       setIsLoading(false);
     }
@@ -190,7 +192,7 @@ export const LandingPage: React.FC = () => {
       return;
     }
 
-    setErrorMessage('Cổng Google SSO đang khởi tạo. Vui lòng thử lại sau vài giây hoặc đăng nhập bằng Email.');
+    setErrorMessage(t("Cổng Google SSO đang khởi tạo. Vui lòng thử lại sau vài giây hoặc đăng nhập bằng Email."));
   };
 
   return (
@@ -207,20 +209,17 @@ export const LandingPage: React.FC = () => {
       <header className="relative z-10 w-full max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
         <Link to="/landing" className="flex items-center gap-3 group">
           <div className="w-10 h-10 rounded-xl bg-white shadow-xs border border-slate-200/80 flex items-center justify-center p-1.5 transition-transform group-hover:scale-105">
-            <img src="/fhub-remove-background.png" alt="FHub Logo" className="w-full h-full object-contain" />
+            <img src="/fhub-remove-background.png" alt={t("FHub Logo")} className="w-full h-full object-contain" />
           </div>
           <div className="space-y-0.5">
             <div className="flex items-center gap-2">
               <span className="text-xl font-black tracking-tight text-slate-900 leading-none">
-                FHub
-              </span>
+                {t("FHub")}</span>
               <span className="px-2 py-0.5 rounded text-[10px] font-extrabold tracking-wider bg-blue-50 text-[#0076D1] border border-blue-200 uppercase">
-                COMMUNITY
-              </span>
+                {t("COMMUNITY")}</span>
             </div>
             <p className="text-[11px] font-medium text-slate-500 leading-none">
-              Academic Social Network
-            </p>
+              {t("Academic Social Network")}</p>
           </div>
         </Link>
 
@@ -228,7 +227,7 @@ export const LandingPage: React.FC = () => {
         <div className="flex items-center gap-3 sm:gap-4">
           <div className="hidden sm:inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-mono font-semibold bg-white/90 text-slate-600 border border-slate-200/80 shadow-2xs">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Mekong Delta & Campuses Connected</span>
+            <span>{t("Mekong Delta & Campuses Connected")}</span>
           </div>
 
           <Link
@@ -236,7 +235,7 @@ export const LandingPage: React.FC = () => {
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-[#0076D1] transition-colors py-1.5 px-3 rounded-xl bg-white/80 border border-slate-200/80 hover:border-blue-200 shadow-2xs"
           >
             <LifeBuoy className="w-4 h-4 text-slate-400 group-hover:text-[#0076D1]" />
-            <span>Support</span>
+            <span>{t("Support")}</span>
           </Link>
         </div>
       </header>
@@ -251,11 +250,9 @@ export const LandingPage: React.FC = () => {
               {/* Form Header (Figma #72:162) */}
               <div className="mb-6 space-y-1.5">
                 <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-                  Welcome Back
-                </h1>
+                  {t("Welcome Back")}</h1>
                 <p className="text-xs text-slate-500 leading-relaxed">
-                  Enter your university credentials to access your FHub workspace.
-                </p>
+                  {t("Enter your university credentials to access your FHub workspace.")}</p>
               </div>
 
               {/* Social SSO Buttons (Figma #72:167) */}
@@ -273,7 +270,7 @@ export const LandingPage: React.FC = () => {
                     <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
                     <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
                   </svg>
-                  <span className="truncate">Sign in with Google Workspace (@fpt.edu.vn)</span>
+                  <span className="truncate">{t("Sign in with Google Workspace (@fpt.edu.vn)")}</span>
                 </button>
               </div>
 
@@ -283,15 +280,14 @@ export const LandingPage: React.FC = () => {
                   <div className="w-full border-t border-slate-200" />
                 </div>
                 <span className="relative px-3 bg-white text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
-                  OR SIGN IN WITH EMAIL
-                </span>
+                  {t("OR SIGN IN WITH EMAIL")}</span>
               </div>
 
               {/* Error Alert */}
               {errorMessage && (
                 <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 flex items-start gap-2 text-xs text-red-600 leading-snug">
                   <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                  <span>{errorMessage}</span>
+                  <span>{t(errorMessage)}</span>
                 </div>
               )}
 
@@ -300,8 +296,7 @@ export const LandingPage: React.FC = () => {
                 {/* University Email / MSSV */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                    University Email / Student ID
-                  </label>
+                    {t("University Email / Student ID")}</label>
                   <div className="relative">
                     <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
@@ -311,7 +306,7 @@ export const LandingPage: React.FC = () => {
                         setEmail(e.target.value);
                         if (errorMessage) setErrorMessage(null);
                       }}
-                      placeholder="student.name@fpt.edu.vn"
+                      placeholder={t("student.name@fpt.edu.vn")}
                       className="w-full bg-slate-50/60 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0076D1]/20 focus:border-[#0076D1] transition-all"
                       autoComplete="username"
                       required
@@ -323,14 +318,12 @@ export const LandingPage: React.FC = () => {
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <label className="block text-xs font-bold text-slate-700">
-                      Password
-                    </label>
+                      {t("Password")}</label>
                     <Link
                       to="/forgot-password"
                       className="text-xs font-semibold text-[#0076D1] hover:underline"
                     >
-                      Forgot password?
-                    </Link>
+                      {t("Forgot password?")}</Link>
                   </div>
                   <div className="relative">
                     <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -365,12 +358,12 @@ export const LandingPage: React.FC = () => {
                       onChange={(e) => setRememberMe(e.target.checked)}
                       className="w-4 h-4 rounded text-[#0076D1] border-slate-300 focus:ring-[#0076D1]"
                     />
-                    <span className="text-slate-600 font-medium">Remember me</span>
+                    <span className="text-slate-600 font-medium">{t("Remember me")}</span>
                   </label>
 
                   <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                    <span>256-bit TLS</span>
+                    <span>{t("256-bit TLS")}</span>
                   </div>
                 </div>
 
@@ -380,7 +373,7 @@ export const LandingPage: React.FC = () => {
                   disabled={isLoading}
                   className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-extrabold text-white bg-[#0076D1] hover:bg-[#005DA7] transition-all shadow-md hover:shadow-lg cursor-pointer disabled:opacity-50 tracking-wider uppercase"
                 >
-                  <span>{isLoading ? 'SIGNING IN...' : 'SIGN IN'}</span>
+                  <span>{isLoading ? t("SIGNING IN...") : t("SIGN IN")}</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </form>
@@ -388,10 +381,9 @@ export const LandingPage: React.FC = () => {
 
             {/* Bottom Form Link: Register Link (Figma #72:224) */}
             <div className="pt-6 text-center text-xs text-slate-500">
-              Don't have an account?{' '}
+              {t("Don't have an account?")}{' '}
               <Link to="/register" className="font-bold text-[#0076D1] hover:underline">
-                Register
-              </Link>
+                {t("Register")}</Link>
             </div>
           </div>
 
@@ -405,24 +397,21 @@ export const LandingPage: React.FC = () => {
             <div className="relative">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-white/15 text-white backdrop-blur-sm border border-white/20">
                 <ShieldCheck className="w-3.5 h-3.5 text-blue-200" />
-                FHub Academic Ecosystem
-              </span>
+                {t("FHub Academic Ecosystem")}</span>
             </div>
 
             {/* Main Greeting Center */}
             <div className="relative space-y-4 my-auto py-6">
               <h2 className="text-3xl font-black text-white tracking-tight">
-                Hello, Friend!
-              </h2>
+                {t("Hello, Friend!")}</h2>
               <p className="text-xs text-blue-100/90 leading-relaxed max-w-xs">
-                Enter your personal details and start your journey with FHub academic network.
-              </p>
+                {t("Enter your personal details and start your journey with FHub academic network.")}</p>
               <div className="pt-2">
                 <Link
                   to="/register"
                   className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold text-white border-2 border-white hover:bg-white hover:text-[#0076D1] transition-all shadow-md"
                 >
-                  <span>SIGN UP</span>
+                  <span>{t("SIGN UP")}</span>
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
@@ -432,11 +421,11 @@ export const LandingPage: React.FC = () => {
             <div className="relative pt-6 border-t border-white/15 grid grid-cols-2 gap-3 text-left">
               <div>
                 <span className="block text-xs font-extrabold text-white">12,450+</span>
-                <span className="text-[10px] text-blue-200">Active Students</span>
+                <span className="text-[10px] text-blue-200">{t("Active Students")}</span>
               </div>
               <div>
-                <span className="block text-xs font-extrabold text-white">186 Nodes</span>
-                <span className="text-[10px] text-blue-200">Curriculum Syllabi</span>
+                <span className="block text-xs font-extrabold text-white">{t("186 Nodes")}</span>
+                <span className="text-[10px] text-blue-200">{t("Curriculum Syllabi")}</span>
               </div>
             </div>
           </div>
@@ -446,28 +435,23 @@ export const LandingPage: React.FC = () => {
       {/* 3. Bottom Brand Footer (Figma #72:259) */}
       <footer className="relative z-10 w-full max-w-5xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-500 border-t border-slate-200/60">
         <div className="flex items-center gap-2">
-          <span>FHub Academic Network</span>
+          <span>{t("FHub Academic Network")}</span>
           <span>•</span>
-          <span>FPT University Ecosystem</span>
+          <span>{t("FPT University Ecosystem")}</span>
           <span>•</span>
-          <span className="font-mono text-slate-400">v2.4 Core</span>
+          <span className="font-mono text-slate-400">{t("v2.4 Core")}</span>
         </div>
         <div className="flex items-center gap-4 text-slate-500">
           <Link to="/tech-blog" className="hover:text-slate-800 transition-colors">
-            Tech Blog
-          </Link>
+            {t("Tech Blog")}</Link>
           <Link to="/workflows" className="hover:text-slate-800 transition-colors">
-            Workflows
-          </Link>
+            {t("Workflows")}</Link>
           <Link to="/course-ratings" className="hover:text-slate-800 transition-colors">
-            Course Ratings
-          </Link>
+            {t("Course Ratings")}</Link>
           <Link to="/settings" className="hover:text-slate-800 transition-colors">
-            Privacy Policy
-          </Link>
+            {t("Privacy Policy")}</Link>
           <Link to="/tickets" className="hover:text-slate-800 transition-colors">
-            Support Desk
-          </Link>
+            {t("Support Desk")}</Link>
         </div>
       </footer>
     </div>

@@ -99,7 +99,7 @@ export const StudyMaterialListPage: React.FC = () => {
             return {
               id: String(item.studyMaterialId),
               title: item.title,
-              description: item.description || 'Tài liệu học tập FHub',
+              description: item.description || t("Tài liệu học tập FHub"),
               courseCode: resolvedCode,
               fileType: resolvedFileType,
               fileSizeMb: item.fileSizeBytes ? Number((item.fileSizeBytes / (1024 * 1024)).toFixed(1)) : 0,
@@ -265,10 +265,10 @@ export const StudyMaterialListPage: React.FC = () => {
             className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-2 py-2 text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#0076D1] cursor-pointer"
           >
             <option value="ALL">{t('common.type', 'Loại')}</option>
-            <option value="PDF">PDF</option>
-            <option value="DOCX">DOCX</option>
-            <option value="ZIP">ZIP</option>
-            <option value="CODE">CODE</option>
+            <option value="PDF">{t("PDF")}</option>
+            <option value="DOCX">{t("DOCX")}</option>
+            <option value="ZIP">{t("ZIP")}</option>
+            <option value="CODE">{t("CODE")}</option>
           </select>
         </div>
 
@@ -321,7 +321,7 @@ export const StudyMaterialListPage: React.FC = () => {
                         ? 'bg-blue-50 border-blue-200 text-[#0076D1]'
                         : 'border-transparent text-slate-400 hover:bg-slate-100'
                     }`}
-                    title="Bookmark"
+                    title={t("Bookmark")}
                   >
                     <Bookmark className="w-4 h-4" />
                   </button>
@@ -353,7 +353,7 @@ export const StudyMaterialListPage: React.FC = () => {
               <div className="text-[11px] text-slate-400">
                 <span>{t('common.by', 'Đăng bởi')} <strong className="text-slate-700 dark:text-slate-300">{t(mat.author.fullName)}</strong></span>
                 <span className="mx-1">•</span>
-                <span>{mat.fileSizeMb} MB</span>
+                <span>{mat.fileSizeMb}  {t("MB")}</span>
               </div>
 
               <Link

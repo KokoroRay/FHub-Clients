@@ -21,24 +21,24 @@ export const EmailAuthPage: React.FC = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) {
-      setErrorMessage('Vui lòng nhập email trường hoặc mã sinh viên.');
+      setErrorMessage(t("Vui lòng nhập email trường hoặc mã sinh viên."));
       return;
     }
 
     if (email.trim().includes('@')) {
       const emailCheck = validateFptEmail(email.trim());
       if (!emailCheck.isValid) {
-        setErrorMessage(emailCheck.error || 'Email không đúng quy chế của trường.');
+        setErrorMessage(emailCheck.error || t("Email không đúng quy chế của trường."));
         return;
       }
     }
 
     if (!password) {
-      setErrorMessage('Vui lòng nhập mật khẩu.');
+      setErrorMessage(t("Vui lòng nhập mật khẩu."));
       return;
     }
     if (password.length < 6) {
-      setErrorMessage('Mật khẩu phải chứa ít nhất 6 ký tự.');
+      setErrorMessage(t("Mật khẩu phải chứa ít nhất 6 ký tự."));
       return;
     }
     setIsLoading(true);
@@ -80,7 +80,7 @@ export const EmailAuthPage: React.FC = () => {
       else if (mappedRole === 'Community Moderator') navigate('/admin-console/moderation');
       else navigate('/');
     } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || 'Đăng nhập không thành công. Vui lòng kiểm tra lại thông tin xác thực.';
+      const msg = err.response?.data?.message || err.message || t("Đăng nhập không thành công. Vui lòng kiểm tra lại thông tin xác thực.");
       setErrorMessage(msg);
     } finally {
       setIsLoading(false);
@@ -101,8 +101,8 @@ export const EmailAuthPage: React.FC = () => {
             <span>{t('auth.back', 'Back')}</span>
           </button>
           <div className="flex items-center gap-1.5">
-            <img src="/fhub-remove-background.png" alt="FHub Logo" className="w-6 h-6 object-contain" />
-            <span className="font-extrabold text-xs tracking-tight text-slate-800">FHub EDU</span>
+            <img src="/fhub-remove-background.png" alt={t("FHub Logo")} className="w-6 h-6 object-contain" />
+            <span className="font-extrabold text-xs tracking-tight text-slate-800">{t("FHub EDU")}</span>
           </div>
         </div>
 
@@ -117,7 +117,7 @@ export const EmailAuthPage: React.FC = () => {
 
         {errorMessage && (
           <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold">
-            {errorMessage}
+            {t(errorMessage)}
           </div>
         )}
 
@@ -132,7 +132,7 @@ export const EmailAuthPage: React.FC = () => {
                 type="text"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="TanLT.CE190370@gmail.com hoặc namnv@fpt.edu.vn"
+                placeholder={t("TanLT.CE190370@gmail.com hoặc namnv@fpt.edu.vn")}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0076D1]/20 focus:border-[#0076D1] transition-all"
                 required
               />

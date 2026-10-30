@@ -1,9 +1,11 @@
+import { useLanguage } from '../../context/LanguageContext';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, BookOpen, Compass } from 'lucide-react';
 import { ArticleListPage } from '../articles/ArticleListPage';
 
 export const TechBlogPage: React.FC = () => {
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   return (
@@ -17,11 +19,11 @@ export const TechBlogPage: React.FC = () => {
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Back to Landing</span>
+            <span>{t("Back to Landing")}</span>
           </button>
           <div className="flex items-center gap-2">
             <BookOpen className="w-5 h-5 text-[#0076D1]" />
-            <h1 className="font-black text-sm text-slate-900 tracking-tight">Tech Blog Articles</h1>
+            <h1 className="font-black text-sm text-slate-900 tracking-tight">{t("Tech Blog Articles")}</h1>
           </div>
         </div>
 
@@ -30,7 +32,7 @@ export const TechBlogPage: React.FC = () => {
           onClick={() => navigate('/campus-selection')}
           className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-bold text-white bg-[#0076D1] hover:bg-[#005DA7] transition-all shadow-xs cursor-pointer"
         >
-          <span>Get Started</span>
+          <span>{t("Get Started")}</span>
         </button>
       </div>
 

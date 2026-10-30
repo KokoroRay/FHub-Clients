@@ -81,7 +81,7 @@ export const OTPVerifyPage: React.FC = () => {
     e.preventDefault();
     const code = otp.join('');
     if (code.length < 6) {
-      setErrorMessage('Vui lòng nhập đủ 6 chữ số mã xác thực OTP.');
+      setErrorMessage(t("Vui lòng nhập đủ 6 chữ số mã xác thực OTP."));
       return;
     }
 
@@ -96,7 +96,7 @@ export const OTPVerifyPage: React.FC = () => {
         // Register mode: finalize account creation
         const pendingReg = JSON.parse(sessionStorage.getItem('fhub_pending_reg') || '{}');
         if (!pendingReg.email) {
-          setErrorMessage('Không tìm thấy thông tin đăng ký. Vui lòng quay lại.');
+          setErrorMessage(t("Không tìm thấy thông tin đăng ký. Vui lòng quay lại."));
           setIsLoading(false);
           return;
         }
@@ -121,7 +121,7 @@ export const OTPVerifyPage: React.FC = () => {
         navigate('/landing');
       }
     } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || 'Mã xác thực không hợp lệ. Vui lòng thử lại.';
+      const msg = err.response?.data?.message || err.message || t("Mã xác thực không hợp lệ. Vui lòng thử lại.");
       setErrorMessage(msg);
     } finally {
       setIsLoading(false);
@@ -151,7 +151,7 @@ export const OTPVerifyPage: React.FC = () => {
           </button>
           <div className="flex items-center gap-1.5">
             <ShieldCheck className="w-4 h-4 text-[#0076D1]" />
-            <span className="font-extrabold text-xs text-slate-800">OTP Verification</span>
+            <span className="font-extrabold text-xs text-slate-800">{t("OTP Verification")}</span>
           </div>
         </div>
 
@@ -160,15 +160,14 @@ export const OTPVerifyPage: React.FC = () => {
             {t('auth.otpTitle', 'OTP Verification')}
           </h1>
           <p className="text-xs text-slate-500">
-            Nhập mã xác thực 6 chữ số đã được gửi tới:
-            <br />
-            <strong className="text-slate-800 font-mono text-sm">{targetEmail || 'email của bạn'}</strong>
+            {t("Nhập mã xác thực 6 chữ số đã được gửi tới:")}<br />
+            <strong className="text-slate-800 font-mono text-sm">{targetEmail || t("email của bạn")}</strong>
           </p>
         </div>
 
         {errorMessage && (
           <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold">
-            {errorMessage}
+            {t(errorMessage)}
           </div>
         )}
 
@@ -198,11 +197,11 @@ export const OTPVerifyPage: React.FC = () => {
                 className="inline-flex items-center gap-1.5 font-bold text-[#0076D1] hover:underline cursor-pointer"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                <span>Gửi lại mã OTP</span>
+                <span>{t("Gửi lại mã OTP")}</span>
               </button>
             ) : (
               <span className="text-slate-400">
-                Gửi lại mã sau <strong>{timerSeconds}s</strong>
+                {t("Gửi lại mã sau")} <strong>{timerSeconds}s</strong>
               </span>
             )}
           </div>
@@ -215,7 +214,7 @@ export const OTPVerifyPage: React.FC = () => {
           >
             <span>
               {isLoading
-                ? 'ĐANG XÁC THỰC...'
+                ? t("ĐANG XÁC THỰC...")
                 : mode === 'forgot'
                 ? 'Confirm OTP'
                 : 'Verify OTP'}

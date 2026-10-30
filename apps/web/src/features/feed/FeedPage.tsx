@@ -30,7 +30,7 @@ import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 
 export const FeedPage: React.FC = () => {
   const { currentUser, currentCampus, isAuthenticated } = useAuth();
-  const { t } = useLanguage();
+  const { locale, t } = useLanguage();
   const campusInfo = useCampusDetails(currentUser?.campus || currentCampus);
   const navigate = useNavigate();
 
@@ -222,7 +222,7 @@ export const FeedPage: React.FC = () => {
     });
   };
 
-  const studentName = currentUser?.fullName || 'Sinh viên FHub';
+  const studentName = currentUser?.fullName || t("Sinh viên FHub");
   const studentInitials = studentName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'SV';
 
   return (
@@ -232,7 +232,7 @@ export const FeedPage: React.FC = () => {
         <div className="space-y-1.5">
           <div
             className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-[#0076D1] border border-blue-100 cursor-default"
-            title={`${campusInfo.fullName}${campusInfo.address ? `\nĐịa chỉ: ${campusInfo.address}` : ''}`}
+            title={`${t(campusInfo.fullName)}${campusInfo.address ? `\n${t('Địa chỉ:')} ${campusInfo.address}` : ''}`}
           >
             <span className="w-1.5 h-1.5 rounded-full bg-[#0076D1]" />
             <span>{t('common.campus', 'Campus')}: {campusInfo.shortName}</span>
@@ -474,7 +474,7 @@ export const FeedPage: React.FC = () => {
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-slate-800">{authorName}</span>
                         <span className="text-slate-400">
-                          • {q.createdAt ? new Date(q.createdAt).toLocaleDateString() : t('common.recent', 'Mới đây')}
+                          • {q.createdAt ? new Date(q.createdAt).toLocaleDateString(locale) : t('common.recent', 'Mới đây')}
                         </span>
                       </div>
                       {q.courseId && (
@@ -570,10 +570,10 @@ export const FeedPage: React.FC = () => {
                       {wf.title}
                     </Link>
                     <p className="text-[11px] text-slate-500 mt-1 line-clamp-1">
-                      {wf.summary || 'Quy trình hướng dẫn thực hành kỹ thuật.'}
+                      {wf.summary || t("Quy trình hướng dẫn thực hành kỹ thuật.")}
                     </p>
                     <div className="mt-2 flex items-center justify-between">
-                      <span className="text-[10px] font-mono text-slate-400">Version {(wf as any).version || 1}</span>
+                      <span className="text-[10px] font-mono text-slate-400">{t("Version")} {(wf as any).version || 1}</span>
                       <Link to={`/workflows/${wf.workflowId}`} className="text-[11px] font-semibold text-[#0076D1] hover:underline">
                         {t('common.view', 'View')} →
                       </Link>
@@ -620,11 +620,11 @@ export const FeedPage: React.FC = () => {
                       {art.title}
                     </Link>
                     <p className="text-[11px] text-slate-500 mt-1 line-clamp-1">
-                      {art.summary || 'Bài viết học tập và chia sẻ kinh nghiệm.'}
+                      {art.summary || t("Bài viết học tập và chia sẻ kinh nghiệm.")}
                     </p>
                     <div className="mt-2 flex items-center justify-between text-[11px]">
                       <span className="text-slate-400">
-                        {art.createdAt ? new Date(art.createdAt).toLocaleDateString() : t('common.recent', 'Gần đây')}
+                        {art.createdAt ? new Date(art.createdAt).toLocaleDateString(locale) : t('common.recent', 'Gần đây')}
                       </span>
                       <Link to={`/articles/${art.articleId}`} className="font-semibold text-[#0076D1] hover:underline">
                         {t('common.read', 'Read')} →
@@ -686,7 +686,7 @@ export const FeedPage: React.FC = () => {
                       <div className="truncate">
                         <h5 className="font-bold text-xs text-slate-800 truncate">{mat.title}</h5>
                         <p className="text-[10px] text-slate-400">
-                          {mat.fileSizeBytes ? `${(mat.fileSizeBytes / (1024 * 1024)).toFixed(1)} MB` : 'Tài liệu môn học'}
+                          {mat.fileSizeBytes ? t("{p0} MB", undefined, { p0: (mat.fileSizeBytes / (1024 * 1024)).toFixed(1) }) : t("Tài liệu môn học")}
                         </p>
                       </div>
                     </div>
@@ -729,7 +729,7 @@ export const FeedPage: React.FC = () => {
                 {courses.map((crs, idx) => {
                   const crsId = crs.courseNodeId || (crs as any).id || idx;
                   const crsCode = crs.courseCode || (crs as any).code || 'FPT';
-                  const crsName = crs.courseName || (crs as any).name || 'Môn học';
+                  const crsName = crs.courseName || (crs as any).name || t("Môn học");
                   return (
                     <div key={crsId} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-slate-50/40">
                       <div>
@@ -740,7 +740,7 @@ export const FeedPage: React.FC = () => {
                           <h5 className="font-bold text-xs text-slate-800">{crsName}</h5>
                         </div>
                         <p className="text-[11px] text-slate-500 mt-0.5">
-                          {crs.credits || 3} {t('common.credits', 'Tín chỉ')} • {crs.description || 'Chương trình đào tạo tiêu chuẩn FPT'}
+                          {crs.credits || 3} {t('common.credits', 'Tín chỉ')} • {crs.description || t("Chương trình đào tạo tiêu chuẩn FPT")}
                         </p>
                       </div>
                       <Link to={`/courses/${crsCode}`} className="px-2.5 py-1 rounded-md text-[11px] font-bold bg-blue-50 text-[#0076D1] border border-blue-200 shrink-0">
@@ -799,7 +799,7 @@ export const FeedPage: React.FC = () => {
                       {t('evaluations.overallRating', 'Overall Rating')}: {ev.overallRating}/5 ★
                     </h5>
                     <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">
-                      {ev.reviewContent || ev.survivalTips || 'Đánh giá môn học từ sinh viên.'}
+                      {ev.reviewContent || ev.survivalTips || t("Đánh giá môn học từ sinh viên.")}
                     </p>
                   </div>
                 ))}
@@ -879,7 +879,7 @@ export const FeedPage: React.FC = () => {
                         </p>
                       </div>
                       <span className="text-[10px] text-slate-400 shrink-0 ml-2">
-                        {notif.createdAt ? new Date(notif.createdAt).toLocaleDateString() : t('common.recent', 'Gần đây')}
+                        {notif.createdAt ? new Date(notif.createdAt).toLocaleDateString(locale) : t('common.recent', 'Gần đây')}
                       </span>
                     </div>
                   );

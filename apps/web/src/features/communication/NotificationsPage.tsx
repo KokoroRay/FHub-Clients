@@ -35,10 +35,11 @@ interface NotificationItem {
 
 export const NotificationsPage: React.FC = () => {
   const navigate = useNavigate();
-  const { t } = useLanguage();
+  const { formatDate, formatTime, locale, t } = useLanguage();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [activeTab, setActiveTab] = useState<'all' | 'unread' | 'read'>('all');
   const [loading, setLoading] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   const fetchLiveNotifications = async () => {
     try {
@@ -54,7 +55,7 @@ export const NotificationsPage: React.FC = () => {
           if (rawType.includes('message')) {
             mappedType = 'message';
             label = t('notifications.typeMessage', 'Tin nhắn mới');
-            color = 'bg-indigo-50 text-indigo-700 border-indigo-100';
+            color = 'bg-sky-50 text-sky-700 border-sky-100';
           } else if (rawType.includes('article')) {
             mappedType = 'article';
             label = t('notifications.typeArticle', 'Tương tác bài viết');
@@ -66,7 +67,7 @@ export const NotificationsPage: React.FC = () => {
           } else if (rawType.includes('evaluation') || rawType.includes('review')) {
             mappedType = 'evaluation';
             label = t('notifications.typeEvaluation', 'Đánh giá môn học');
-            color = 'bg-purple-50 text-purple-700 border-purple-100';
+            color = 'bg-blue-50 text-blue-700 border-blue-100';
           }
 
           return {
@@ -74,7 +75,7 @@ export const NotificationsPage: React.FC = () => {
             type: mappedType,
             typeLabel: label,
             typeColor: color,
-            time: item.createdAt ? new Date(item.createdAt).toLocaleDateString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : t('profile.recent', 'Gần đây'),
+            time: item.createdAt ? item.createdAt : t('profile.recent', 'Gần đây'),
             title: item.title || t('notifications.title', 'Thông báo'),
             description: item.message || '',
             actionText: t('notifications.viewDetails', 'Chi tiết thông báo'),
@@ -159,13 +160,13 @@ export const NotificationsPage: React.FC = () => {
   const getTypeIcon = (type: NotificationItem['type']) => {
     switch (type) {
       case 'message':
-        return <MessageSquare className="w-5 h-5 text-indigo-600" />;
+        return <MessageSquare className="w-5 h-5 text-sky-600" />;
       case 'article':
         return <FileText className="w-5 h-5 text-emerald-600" />;
       case 'material':
         return <BookOpen className="w-5 h-5 text-blue-600" />;
       case 'evaluation':
-        return <Star className="w-5 h-5 text-purple-600" />;
+        return <Star className="w-5 h-5 text-blue-600" />;
       case 'community':
       default:
         return <Users className="w-5 h-5 text-sky-600" />;
@@ -322,7 +323,7 @@ export const NotificationsPage: React.FC = () => {
                       </span>
                     )}
                     <span className="text-xs text-slate-400 ml-auto">
-                      {notif.time}
+                      {formatDate(notif.time, { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
 
@@ -336,7 +337,7 @@ export const NotificationsPage: React.FC = () => {
 
                   <div className="mt-2.5 flex items-center gap-2">
                     <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#0076D1] group-hover:underline">
-                      <span>{notif.actionText}</span>
+                      <span>{t(notif.actionText)}</span>
                       <ExternalLink className="w-3 h-3" />
                     </span>
                   </div>
@@ -348,6 +349,7 @@ export const NotificationsPage: React.FC = () => {
                     <span className="w-2.5 h-2.5 rounded-full bg-[#0076D1] ring-4 ring-blue-100 mr-2" />
                   )}
                   <button
+                    id={`btn-toggle-read-${notif.id}`}
                     onClick={(e) => handleToggleRead(notif.id, e)}
                     title={notif.isRead ? t('notifications.markAsUnread', 'Mark as unread') : t('notifications.markAsRead', 'Mark as read')}
                     className="p-1.5 text-slate-400 hover:text-[#0076D1] hover:bg-white rounded-lg border border-transparent hover:border-slate-200 transition-colors"
@@ -355,7 +357,11 @@ export const NotificationsPage: React.FC = () => {
                     <Check className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={(e) => handleDelete(notif.id, e)}
+                    id={`btn-delete-notif-${notif.id}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeleteTargetId(notif.id);
+                    }}
                     title={t('notifications.delete', 'Delete notification')}
                     className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-white rounded-lg border border-transparent hover:border-slate-200 transition-colors"
                   >
@@ -367,6 +373,43 @@ export const NotificationsPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* 3.12.3 Delete Notification Confirmation Modal */}
+      {deleteTargetId && (
+        <div id="modal-delete-notification" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full p-6 space-y-4 animate-in fade-in">
+            <div className="flex items-center gap-3 text-red-600">
+              <div className="p-2.5 rounded-xl bg-red-50">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900">{t("Delete Notification")}</h3>
+                <p className="text-xs text-slate-500">{t("Remove from activity feed")}</p>
+              </div>
+            </div>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              {t("Are you sure you want to delete this notification from your personal activity stream?")}</p>
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setDeleteTargetId(null)}
+                className="px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+              >
+                {t("Cancel")}</button>
+              <button
+                id="btn-confirm-delete-notif"
+                type="button"
+                onClick={(e) => {
+                  handleDelete(deleteTargetId, e);
+                  setDeleteTargetId(null);
+                }}
+                className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors shadow-xs"
+              >
+                {t("Delete Notification")}</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Notification Delivery Info Card (Figma #106:8424) */}
       <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">

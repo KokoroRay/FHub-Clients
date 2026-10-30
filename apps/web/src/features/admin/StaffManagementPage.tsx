@@ -1,3 +1,4 @@
+import { useLanguage } from '../../context/LanguageContext';
 import React, { useState, useEffect, useCallback } from 'react';
 import { UserCheck, Plus, Edit2, Trash2, Mail, Shield, MapPin, Search, RefreshCw } from 'lucide-react';
 import { CampusCode } from '../../types';
@@ -21,6 +22,7 @@ interface StaffUser {
 }
 
 export const StaffManagementPage: React.FC = () => {
+  const { t } = useLanguage();
   const [staffList, setStaffList] = useState<StaffUser[]>([
     { id: '1', staffCode: 'REP001', fullName: 'Ngô Thanh Tùng', email: 'tungnt.staff@fpt.edu.vn', department: 'Phòng Quản lý Đào tạo', campus: 'HL', role: 'SchoolRepresentative', isActive: true, createdAt: '2025-08-01' },
     { id: '2', staffCode: 'MOD001', fullName: 'Trần Hương Ly', email: 'lyth.staff@fpt.edu.vn', department: 'Ban Kiểm duyệt Nội dung', campus: 'HCM', role: 'CommunityModerator', isActive: true, createdAt: '2025-09-15' },
@@ -52,7 +54,7 @@ export const StaffManagementPage: React.FC = () => {
           staffCode: s.staffCode,
           fullName: s.fullName || s.email.split('@')[0],
           email: s.email,
-          department: s.department || 'Phòng Quản lý Đào tạo',
+          department: s.department || t("Phòng Quản lý Đào tạo"),
           campus: (s.campus as CampusCode) || 'HL',
           role: s.roleCode || s.role || 'SchoolRepresentative',
           isActive: s.isActive ?? true,
@@ -75,7 +77,7 @@ export const StaffManagementPage: React.FC = () => {
     setEditingStaff(null);
     setFullName('');
     setEmail('');
-    setDepartment('Phòng Quản lý Đào tạo');
+    setDepartment(t("Phòng Quản lý Đào tạo"));
     setCampus('HL');
     setRole('SchoolRepresentative');
     setIsModalOpen(true);
@@ -92,7 +94,7 @@ export const StaffManagementPage: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Bạn có chắc muốn xóa tài khoản Staff này?')) {
+    if (confirm(t("Bạn có chắc muốn xóa tài khoản Staff này?"))) {
       try {
         await deleteStaff(id, 'Admin deletion from web portal');
       } catch {
@@ -177,19 +179,19 @@ export const StaffManagementPage: React.FC = () => {
   const renderRoleBadge = (roleCode: string) => {
     switch (roleCode) {
       case 'Admin':
-        return <Badge variant="danger" size="sm">Admin</Badge>;
+        return <Badge variant="danger" size="sm">{t("Admin")}</Badge>;
       case 'CommunityModerator':
-        return <Badge variant="warning" size="sm">Moderator</Badge>;
+        return <Badge variant="warning" size="sm">{t("Moderator")}</Badge>;
       case 'SchoolRepresentative':
-        return <Badge variant="primary" size="sm">School Rep</Badge>;
+        return <Badge variant="primary" size="sm">{t("School Rep")}</Badge>;
       default:
-        return <Badge variant="neutral" size="sm">{roleCode}</Badge>;
+        return <Badge variant="neutral" size="sm">{t(roleCode)}</Badge>;
     }
   };
 
   const columns: Column<StaffUser>[] = [
     {
-      header: 'Cán bộ Staff',
+      header: t("Cán bộ Staff"),
       accessorKey: 'fullName',
       cell: (item) => (
         <div>
@@ -206,37 +208,37 @@ export const StaffManagementPage: React.FC = () => {
       ),
     },
     {
-      header: 'Phòng ban / Đơn vị',
+      header: t("Phòng ban / Đơn vị"),
       accessorKey: 'department',
-      cell: (item) => <span className="text-xs text-slate-600 dark:text-slate-300">{item.department}</span>,
+      cell: (item) => <span className="text-xs text-slate-600 dark:text-slate-300">{t(item.department)}</span>,
     },
     {
-      header: 'Cơ sở Campus',
+      header: t("Cơ sở Campus"),
       accessorKey: 'campus',
       cell: (item) => <Badge variant="neutral" size="sm">{item.campus}</Badge>,
       className: 'w-28',
     },
     {
-      header: 'Vai trò IAM',
+      header: t("Vai trò IAM"),
       accessorKey: 'role',
       cell: (item) => renderRoleBadge(item.role),
       className: 'w-32',
     },
     {
-      header: 'Hành động',
+      header: t("Hành động"),
       cell: (item) => (
         <div className="flex items-center gap-2">
           <button
             onClick={() => openEdit(item)}
             className="p-1.5 text-slate-500 hover:text-[#2563eb] hover:bg-slate-100 rounded-lg cursor-pointer"
-            title="Sửa thông tin"
+            title={t("Sửa thông tin")}
           >
             <Edit2 className="w-4 h-4" />
           </button>
           <button
             onClick={() => handleDelete(item.id)}
             className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg cursor-pointer"
-            title="Xóa tài khoản"
+            title={t("Xóa tài khoản")}
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -252,20 +254,17 @@ export const StaffManagementPage: React.FC = () => {
         <div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
             <UserCheck className="w-6 h-6 text-[#2563eb]" />
-            <span>Staff Account Management</span>
+            <span>{t("Staff Account Management")}</span>
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Quản trị danh sách tài khoản cán bộ vận hành: School Representative, Community Moderator, Admin (Identity Service).
-          </p>
+            {t("Quản trị danh sách tài khoản cán bộ vận hành: School Representative, Community Moderator, Admin (Identity Service).")}</p>
         </div>
 
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={loadData} isLoading={loading} leftIcon={<RefreshCw className="w-4 h-4" />}>
-            Làm mới
-          </Button>
+            {t("Làm mới")}</Button>
           <Button variant="primary" onClick={openCreate} leftIcon={<Plus className="w-4 h-4" />}>
-            Thêm Staff mới
-          </Button>
+            {t("Thêm Staff mới")}</Button>
         </div>
       </div>
 
@@ -274,7 +273,7 @@ export const StaffManagementPage: React.FC = () => {
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Tìm theo họ tên, email, mã cán bộ..."
+            placeholder={t("Tìm theo họ tên, email, mã cán bộ...")}
             className="w-full pl-9 pr-3 py-2 text-xs border rounded-lg bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -285,11 +284,11 @@ export const StaffManagementPage: React.FC = () => {
             value={filterRole}
             onChange={(e) => setFilterRole(e.target.value)}
             options={[
-              { value: '', label: 'Tất cả vai trò' },
-              { value: 'SchoolRepresentative', label: 'School Representative' },
-              { value: 'CommunityModerator', label: 'Community Moderator' },
-              { value: 'Admin', label: 'Admin' },
-              { value: 'Staff', label: 'Staff chung' },
+              { value: '', label: t("Tất cả vai trò") },
+              { value: 'SchoolRepresentative', label: t("School Representative") },
+              { value: 'CommunityModerator', label: t("Community Moderator") },
+              { value: 'Admin', label: t("Admin") },
+              { value: 'Staff', label: t("Staff chung") },
             ]}
           />
         </div>
@@ -300,25 +299,25 @@ export const StaffManagementPage: React.FC = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={editingStaff ? 'Cập nhật tài khoản Staff' : 'Tạo tài khoản Staff mới'}
+        title={editingStaff ? t("Cập nhật tài khoản Staff") : t("Tạo tài khoản Staff mới")}
         footer={
           <>
-            <Button variant="outline" onClick={() => setIsModalOpen(false)}>Hủy</Button>
-            <Button variant="primary" onClick={handleSubmit}>Lưu thông tin</Button>
+            <Button variant="outline" onClick={() => setIsModalOpen(false)}>{t("Hủy")}</Button>
+            <Button variant="primary" onClick={handleSubmit}>{t("Lưu thông tin")}</Button>
           </>
         }
       >
         <form onSubmit={handleSubmit} className="space-y-4 text-xs">
           <Input
-            label="Họ và tên cán bộ"
-            placeholder="Ngô Thanh Tùng"
+            label={t("Họ và tên cán bộ")}
+            placeholder={t("Ngô Thanh Tùng")}
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             required
           />
           <Input
-            label="Email công vụ (@fpt.edu.vn)"
-            placeholder="tungnt.staff@fpt.edu.vn"
+            label={t("Email công vụ (@fpt.edu.vn)")}
+            placeholder={t("tungnt.staff@fpt.edu.vn")}
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -327,34 +326,34 @@ export const StaffManagementPage: React.FC = () => {
           />
           <div className="grid grid-cols-2 gap-4">
             <Select
-              label="Cơ sở công tác"
+              label={t("Cơ sở công tác")}
               value={campus}
               onChange={(e) => setCampus(e.target.value as any)}
               options={[
-                { value: 'HL', label: 'HL - Hà Nội' },
-                { value: 'HCM', label: 'HCM - TP.HCM' },
-                { value: 'DN', label: 'DN - Đà Nẵng' },
-                { value: 'CT', label: 'CT - Cần Thơ' },
-                { value: 'QN', label: 'QN - Quy Nhơn' },
+                { value: 'HL', label: t("HL - Hà Nội") },
+                { value: 'HCM', label: t("HCM - TP.HCM") },
+                { value: 'DN', label: t("DN - Đà Nẵng") },
+                { value: 'CT', label: t("CT - Cần Thơ") },
+                { value: 'QN', label: t("QN - Quy Nhơn") },
               ]}
             />
             <Select
-              label="Vai trò vận hành"
+              label={t("Vai trò vận hành")}
               value={role}
               onChange={(e) => setRole(e.target.value)}
               options={[
-                { value: 'SchoolRepresentative', label: 'School Representative' },
-                { value: 'CommunityModerator', label: 'Community Moderator' },
-                { value: 'Admin', label: 'Administrator' },
-                { value: 'Staff', label: 'Staff chung' },
+                { value: 'SchoolRepresentative', label: t("School Representative") },
+                { value: 'CommunityModerator', label: t("Community Moderator") },
+                { value: 'Admin', label: t("Administrator") },
+                { value: 'Staff', label: t("Staff chung") },
               ]}
             />
           </div>
           <Input
-            label="Phòng ban / Ban phụ trách"
+            label={t("Phòng ban / Ban phụ trách")}
             value={department}
             onChange={(e) => setDepartment(e.target.value)}
-            placeholder="Phòng Quản lý Đào tạo"
+            placeholder={t("Phòng Quản lý Đào tạo")}
           />
         </form>
       </Modal>

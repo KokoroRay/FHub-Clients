@@ -39,7 +39,7 @@ export const StudentReputationRulesPage: React.FC = () => {
               pointDelta: r.karma_delta,
               dailyCap: r.daily_cap,
               description: r.description,
-              eligibility: 'Tất cả sinh viên đã xác thực',
+              eligibility: t('All verified students'),
             }));
             setRules(mapped);
           } else {
@@ -71,14 +71,12 @@ export const StudentReputationRulesPage: React.FC = () => {
       {/* Header */}
       <div>
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-[#181C22]">Reputation & Karma Rules</h1>
+          <h1 className="text-2xl font-bold text-[#181C22]">{t("Reputation & Karma Rules")}</h1>
           <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#EBF5FF] text-[#0076D1] border border-[#BFDBFE]">
-            {rules.length} Active Rules
-          </span>
+            {rules.length}  {t("Active Rules")}</span>
         </div>
         <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-          Learn how reputation points, karma badges, and community privileges are earned across FHub.
-        </p>
+          {t("Learn how reputation points, karma badges, and community privileges are earned across FHub.")}</p>
       </div>
 
       {/* Filter Tabs & Search */}
@@ -94,7 +92,7 @@ export const StudentReputationRulesPage: React.FC = () => {
                   : 'text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100'
               }`}
             >
-              {cat === 'ALL' ? 'All Categories' : cat}
+              {cat === 'ALL' ? t("All Categories") : cat}
             </button>
           ))}
         </div>
@@ -103,7 +101,7 @@ export const StudentReputationRulesPage: React.FC = () => {
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Search rules by name, action code, or keyword..."
+            placeholder={t("Search rules by name, action code, or keyword...")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#0076D1]"
@@ -119,8 +117,8 @@ export const StudentReputationRulesPage: React.FC = () => {
       ) : filteredRules.length === 0 ? (
         <div className="bg-white rounded-2xl p-12 text-center text-slate-400 border border-slate-100 shadow-xs">
           <Award className="w-10 h-10 mx-auto mb-2 opacity-30" />
-          <p className="text-sm font-semibold text-slate-700">Chưa có quy tắc nào</p>
-          <p className="text-xs text-slate-400 mt-1">Hệ thống tính điểm uy tín chưa thiết lập quy tắc hoạt động.</p>
+          <p className="text-sm font-semibold text-slate-700">{t("Chưa có quy tắc nào")}</p>
+          <p className="text-xs text-slate-400 mt-1">{t("Hệ thống tính điểm uy tín chưa thiết lập quy tắc hoạt động.")}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -140,12 +138,11 @@ export const StudentReputationRulesPage: React.FC = () => {
                     ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' 
                     : 'bg-red-50 text-red-800 border border-red-200'
                 }`}>
-                  {rule.pointDelta > 0 ? `+${rule.pointDelta}` : rule.pointDelta} Karma
-                </span>
+                  {rule.pointDelta > 0 ? `+${rule.pointDelta}` : rule.pointDelta}  {t("Karma")}</span>
               </div>
 
               <h3 className="text-sm font-bold text-[#181C22] group-hover:text-[#0076D1] transition-colors">
-                {rule.name}
+                {t(rule.name)}
               </h3>
 
               <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
@@ -154,9 +151,9 @@ export const StudentReputationRulesPage: React.FC = () => {
             </div>
 
             <div className="pt-3 border-t border-slate-50 flex items-center justify-between text-xs text-slate-400">
-              <span>Daily cap: {rule.dailyCap > 0 ? `${rule.dailyCap} pts` : 'No cap'}</span>
+              <span>{t("Daily cap:")} {rule.dailyCap > 0 ? t("{p0} pts", undefined, { p0: rule.dailyCap }) : t("No cap")}</span>
               <span className="inline-flex items-center gap-1 text-[#0076D1] font-semibold group-hover:underline">
-                <span>View Details</span>
+                <span>{t("View Details")}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </span>
             </div>
@@ -175,7 +172,7 @@ export const StudentReputationRulesPage: React.FC = () => {
                   {selectedRule.code}
                 </span>
                 <h2 className="text-base font-bold text-[#181C22] pt-1">
-                  {selectedRule.name}
+                  {t(selectedRule.name)}
                 </h2>
               </div>
               <button
@@ -189,30 +186,29 @@ export const StudentReputationRulesPage: React.FC = () => {
 
             <div className="grid grid-cols-2 gap-3 p-3.5 bg-slate-50 rounded-xl text-xs">
               <div>
-                <span className="text-slate-400 block font-mono text-[10px] uppercase">POINTS REWARD</span>
+                <span className="text-slate-400 block font-mono text-[10px] uppercase">{t("POINTS REWARD")}</span>
                 <span className={`text-base font-bold ${selectedRule.pointDelta > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                  {selectedRule.pointDelta > 0 ? `+${selectedRule.pointDelta}` : selectedRule.pointDelta} Karma Points
-                </span>
+                  {selectedRule.pointDelta > 0 ? `+${selectedRule.pointDelta}` : selectedRule.pointDelta}  {t("Karma Points")}</span>
               </div>
               <div>
-                <span className="text-slate-400 block font-mono text-[10px] uppercase">MAX DAILY CAP</span>
+                <span className="text-slate-400 block font-mono text-[10px] uppercase">{t("MAX DAILY CAP")}</span>
                 <span className="text-base font-bold text-slate-800">
-                  {selectedRule.dailyCap > 0 ? `${selectedRule.dailyCap} Points` : 'No Cap'}
+                  {selectedRule.dailyCap > 0 ? t("{p0} Points", undefined, { p0: selectedRule.dailyCap }) : t("No Cap")}
                 </span>
               </div>
             </div>
 
             <div className="space-y-2 text-xs">
-              <h4 className="font-bold text-slate-700">Detailed Description</h4>
+              <h4 className="font-bold text-slate-700">{t("Detailed Description")}</h4>
               <p className="text-slate-600 leading-relaxed bg-white p-3 rounded-xl border border-slate-100">
                 {selectedRule.description}
               </p>
             </div>
 
             <div className="space-y-1 text-xs">
-              <h4 className="font-bold text-slate-700">Eligibility & Restrictions</h4>
+              <h4 className="font-bold text-slate-700">{t("Eligibility & Restrictions")}</h4>
               <p className="text-slate-500">
-                {selectedRule.eligibility}
+                {t(selectedRule.eligibility)}
               </p>
             </div>
 
@@ -222,8 +218,7 @@ export const StudentReputationRulesPage: React.FC = () => {
                 onClick={() => setSelectedRule(null)}
                 className="px-4 py-2 text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700 rounded-xl shadow-xs transition-colors"
               >
-                Close Rule Detail
-              </button>
+                {t("Close Rule Detail")}</button>
             </div>
           </div>
         </div>

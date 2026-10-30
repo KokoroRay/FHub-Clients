@@ -240,7 +240,7 @@ export const CourseSelect: React.FC<CourseSelectProps> = ({
       </select>
 
       {error ? (
-        <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">{error}</p>
+        <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">{t(error)}</p>
       ) : helperText ? (
         <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{helperText}</p>
       ) : null}

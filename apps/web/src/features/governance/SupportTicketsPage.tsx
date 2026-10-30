@@ -9,7 +9,6 @@ import {
   AlertCircle, 
   Send, 
   Paperclip, 
-  X, 
   ChevronRight, 
   ArrowLeft,
   Shield, 
@@ -18,6 +17,9 @@ import {
   RotateCcw,
   Loader2
 } from 'lucide-react';
+import { Modal } from '../../components/common/Modal';
+import { Button } from '../../components/common/Button';
+import { Input, Textarea, Select } from '../../components/common/Input';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { studentSupportTicketApi, StudentTicketItem as ApiTicketItem } from '../../services/api/studentApi';
@@ -68,7 +70,7 @@ interface SupportTicketItem {
 export const SupportTicketsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { currentUser } = useAuth();
-  const { t } = useLanguage();
+  const { formatDate, formatTime, locale, t } = useLanguage();
 
   const [tickets, setTickets] = useState<SupportTicketItem[]>([]);
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(id || null);
@@ -87,22 +89,22 @@ export const SupportTicketsPage: React.FC = () => {
         const items = result?.items || (result as any)?.data || [];
         if (isMounted) {
           if (Array.isArray(items) && items.length > 0) {
-            const mapped: SupportTicketItem[] = items.map((t: any) => {
-              const ticketIdNum = t.supportTicketId || t.ticketId || t.id;
+            const mapped: SupportTicketItem[] = items.map((entryValue: any) => {
+              const ticketIdNum = entryValue.supportTicketId || entryValue.ticketId || entryValue.id;
               return {
                 id: String(ticketIdNum),
-                ticketId: t.ticketNumber || `#TK-${ticketIdNum}`,
-                title: t.subject || t.title || 'Support Request',
-                category: t.category || 'General',
-                priority: mapApiPriority(t.priority),
-                status: mapApiStatus(t.status),
-                courseCode: t.courseCode || undefined,
-                createdDate: t.createdAt ? new Date(t.createdAt).toLocaleDateString('vi-VN') : 'Mới tạo',
-                updatedDate: t.updatedAt ? new Date(t.updatedAt).toLocaleDateString('vi-VN') : 'Mới cập nhật',
-                reporterName: (currentUser as any)?.fullName || (currentUser as any)?.name || 'Sinh viên FHub',
+                ticketId: entryValue.ticketNumber || `#TK-${ticketIdNum}`,
+                title: entryValue.subject || entryValue.title || 'Support Request',
+                category: entryValue.category || 'General',
+                priority: mapApiPriority(entryValue.priority),
+                status: mapApiStatus(entryValue.status),
+                courseCode: entryValue.courseCode || undefined,
+                createdDate: entryValue.createdAt ? entryValue.createdAt : t("Mới tạo"),
+                updatedDate: entryValue.updatedAt ? entryValue.updatedAt : t("Mới cập nhật"),
+                reporterName: (currentUser as any)?.fullName || (currentUser as any)?.name || t("Sinh viên FHub"),
                 reporterId: currentUser?.studentId || 'SE-STUDENT',
                 reporterInitials: ((currentUser as any)?.fullName || 'SV').split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase(),
-                description: t.description || '',
+                description: entryValue.description || '',
                 replies: [],
               };
             });
@@ -138,7 +140,7 @@ export const SupportTicketsPage: React.FC = () => {
             senderInitials: m.senderType === 'STAFF' ? 'AT' : 'MH',
             senderRole: m.senderType === 'STAFF' ? 'Staff / Helpdesk' : 'Student',
             isStaff: m.senderType === 'STAFF' || m.senderRole === 'STAFF',
-            time: m.sentAt ? new Date(m.sentAt).toLocaleString('en-US') : 'Just now',
+            time: m.sentAt ? m.sentAt : 'Just now',
             content: m.body || m.content || '',
           }));
 
@@ -183,11 +185,11 @@ export const SupportTicketsPage: React.FC = () => {
   const handleCreateTicketSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newTitle.trim().length < 5) {
-      setCreateErrorMessage('Tiêu đề yêu cầu hỗ trợ cần tối thiểu 5 ký tự.');
+      setCreateErrorMessage(t("Tiêu đề yêu cầu hỗ trợ cần tối thiểu 5 ký tự."));
       return;
     }
     if (newDescription.trim().length < 20) {
-      setCreateErrorMessage('Mô tả chi tiết sự cố cần tối thiểu 20 ký tự để đội ngũ hỗ trợ tiếp nhận chính xác.');
+      setCreateErrorMessage(t("Mô tả chi tiết sự cố cần tối thiểu 20 ký tự để đội ngũ hỗ trợ tiếp nhận chính xác."));
       return;
     }
 
@@ -215,7 +217,7 @@ export const SupportTicketsPage: React.FC = () => {
         courseCode: newCourseCode.trim() || undefined,
         createdDate: 'Just now',
         updatedDate: 'Just now',
-        reporterName: (currentUser as any)?.fullName || (currentUser as any)?.name || 'Sinh viên FHub',
+        reporterName: (currentUser as any)?.fullName || (currentUser as any)?.name || t("Sinh viên FHub"),
         reporterId: currentUser?.studentId || 'SE172481',
         reporterInitials: ((currentUser as any)?.fullName || 'SV').split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase(),
         description: newDescription.trim(),
@@ -239,7 +241,7 @@ export const SupportTicketsPage: React.FC = () => {
         courseCode: newCourseCode.trim() || undefined,
         createdDate: 'Just now',
         updatedDate: 'Just now',
-        reporterName: (currentUser as any)?.fullName || (currentUser as any)?.name || 'Sinh viên FHub',
+        reporterName: (currentUser as any)?.fullName || (currentUser as any)?.name || t("Sinh viên FHub"),
         reporterId: currentUser?.studentId || 'SE172481',
         reporterInitials: ((currentUser as any)?.fullName || 'SV').split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase(),
         description: newDescription.trim(),
@@ -262,7 +264,7 @@ export const SupportTicketsPage: React.FC = () => {
     const messageContent = replyText.trim();
     setReplyText('');
 
-    const userDisplayName = (currentUser as any)?.fullName || (currentUser as any)?.name || 'Bạn';
+    const userDisplayName = (currentUser as any)?.fullName || (currentUser as any)?.name || t("Bạn");
     const newReply: TicketReply = {
       id: `r-${Date.now()}`,
       senderName: `Bạn (${userDisplayName})`,
@@ -348,7 +350,7 @@ export const SupportTicketsPage: React.FC = () => {
               <span>{t('tickets.back', 'Back to Support Tickets')}</span>
             </button>
             <span className="text-slate-300">/</span>
-            <span className="text-slate-500">Ticket ID: <strong>{selectedTicket.ticketId}</strong></span>
+            <span className="text-slate-500">{t("Ticket ID:")} <strong>{selectedTicket.ticketId}</strong></span>
           </div>
 
           {/* Ticket Header Bar (Figma #108:9675) */}
@@ -370,7 +372,7 @@ export const SupportTicketsPage: React.FC = () => {
               {selectedTicket.status !== 'Closed' ? (
                 <button
                   type="button"
-                  onClick={() => handleUpdateStatus('Closed')}
+                  id="btn-close-ticket" onClick={() => handleUpdateStatus('Closed')}
                   className="px-3.5 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
                 >
                   {t('tickets.closeTicket', 'Close Ticket')}
@@ -414,10 +416,10 @@ export const SupportTicketsPage: React.FC = () => {
                   {t('tickets.createdUpdated', 'CREATED / UPDATED')}
                 </span>
                 <span className="text-slate-800 font-semibold block mt-1">
-                  {selectedTicket.createdDate}
+                  {formatDate(selectedTicket.createdDate)}
                 </span>
                 <span className="text-[10px] text-slate-400">
-                  Updated {selectedTicket.updatedDate}
+                  {t("Updated")} {formatDate(selectedTicket.updatedDate)}
                 </span>
               </div>
 
@@ -494,7 +496,7 @@ export const SupportTicketsPage: React.FC = () => {
                           {reply.senderRole}
                         </span>
                       </div>
-                      <span className="text-[10px] text-slate-400">{reply.time}</span>
+                      <span className="text-[10px] text-slate-400">{formatTime(reply.time)}</span>
                     </div>
 
                     <p className="text-slate-700 pl-8">
@@ -507,34 +509,22 @@ export const SupportTicketsPage: React.FC = () => {
 
             {/* Post An Update Composer */}
             <div className="pt-4 border-t border-slate-100 space-y-3">
-              <span className="block font-mono text-xs uppercase font-bold text-slate-500 tracking-wider">
-                {t('tickets.postUpdate', 'POST AN UPDATE')}
-              </span>
-              <textarea
+              <Textarea
+                id="support-ticket-reply"
+                label={t('tickets.postUpdate', 'POST AN UPDATE')}
                 rows={3}
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
                 placeholder={t('tickets.writeReplyPlaceholder', 'Write a reply to the support team...')}
-                className="w-full p-3 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#0076D1] resize-none"
               />
               <div className="flex items-center justify-between">
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-600 hover:text-slate-900 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
-                >
-                  <Paperclip className="w-3.5 h-3.5" />
-                  <span>{t('tickets.attachFile', 'Attach File')}</span>
-                </button>
+                <Button type="button" variant="outline" size="sm" leftIcon={<Paperclip className="w-3.5 h-3.5" />}>
+                  {t('tickets.attachFile', 'Attach File')}
+                </Button>
 
-                <button
-                  type="button"
-                  onClick={handleSendReply}
-                  disabled={!replyText.trim()}
-                  className="px-4 py-2 text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700 disabled:opacity-50 rounded-xl shadow-xs transition-colors flex items-center gap-1.5"
-                >
-                  <span>{t('tickets.sendReply', 'Send Reply')}</span>
-                  <Send className="w-3 h-3" />
-                </button>
+                <Button type="button" size="sm" onClick={handleSendReply} disabled={!replyText.trim()} rightIcon={<Send className="w-3.5 h-3.5" />}>
+                  {t('tickets.sendReply', 'Send Reply')}
+                </Button>
               </div>
               <p className="text-[11px] text-slate-400">
                 {t('tickets.repliesNotice', 'Replies are visible to FHub IT Helpdesk and course administrators.')}
@@ -636,7 +626,7 @@ export const SupportTicketsPage: React.FC = () => {
                         </span>
                       )}
                       <span className="text-xs text-slate-400">
-                        {tItem.createdDate}
+                        {formatDate(tItem.createdDate)}
                       </span>
                     </div>
 
@@ -669,128 +659,83 @@ export const SupportTicketsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Create Support Ticket Modal (Figma #107:9045) */}
-      {isCreateModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-100 max-w-xl w-full p-6 space-y-5">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div>
-                <h2 className="text-lg font-bold text-[#181C22]">{t('tickets.modalTitle', 'Create Support Ticket')}</h2>
-                <p className="text-xs text-slate-500">
-                  {t('tickets.modalDesc', 'Submit a request to the FHub academic helpdesk and curriculum moderation team.')}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsCreateModalOpen(false)}
-                className="p-1 text-slate-400 hover:text-slate-700"
-              >
-                <X className="w-5 h-5" />
-              </button>
+      <Modal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        title={t('tickets.modalTitle', 'Create Support Ticket')}
+        size="lg"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>
+              {t('tickets.cancel', 'Cancel')}
+            </Button>
+            <Button type="submit" form="create-support-ticket" isLoading={isSubmitting}>
+              {t('tickets.submitTicket', 'Submit Ticket')}
+            </Button>
+          </>
+        }
+      >
+        <form id="create-support-ticket" onSubmit={handleCreateTicketSubmit} className="space-y-4">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {t('tickets.modalDesc', 'Submit a request to the FHub academic helpdesk and curriculum moderation team.')}
+          </p>
+          {createErrorMessage && (
+            <div role="alert" className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{createErrorMessage}</span>
             </div>
-
-            <form onSubmit={handleCreateTicketSubmit} className="space-y-4">
-              {createErrorMessage && (
-                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
-                  <span>{createErrorMessage}</span>
-                </div>
-              )}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  {t('tickets.subjectLabel', 'Ticket Subject / Title')} <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  placeholder={t('tickets.subjectPlaceholder', 'e.g. Study material link broken, SSO verification issue...')}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#0076D1]"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    {t('tickets.categoryLabel', 'Category')}
-                  </label>
-                  <select
-                    value={newCategory}
-                    onChange={(e) => setNewCategory(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
-                  >
-                    <option value="Study Materials">{t('tickets.catStudyMaterials', 'Study Materials')}</option>
-                    <option value="Academic Issue">{t('tickets.catAcademicIssue', 'Academic Issue')}</option>
-                    <option value="Account & SSO">{t('tickets.catAccountSSO', 'Account & SSO')}</option>
-                    <option value="Course Review">{t('tickets.catCourseReview', 'Course Review')}</option>
-                    <option value="Technical Bug">{t('tickets.catTechBug', 'Technical Bug')}</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    {t('tickets.priorityLabel', 'Priority')}
-                  </label>
-                  <select
-                    value={newPriority}
-                    onChange={(e) => setNewPriority(e.target.value as any)}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
-                  >
-                    <option value="Low">{t('tickets.priorityLow', 'Low')}</option>
-                    <option value="Medium">{t('tickets.priorityMedium', 'Medium')}</option>
-                    <option value="High">{t('tickets.priorityHigh', 'High')}</option>
-                    <option value="Urgent">{t('tickets.priorityUrgent', 'Urgent')}</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    {t('tickets.courseCodeLabel', 'Course Code')}
-                  </label>
-                  <input
-                    type="text"
-                    value={newCourseCode}
-                    onChange={(e) => setNewCourseCode(e.target.value)}
-                    placeholder="e.g. PRN211"
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  {t('tickets.descriptionLabel', 'Detailed Description')} <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  rows={4}
-                  required
-                  value={newDescription}
-                  onChange={(e) => setNewDescription(e.target.value)}
-                  placeholder={t('tickets.descriptionPlaceholder', 'Describe the issue in detail, include syllabus week or error screenshot links...')}
-                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#0076D1] resize-none"
-                />
-              </div>
-
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsCreateModalOpen(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
-                >
-                  {t('tickets.cancel', 'Cancel')}
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700 rounded-xl shadow-xs transition-colors"
-                >
-                  {t('tickets.submitTicket', 'Submit Ticket')}
-                </button>
-              </div>
-            </form>
+          )}
+          <Input
+            id="ticket-subject"
+            label={t('tickets.subjectLabel', 'Ticket Subject / Title') + ' *'}
+            required
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            placeholder={t('tickets.subjectPlaceholder', 'e.g. Study material link broken, SSO verification issue...')}
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Select
+              id="ticket-category"
+              label={t('tickets.categoryLabel', 'Category')}
+              value={newCategory}
+              onChange={(e) => setNewCategory(e.target.value)}
+            >
+              <option value="Study Materials">{t('tickets.catStudyMaterials', 'Study Materials')}</option>
+              <option value="Academic Issue">{t('tickets.catAcademicIssue', 'Academic Issue')}</option>
+              <option value="Account & SSO">{t('tickets.catAccountSSO', 'Account & SSO')}</option>
+              <option value="Course Review">{t('tickets.catCourseReview', 'Course Review')}</option>
+              <option value="Technical Bug">{t('tickets.catTechBug', 'Technical Bug')}</option>
+            </Select>
+            <Select
+              id="ticket-priority"
+              label={t('tickets.priorityLabel', 'Priority')}
+              value={newPriority}
+              onChange={(e) => setNewPriority(e.target.value as SupportTicketItem['priority'])}
+            >
+              <option value="Low">{t('tickets.priorityLow', 'Low')}</option>
+              <option value="Medium">{t('tickets.priorityMedium', 'Medium')}</option>
+              <option value="High">{t('tickets.priorityHigh', 'High')}</option>
+              <option value="Urgent">{t('tickets.priorityUrgent', 'Urgent')}</option>
+            </Select>
+            <Input
+              id="ticket-course"
+              label={t('tickets.courseCodeLabel', 'Course Code')}
+              value={newCourseCode}
+              onChange={(e) => setNewCourseCode(e.target.value)}
+              placeholder={t("e.g. PRN211")}
+            />
           </div>
-        </div>
-      )}
+          <Textarea
+            id="ticket-description"
+            label={t('tickets.descriptionLabel', 'Detailed Description') + ' *'}
+            rows={4}
+            required
+            value={newDescription}
+            onChange={(e) => setNewDescription(e.target.value)}
+            placeholder={t('tickets.descriptionPlaceholder', 'Describe the issue in detail, include syllabus week or error screenshot links...')}
+          />
+        </form>
+      </Modal>
     </div>
   );
 };
