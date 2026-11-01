@@ -173,16 +173,45 @@ export const RegisterPage: React.FC = () => {
 
   // Handle OTP inputs
   const handleOtpChange = (index: number, val: string) => {
-    if (val.length > 1) val = val.slice(-1);
+    const digits = val.replace(/\D/g, '');
+    if (digits.length > 1) {
+      const nextOtp = [...otp];
+      for (let i = 0; i < digits.length && index + i < 6; i++) {
+        nextOtp[index + i] = digits[i];
+      }
+      setOtp(nextOtp);
+      const nextIndex = Math.min(index + digits.length, 5);
+      const nextInput = document.getElementById(`reg-otp-${nextIndex}`);
+      nextInput?.focus();
+      return;
+    }
+
     const nextOtp = [...otp];
-    nextOtp[index] = val;
+    nextOtp[index] = digits ? digits.slice(-1) : '';
     setOtp(nextOtp);
 
     // Auto-focus next input box
-    if (val && index < 5) {
+    if (digits && index < 5) {
       const nextInput = document.getElementById(`reg-otp-${index + 1}`);
       nextInput?.focus();
     }
+  };
+
+  const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text').trim();
+    const digits = pastedData.replace(/\D/g, '').slice(0, 6);
+    if (!digits) return;
+
+    const nextOtp = [...otp];
+    for (let i = 0; i < 6; i++) {
+      nextOtp[i] = digits[i] || '';
+    }
+    setOtp(nextOtp);
+
+    const focusIndex = Math.min(digits.length, 5);
+    const nextInput = document.getElementById(`reg-otp-${focusIndex}`);
+    nextInput?.focus();
   };
 
   const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -254,7 +283,10 @@ export const RegisterPage: React.FC = () => {
         navigate('/');
       }, 2500);
     } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || t("Mã OTP không chính xác hoặc đăng ký thất bại. Vui lòng kiểm tra lại.");
+      let msg = err.response?.data?.detail || err.response?.data?.message || err.message || t("Mã OTP không chính xác hoặc đăng ký thất bại. Vui lòng kiểm tra lại.");
+      if (err.response?.status === 409 || msg.toLowerCase().includes('conflict') || msg.toLowerCase().includes('already exists')) {
+        msg = t("Email này đã được đăng ký tài khoản trên hệ thống. Vui lòng quay lại đăng nhập hoặc dùng tính năng Quên mật khẩu.");
+      }
       setErrorMessage(msg);
     } finally {
       setIsLoading(false);
@@ -570,6 +602,7 @@ export const RegisterPage: React.FC = () => {
                         value={digit}
                         onChange={(e) => handleOtpChange(idx, e.target.value)}
                         onKeyDown={(e) => handleOtpKeyDown(idx, e)}
+                        onPaste={handleOtpPaste}
                         className="w-10 h-12 sm:w-12 sm:h-14 text-center text-lg font-black font-mono bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:border-[#0076D1] focus:ring-4 focus:ring-[#0076D1]/10 transition-all shadow-xs"
                       />
                     ))}
