@@ -46,20 +46,6 @@ export const LoginPage: React.FC = () => {
 
     try {
       const result = await authApi.login(email.trim(), password);
-      if (result.accessToken) {
-        if (rememberMe) {
-          localStorage.setItem('fhub_token', result.accessToken);
-        } else {
-          sessionStorage.setItem('fhub_token', result.accessToken);
-        }
-      }
-      if (result.refreshToken) {
-        if (rememberMe) {
-          localStorage.setItem('fhub_refresh_token', result.refreshToken);
-        } else {
-          sessionStorage.setItem('fhub_refresh_token', result.refreshToken);
-        }
-      }
       const roles = result.user?.roles || [];
       let mappedRole: User['role'] = 'Student';
       if (roles.includes('Admin')) {
@@ -86,7 +72,7 @@ export const LoginPage: React.FC = () => {
         status: 'ACTIVE',
         badges: [],
       };
-      login(userObj, result.accessToken, result.refreshToken);
+      login(userObj, result.accessToken, result.refreshToken, rememberMe);
 
       if (mappedRole === 'Admin') {
         navigate('/admin-console');
@@ -162,7 +148,7 @@ export const LoginPage: React.FC = () => {
         status: 'ACTIVE',
         badges: [],
       };
-      login(userObj, result.accessToken, result.refreshToken);
+      login(userObj, result.accessToken, result.refreshToken, rememberMe);
 
       if (mappedRole === 'Admin') navigate('/admin-console');
       else if (mappedRole === 'Community Moderator') navigate('/admin-console/moderation');

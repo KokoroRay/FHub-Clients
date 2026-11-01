@@ -21,6 +21,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { EditProfileModal } from './EditProfileModal';
 import { profileApi, badgeApi, voteApi } from '../../services/api/studentApi';
+import { questionApi } from '../../services/api/contentApi';
 import { normalizeMediaUrl } from '../../utils/mediaUtils';
 
 
@@ -61,57 +62,38 @@ export const ProfilePage: React.FC = () => {
     }
   });
 
-  const [questions, setQuestions] = useState<any[]>([
-    {
-      id: 16,
-      course: 'SEP490',
-      title: 'Best Practices for Dockerizing .NET 8 Microservices and PostgreSQL Healthchecks in SEP490?',
-      votes: 18,
-      answers: 4,
-      isSolved: true,
-      time: '2 days ago',
-    },
-    {
-      id: 15,
-      course: 'PRN231',
-      title: 'How to Resolve CORS Preflight Errors Between React/Next.js Client and ASP.NET Core API with HttpOnly Cookies?',
-      votes: 14,
-      answers: 3,
-      isSolved: true,
-      time: '5 days ago',
-    },
-    {
-      id: 13,
-      course: 'SWD392',
-      title: 'Configuring Automated GitHub Actions Multi-Stage Docker Builds for Microservices Deployment',
-      votes: 11,
-      answers: 2,
-      isSolved: true,
-      time: '1 week ago',
-    }
-  ]);
-  const [answers, setAnswers] = useState<any[]>([
-    {
-      id: 16,
-      course: 'PRN231',
-      questionTitle: 'How to Configure Entity Framework Core with PostgreSQL Without Case-Sensitivity Identifier Errors?',
-      excerpt: 'Install EFCore.NamingConventions via NuGet and chain .UseSnakeCaseNamingConvention() inside AddDbContext so PostgreSQL maps table and column identifiers cleanly without double-quote errors.',
-      upvotes: 24,
-      isBestAnswer: true,
-      time: '3 days ago',
-    },
-    {
-      id: 15,
-      course: 'SWP391',
-      questionTitle: 'Should We Choose Microservices or Modular Monolith Architecture for Our SWP391 Project?',
-      excerpt: 'For a 10-week SWP391 project, start with a Clean Architecture Modular Monolith and automated GitHub Actions CI checks so your team focuses on core business flows before scaling to Microservices in SEP490.',
-      upvotes: 19,
-      isBestAnswer: false,
-      time: '1 week ago',
-    }
-  ]);
+  const [questions, setQuestions] = useState<any[]>([]);
+  const [answers, setAnswers] = useState<any[]>([]);
   const [userBadges, setUserBadges] = useState<any[]>([]);
   const [userVoteHistory, setUserVoteHistory] = useState<any[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchUserQuestions = async () => {
+      try {
+        const res = await questionApi.getQuestions({
+          mine: isOwnProfile ? true : undefined,
+          pageSize: 20,
+        });
+        if (isMounted && res?.items) {
+          const items = res.items.map((q: any) => ({
+            id: q.questionId,
+            course: q.courseCode || (q.courseId ? `COURSE-${q.courseId}` : 'FHub'),
+            title: q.title,
+            votes: (q.upvoteCount || 0) - (q.downvoteCount || 0),
+            answers: q.answerCount || 0,
+            isSolved: !!q.bestAnswerId,
+            time: q.createdAt ? new Date(q.createdAt).toLocaleDateString() : 'Vừa xong',
+          }));
+          setQuestions(items);
+        }
+      } catch (err) {
+        if (isMounted) setQuestions([]);
+      }
+    };
+    fetchUserQuestions();
+    return () => { isMounted = false; };
+  }, [id, currentUser?.id, isOwnProfile]);
 
   useEffect(() => {
     let isMounted = true;

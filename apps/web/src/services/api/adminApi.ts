@@ -67,6 +67,7 @@ export const authApi = {
     fullName: string;
     studentCode?: string;
     campus?: string;
+    otpCode?: string;
   }): Promise<LoginResponse> => {
     const res = await apiClient.post<ApiResponse<LoginResponse>>('/api/auth/register', {
       ...payload,
@@ -76,6 +77,11 @@ export const authApi = {
       browser: 'Chrome / Edge',
       operatingSystem: 'Windows 11'
     });
+    return res.data.data;
+  },
+
+  requestRegisterOtp: async (email: string) => {
+    const res = await apiClient.post<ApiResponse<any>>('/api/auth/register/request-otp', { email });
     return res.data.data;
   },
 
@@ -105,8 +111,9 @@ export const authApi = {
     return res.data.data;
   },
 
-  logout: async (sessionId?: number): Promise<void> => {
-    await apiClient.post('/api/auth/logout', { sessionId });
+  logout: async (sessionId?: number, refreshToken?: string, logoutAllDevices?: boolean): Promise<void> => {
+    const rt = refreshToken || localStorage.getItem('fhub_refresh_token') || sessionStorage.getItem('fhub_refresh_token') || undefined;
+    await apiClient.post('/api/auth/logout', { sessionId, refreshToken: rt, logoutAllDevices });
   },
 
   getSessions: async (userId?: number) => {

@@ -152,19 +152,18 @@ export const RegisterPage: React.FC = () => {
 
     setIsLoading(true);
     try {
-      // Gửi yêu cầu mã OTP xác nhận tài khoản tới email sinh viên
-      try {
-        await authApi.requestPasswordRecovery(email.trim());
-      } catch {
-        // Cho phép đi tiếp vào giao diện nhập OTP xác nhận
-      }
+      // Gửi yêu cầu mã OTP xác nhận đăng ký tài khoản tới email sinh viên
+      await authApi.requestRegisterOtp(email.trim());
 
       setStep('otp');
       setTimerSeconds(60);
       setCanResend(false);
       setOtp(['', '', '', '', '', '']);
     } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || t("Không thể gửi mã xác nhận. Vui lòng thử lại.");
+      let msg = err.response?.data?.detail || err.response?.data?.message || err.message || t("Không thể gửi mã xác nhận. Vui lòng thử lại.");
+      if (err.response?.status === 409 || msg.toLowerCase().includes('conflict') || msg.toLowerCase().includes('already exists')) {
+        msg = t("Email này đã được đăng ký tài khoản trên hệ thống. Vui lòng quay lại đăng nhập hoặc dùng tính năng Quên mật khẩu.");
+      }
       setErrorMessage(msg);
     } finally {
       setIsLoading(false);
@@ -226,11 +225,16 @@ export const RegisterPage: React.FC = () => {
     setIsLoading(true);
     setErrorMessage(null);
     try {
-      await authApi.requestPasswordRecovery(email.trim());
+      await authApi.requestRegisterOtp(email.trim());
       setTimerSeconds(60);
       setCanResend(false);
       setOtp(['', '', '', '', '', '']);
-    } catch {
+    } catch (err: any) {
+      let msg = err.response?.data?.detail || err.response?.data?.message || err.message || t("Không thể gửi lại mã xác nhận. Vui lòng thử lại sau.");
+      if (err.response?.status === 409 || msg.toLowerCase().includes('conflict') || msg.toLowerCase().includes('already exists')) {
+        msg = t("Email này đã được đăng ký tài khoản trên hệ thống. Vui lòng quay lại đăng nhập hoặc dùng tính năng Quên mật khẩu.");
+      }
+      setErrorMessage(msg);
       setTimerSeconds(60);
       setCanResend(false);
     } finally {
@@ -260,6 +264,7 @@ export const RegisterPage: React.FC = () => {
         password: password.trim(),
         studentCode: finalStudentCode || undefined,
         campus: finalCampus,
+        otpCode: enteredCode,
       });
 
       const userObj: User = {

@@ -81,25 +81,29 @@ export const EmailRegPage: React.FC = () => {
 
     setIsLoading(true);
     try {
-      // Save pending registration payload for OTP step
-      sessionStorage.setItem('fhub_pending_reg', JSON.stringify({
+      // Request OTP from server first
+      await authApi.requestPasswordRecovery(email.trim());
+
+      // Save non-sensitive metadata for page reload fallback, NEVER plaintext password (R05)
+      const regPayload = {
         fullName: fullName.trim(),
         email: email.trim(),
         password: password.trim(),
         studentCode: (studentId.trim() || emailInfo?.studentCode || '').toUpperCase(),
         campus: campus || emailInfo?.campusCode || 'HN',
+      };
+      sessionStorage.setItem('fhub_pending_reg', JSON.stringify({
+        fullName: regPayload.fullName,
+        email: regPayload.email,
+        studentCode: regPayload.studentCode,
+        campus: regPayload.campus,
       }));
 
-      // Request OTP
-      try {
-        await authApi.requestPasswordRecovery(email.trim());
-      } catch {
-        // Proceed to OTP page
-      }
-
-      navigate('/otp-verify?mode=register');
+      // Pass full ephemeral state via router navigation history (in-memory)
+      navigate('/otp-verify?mode=register', { state: regPayload });
     } catch (err: any) {
-      setErrorMessage(t("Không thể gửi mã xác thực OTP. Vui lòng thử lại."));
+      const msg = err.response?.data?.message || err.message || t("Không thể gửi mã xác thực OTP. Vui lòng thử lại.");
+      setErrorMessage(msg);
     } finally {
       setIsLoading(false);
     }
