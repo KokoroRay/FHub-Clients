@@ -85,12 +85,14 @@ const clearAuthAndRedirect = () => {
   }
 };
 
-function extractErrorMessage(error: AxiosError<{ message?: string; title?: string; errors?: Record<string, string[]> }>): Error {
+function extractErrorMessage(error: AxiosError<{ message?: string; detail?: string; title?: string; errors?: Record<string, string[]> }>): Error {
   let message = 'An unexpected error occurred';
   if (error.response?.data) {
     const data = error.response.data;
     if (typeof data === 'string') {
       message = data;
+    } else if (data.detail) {
+      message = data.detail;
     } else if (data.message) {
       message = data.message;
     } else if (data.title) {
