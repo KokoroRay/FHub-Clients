@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { KeyRound, ArrowLeft, ShieldCheck, RotateCcw } from 'lucide-react';
 import { authApi } from '../../services/api/adminApi';
 import { useAuth } from '../../context/AuthContext';
@@ -13,14 +13,29 @@ export const OTPVerifyPage: React.FC = () => {
   const { login } = useAuth();
   const { t } = useLanguage();
 
+  const location = useLocation();
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [timerSeconds, setTimerSeconds] = useState(60);
   const [canResend, setCanResend] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const getPendingReg = () => {
+    try {
+      if (location.state && typeof location.state === 'object' && (location.state as any).email) {
+        return location.state as any;
+      }
+      const raw = sessionStorage.getItem('fhub_pending_reg');
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      console.warn('Failed to parse fhub_pending_reg safely:', e);
+      return null;
+    }
+  };
+
+  const pendingData = getPendingReg();
   const targetEmail = mode === 'register'
-    ? JSON.parse(sessionStorage.getItem('fhub_pending_reg') || '{}')?.email || ''
+    ? pendingData?.email || ''
     : sessionStorage.getItem('fhub_reset_email') || '';
 
   useEffect(() => {
@@ -123,9 +138,9 @@ export const OTPVerifyPage: React.FC = () => {
         navigate('/reset-password');
       } else {
         // Register mode: finalize account creation
-        const pendingReg = JSON.parse(sessionStorage.getItem('fhub_pending_reg') || '{}');
-        if (!pendingReg.email) {
-          setErrorMessage(t("Không tìm thấy thông tin đăng ký. Vui lòng quay lại."));
+        const pendingReg = getPendingReg();
+        if (!pendingReg?.email || !pendingReg?.password) {
+          setErrorMessage(t("Không tìm thấy thông tin đăng ký hoặc phiên đã hết hạn. Vui lòng quay lại trang Đăng ký."));
           setIsLoading(false);
           return;
         }

@@ -211,14 +211,16 @@ export const UserDetailPage: React.FC = () => {
   const handleRevokeSession = async (sessionId: string) => {
     try {
       await authApi.logout(Number(sessionId.replace(/\D/g, '')) || undefined);
-    } catch (e) {
-      console.warn('API logout session error, falling back locally', e);
-    }
-    if (user.activeSessions) {
-      const updatedSessions = user.activeSessions.filter((s) => s.id !== sessionId);
-      setOverrides((prev) => ({ ...prev, activeSessions: updatedSessions }));
-      setActionSuccess(t("Device session revoked successfully."));
-      setTimeout(() => setActionSuccess(null), 3000);
+      if (user.activeSessions) {
+        const updatedSessions = user.activeSessions.filter((s) => s.id !== sessionId);
+        setOverrides((prev) => ({ ...prev, activeSessions: updatedSessions }));
+        setActionSuccess(t("Device session revoked successfully."));
+        setTimeout(() => setActionSuccess(null), 3000);
+      }
+    } catch (e: any) {
+      console.error('API logout session error:', e);
+      setActionSuccess(t("Không thể thu hồi phiên thiết bị. Vui lòng thử lại: {p0}", undefined, { p0: e?.response?.data?.message || e?.message || 'Error' }));
+      setTimeout(() => setActionSuccess(null), 3500);
     }
   };
 

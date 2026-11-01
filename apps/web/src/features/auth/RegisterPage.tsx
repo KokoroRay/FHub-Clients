@@ -153,11 +153,7 @@ export const RegisterPage: React.FC = () => {
     setIsLoading(true);
     try {
       // Gửi yêu cầu mã OTP xác nhận tài khoản tới email sinh viên
-      try {
-        await authApi.requestPasswordRecovery(email.trim());
-      } catch {
-        // Cho phép đi tiếp vào giao diện nhập OTP xác nhận
-      }
+      await authApi.requestPasswordRecovery(email.trim());
 
       setStep('otp');
       setTimerSeconds(60);

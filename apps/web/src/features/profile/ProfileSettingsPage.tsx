@@ -19,6 +19,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useLanguage, SupportedLanguage } from '../../context/LanguageContext';
 import { useTheme, AppTheme } from '../../context/ThemeContext';
 import { profileApi } from '../../services/api/studentApi';
+import { authApi } from '../../services/api/adminApi';
 import { getHideOutOfMajorCompactSetting, setHideOutOfMajorCompactSetting } from '../../utils/courseFilter';
 
 export const ProfileSettingsPage: React.FC = () => {
@@ -43,6 +44,7 @@ export const ProfileSettingsPage: React.FC = () => {
   const [newTagInput, setNewTagInput] = useState('');
 
   // Active Sessions
+  const [sessionActionMsg, setSessionActionMsg] = useState<{ text: string; isError: boolean } | null>(null);
   const [activeSessions, setActiveSessions] = useState([
     {
       id: 'session-current',
@@ -131,8 +133,20 @@ export const ProfileSettingsPage: React.FC = () => {
     setMutedTags(mutedTags.filter(t => t !== tagToRemove));
   };
 
-  const handleRevokeSession = (sessionId: string) => {
-    setActiveSessions(activeSessions.filter(s => s.id !== sessionId));
+  const handleRevokeSession = async (sessionId: string) => {
+    try {
+      const numericId = Number(sessionId.replace(/\D/g, '')) || undefined;
+      await authApi.logout(numericId);
+      setActiveSessions(prev => prev.filter(s => s.id !== sessionId));
+      setSessionActionMsg({ text: t('Device session revoked successfully.'), isError: false });
+    } catch (e: any) {
+      console.error('Failed to revoke device session:', e);
+      setSessionActionMsg({ 
+        text: t('Không thể thu hồi phiên thiết bị. Vui lòng thử lại.'), 
+        isError: true 
+      });
+    }
+    setTimeout(() => setSessionActionMsg(null), 3500);
   };
 
   const handleExportData = () => {
@@ -595,6 +609,11 @@ export const ProfileSettingsPage: React.FC = () => {
               </p>
             </div>
 
+            {sessionActionMsg && (
+              <div className={`p-3 rounded-xl text-xs font-semibold ${sessionActionMsg.isError ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-emerald-50 text-emerald-800 border border-emerald-200'}`}>
+                {sessionActionMsg.text}
+              </div>
+            )}
             <div className="space-y-3">
               {activeSessions.map((s) => (
                 <div key={s.id} className="p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-between gap-3">

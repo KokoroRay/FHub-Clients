@@ -32,9 +32,13 @@ export const ResetPasswordPage: React.FC = () => {
     setErrorMessage(null);
 
     try {
-      if (email && otpCode) {
-        await authApi.resetPassword(email, otpCode, newPassword.trim());
+      if (!email || !otpCode) {
+        setErrorMessage(t("Thiếu thông tin email hoặc mã xác thực OTP. Vui lòng thực hiện lại từ đầu."));
+        setIsLoading(false);
+        return;
       }
+
+      await authApi.resetPassword(email, otpCode, newPassword.trim());
       sessionStorage.removeItem('fhub_reset_email');
       sessionStorage.removeItem('fhub_reset_otp');
       setIsSuccess(true);

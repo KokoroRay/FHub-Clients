@@ -105,8 +105,9 @@ export const authApi = {
     return res.data.data;
   },
 
-  logout: async (sessionId?: number): Promise<void> => {
-    await apiClient.post('/api/auth/logout', { sessionId });
+  logout: async (sessionId?: number, refreshToken?: string, logoutAllDevices?: boolean): Promise<void> => {
+    const rt = refreshToken || localStorage.getItem('fhub_refresh_token') || sessionStorage.getItem('fhub_refresh_token') || undefined;
+    await apiClient.post('/api/auth/logout', { sessionId, refreshToken: rt, logoutAllDevices });
   },
 
   getSessions: async (userId?: number) => {
