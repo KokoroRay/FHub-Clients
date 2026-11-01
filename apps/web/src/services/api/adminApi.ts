@@ -67,6 +67,7 @@ export const authApi = {
     fullName: string;
     studentCode?: string;
     campus?: string;
+    otpCode?: string;
   }): Promise<LoginResponse> => {
     const res = await apiClient.post<ApiResponse<LoginResponse>>('/api/auth/register', {
       ...payload,
@@ -76,6 +77,11 @@ export const authApi = {
       browser: 'Chrome / Edge',
       operatingSystem: 'Windows 11'
     });
+    return res.data.data;
+  },
+
+  requestRegisterOtp: async (email: string) => {
+    const res = await apiClient.post<ApiResponse<any>>('/api/auth/register/request-otp', { email });
     return res.data.data;
   },
 
