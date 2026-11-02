@@ -35,30 +35,30 @@ export const ProfilePage: React.FC = () => {
 
   // Profile Data State
   const [profileData, setProfileData] = useState({
-    fullName: (currentUser as any)?.fullName || (currentUser as any)?.name || 'Nguyen Minh Tam',
-    studentId: (currentUser as any)?.studentCode || currentUser?.studentId || 'CE181522',
-    email: currentUser?.email || 'TamNMCE181522@fpt.edu.vn',
-    campus: (currentUser as any)?.campus || 'FPT University - Can Tho',
-    community: 'FHub Engineering Community',
-    major: (currentUser as any)?.major || 'Software Engineering (K18 - DevOps)',
-    role: 'Student',
-    status: 'Verified Student · Cohort K18',
-    memberSince: 'Sep 2022 (Cohort K18)',
-    bio: 'K18 Software Engineering student at FPT University Can Tho (CE181522). Passionate about Cloud Infrastructure, DevOps, CI/CD Pipelines, Docker, Kubernetes, and .NET Microservices.',
-    detailedBio: 'Final-year K18 Software Engineering student specializing in DevOps & Cloud-Native Architecture at FPT University Can Tho. Active contributor of PRN231, SWD392, and SEP490 study materials, Docker Compose templates, and automated GitHub Actions deployment workflows.',
-    interests: ['DevOps & CI/CD', 'Docker & Kubernetes', '.NET 8 Microservices', 'PostgreSQL', 'GitHub Actions', 'Cloud Infrastructure'] as string[],
+    fullName: (currentUser as any)?.fullName || (currentUser as any)?.name || 'Sinh viên FHub',
+    studentId: (currentUser as any)?.studentCode || currentUser?.studentId || '',
+    email: currentUser?.email || '',
+    campus: (currentUser as any)?.campus || 'FPT University',
+    community: 'FHub Community',
+    major: (currentUser as any)?.major || '',
+    role: currentUser?.role || 'Student',
+    status: 'Sinh viên FPTU',
+    memberSince: 'Gần đây',
+    bio: 'Chưa có thông tin giới thiệu.',
+    detailedBio: '',
+    interests: [] as string[],
     avatarUrl: currentUser?.avatarUrl || '',
     stats: {
-      articlesPublished: 4,
-      articlesSubtext: '4 articles',
-      studyMaterialsShared: 6,
-      materialsSubtext: '148 downloads',
-      courseReviewsWritten: 3,
-      reviewsSubtext: '3 reviews',
-      questionsCount: 3,
-      answersCount: 5,
-      helpfulVotes: 145,
-      badgesCount: 4,
+      articlesPublished: 0,
+      articlesSubtext: '0 articles',
+      studyMaterialsShared: 0,
+      materialsSubtext: '0 downloads',
+      courseReviewsWritten: 0,
+      reviewsSubtext: '0 reviews',
+      questionsCount: 0,
+      answersCount: 0,
+      helpfulVotes: (currentUser as any)?.karma || 0,
+      badgesCount: 0,
     }
   });
 
@@ -179,28 +179,14 @@ export const ProfilePage: React.FC = () => {
           const myVotes = await voteApi.getMyVotes();
           if (isMounted) {
             if (myVotes && myVotes.length > 0) {
-              const titleCatalog: Record<string, { title: string; author: string }> = {
-                'QUESTION_16': { title: 'Best Practices for Dockerizing .NET 8 Microservices and PostgreSQL Healthchecks in SEP490?', author: 'Nguyen Minh Tam (CE181522)' },
-                'QUESTION_15': { title: 'How to Resolve CORS Preflight Errors Between React Client and ASP.NET Core API?', author: 'Nguyen Quoc Bao (CE180121)' },
-                'QUESTION_14': { title: 'Should We Choose Microservices or Modular Monolith Architecture for SWP391?', author: 'Thai Hoang Gia Phu (CE182003)' },
-                'QUESTION_13': { title: 'How to Configure Entity Framework Core with PostgreSQL Without Case-Sensitivity Issues?', author: 'Le Tran Tan (CE190370)' },
-                'ARTICLE_21': { title: 'Complete Guide to Scoring 9+ in SWP391 at FPT University: From Team Formation to Defense', author: 'Huynh Le Cong Bien (CE181207)' },
-                'ARTICLE_22': { title: 'Automated CI/CD Pipeline Guide: Building & Deploying Dockerized .NET 8 Apps with GitHub Actions', author: 'Nguyen Minh Tam (CE181522)' },
-                'ARTICLE_4': { title: 'FPTU Alumni Perspective: Essential Engineering Skills Enterprises Expect from Freshers', author: 'Tran Minh Hoang (K14 Alumni)' },
-                'STUDYMATERIAL_25': { title: 'Complete PRN231 C# .NET Web API Practical Exam (PE) Archive with Clean Architecture', author: 'Huynh Le Cong Bien (CE181207)' },
-                'StudyMaterial_25': { title: 'Complete PRN231 C# .NET Web API Practical Exam (PE) Archive with Clean Architecture', author: 'Huynh Le Cong Bien (CE181207)' },
-                'ANSWER_13': { title: 'Accepted Answer on Configuring EFCore.NamingConventions for PostgreSQL', author: 'Huynh Le Cong Bien (CE181207)' },
-              };
               const mappedVotes = myVotes.map((v) => {
-                const key = `${v.targetType}_${v.targetId}`;
-                const meta = titleCatalog[key] || titleCatalog[key.toUpperCase()];
                 return {
                   id: String(v.voteId),
-                  targetTitle: meta ? meta.title : `${v.targetType} #${v.targetId}: Verified Academic Post on FHub`,
+                  targetTitle: `${v.targetType} #${v.targetId}`,
                   type: String(v.targetType).toUpperCase(),
                   vote: v.voteValue > 0 ? 'Upvote (+1)' : 'Downvote (-1)',
-                  date: v.createdAt ? v.createdAt : '2026-10-27T08:30:00Z',
-                  author: meta ? meta.author : 'Huynh Le Cong Bien (CE181207)',
+                  date: v.createdAt ? v.createdAt : new Date().toISOString(),
+                  author: t('common.author', 'Tác giả bài đăng'),
                 };
               });
               setUserVoteHistory(mappedVotes);
@@ -352,49 +338,49 @@ export const ProfilePage: React.FC = () => {
         </div>
       </div>
 
-      {/* 3 Stats Highlights Cards (Figma #106:7369) */}
+      {/* 3 Real Dynamic Stats Highlights Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Card 1 */}
+        {/* Card 1: Questions */}
         <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-xs">
           <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-            {t('profile.articlesPublished', 'ARTICLES PUBLISHED')}
+            {t('profile.questionsCountLabel', 'CÂU HỎI ĐÃ ĐẶT')}
           </span>
           <div className="flex items-baseline justify-between mt-2">
             <span className="text-3xl font-extrabold text-[#181C22]">
-              {profileData.stats.articlesPublished}
+              {questions.length}
             </span>
             <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
-              {profileData.stats.articlesPublished} {t('profile.articlesCount', 'bài viết')}
+              {questions.length} {t('profile.questionsUnit', 'câu hỏi')}
             </span>
           </div>
         </div>
 
-        {/* Card 2 */}
+        {/* Card 2: Karma */}
         <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-xs">
           <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-            {t('profile.materialsShared', 'STUDY MATERIALS SHARED')}
+            {t('profile.karmaScoreLabel', 'ĐIỂM UY TÍN (KARMA)')}
           </span>
           <div className="flex items-baseline justify-between mt-2">
             <span className="text-3xl font-extrabold text-[#181C22]">
-              {profileData.stats.studyMaterialsShared}
+              {profileData.stats.helpfulVotes}
             </span>
             <span className="text-xs font-semibold text-[#0076D1] bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
-              {profileData.stats.studyMaterialsShared} {t('profile.downloadsCount', 'lượt tải')}
+              {profileData.stats.helpfulVotes} {t('profile.pointsUnit', 'điểm')}
             </span>
           </div>
         </div>
 
-        {/* Card 3 */}
+        {/* Card 3: Badges */}
         <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-xs">
           <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-            {t('profile.reviewsWritten', 'COURSE REVIEWS WRITTEN')}
+            {t('profile.badgesEarnedLabel', 'HUY HIỆU ĐÃ ĐẠT')}
           </span>
           <div className="flex items-baseline justify-between mt-2">
             <span className="text-3xl font-extrabold text-[#181C22]">
-              {profileData.stats.courseReviewsWritten}
+              {userBadges.length}
             </span>
             <span className="text-xs font-semibold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100">
-              {profileData.stats.courseReviewsWritten} {t('profile.reviewsCount', 'đánh giá')}
+              {userBadges.length} {t('profile.badgesUnit', 'huy hiệu')}
             </span>
           </div>
         </div>
@@ -433,21 +419,29 @@ export const ProfilePage: React.FC = () => {
           <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-2">
             {t('profile.interests', 'ACADEMIC & TECH INTERESTS')}
           </span>
-          <div className="flex flex-wrap gap-2">
-            {profileData.interests.map((tag) => (
-              <span
-                key={tag}
-                className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
+          {profileData.interests && profileData.interests.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {profileData.interests.map((tag) => (
+                <span
+                  key={tag}
+                  className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-slate-400 italic">
+              {t('profile.noInterests', 'Chưa cập nhật sở thích học thuật / công nghệ.')}
+            </p>
+          )}
         </div>
 
-        <p className="text-xs text-slate-600 leading-relaxed pt-2 border-t border-slate-100">
-          {profileData.detailedBio}
-        </p>
+        {profileData.detailedBio ? (
+          <p className="text-xs text-slate-600 leading-relaxed pt-2 border-t border-slate-100">
+            {profileData.detailedBio}
+          </p>
+        ) : null}
       </div>
 
       {/* Interactive Activity & Contributions Tabs (Figma #92:3543) */}

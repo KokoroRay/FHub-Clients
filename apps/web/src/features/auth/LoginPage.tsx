@@ -64,9 +64,9 @@ export const LoginPage: React.FC = () => {
         id: String(result.user?.userId || `u-${Date.now()}`),
         email: result.user?.email || email,
         fullName: result.user?.fullName || email.split('@')[0],
-        studentId: result.user?.studentCode || '',
+        studentId: result.user?.studentCode || validateFptEmail(result.user?.email || '').studentCode || '',
         role: mappedRole,
-        campus: (result.user?.campusCode as any) || '',
+        campus: (result.user?.campusCode as any) || validateFptEmail(result.user?.email || '').campusCode || '',
         avatarUrl: result.user?.avatarUrl || '',
         karma: 0,
         status: 'ACTIVE',
@@ -101,8 +101,9 @@ export const LoginPage: React.FC = () => {
         const payloadJson = JSON.parse(atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/')));
         const googleEmail = (payloadJson.email || '').trim().toLowerCase();
         if (googleEmail) {
-          if (!googleEmail.endsWith('@fpt.edu.vn')) {
-            setErrorMessage(t("Chỉ tài khoản Google có đuôi email @fpt.edu.vn mới được phép đăng nhập hoặc đăng ký qua Google. (Email hiện tại: {p0})", undefined, { p0: googleEmail }));
+          const emailCheck = validateFptEmail(googleEmail);
+          if (!emailCheck.isValid) {
+            setErrorMessage(emailCheck.error || t("Email không đúng định dạng quy định của Trường Đại học FPT."));
             setIsLoading(false);
             return;
           }
