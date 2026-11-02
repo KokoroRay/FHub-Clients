@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserRole, CampusCode } from '../types';
 import { authApi } from '../services/api/adminApi';
 import { profileApi } from '../services/api/studentApi';
+import { resolveUserMajorName } from '../utils/taxonomyUtils';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -143,6 +144,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (avatar && avatar !== currentUser.avatarUrl) updates.avatarUrl = avatar;
         if (fullName && fullName !== currentUser.fullName) updates.fullName = fullName;
         if (campus && campus !== currentUser.campus) updates.campus = campus as any;
+        const resolvedMajor = resolveUserMajorName(profile);
+        if (resolvedMajor && resolvedMajor !== currentUser.major) updates.major = resolvedMajor;
 
         if (Object.keys(updates).length > 0) {
           updateUser(updates);
