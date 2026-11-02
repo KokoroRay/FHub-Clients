@@ -3,6 +3,7 @@ import { User, UserRole, CampusCode } from '../types';
 import { authApi } from '../services/api/adminApi';
 import { profileApi } from '../services/api/studentApi';
 import { resolveUserMajorName } from '../utils/taxonomyUtils';
+import { extractStudentIdFromEmail } from '../utils/fptEmailValidator';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -146,6 +147,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (campus && campus !== currentUser.campus) updates.campus = campus as any;
         const resolvedMajor = resolveUserMajorName(profile);
         if (resolvedMajor && resolvedMajor !== currentUser.major) updates.major = resolvedMajor;
+        const studentCode = profile.studentCode || (profile as any)?.studentId || extractStudentIdFromEmail(profile.email || currentUser.email);
+        if (studentCode && studentCode !== currentUser.studentId) updates.studentId = studentCode;
 
         if (Object.keys(updates).length > 0) {
           updateUser(updates);

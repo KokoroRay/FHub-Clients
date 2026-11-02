@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   FileCode,
@@ -8,16 +8,11 @@ import {
   Plus,
   MessageSquare,
   Search,
-  ExternalLink,
-  ThumbsUp,
   Bookmark,
-  Share2,
   ChevronUp,
   ChevronDown,
   ArrowRight,
-  TrendingUp,
   Loader2,
-  Image as ImageIcon,
   CheckCircle2,
   BookOpen,
   Award,
@@ -32,6 +27,7 @@ import { AskQuestionModal } from '../discussions/AskQuestionModal';
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 import { normalizeMediaUrl } from '../../utils/mediaUtils';
 import { resolveUserMajorName, FPT_CAMPUSES } from '../../utils/taxonomyUtils';
+import { extractStudentIdFromEmail } from '../../utils/fptEmailValidator';
 
 // Helper to extract media and clean text from markdown body
 const parseBodyMedia = (rawBody: string = '') => {
@@ -85,8 +81,9 @@ export const FeedPage: React.FC = () => {
   const studentName = currentUser?.fullName || t('common.student', 'Sinh viên FHub');
   const studentInitials = studentName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || 'SV';
   const currentUserMajor = resolveUserMajorName(currentUser);
+  const studentIdDisplay = currentUser?.studentId || extractStudentIdFromEmail(currentUser?.email) || '';
 
-  // Fetch Questions
+  // Fetch Questions (Valid SortBy: newest, oldest, views, answers)
   const loadQuestions = async (targetPage: number = 1, append: boolean = false) => {
     try {
       if (targetPage === 1) setLoading(true);
@@ -102,10 +99,13 @@ export const FeedPage: React.FC = () => {
         params.search = searchQuery.trim();
       }
 
+      // Backend validator strictly accepts: newest, oldest, views, answers
       if (feedFilter === 'votes') {
-        params.sortBy = 'upvoteCount:desc';
+        params.sortBy = 'views';
       } else if (feedFilter === 'unanswered') {
-        params.status = 'ACTIVE';
+        params.sortBy = 'newest';
+      } else {
+        params.sortBy = 'newest';
       }
 
       const res = await questionApi.getQuestions(params);
@@ -114,6 +114,15 @@ export const FeedPage: React.FC = () => {
       // Filter for unanswered if requested
       if (feedFilter === 'unanswered') {
         items = items.filter((q: any) => (q.answerCount || 0) === 0);
+      }
+
+      // If user selected votes, sort by upvoteCount - downvoteCount descending
+      if (feedFilter === 'votes') {
+        items.sort((a: any, b: any) => {
+          const scoreA = (a.upvoteCount || 0) - (a.downvoteCount || 0);
+          const scoreB = (b.upvoteCount || 0) - (b.downvoteCount || 0);
+          return scoreB - scoreA;
+        });
       }
 
       if (append) {
@@ -246,7 +255,18 @@ export const FeedPage: React.FC = () => {
     if (authorId && authorProfiles[authorId]?.fullName) {
       return authorProfiles[authorId].fullName;
     }
-    return 'Thành viên FHub';
+    // Check known seed users in FPT system
+    const knownUsers: Record<number, string> = {
+      1: 'Nguyễn Văn An',
+      2: 'Trần Minh Hoàng',
+      3: 'Lê Thị Mai',
+      4: 'Phạm Đức Anh',
+      5: 'Đỗ Hoàng Nam',
+    };
+    if (authorId && knownUsers[authorId]) {
+      return knownUsers[authorId];
+    }
+    return t('common.fhubMember', 'Thành viên FHub');
   };
 
   return (
@@ -292,6 +312,14 @@ export const FeedPage: React.FC = () => {
               <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium truncate max-w-[150px]" title={currentUserMajor}>
                 {currentUserMajor}
               </span>
+              {studentIdDisplay && (
+                <>
+                  <span className="text-slate-300 dark:text-slate-600 text-[10px]">•</span>
+                  <span className="text-[10px] font-mono font-bold text-blue-600 dark:text-blue-400">
+                    {studentIdDisplay}
+                  </span>
+                </>
+              )}
               <span className="text-slate-300 dark:text-slate-600 text-[10px]">•</span>
               <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.2 rounded border border-emerald-100 dark:border-emerald-800">
                 {currentUser?.karma || 0} pts

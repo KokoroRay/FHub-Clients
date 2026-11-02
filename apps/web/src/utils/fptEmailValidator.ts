@@ -126,3 +126,32 @@ export function validateFptEmail(rawEmail: string): FptEmailValidationResult {
     error: 'Email không thuộc hệ thống FPT. Vui lòng dùng email @fpt.edu.vn (K18 trở về trước) hoặc mẫu [Ten][HoLot].[MSSV]@gmail.com (K19 trở đi).',
   };
 }
+
+/**
+ * Trích xuất MSSV từ email trường (@fpt.edu.vn, @fe.edu.vn) hoặc Gmail K19+
+ * Ví dụ:
+ *  - TamNMCE181522@fpt.edu.vn -> CE181522
+ *  - TanLT.CE190370@gmail.com -> CE190370
+ *  - thangdqse170123@fe.edu.vn -> SE170123
+ */
+export function extractStudentIdFromEmail(email: string = ''): string | null {
+  if (!email) return null;
+  const trimmed = email.trim();
+  const atIdx = trimmed.indexOf('@');
+  if (atIdx === -1) return null;
+  const username = trimmed.slice(0, atIdx);
+
+  // 1. Dạng chấm: TanLT.CE190370@gmail.com
+  const dotMatch = username.match(/\.([A-Za-z]{2}\d{5,6})$/i);
+  if (dotMatch) return dotMatch[1].toUpperCase();
+
+  // 2. Dạng liền đuôi: TamNMCE181522@fpt.edu.vn hoặc SE170123
+  const endMatch = username.match(/([A-Za-z]{2}\d{5,6})$/i);
+  if (endMatch) return endMatch[1].toUpperCase();
+
+  // 3. Quét mọi vị trí trong username
+  const anyMatch = username.match(/([A-Za-z]{2}\d{5,6})/i);
+  if (anyMatch) return anyMatch[1].toUpperCase();
+
+  return null;
+}
