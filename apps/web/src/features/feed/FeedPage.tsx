@@ -143,16 +143,50 @@ export const FeedPage: React.FC = () => {
       setHasMore(items.length >= 10);
       setPage(targetPage);
 
-      // Initialize votes state
+      // Initialize votes state with fallback scores
       const newVotes: Record<string, { count: number; userVote: 'UP' | 'DOWN' | null }> = {};
       items.forEach((q: any) => {
         const qId = String(q.questionId || q.id);
-        newVotes[qId] = {
-          count: (q.upvoteCount || 0) - (q.downvoteCount || 0),
-          userVote: null,
-        };
+        const numId = Number(String(q.questionId || q.id).replace(/\D/g, ''));
+        const fallbackCount = (q.upvoteCount || 0) - (q.downvoteCount || 0);
+        const entry = { count: fallbackCount, userVote: null as 'UP' | 'DOWN' | null };
+        newVotes[qId] = entry;
+        if (!isNaN(numId) && numId > 0) {
+          newVotes[String(numId)] = entry;
+        }
       });
       setVotes(prev => ({ ...prev, ...newVotes }));
+
+      // Synchronize exact real-time vote statistics and active vote status from interaction-service
+      const idMap = items.map((q: any, idx: number) => {
+        const qId = String(q.questionId || q.id || idx);
+        const numId = Number(String(q.questionId || q.id).replace(/\D/g, ''));
+        return { qId, numId };
+      }).filter((item: any) => !isNaN(item.numId) && item.numId > 0);
+
+      if (idMap.length > 0) {
+        Promise.allSettled(idMap.map((item: any) => voteApi.getStats('QUESTION', item.numId)))
+          .then(results => {
+            setVotes(prev => {
+              const updated = { ...prev };
+              results.forEach((r, idx) => {
+                if (r.status === 'fulfilled' && r.value) {
+                  const stats = r.value;
+                  const key = idMap[idx].qId;
+                  const numKey = String(idMap[idx].numId);
+                  const entry = {
+                    count: stats.score,
+                    userVote: stats.myVoteValue === 1 ? 'UP' as const : stats.myVoteValue === -1 ? 'DOWN' as const : null,
+                  };
+                  updated[key] = entry;
+                  updated[numKey] = entry;
+                }
+              });
+              return updated;
+            });
+          })
+          .catch(() => {});
+      }
 
       // Batch load missing author profiles asynchronously
       const missingAuthorIds = Array.from(new Set(
@@ -201,7 +235,7 @@ export const FeedPage: React.FC = () => {
 
   const handleVote = async (questionId: string, direction: 'UP' | 'DOWN') => {
     const current = votes[questionId] || { count: 0, userVote: null };
-    const numericId = parseInt(questionId, 10);
+    const numericId = Number(String(questionId).replace(/\D/g, ''));
     const voteValue = direction === 'UP' ? 1 : -1;
 
     let nextVote: 'UP' | 'DOWN' | null = direction;
@@ -216,12 +250,14 @@ export const FeedPage: React.FC = () => {
       nextCount += voteValue;
     }
 
+    const optimistic = { count: nextCount, userVote: nextVote };
     setVotes(prev => ({
       ...prev,
-      [questionId]: { count: nextCount, userVote: nextVote }
+      [questionId]: optimistic,
+      ...(numericId > 0 ? { [String(numericId)]: optimistic } : {}),
     }));
 
-    if (!isNaN(numericId)) {
+    if (!isNaN(numericId) && numericId > 0) {
       try {
         await voteApi.vote({
           target_type: 'QUESTION',
@@ -229,15 +265,23 @@ export const FeedPage: React.FC = () => {
           vote_value: voteValue,
         });
         const stats = await voteApi.getStats('QUESTION', numericId);
+        const finalEntry = {
+          count: stats.score,
+          userVote: stats.myVoteValue === 1 ? 'UP' as const : stats.myVoteValue === -1 ? 'DOWN' as const : null,
+        };
         setVotes(prev => ({
           ...prev,
-          [questionId]: {
-            count: stats.score,
-            userVote: stats.myVoteValue === 1 ? 'UP' : stats.myVoteValue === -1 ? 'DOWN' : null,
-          }
+          [questionId]: finalEntry,
+          [String(numericId)]: finalEntry,
         }));
       } catch (err) {
         console.warn('Vote submission error:', err);
+        // Rollback optimistic update on error
+        setVotes(prev => ({
+          ...prev,
+          [questionId]: current,
+          ...(numericId > 0 ? { [String(numericId)]: current } : {}),
+        }));
       }
     }
   };
@@ -256,26 +300,55 @@ export const FeedPage: React.FC = () => {
     if (q.isAnonymous) return t('common.anonymous', 'Ẩn danh FPTer');
     const authorId = Number(q.authorUserId || q.author?.id);
     if (authorId && currentUser?.id && String(authorId) === String(currentUser.id)) {
-      return currentUser.fullName || 'Bạn';
+      return currentUser.fullName || (currentUser as any)?.displayName || currentUser.email?.split('@')[0] || t('common.you', 'Bạn');
     }
-    if (q.authorDisplayName && q.authorDisplayName.trim()) return q.authorDisplayName.trim();
-    if (q.author?.fullName && q.author.fullName.trim()) return q.author.fullName.trim();
-    if (q.author?.name && q.author.name.trim()) return q.author.name.trim();
+    // 1. Check loaded profile from profile-service
     if (authorId && authorProfiles[authorId]?.fullName) {
       return authorProfiles[authorId].fullName;
     }
-    // Check known seed users in FPT system
+    // 2. Check known seed users in FPT system
     const knownUsers: Record<number, string> = {
       1: 'Nguyễn Văn An',
       2: 'Trần Minh Hoàng',
       3: 'Lê Thị Mai',
       4: 'Phạm Đức Anh',
       5: 'Đỗ Hoàng Nam',
+      6: 'Vũ Hải Đăng',
+      7: 'Bùi Phương Thảo',
+      8: 'Ngô Quốc Bảo',
+      9: 'Lê Thị Thu Thảo',
+      10: 'Trần Văn Mạnh',
     };
     if (authorId && knownUsers[authorId]) {
       return knownUsers[authorId];
     }
+    // 3. Check author fields if not a placeholder
+    const rawName = q.authorDisplayName || q.author?.fullName || q.author?.name;
+    if (rawName && typeof rawName === 'string' && rawName.trim()) {
+      const trimmed = rawName.trim();
+      const isPlaceholder =
+        trimmed.startsWith('Sinh viên') ||
+        trimmed.startsWith('User #') ||
+        trimmed === 'Thành viên FHub' ||
+        trimmed === 'FHub Member' ||
+        trimmed === 'Anonymous Student';
+      if (!isPlaceholder) return trimmed;
+    }
     return t('common.fhubMember', 'Thành viên FHub');
+  };
+
+  const getAuthorAvatar = (q: any) => {
+    if (q.isAnonymous) return '';
+    const authorId = Number(q.authorUserId || q.author?.id);
+    if (authorId && currentUser?.id && String(authorId) === String(currentUser.id) && currentUser.avatarUrl) {
+      return currentUser.avatarUrl;
+    }
+    if (authorId && authorProfiles[authorId]?.avatarUrl) {
+      return authorProfiles[authorId].avatarUrl;
+    }
+    if (q.author?.avatarUrl && q.author.avatarUrl.trim()) return q.author.avatarUrl.trim();
+    if (q.authorAvatarUrl && q.authorAvatarUrl.trim()) return q.authorAvatarUrl.trim();
+    return '';
   };
 
   return (
@@ -558,9 +631,25 @@ export const FeedPage: React.FC = () => {
                     {/* Header: Author & Course Tag */}
                     <div className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-2">
+                        {q.isAnonymous ? (
+                          <div className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center text-purple-600 dark:text-purple-300 font-bold text-[10px] shrink-0 border border-purple-200 dark:border-purple-800">
+                            ?
+                          </div>
+                        ) : (
+                          <img
+                            src={normalizeMediaUrl(getAuthorAvatar(q)) || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
+                            alt={authorName}
+                            className="w-6 h-6 rounded-full object-cover shrink-0 border border-slate-200 dark:border-slate-700"
+                          />
+                        )}
                         <span className="font-bold text-slate-800 dark:text-slate-200">
                           {authorName}
                         </span>
+                        {q.isAnonymous && (
+                          <span className="px-1.5 py-0.2 rounded text-[10px] bg-purple-50 text-purple-600 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200/50 dark:border-purple-800/60 font-semibold">
+                            {t('common.anonymous', 'Ẩn danh')}
+                          </span>
+                        )}
                         <span className="text-slate-400">
                           • {q.createdAt ? new Date(q.createdAt).toLocaleDateString(locale) : t('common.recent', 'Mới đây')}
                         </span>

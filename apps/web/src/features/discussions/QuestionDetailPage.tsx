@@ -32,7 +32,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { questionApi, alumniApi } from '../../services/api/contentApi';
-import { voteApi, bookmarkApi } from '../../services/api/studentApi';
+import { voteApi, bookmarkApi, profileApi } from '../../services/api/studentApi';
 import { courseNodesApi, semanticTagsApi } from '../../services/api/adminApi';
 import { normalizeMediaUrl } from '../../utils/mediaUtils';
 import { Answer, CommentItem, QuestionPost } from '../../types';
@@ -70,6 +70,60 @@ export const QuestionDetailPage: React.FC = () => {
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
   const [editQuestionTitle, setEditQuestionTitle] = useState('');
   const [editQuestionBody, setEditQuestionBody] = useState('');
+  const [authorProfiles, setAuthorProfiles] = useState<Record<number, { fullName: string; avatarUrl?: string }>>({});
+
+  const KNOWN_SEED_USERS: Record<number, string> = {
+    1: 'Nguyễn Văn An',
+    2: 'Trần Minh Hoàng',
+    3: 'Lê Thị Mai',
+    4: 'Phạm Đức Anh',
+    5: 'Đỗ Hoàng Nam',
+    6: 'Vũ Hải Đăng',
+    7: 'Bùi Phương Thảo',
+    8: 'Ngô Quốc Bảo',
+    9: 'Lê Thị Thu Thảo',
+    10: 'Trần Văn Mạnh',
+  };
+
+  const getAuthorDisplayName = (
+    authorId?: string | number,
+    displayName?: string | null,
+    isAnon?: boolean
+  ) => {
+    if (isAnon) return t('common.anonymous', 'Ẩn danh FPTer');
+    const numId = Number(authorId);
+    if (numId && currentUser?.id && String(numId) === String(currentUser.id)) {
+      return currentUser.fullName || (currentUser as any)?.displayName || currentUser.email?.split('@')[0] || t('common.you', 'Bạn');
+    }
+    if (numId && authorProfiles[numId]?.fullName) return authorProfiles[numId].fullName;
+    if (numId && KNOWN_SEED_USERS[numId]) return KNOWN_SEED_USERS[numId];
+    if (displayName && displayName.trim()) {
+      const trimmed = displayName.trim();
+      const isPlaceholder =
+        trimmed.startsWith('Sinh viên') ||
+        trimmed.startsWith('User #') ||
+        trimmed === 'Thành viên FHub' ||
+        trimmed === 'FHub Member' ||
+        trimmed === 'Anonymous Student';
+      if (!isPlaceholder) return trimmed;
+    }
+    return t('common.fhubMember', 'Thành viên FHub');
+  };
+
+  const getAuthorAvatar = (
+    authorId?: string | number,
+    avatarUrl?: string | null,
+    isAnon?: boolean
+  ) => {
+    if (isAnon) return '';
+    const numId = Number(authorId);
+    if (numId && currentUser?.id && String(numId) === String(currentUser.id) && currentUser.avatarUrl) {
+      return currentUser.avatarUrl;
+    }
+    if (numId && authorProfiles[numId]?.avatarUrl) return authorProfiles[numId].avatarUrl;
+    if (avatarUrl && avatarUrl.trim()) return avatarUrl;
+    return '';
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -117,9 +171,7 @@ export const QuestionDetailPage: React.FC = () => {
             courseCode: mappedCourseCode,
             author: {
               id: String(data.authorUserId || ''),
-              fullName: data.isAnonymous
-                ? t('common.anonymous', 'Anonymous Student')
-                : (data.authorDisplayName || t('common.studentNumber', 'Sinh viên FHub')),
+              fullName: getAuthorDisplayName(data.authorUserId, data.authorDisplayName, data.isAnonymous),
               role: 'Student',
               karma: data.upvoteCount || 0,
               campus: '',
@@ -182,9 +234,7 @@ export const QuestionDetailPage: React.FC = () => {
               questionId: String(ans.questionId),
               author: {
                 id: String(ans.authorUserId || ''),
-                fullName: ans.isAnonymous
-                  ? t('common.anonymous', 'Anonymous Student')
-                  : (ans.authorDisplayName || t('common.studentNumber', 'Sinh viên FHub')),
+                fullName: getAuthorDisplayName(ans.authorUserId, ans.authorDisplayName, ans.isAnonymous),
                 avatarUrl: '',
                 role: ans.isModeratorVerified ? 'Alumni' : 'Student',
                 karma: 0,
@@ -202,7 +252,7 @@ export const QuestionDetailPage: React.FC = () => {
                 parentId: String(ans.answerId),
                 author: {
                   id: String(c.authorUserId || ''),
-                  fullName: c.authorDisplayName || t('common.studentNumber', 'Sinh viên FHub')
+                  fullName: getAuthorDisplayName(c.authorUserId, c.authorDisplayName, false)
                 },
                 content: c.body,
                 createdAt: c.createdAt || 'Just now',
@@ -211,6 +261,66 @@ export const QuestionDetailPage: React.FC = () => {
             };
           });
           setAnswers(mappedAnswers);
+
+          // Batch fetch profiles for all non-anonymous authors
+          const authorIdsToFetch = Array.from(new Set([
+            !data.isAnonymous && data.authorUserId ? Number(data.authorUserId) : null,
+            ...(answersData || []).filter((a: any) => !a.isAnonymous && a.authorUserId).map((a: any) => Number(a.authorUserId)),
+            ...((answersData || []).flatMap((a: any) => (a.comments || []).filter((cm: any) => cm.authorUserId).map((cm: any) => Number(cm.authorUserId))))
+          ])).filter((uid): uid is number => typeof uid === 'number' && uid > 0 && uid !== Number(currentUser?.id));
+
+          if (authorIdsToFetch.length > 0) {
+            Promise.allSettled(authorIdsToFetch.map(uid => profileApi.getProfile(uid)))
+              .then(results => {
+                if (!isMounted) return;
+                const mapped: Record<number, { fullName: string; avatarUrl?: string }> = {};
+                results.forEach((r, idx) => {
+                  if (r.status === 'fulfilled' && r.value) {
+                    const p = r.value;
+                    const uid = authorIdsToFetch[idx];
+                    const name = p.fullName || p.displayName || p.name;
+                    if (name) {
+                      mapped[uid] = {
+                        fullName: name,
+                        avatarUrl: p.avatarUrl || '',
+                      };
+                    }
+                  }
+                });
+                if (Object.keys(mapped).length > 0) {
+                  setAuthorProfiles(prev => ({ ...prev, ...mapped }));
+                }
+              })
+              .catch(() => {});
+          }
+
+          // Batch fetch answer vote statistics from interaction service
+          const ansIdsToFetch = (answersData || [])
+            .map((a: any) => Number(a.answerId))
+            .filter((nid: number) => !isNaN(nid) && nid > 0);
+
+          if (ansIdsToFetch.length > 0) {
+            Promise.allSettled(ansIdsToFetch.map((nid: number) => voteApi.getStats('ANSWER', nid)))
+              .then(results => {
+                if (!isMounted) return;
+                setAnswers(prev =>
+                  prev.map(a => {
+                    const numAId = Number(a.id);
+                    const idx = ansIdsToFetch.indexOf(numAId);
+                    if (idx !== -1 && results[idx].status === 'fulfilled') {
+                      const st = (results[idx] as PromiseFulfilledResult<any>).value;
+                      return {
+                        ...a,
+                        upvotes: st.score,
+                        userVote: st.myVoteValue === 1 ? 'UP' : st.myVoteValue === -1 ? 'DOWN' : a.userVote,
+                      };
+                    }
+                    return a;
+                  })
+                );
+              })
+              .catch(() => {});
+          }
         }
       } catch (err) {
         if (isMounted) {
@@ -415,7 +525,7 @@ export const QuestionDetailPage: React.FC = () => {
       questionId: question.id,
       author: {
         id: currentUser?.id || 'usr-current',
-        fullName: currentUser?.fullName || t('common.userNumber', 'Sinh viên FHub'),
+        fullName: currentUser?.fullName || (currentUser as any)?.displayName || currentUser?.email?.split('@')[0] || t('common.you', 'Bạn'),
         avatarUrl: currentUser?.avatarUrl,
         role: currentUser?.role || 'Student',
         karma: currentUser?.karma || 0,
@@ -455,7 +565,7 @@ export const QuestionDetailPage: React.FC = () => {
       parentId: ansId,
       author: {
         id: currentUser?.id || 'usr-current',
-        fullName: currentUser?.fullName || t("Sinh viên FHub"),
+        fullName: currentUser?.fullName || (currentUser as any)?.displayName || currentUser?.email?.split('@')[0] || t('common.you', 'Bạn'),
       },
       content: text,
       createdAt: t('common.justNow', 'Vừa xong'),
@@ -558,13 +668,13 @@ export const QuestionDetailPage: React.FC = () => {
                 ) : (
                   <>
                     <img
-                      src={normalizeMediaUrl(question.author.avatarUrl) || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
-                      alt={question.author.fullName}
+                      src={normalizeMediaUrl(getAuthorAvatar(question.author.id, question.author.avatarUrl, question.author.isAnonymous)) || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
+                      alt={getAuthorDisplayName(question.author.id, question.author.fullName, question.author.isAnonymous)}
                       className="w-8 h-8 rounded-full object-cover"
                     />
                     <div>
                       <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-slate-800 dark:text-slate-200">{question.author.fullName}</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-200">{getAuthorDisplayName(question.author.id, question.author.fullName, question.author.isAnonymous)}</span>
                         <Badge variant="neutral" size="sm">{question.author.campus || 'FU-HL'}</Badge>
                       </div>
                       <span className="text-[10px] text-slate-400">
@@ -713,17 +823,21 @@ export const QuestionDetailPage: React.FC = () => {
               {/* Answer Author */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  {ans.author.isAnonymous || !ans.author.avatarUrl ? (
+                  {ans.author.isAnonymous ? (
                     <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 flex items-center justify-center font-bold border border-purple-200 dark:border-purple-800 shrink-0">
                       <EyeOff className="w-4 h-4" />
                     </div>
                   ) : (
-                    <img src={normalizeMediaUrl(ans.author.avatarUrl)} alt={ans.author.fullName} className="w-8 h-8 rounded-full object-cover" />
+                    <img
+                      src={normalizeMediaUrl(getAuthorAvatar(ans.author.id, ans.author.avatarUrl, ans.author.isAnonymous)) || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
+                      alt={getAuthorDisplayName(ans.author.id, ans.author.fullName, ans.author.isAnonymous)}
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
                   )}
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100">
-                        {ans.author.fullName}
+                        {getAuthorDisplayName(ans.author.id, ans.author.fullName, ans.author.isAnonymous)}
                       </span>
                       {ans.author.isAnonymous ? (
                         <Badge variant="purple" size="sm">{t("Ẩn danh")}</Badge>
@@ -856,7 +970,7 @@ export const QuestionDetailPage: React.FC = () => {
                       ) : (
                         <div className="flex items-center gap-1.5 font-bold text-slate-800 dark:text-slate-200">
                           <CornerDownRight className="w-3 h-3 text-slate-400" />
-                          <span>{cmt.author.fullName}:</span>
+                          <span>{getAuthorDisplayName(cmt.author.id, cmt.author.fullName)}:</span>
                           <span className="font-normal text-slate-600 dark:text-slate-300">{cmt.content}</span>
                           <span className="text-[10px] text-slate-400 ml-auto">{formatDate(cmt.createdAt)}</span>
                           <button
