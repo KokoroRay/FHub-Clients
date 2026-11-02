@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   ThumbsUp,
   ThumbsDown,
@@ -47,6 +47,7 @@ import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 export const QuestionDetailPage: React.FC = () => {
   const { formatDate, locale, t, language } = useLanguage();
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { currentUser, currentRole } = useAuth();
 
   const [question, setQuestion] = useState<QuestionPost | null>(null);
@@ -115,18 +116,13 @@ export const QuestionDetailPage: React.FC = () => {
             content: data.body,
             courseCode: mappedCourseCode,
             author: {
-              id: String(data.authorUserId || '4'),
+              id: String(data.authorUserId || ''),
               fullName: data.isAnonymous
                 ? t('common.anonymous', 'Anonymous Student')
-                : data.authorDisplayName ||
-                  (data.authorUserId === 4
-                    ? 'Nguyen Minh Tam (CE181522)'
-                    : data.authorUserId === 3
-                    ? 'Huynh Le Cong Bien (CE181207)'
-                    : 'Nguyen Minh Tam (CE181522)'),
+                : (data.authorDisplayName || t('common.studentNumber', 'Sinh viên FHub')),
               role: 'Student',
-              karma: 320,
-              campus: 'FPT University - Can Tho',
+              karma: data.upvoteCount || 0,
+              campus: '',
               isAnonymous: data.isAnonymous,
             },
             tags: mappedTags,
@@ -185,19 +181,14 @@ export const QuestionDetailPage: React.FC = () => {
               id: String(ans.answerId),
               questionId: String(ans.questionId),
               author: {
-                id: String(ans.authorUserId || '4'),
+                id: String(ans.authorUserId || ''),
                 fullName: ans.isAnonymous
                   ? t('common.anonymous', 'Anonymous Student')
-                  : ans.authorDisplayName ||
-                    (ans.authorUserId === 4
-                      ? 'Nguyen Minh Tam (CE181522)'
-                      : ans.authorUserId === 3
-                      ? 'Huynh Le Cong Bien (CE181207)'
-                      : 'Nguyen Quoc Bao (CE180121)'),
+                  : (ans.authorDisplayName || t('common.studentNumber', 'Sinh viên FHub')),
                 avatarUrl: '',
                 role: ans.isModeratorVerified ? 'Alumni' : 'Student',
-                karma: 245,
-                campus: 'FPT University - Can Tho',
+                karma: 0,
+                campus: '',
                 isAnonymous: ans.isAnonymous,
               },
               content: ans.body,
@@ -210,20 +201,12 @@ export const QuestionDetailPage: React.FC = () => {
                 id: String(c.commentId),
                 parentId: String(ans.answerId),
                 author: {
-                  id: String(c.authorUserId || '4'),
-                  fullName: c.authorDisplayName || (c.authorUserId === 4 ? 'Nguyen Minh Tam (CE181522)' : 'Huynh Le Cong Bien (CE181207)')
+                  id: String(c.authorUserId || ''),
+                  fullName: c.authorDisplayName || t('common.studentNumber', 'Sinh viên FHub')
                 },
                 content: c.body,
                 createdAt: c.createdAt || 'Just now',
-              })) : [
-                {
-                  id: 'c1',
-                  parentId: String(ans.answerId),
-                  author: { id: '3', fullName: 'Huynh Le Cong Bien (CE181207)' },
-                  content: 'Thank you for the clear solution! Configuring the Npgsql connection pool resolved our timeout issue.',
-                  createdAt: '10 mins ago'
-                }
-              ],
+              })) : [],
               createdAt: ans.createdAt,
             };
           });
@@ -241,6 +224,29 @@ export const QuestionDetailPage: React.FC = () => {
     fetchDetail();
     return () => { isMounted = false; };
   }, [id]);
+
+    // Ownership & Permission Checks
+  const isQuestionAuthor = Boolean(
+    currentUser &&
+    question?.author?.id &&
+    String(currentUser.id) === String(question.author.id)
+  );
+  const isAdminOrMod = currentUser?.role === 'Admin' || currentUser?.role === 'Community Moderator';
+  const canEditQuestion = isQuestionAuthor || isAdminOrMod;
+  const canDeleteQuestion = isQuestionAuthor || isAdminOrMod;
+
+  const canEditAnswer = (ans: Answer) => Boolean(
+    currentUser &&
+    ans.author?.id &&
+    (String(currentUser.id) === String(ans.author.id) || isAdminOrMod)
+  );
+  const canDeleteAnswer = (ans: Answer) => Boolean(
+    currentUser &&
+    ans.author?.id &&
+    (String(currentUser.id) === String(ans.author.id) || isAdminOrMod)
+  );
+
+  const canMarkBestAnswer = isQuestionAuthor || isAdminOrMod;
 
   const [newAnswerContent, setNewAnswerContent] = useState('');
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
@@ -570,29 +576,33 @@ export const QuestionDetailPage: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-2">
-                <Button
-                  id="btn-edit-question"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    setEditQuestionTitle(question.title);
-                    setEditQuestionBody(question.content);
-                    setShowEditQuestionModal(true);
-                  }}
-                  leftIcon={<Edit3 className="w-3.5 h-3.5 text-slate-500" />}
-                >
-                  {t('Edit')}
-                </Button>
-                <Button
-                  id="btn-delete-question"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setShowDeleteQuestionModal(true)}
-                  className="text-red-600 hover:bg-red-50"
-                  leftIcon={<Trash2 className="w-3.5 h-3.5" />}
-                >
-                  {t('Delete')}
-                </Button>
+                {canEditQuestion && (
+                  <Button
+                    id="btn-edit-question"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setEditQuestionTitle(question.title);
+                      setEditQuestionBody(question.content);
+                      setShowEditQuestionModal(true);
+                    }}
+                    leftIcon={<Edit3 className="w-3.5 h-3.5 text-slate-500" />}
+                  >
+                    {t('Edit')}
+                  </Button>
+                )}
+                {canDeleteQuestion && (
+                  <Button
+                    id="btn-delete-question"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowDeleteQuestionModal(true)}
+                    className="text-red-600 hover:bg-red-50"
+                    leftIcon={<Trash2 className="w-3.5 h-3.5" />}
+                  >
+                    {t('Delete')}
+                  </Button>
+                )}
                 <Button
                   size="sm"
                   variant={isBookmarked ? 'secondary' : 'outline'}
@@ -787,33 +797,39 @@ export const QuestionDetailPage: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <Button
-                    id={`btn-edit-answer-${ans.id}`}
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setEditingAnswerId(editingAnswerId === ans.id ? null : ans.id)}
-                    leftIcon={<Edit3 className="w-3.5 h-3.5 text-slate-500" />}
-                  >
-                    {t('Edit')}
-                  </Button>
-                  <Button
-                    id={`btn-delete-answer-${ans.id}`}
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setDeletingAnswerId(ans.id)}
-                    className="text-red-600 hover:bg-red-50"
-                    leftIcon={<Trash2 className="w-3.5 h-3.5" />}
-                  >
-                    {t('Delete')}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={ans.isBestAnswer ? 'secondary' : 'outline'}
-                    onClick={() => handleMarkBestAnswer(ans.id)}
-                    leftIcon={<CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
-                  >
-                    {ans.isBestAnswer ? t('Cancel') : t('Best Answer')}
-                  </Button>
+                  {canEditAnswer(ans) && (
+                    <Button
+                      id={`btn-edit-answer-${ans.id}`}
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setEditingAnswerId(editingAnswerId === ans.id ? null : ans.id)}
+                      leftIcon={<Edit3 className="w-3.5 h-3.5 text-slate-500" />}
+                    >
+                      {t('Edit')}
+                    </Button>
+                  )}
+                  {canDeleteAnswer(ans) && (
+                    <Button
+                      id={`btn-delete-answer-${ans.id}`}
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setDeletingAnswerId(ans.id)}
+                      className="text-red-600 hover:bg-red-50"
+                      leftIcon={<Trash2 className="w-3.5 h-3.5" />}
+                    >
+                      {t('Delete')}
+                    </Button>
+                  )}
+                  {canMarkBestAnswer && (
+                    <Button
+                      size="sm"
+                      variant={ans.isBestAnswer ? 'secondary' : 'outline'}
+                      onClick={() => handleMarkBestAnswer(ans.id)}
+                      leftIcon={<CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
+                    >
+                      {ans.isBestAnswer ? t('Cancel') : t('Best Answer')}
+                    </Button>
+                  )}
                   <ContentActionMenu
                     targetType="ANSWER"
                     targetId={ans.id}
@@ -1066,13 +1082,23 @@ export const QuestionDetailPage: React.FC = () => {
               <button
                 id="btn-save-edit-question"
                 type="button"
-                onClick={() => {
-                  setQuestion({
-                    ...question,
-                    title: editQuestionTitle,
-                    content: editQuestionBody,
-                  });
-                  setShowEditQuestionModal(false);
+                onClick={async () => {
+                  if (!id) return;
+                  const numId = Number(id.replace(/\D/g, ''));
+                  try {
+                    await questionApi.updateQuestion(numId, {
+                      title: editQuestionTitle,
+                      body: editQuestionBody,
+                    });
+                    setQuestion((prev) => prev ? ({
+                      ...prev,
+                      title: editQuestionTitle,
+                      content: editQuestionBody,
+                    }) : null);
+                    setShowEditQuestionModal(false);
+                  } catch (err) {
+                    console.error('Failed to update question:', err);
+                  }
                 }}
                 className="px-5 py-2 text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700 rounded-xl transition-colors shadow-xs"
               >
@@ -1109,8 +1135,16 @@ export const QuestionDetailPage: React.FC = () => {
               <button
                 id="btn-confirm-delete-question"
                 type="button"
-                onClick={() => {
-                  setShowDeleteQuestionModal(false);
+                onClick={async () => {
+                  if (!id) return;
+                  const numId = Number(id.replace(/\D/g, ''));
+                  try {
+                    await questionApi.deleteQuestion(numId);
+                    setShowDeleteQuestionModal(false);
+                    navigate('/discussions');
+                  } catch (err) {
+                    console.error('Failed to delete question:', err);
+                  }
                 }}
                 className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors shadow-xs"
               >

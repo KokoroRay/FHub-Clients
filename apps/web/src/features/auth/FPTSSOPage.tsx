@@ -27,8 +27,9 @@ export const FPTSSOPage: React.FC = () => {
         const payloadJson = JSON.parse(atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/')));
         const googleEmail = (payloadJson.email || '').trim().toLowerCase();
         if (googleEmail) {
-          if (!googleEmail.endsWith('@fpt.edu.vn')) {
-            setErrorMessage(t("Chỉ tài khoản Google có đuôi email @fpt.edu.vn mới được phép đăng nhập hoặc đăng ký qua Google. (Email hiện tại: {p0})", undefined, { p0: googleEmail }));
+          const emailCheck = validateFptEmail(googleEmail);
+          if (!emailCheck.isValid) {
+            setErrorMessage(emailCheck.error || t("Email không đúng định dạng quy định của Trường Đại học FPT."));
             setIsLoading(false);
             return;
           }
@@ -58,9 +59,9 @@ export const FPTSSOPage: React.FC = () => {
         id: String(result.user?.userId || `u-${Date.now()}`),
         email: result.user?.email || '',
         fullName: result.user?.fullName || 'FPT K19 Student',
-        studentId: result.user?.studentCode || '',
+        studentId: result.user?.studentCode || validateFptEmail(result.user?.email || '').studentCode || '',
         role: mappedRole,
-        campus: (result.user?.campusCode as any) || 'HN',
+        campus: (result.user?.campusCode as any) || validateFptEmail(result.user?.email || '').campusCode || 'HN',
         avatarUrl: result.user?.avatarUrl || '',
         karma: 0,
         status: 'ACTIVE',
@@ -96,11 +97,11 @@ export const FPTSSOPage: React.FC = () => {
         <div className="bg-orange-50/60 border border-orange-200/80 rounded-xl p-4 text-xs text-orange-950 space-y-2">
           <div className="flex items-center gap-2 font-bold text-[#F26522]">
             <Sparkles className="w-4 h-4 shrink-0" />
-            <span>{t("Chính sách tài khoản sinh viên K19 trở đi:")}</span>
+            <span>{t("Chính sách tài khoản FPT:")}</span>
           </div>
           <p className="leading-relaxed text-slate-700">
-            {t("Từ khóa K19, sinh viên đăng nhập hệ thống thông qua hòm thư Gmail đã đăng ký với nhà trường theo định dạng chuẩn:")}<br />
-            <strong className="font-mono text-slate-900">{t("TanLT.CE190370@gmail.com")}</strong>
+            {t("Khóa K18 trở về trước:")} <strong>@fpt.edu.vn</strong><br />
+            {t("Khóa K19 trở đi: Dùng Gmail đăng ký với nhà trường theo định dạng chuẩn:")} <strong className="font-mono text-slate-900">{t("TanLT.CE190370@gmail.com")}</strong>
           </p>
         </div>
 
