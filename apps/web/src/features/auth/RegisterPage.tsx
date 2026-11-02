@@ -28,6 +28,9 @@ import {
 
 type RegisterStep = 'form' | 'otp' | 'success';
 
+const VIETNAMESE_NAME_REGEX = /^[a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂưăạảấầẩẫậắằẳẵặẹẻẽềềểỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪễệỉịọỏốồổỗộớờởỡợụủứừỬỮỰỲỴÝỶỸửữựỳỵỷỹ\s]{2,50}$/;
+const FPT_STUDENT_CODE_REGEX = /^[A-Za-z]{2}\d{4,8}$/;
+
 export const RegisterPage: React.FC = () => {
   const { t } = useLanguage();
   const { login } = useAuth();
@@ -123,8 +126,23 @@ export const RegisterPage: React.FC = () => {
     e.preventDefault();
     setErrorMessage(null);
 
-    if (!fullName.trim() || !email.trim() || !password) {
-      setErrorMessage(t("Vui lòng điền đầy đủ các thông tin bắt buộc."));
+    const trimmedFullName = fullName.trim();
+    if (!trimmedFullName) {
+      setErrorMessage(t("Vui lòng nhập Họ và Tên."));
+      return;
+    }
+    if (!VIETNAMESE_NAME_REGEX.test(trimmedFullName)) {
+      setErrorMessage(t("Họ và tên không hợp lệ. Vui lòng chỉ nhập chữ cái (tiếng Việt có dấu hoặc không dấu), không bao gồm số và ký tự đặc biệt."));
+      return;
+    }
+
+    const trimmedStudentId = (studentId.trim() || emailInfo?.studentCode || '').toUpperCase();
+    if (!trimmedStudentId) {
+      setErrorMessage(t("Vui lòng nhập Mã số sinh viên (MSSV)."));
+      return;
+    }
+    if (!FPT_STUDENT_CODE_REGEX.test(trimmedStudentId)) {
+      setErrorMessage(t("Mã số sinh viên (MSSV) không hợp lệ. Định dạng yêu cầu: 2 chữ cái ngành/cơ sở theo sau bởi các chữ số (ví dụ: SE180000, CE190370)."));
       return;
     }
 

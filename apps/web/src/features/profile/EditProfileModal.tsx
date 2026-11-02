@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
+import { useAuth } from '../../context/AuthContext';
 import { X, Upload, CheckCircle2, Shield, Loader2, ChevronDown } from 'lucide-react';
 import { profileApi } from '../../services/api/studentApi';
 import { contentMediaApi } from '../../services/api/contentApi';
@@ -90,8 +91,9 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   onSaveSuccess,
   initialData,
 }) => {
-  if (!isOpen) return null;
   const { t } = useLanguage();
+  const { updateUser } = useAuth();
+  if (!isOpen) return null;
 
   const [fullName, setFullName] = useState(initialData.fullName);
 
@@ -232,6 +234,11 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     }
 
     setShowSuccessToast(true);
+    updateUser({
+      fullName: fullName.trim(),
+      campus: (campusObj?.code || campus) as any,
+      ...(avatarUrl ? { avatarUrl } : {}),
+    });
     setTimeout(() => {
       onSaveSuccess({
         fullName: fullName.trim(),

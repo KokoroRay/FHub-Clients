@@ -173,6 +173,196 @@ function parseMarkdownBlocks(raw: string): Block[] {
   return blocks;
 }
 
+// ─── Code Syntax Highlighting Helpers ──────────────────────────────────────────
+
+const KEYWORD_SETS: Record<string, Set<string>> = {
+  csharp: new Set([
+    'abstract', 'as', 'base', 'bool', 'break', 'byte', 'case', 'catch', 'char', 'checked',
+    'class', 'const', 'continue', 'decimal', 'default', 'delegate', 'do', 'double', 'else',
+    'enum', 'event', 'explicit', 'extern', 'finally', 'fixed', 'float', 'for',
+    'foreach', 'goto', 'if', 'implicit', 'in', 'int', 'interface', 'internal', 'is', 'lock',
+    'long', 'namespace', 'new', 'object', 'operator', 'out', 'override', 'params',
+    'private', 'protected', 'public', 'readonly', 'record', 'ref', 'return', 'sbyte', 'sealed',
+    'short', 'sizeof', 'stackalloc', 'static', 'string', 'struct', 'switch', 'this', 'throw',
+    'try', 'typeof', 'uint', 'ulong', 'unchecked', 'unsafe', 'ushort', 'using',
+    'var', 'virtual', 'void', 'volatile', 'while', 'async', 'await', 'get', 'set', 'yield',
+    'Task', 'List', 'Dictionary', 'Action', 'Func', 'IEnumerable', 'ICollection', 'Nullable', 'Guid'
+  ]),
+  java: new Set([
+    'abstract', 'assert', 'boolean', 'break', 'byte', 'case', 'catch', 'char', 'class',
+    'const', 'continue', 'default', 'do', 'double', 'else', 'enum', 'extends', 'final',
+    'finally', 'float', 'for', 'goto', 'if', 'implements', 'import', 'instanceof', 'int',
+    'interface', 'long', 'native', 'new', 'package', 'private', 'protected', 'public',
+    'return', 'short', 'static', 'strictfp', 'super', 'switch', 'synchronized', 'this',
+    'throw', 'throws', 'transient', 'try', 'void', 'volatile', 'while',
+    'record', 'var', 'sealed', 'permits', 'String', 'Integer', 'Double', 'Boolean', 'List', 'ArrayList', 'Map', 'HashMap', 'Set', 'HashSet'
+  ]),
+  javascript: new Set([
+    'break', 'case', 'catch', 'class', 'const', 'continue', 'debugger', 'default', 'delete',
+    'do', 'else', 'export', 'extends', 'finally', 'for', 'function', 'if', 'import', 'in',
+    'instanceof', 'new', 'return', 'super', 'switch', 'this', 'throw', 'try', 'typeof', 'var',
+    'void', 'while', 'with', 'yield', 'let', 'static', 'enum', 'await', 'async', 'implements',
+    'interface', 'package', 'private', 'protected', 'public', 'type', 'from', 'as',
+    'React', 'FC', 'useState', 'useEffect', 'useMemo', 'useCallback', 'useRef', 'Promise', 'Array', 'Object', 'Boolean', 'Number', 'String'
+  ]),
+  python: new Set([
+    'and', 'as', 'assert', 'async', 'await', 'break', 'class', 'continue', 'def', 'del',
+    'elif', 'else', 'except', 'finally', 'for', 'from', 'global', 'if', 'import', 'in',
+    'is', 'lambda', 'nonlocal', 'not', 'or', 'pass', 'raise', 'return', 'try', 'while',
+    'with', 'yield', 'self', 'cls', 'print', 'range', 'len', 'int', 'str', 'float', 'list', 'dict', 'set', 'tuple'
+  ]),
+  sql: new Set([
+    'SELECT', 'FROM', 'WHERE', 'INSERT', 'INTO', 'VALUES', 'UPDATE', 'SET', 'DELETE',
+    'CREATE', 'TABLE', 'DROP', 'ALTER', 'JOIN', 'INNER', 'LEFT', 'RIGHT', 'FULL', 'OUTER',
+    'ON', 'GROUP', 'BY', 'ORDER', 'HAVING', 'LIMIT', 'OFFSET', 'UNION', 'ALL', 'DISTINCT',
+    'AS', 'AND', 'OR', 'NOT', 'IN', 'IS', 'LIKE', 'ILIKE', 'EXISTS', 'BETWEEN',
+    'CASE', 'WHEN', 'THEN', 'ELSE', 'END', 'INDEX', 'PRIMARY', 'KEY', 'FOREIGN', 'REFERENCES',
+    'CONSTRAINT', 'DEFAULT', 'CHECK', 'VIEW', 'DATABASE', 'SCHEMA', 'COUNT', 'SUM', 'AVG', 'MIN', 'MAX',
+    'select', 'from', 'where', 'insert', 'into', 'values', 'update', 'set', 'delete',
+    'create', 'table', 'drop', 'alter', 'join', 'inner', 'left', 'right', 'full', 'outer',
+    'on', 'group', 'by', 'order', 'having', 'limit', 'offset', 'union', 'all', 'distinct',
+    'as', 'and', 'or', 'not', 'in', 'is', 'like', 'ilike', 'exists', 'between',
+    'case', 'when', 'then', 'else', 'end', 'index', 'primary', 'key', 'foreign', 'references',
+    'constraint', 'default', 'check', 'view', 'database', 'schema', 'count', 'sum', 'avg', 'min', 'max'
+  ]),
+  go: new Set([
+    'break', 'case', 'chan', 'const', 'continue', 'default', 'defer', 'else', 'fallthrough',
+    'for', 'func', 'go', 'goto', 'if', 'import', 'interface', 'map', 'package', 'range',
+    'return', 'select', 'struct', 'switch', 'type', 'var', 'iota',
+    'string', 'int', 'int64', 'bool', 'byte', 'error', 'make', 'new', 'append', 'len', 'cap',
+  ]),
+  cpp: new Set([
+    'auto', 'bool', 'break', 'case', 'catch', 'char', 'class', 'const', 'continue', 'default',
+    'delete', 'do', 'double', 'else', 'enum', 'explicit', 'export', 'extern', 'float',
+    'for', 'friend', 'goto', 'if', 'inline', 'int', 'long', 'mutable', 'namespace', 'new',
+    'operator', 'private', 'protected', 'public', 'register', 'return', 'short', 'signed',
+    'sizeof', 'static', 'struct', 'switch', 'template', 'this', 'throw', 'try',
+    'typedef', 'typeid', 'typename', 'union', 'unsigned', 'using', 'virtual', 'void',
+    'volatile', 'wchar_t', 'while', 'nullptr', 'constexpr', 'include', 'std', 'vector', 'string'
+  ]),
+};
+
+const LITERALS = new Set([
+  'true', 'false', 'null', 'undefined', 'nil', 'True', 'False', 'None', 'NULL'
+]);
+
+function normalizeLanguage(lang: string): string {
+  const l = (lang || '').toLowerCase().trim();
+  if (['cs', 'csharp', 'dotnet', 'c#'].includes(l)) return 'csharp';
+  if (['java', 'kt', 'kotlin'].includes(l)) return 'java';
+  if (['js', 'jsx', 'javascript', 'mjs', 'cjs'].includes(l)) return 'javascript';
+  if (['ts', 'tsx', 'typescript'].includes(l)) return 'javascript';
+  if (['py', 'python'].includes(l)) return 'python';
+  if (['sql', 'psql', 'mysql', 'sqlite'].includes(l)) return 'sql';
+  if (['go', 'golang'].includes(l)) return 'go';
+  if (['c', 'cpp', 'c++', 'cc', 'h', 'hpp'].includes(l)) return 'cpp';
+  if (['sh', 'bash', 'zsh', 'shell', 'ps1', 'powershell'].includes(l)) return 'bash';
+  if (['html', 'htm', 'xml', 'svg'].includes(l)) return 'html';
+  if (['css', 'scss', 'sass', 'less'].includes(l)) return 'css';
+  if (['json'].includes(l)) return 'json';
+  return 'csharp';
+}
+
+function highlightLine(line: string, normLang: string): React.ReactNode[] {
+  if (!line) return ['\u00A0'];
+
+  const nodes: React.ReactNode[] = [];
+  // Tokenizer regex matching strings, comments, numbers, identifiers, symbols, and whitespaces
+  const tokenRegex = /(\/\/[^\r\n]*|#[^\r\n]*|--[^\r\n]*|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`|\b\d+(?:\.\d+)?\b|[A-Za-z_$][A-Za-z0-9_$]*|[^\s\w]+|\s+)/g;
+
+  let match: RegExpExecArray | null;
+  let key = 0;
+  const keywordSet = KEYWORD_SETS[normLang] || KEYWORD_SETS.csharp;
+
+  while ((match = tokenRegex.exec(line)) !== null) {
+    const token = match[0];
+    key++;
+
+    // Comments
+    if (
+      token.startsWith('//') ||
+      (token.startsWith('#') && (normLang === 'python' || normLang === 'bash')) ||
+      (token.startsWith('--') && normLang === 'sql')
+    ) {
+      nodes.push(
+        <span key={key} className="text-slate-400 italic">
+          {token}
+        </span>
+      );
+      continue;
+    }
+
+    // Strings
+    if (
+      (token.startsWith('"') && token.endsWith('"') && token.length >= 2) ||
+      (token.startsWith("'") && token.endsWith("'") && token.length >= 2) ||
+      (token.startsWith('`') && token.endsWith('`') && token.length >= 2)
+    ) {
+      nodes.push(
+        <span key={key} className="text-emerald-300">
+          {token}
+        </span>
+      );
+      continue;
+    }
+
+    // Numbers
+    if (/^\d+(?:\.\d+)?$/.test(token)) {
+      nodes.push(
+        <span key={key} className="text-amber-300">
+          {token}
+        </span>
+      );
+      continue;
+    }
+
+    // Literals (true, false, null, None, etc.)
+    if (LITERALS.has(token)) {
+      nodes.push(
+        <span key={key} className="text-rose-400 font-semibold">
+          {token}
+        </span>
+      );
+      continue;
+    }
+
+    // Keywords
+    if (keywordSet.has(token)) {
+      nodes.push(
+        <span key={key} className="text-purple-400 font-semibold">
+          {token}
+        </span>
+      );
+      continue;
+    }
+
+    // Capitalized types or PascalCase identifiers
+    if (/^[A-Z][a-zA-Z0-9_$]*$/.test(token)) {
+      nodes.push(
+        <span key={key} className="text-cyan-300 font-medium">
+          {token}
+        </span>
+      );
+      continue;
+    }
+
+    // Operators and special punctuation
+    if (/^[=<>!&|^~?:;.,()[\]{}]+$/.test(token)) {
+      nodes.push(
+        <span key={key} className="text-slate-400">
+          {token}
+        </span>
+      );
+      continue;
+    }
+
+    // Plain text or whitespace
+    nodes.push(<span key={key} className="text-slate-100">{token}</span>);
+  }
+
+  return nodes.length > 0 ? nodes : [line];
+}
+
 const CodeBlockRenderer: React.FC<{ language: string; code: string }> = ({ language, code }) => {
   const { t } = useLanguage();
   const [copied, setCopied] = useState(false);
@@ -183,23 +373,53 @@ const CodeBlockRenderer: React.FC<{ language: string; code: string }> = ({ langu
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const normLang = normalizeLanguage(language);
+  const lines = code.split(/\r?\n/);
+  const hasMultipleLines = lines.length > 1;
+
   return (
-    <div className="relative rounded-xl overflow-hidden bg-slate-900 border border-slate-800 my-2 text-xs font-mono shadow-sm">
-      <div className="flex items-center justify-between px-3.5 py-1.5 bg-slate-950/80 border-b border-slate-800 text-[11px] text-slate-400">
-        <span className="font-semibold text-blue-400 lowercase">{language || 'code'}</span>
+    <div className="relative rounded-xl overflow-hidden bg-[#0F172A] border border-slate-800 my-3 text-xs font-mono shadow-md">
+      <div className="flex items-center justify-between px-3.5 py-1.5 bg-[#090D16] border-b border-slate-800/80 text-[11px] text-slate-400 select-none">
+        <div className="flex items-center gap-2">
+          <span className="inline-block w-2.5 h-2.5 rounded-full bg-rose-500/80" />
+          <span className="inline-block w-2.5 h-2.5 rounded-full bg-amber-500/80" />
+          <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
+          <span className="font-semibold text-blue-400 lowercase ml-1 tracking-wide">
+            {language || 'code'}
+          </span>
+          <span className="text-[10px] text-slate-500">({lines.length} {t('dòng')})</span>
+        </div>
         <button
           type="button"
           onClick={handleCopy}
-          className="inline-flex items-center gap-1 hover:text-white transition-colors cursor-pointer text-[10px]"
+          className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded hover:bg-slate-800 text-slate-300 hover:text-white transition-colors cursor-pointer text-[10px]"
           title={t('common.copyCode', 'Sao chép code')}
         >
           {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
           <span>{copied ? t('common.copied', 'Đã chép') : t('common.copy', 'Sao chép')}</span>
         </button>
       </div>
-      <pre className="p-3.5 overflow-x-auto text-slate-200 leading-relaxed">
-        <code>{code}</code>
-      </pre>
+
+      <div className="flex text-xs leading-relaxed overflow-x-auto">
+        {/* Line numbers column */}
+        {hasMultipleLines && (
+          <div className="select-none py-3 pl-3 pr-2.5 text-right text-slate-600 bg-[#0B1120] border-r border-slate-800/70 text-[11px] font-mono leading-relaxed">
+            {lines.map((_, i) => (
+              <div key={i} className="min-h-[1.5em]">{i + 1}</div>
+            ))}
+          </div>
+        )}
+        {/* Highlighted code column */}
+        <pre className="p-3 overflow-x-auto leading-relaxed flex-1 font-mono text-slate-100">
+          <code>
+            {lines.map((line, idx) => (
+              <div key={idx} className="min-h-[1.5em] whitespace-pre">
+                {highlightLine(line, normLang)}
+              </div>
+            ))}
+          </code>
+        </pre>
+      </div>
     </div>
   );
 };
