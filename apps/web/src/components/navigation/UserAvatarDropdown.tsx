@@ -22,7 +22,12 @@ export const UserAvatarDropdown: React.FC = () => {
   const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
+  const [imgError, setImgError] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [currentUser?.avatarUrl]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -64,10 +69,11 @@ export const UserAvatarDropdown: React.FC = () => {
         className="flex items-center gap-2 pl-1 py-1 rounded-xl hover:bg-slate-100 dark:hover:bg-[#333333] transition-colors cursor-pointer"
         aria-expanded={isOpen}
       >
-        {currentUser.avatarUrl ? (
+        {currentUser.avatarUrl && !imgError ? (
           <img
             src={normalizeMediaUrl(currentUser.avatarUrl)}
             alt={studentName}
+            onError={() => setImgError(true)}
             className="w-8 h-8 rounded-full object-cover ring-2 ring-slate-200 dark:ring-white/10"
           />
         ) : (
@@ -95,10 +101,11 @@ export const UserAvatarDropdown: React.FC = () => {
         <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-[#272727] rounded-2xl shadow-xl border border-slate-200 dark:border-[#38393d] p-2 z-50 animate-in fade-in zoom-in-95 duration-100 space-y-1">
           {/* 1. Compact User Header */}
           <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-[#202020] border border-slate-100 dark:border-white/5 flex items-center gap-2.5">
-            {currentUser.avatarUrl ? (
+            {currentUser.avatarUrl && !imgError ? (
               <img
                 src={normalizeMediaUrl(currentUser.avatarUrl)}
                 alt={studentName}
+                onError={() => setImgError(true)}
                 className="w-9 h-9 rounded-full object-cover ring-2 ring-[#0076D1] dark:ring-blue-400 shrink-0"
               />
             ) : (

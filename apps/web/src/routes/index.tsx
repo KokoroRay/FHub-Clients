@@ -201,6 +201,8 @@ const getMainPortalRoutes = () => [
       { path: 'news', element: <NewsManagementPage /> },
       { path: 'alumni', element: <AlumniKarmaPage /> },
       { path: 'reputation-rules', element: <StudentReputationRulesPage /> },
+      { path: 'course-ratings', element: <Navigate to="/course-evaluations" replace /> },
+      { path: 'tech-blog', element: <Navigate to="/articles" replace /> },
     ],
   },
 
@@ -263,8 +265,6 @@ const getMainPortalRoutes = () => [
 
   // Public Entry & Resources (UC02)
   { path: '/landing', element: <LandingPage /> },
-  { path: '/tech-blog', element: <TechBlogPage /> },
-  { path: '/course-ratings', element: <CourseRatingsPage /> },
 
   // Auth Routes
   {

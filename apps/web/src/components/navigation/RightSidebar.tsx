@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Tag,
@@ -16,6 +16,12 @@ export const RightSidebar: React.FC = () => {
   const { currentUser, currentCampus } = useAuth();
   const { t } = useLanguage();
   const campusInfo = useCampusDetails(currentUser?.campus || currentCampus);
+
+  const [imgError, setImgError] = useState(false);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [currentUser?.avatarUrl]);
 
   const studentName = currentUser?.fullName || 'Nguyen Minh Tam';
   const studentId = currentUser?.studentId || 'CE181522';
@@ -46,8 +52,8 @@ export const RightSidebar: React.FC = () => {
       <div className="bg-white dark:bg-[#272727] rounded-2xl border border-slate-200/90 dark:border-[#272727] hover:dark:border-[#444444] p-4 shadow-2xs space-y-3 transition-colors">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 rounded-full bg-[#0076D1] text-white flex items-center justify-center font-bold text-sm ring-2 ring-blue-100 dark:ring-blue-900 shrink-0">
-            {currentUser?.avatarUrl ? (
-              <img src={normalizeMediaUrl(currentUser.avatarUrl)} alt={studentName} className="w-full h-full rounded-full object-cover" />
+            {currentUser?.avatarUrl && !imgError ? (
+              <img src={normalizeMediaUrl(currentUser.avatarUrl)} alt={studentName} onError={() => setImgError(true)} className="w-full h-full rounded-full object-cover" />
             ) : (
               <span>{avatarInitials}</span>
             )}

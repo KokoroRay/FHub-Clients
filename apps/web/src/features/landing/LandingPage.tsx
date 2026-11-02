@@ -1,5 +1,7 @@
 import { GoogleSignInButton } from '../../components/common/GoogleSignInButton';
 import { useLanguage } from '../../context/LanguageContext';
+import { ThemeToggle } from '../../components/common/ThemeToggle';
+import { LanguageSwitcher } from '../../components/common/LanguageSwitcher';
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
@@ -171,20 +173,10 @@ export const LandingPage: React.FC = () => {
           </div>
         </Link>
 
-        {/* Top Right Links & Status (Figma #72:294) */}
-        <div className="flex items-center gap-3 sm:gap-4">
-          <div className="hidden sm:inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-mono font-semibold bg-white/90 text-slate-600 border border-slate-200/80 shadow-2xs">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span>{t("Mekong Delta & Campuses Connected")}</span>
-          </div>
-
-          <Link
-            to="/tickets"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-[#0076D1] transition-colors py-1.5 px-3 rounded-xl bg-white/80 border border-slate-200/80 hover:border-blue-200 shadow-2xs"
-          >
-            <LifeBuoy className="w-4 h-4 text-slate-400 group-hover:text-[#0076D1]" />
-            <span>{t("Support")}</span>
-          </Link>
+        {/* Top Right Controls: Theme Toggle & Language Switcher */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          <ThemeToggle size="sm" />
+          <LanguageSwitcher variant="compact" />
         </div>
       </header>
 
@@ -284,7 +276,7 @@ export const LandingPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Remember me & 256-bit TLS (Figma #72:208) */}
+                {/* Remember me (Figma #72:208) */}
                 <div className="flex items-center justify-between text-xs pt-0.5">
                   <label className="flex items-center gap-2 cursor-pointer select-none">
                     <input
@@ -295,11 +287,6 @@ export const LandingPage: React.FC = () => {
                     />
                     <span className="text-slate-600 font-medium">{t("Remember me")}</span>
                   </label>
-
-                  <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                    <span>{t("256-bit TLS")}</span>
-                  </div>
                 </div>
 
                 {/* Submit Button (Figma #72:218) */}
@@ -352,17 +339,7 @@ export const LandingPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Subtle mini highlights footer inside overlay (Figma #72:250) */}
-            <div className="relative pt-6 border-t border-white/15 grid grid-cols-2 gap-3 text-left">
-              <div>
-                <span className="block text-xs font-extrabold text-white">12,450+</span>
-                <span className="text-[10px] text-blue-200">{t("Active Students")}</span>
-              </div>
-              <div>
-                <span className="block text-xs font-extrabold text-white">{t("186 Nodes")}</span>
-                <span className="text-[10px] text-blue-200">{t("Curriculum Syllabi")}</span>
-              </div>
-            </div>
+
           </div>
         </div>
       </main>
@@ -376,17 +353,10 @@ export const LandingPage: React.FC = () => {
           <span>•</span>
           <span className="font-mono text-slate-400">{t("v2.4 Core")}</span>
         </div>
-        <div className="flex items-center gap-4 text-slate-500">
-          <Link to="/tech-blog" className="hover:text-slate-800 transition-colors">
-            {t("Tech Blog")}</Link>
-          <Link to="/workflows" className="hover:text-slate-800 transition-colors">
-            {t("Workflows")}</Link>
-          <Link to="/course-ratings" className="hover:text-slate-800 transition-colors">
-            {t("Course Ratings")}</Link>
-          <Link to="/settings" className="hover:text-slate-800 transition-colors">
-            {t("Privacy Policy")}</Link>
-          <Link to="/tickets" className="hover:text-slate-800 transition-colors">
-            {t("Support Desk")}</Link>
+        <div className="flex items-center gap-4 text-slate-500 dark:text-slate-400 text-xs">
+          <span>{t("Hệ sinh thái học tập & nghiên cứu FPT")}</span>
+          <span>•</span>
+          <span>{t("Bảo mật & Chuẩn mực học thuật")}</span>
         </div>
       </footer>
     </div>

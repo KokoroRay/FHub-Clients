@@ -22,6 +22,9 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
+  UploadCloud,
+  Loader2,
+  FileCode,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -32,7 +35,7 @@ import { Modal } from '../../components/common/Modal';
 import { Button } from '../../components/common/Button';
 import { Input, Select } from '../../components/common/Input';
 import { CourseSelect } from '../../components/common/CourseSelect';
-import { questionApi } from '../../services/api/contentApi';
+import { questionApi, contentMediaApi } from '../../services/api/contentApi';
 import { MarkdownPreview } from '../../components/common/MarkdownPreview';
 import { FALLBACK_ALL_TAGS } from '../../utils/tagUtils';
 
@@ -104,6 +107,15 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const tagInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // States for visual media & code snippet features
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
+  const [showCodeModal, setShowCodeModal] = useState(false);
+  const [snippetLanguage, setSnippetLanguage] = useState('csharp');
+  const [snippetCode, setSnippetCode] = useState('');
+  const [snippetFileName, setSnippetFileName] = useState('');
 
   // 1. Load courses & tags on open
   useEffect(() => {
@@ -362,6 +374,74 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
     insertFormatting(`\`\`\`${lang}\n`, '\n```\n', t("// Nhập đoạn mã của bạn ở đây"));
   };
 
+  // Media upload to Cloudflare R2 (Support Images & animated GIFs)
+  const handleMediaUpload = async (file: File) => {
+    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif'];
+    if (!validTypes.includes(file.type.toLowerCase())) {
+      setErrorMessage(t('askModal.errorInvalidMedia', 'Định dạng tệp không được hỗ trợ. Vui lòng chọn ảnh hoặc GIF (PNG, JPG, WebP, GIF).'));
+      return;
+    }
+    if (file.size > 15 * 1024 * 1024) {
+      setErrorMessage(t('askModal.errorMediaSize', 'Dung lượng ảnh/GIF không được vượt quá 15MB.'));
+      return;
+    }
+
+    setIsUploadingMedia(true);
+    setErrorMessage(null);
+    try {
+      const res = await contentMediaApi.uploadMedia(file, 'question');
+      const cleanName = (file.name || 'image').replace(/[[\]()]/g, '');
+      const imageMd = `\n![${cleanName}](${res.publicUrl})\n`;
+      insertFormatting(imageMd, '');
+    } catch (err: any) {
+      console.error('Failed to upload image/gif to R2:', err);
+      setErrorMessage(t('askModal.errorMediaUploadFailed', 'Tải ảnh/GIF lên Cloudflare R2 thất bại. Vui lòng kiểm tra lại.'));
+    } finally {
+      setIsUploadingMedia(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.kind === 'file' && item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (file) {
+          e.preventDefault();
+          handleMediaUpload(file);
+          return;
+        }
+      }
+    }
+  };
+
+  const openCodeSnippetModal = () => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      const selectedText = content.substring(textarea.selectionStart, textarea.selectionEnd);
+      if (selectedText.trim()) {
+        setSnippetCode(selectedText);
+      }
+    }
+    setShowCodeModal(true);
+  };
+
+  const handleInsertSnippet = () => {
+    if (!snippetCode.trim()) return;
+    const formattedSnippet = snippetFileName.trim()
+      ? `\n**\`${snippetFileName.trim()}\`**\n\`\`\`${snippetLanguage}\n${snippetCode}\n\`\`\`\n`
+      : `\n\`\`\`${snippetLanguage}\n${snippetCode}\n\`\`\`\n`;
+    insertFormatting(formattedSnippet, '');
+    setShowCodeModal(false);
+    setSnippetCode('');
+    setSnippetFileName('');
+  };
+
   const insertTable = () => {
     const tableTemplate = t("\n| Cột 1 | Cột 2 | Cột 3 |\n| :--- | :--- | :--- |\n| Dữ liệu A | Dữ liệu B | Dữ liệu C |\n| Dữ liệu D | Dữ liệu E | Dữ liệu F |\n");
     insertFormatting(tableTemplate, '');
@@ -472,6 +552,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
   const isContentValid = charCount >= 20;
 
   return (
+    <>
     <Modal
       isOpen={isOpen}
       onClose={onClose}
@@ -694,8 +775,55 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
             </div>
           </div>
 
-          {/* StackOverflow Formatting Toolbar */}
-          <div className="border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-2xs">
+          {/* StackOverflow Formatting Toolbar with Drag & Drop */}
+          <div
+            onDragOver={(e) => {
+              e.preventDefault();
+              setIsDraggingFile(true);
+            }}
+            onDragLeave={() => setIsDraggingFile(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setIsDraggingFile(false);
+              const files = e.dataTransfer.files;
+              if (files && files.length > 0 && files[0].type.startsWith('image/')) {
+                handleMediaUpload(files[0]);
+              }
+            }}
+            className="relative border border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-2xs"
+          >
+            {/* Hidden File Input for images and animated GIFs */}
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleMediaUpload(file);
+              }}
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              className="hidden"
+            />
+
+            {/* Drag & Drop Visual Overlay */}
+            {isDraggingFile && (
+              <div className="absolute inset-0 bg-blue-50/95 dark:bg-slate-900/95 backdrop-blur-xs border-2 border-dashed border-blue-500 rounded-xl flex flex-col items-center justify-center z-20 p-4 text-center pointer-events-none animate-in fade-in">
+                <UploadCloud className="w-10 h-10 text-blue-600 animate-bounce mb-2" />
+                <p className="font-bold text-sm text-blue-700 dark:text-blue-300">
+                  {t('askModal.dropImageTitle', 'Thả tệp ảnh hoặc GIF vào đây')}
+                </p>
+                <p className="text-xs text-blue-600/80 mt-1">
+                  {t('askModal.dropImageSub', 'Tệp sẽ tự động được tải lên Cloudflare R2')}
+                </p>
+              </div>
+            )}
+
+            {/* Uploading Progress Banner */}
+            {isUploadingMedia && (
+              <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-950/60 border-b border-blue-100 dark:border-blue-900/60 text-blue-700 dark:text-blue-300 text-xs animate-in fade-in">
+                <Loader2 className="w-4 h-4 animate-spin text-blue-600 flex-shrink-0" />
+                <span className="font-semibold">{t('askModal.uploadingMediaBanner', 'Đang tải ảnh/GIF trực tiếp lên Cloudflare R2, vui lòng đợi...')}</span>
+              </div>
+            )}
             <div className="flex items-center gap-0.5 p-1 bg-[#F8F9FF] dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex-wrap text-slate-600 dark:text-slate-400 text-xs">
               <button
                 type="button"
@@ -744,11 +872,13 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => insertCodeBlock('csharp')}
-                className="px-1.5 py-1 hover:bg-slate-200/70 dark:hover:bg-slate-800 rounded font-mono font-bold text-[11px] text-blue-600"
-                title={t('askModal.toolbarCodeBlock', 'Khối mã nguồn (Code Block)')}
+                onClick={openCodeSnippetModal}
+                className="inline-flex items-center gap-1 px-2 py-1 hover:bg-blue-100/70 dark:hover:bg-blue-950/60 rounded font-semibold text-[11px] text-blue-600 dark:text-blue-400 transition-colors cursor-pointer"
+                title={t('askModal.toolbarCodeSnippet', 'Chèn đoạn mã trực quan (Code Snippet)')}
               >
-                {t("&lt;/&gt;")}</button>
+                <Code className="w-3.5 h-3.5" />
+                <span>{t('askModal.codeSnippetBtn', 'Chèn Code')}</span>
+              </button>
 
               <div className="w-[1px] h-4 bg-slate-200 dark:bg-slate-700 mx-1" />
 
@@ -770,11 +900,19 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => insertFormatting(t("![Mô tả ảnh]("), ')', 'https://')}
-                className="p-1.5 hover:bg-slate-200/70 dark:hover:bg-slate-800 rounded"
-                title={t('askModal.toolbarImage', 'Chèn ảnh (Image)')}
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploadingMedia}
+                className={`inline-flex items-center gap-1 px-2 py-1 hover:bg-emerald-100/70 dark:hover:bg-emerald-950/60 rounded font-semibold text-[11px] text-emerald-600 dark:text-emerald-400 transition-colors cursor-pointer ${
+                  isUploadingMedia ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+                title={t('askModal.toolbarUploadImage', 'Tải ảnh hoặc GIF từ máy tính lên Cloudflare R2')}
               >
-                <ImageIcon className="w-3.5 h-3.5" />
+                {isUploadingMedia ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <ImageIcon className="w-3.5 h-3.5" />
+                )}
+                <span>{isUploadingMedia ? t('askModal.uploadingMedia', 'Đang tải...') : t('askModal.imageBtn', 'Tải ảnh / GIF')}</span>
               </button>
               <button
                 type="button"
@@ -845,6 +983,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
                 ref={textareaRef}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
+                onPaste={handlePaste}
                 placeholder={t('askModal.placeholderWrite', 'Mô tả hoàn cảnh gặp lỗi, các bước đã thử và mong muốn được hỗ trợ...')}
                 rows={7}
                 className="w-full p-3 text-xs sm:text-sm font-sans leading-relaxed text-slate-800 dark:text-slate-200 placeholder-slate-400 bg-white dark:bg-slate-900 focus:outline-none resize-y"
@@ -858,6 +997,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
                   ref={textareaRef}
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
+                  onPaste={handlePaste}
                   placeholder={t('askModal.placeholderSplit', 'Gõ nội dung markdown bên trái, xem kết quả bên phải...')}
                   rows={7}
                   className="w-full p-3 text-xs sm:text-sm font-sans leading-relaxed text-slate-800 dark:text-slate-200 placeholder-slate-400 bg-white dark:bg-slate-900 focus:outline-none resize-none"
@@ -877,7 +1017,11 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
 
             {/* Character count bar */}
             <div className="px-3 py-1.5 bg-slate-50/80 dark:bg-slate-950/70 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px]">
-              <span className="text-slate-400">{t('askModal.charCountHelper', 'Hỗ trợ Markdown & Code highlighting')}</span>
+              <div className="flex items-center gap-1.5 text-slate-400">
+                <Sparkles className="w-3 h-3 text-blue-500 flex-shrink-0" />
+                <span className="hidden sm:inline">{t('askModal.pasteTip', 'Mẹo: Dán trực tiếp (Ctrl+V) ảnh/GIF hoặc kéo thả từ máy tính để lưu vào Cloudflare R2')}</span>
+                <span className="sm:hidden">{t('askModal.pasteTipShort', 'Ctrl+V hoặc kéo thả ảnh/GIF')}</span>
+              </div>
               <div className="flex items-center gap-1">
                 <span
                   className={`font-semibold ${
@@ -916,5 +1060,106 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
         </div>
       </form>
     </Modal>
+
+    {/* Visual Code Snippet Inserter Modal */}
+    {showCodeModal && (
+      <Modal
+        isOpen={showCodeModal}
+        onClose={() => setShowCodeModal(false)}
+        title={t('askModal.snippetModalTitle', 'Chèn khối mã nguồn trực quan (Code Snippet)')}
+        size="lg"
+        footer={
+          <div className="flex items-center justify-end gap-2 w-full">
+            <Button variant="secondary" onClick={() => setShowCodeModal(false)}>
+              {t('common.cancel', 'Hủy')}
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleInsertSnippet}
+              disabled={!snippetCode.trim()}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <Code className="w-4 h-4 mr-1.5" />
+              {t('askModal.insertCodeBtn', 'Chèn mã vào câu hỏi')}
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                {t('askModal.snippetLang', 'Ngôn ngữ lập trình')} <span className="text-rose-500">*</span>
+              </label>
+              <select
+                value={snippetLanguage}
+                onChange={(e) => setSnippetLanguage(e.target.value)}
+                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+              >
+                <option value="csharp">C# (.NET / CSharp)</option>
+                <option value="java">Java (Spring Boot / Android)</option>
+                <option value="javascript">JavaScript / TypeScript (React, Node.js)</option>
+                <option value="python">Python</option>
+                <option value="sql">SQL (PostgreSQL, MySQL, SQL Server)</option>
+                <option value="cpp">C / C++</option>
+                <option value="go">Go (Golang)</option>
+                <option value="html">HTML / CSS / Web</option>
+                <option value="bash">Shell / Bash / Terminal</option>
+                <option value="json">JSON / YAML</option>
+                <option value="text">{t('askModal.snippetPlainText', 'Khác / Văn bản thuần')}</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                {t('askModal.snippetFileName', 'Tên tệp / Chú thích')} <span className="text-slate-400 font-normal">({t('tùy chọn')})</span>
+              </label>
+              <input
+                type="text"
+                value={snippetFileName}
+                onChange={(e) => setSnippetFileName(e.target.value)}
+                placeholder={t('askModal.snippetFileNamePlaceholder', 'Ví dụ: Program.cs, Query.sql, App.tsx')}
+                className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                {t('askModal.snippetCodeLabel', 'Nội dung mã nguồn')} <span className="text-rose-500">*</span>
+              </label>
+              <span className="text-[11px] text-slate-400">{t('askModal.snippetPasteHelp', 'Dán hoặc viết code tại đây')}</span>
+            </div>
+            <textarea
+              value={snippetCode}
+              onChange={(e) => setSnippetCode(e.target.value)}
+              rows={8}
+              placeholder={t('askModal.snippetPlaceholder', 'Dán hoặc gõ đoạn mã lỗi, hàm xử lý hoặc cấu trúc dữ liệu của bạn vào đây...')}
+              className="w-full p-3 font-mono text-xs text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          {/* Visual Live Preview with Syntax Highlighting */}
+          {snippetCode.trim() && (
+            <div className="space-y-1.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300">
+                <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                <span>{t('askModal.snippetPreview', 'Xem trước hiển thị trực quan (Syntax Highlighting)')}:</span>
+              </div>
+              <div className="max-h-[220px] overflow-y-auto">
+                <MarkdownPreview
+                  content={
+                    snippetFileName.trim()
+                      ? `**\`${snippetFileName.trim()}\`**\n\`\`\`${snippetLanguage}\n${snippetCode}\n\`\`\``
+                      : `\`\`\`${snippetLanguage}\n${snippetCode}\n\`\`\``
+                  }
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      </Modal>
+    )}
+    </>
   );
 };

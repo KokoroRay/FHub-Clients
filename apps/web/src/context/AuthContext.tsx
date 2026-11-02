@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserRole, CampusCode } from '../types';
 import { authApi } from '../services/api/adminApi';
+import { profileApi } from '../services/api/studentApi';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -124,6 +125,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setCurrentCampus(fields.campus);
     }
   };
+
+  // Auto-fetch fresh profile (avatarUrl, fullName, campus) from profile-service when user is authenticated
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    const cleanId = String(currentUser.id).replace(/\D/g, '');
+    if (!cleanId) return;
+
+    profileApi.getProfile(cleanId)
+      .then((profile: any) => {
+        if (!profile) return;
+        const avatar = profile.avatarUrl || profile.avatar_url || profile.avatar || '';
+        const fullName = profile.fullName || profile.full_name || profile.displayName || '';
+        const campus = profile.campusCode || profile.campus || '';
+
+        const updates: Partial<User> = {};
+        if (avatar && avatar !== currentUser.avatarUrl) updates.avatarUrl = avatar;
+        if (fullName && fullName !== currentUser.fullName) updates.fullName = fullName;
+        if (campus && campus !== currentUser.campus) updates.campus = campus as any;
+
+        if (Object.keys(updates).length > 0) {
+          updateUser(updates);
+        }
+      })
+      .catch(() => {});
+  }, [currentUser?.id]);
 
   const isAuthenticated = !!(currentUser && (localStorage.getItem('fhub_token') || sessionStorage.getItem('fhub_token')));
 
