@@ -1,221 +1,231 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  HelpCircle,
-  Eye,
+  FileCode,
+  GraduationCap,
   Sparkles,
+  HelpCircle,
+  Plus,
+  MessageSquare,
+  Search,
+  ExternalLink,
+  ThumbsUp,
+  Bookmark,
+  Share2,
   ChevronUp,
   ChevronDown,
   ArrowRight,
-  Bookmark,
-  CheckCircle2,
-  MessageSquare,
+  TrendingUp,
   Loader2,
-  Plus,
+  Image as ImageIcon,
+  CheckCircle2,
+  BookOpen,
+  Award,
+  Layers,
+  LifeBuoy
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
-import { useCampusDetails } from '../../hooks/useCampusDetails';
-import { AskQuestionModal } from '../discussions/AskQuestionModal';
-import { QuestionPost } from '../../types';
 import { questionApi } from '../../services/api/contentApi';
-import { voteApi } from '../../services/api/studentApi';
+import { profileApi, voteApi } from '../../services/api/studentApi';
+import { AskQuestionModal } from '../discussions/AskQuestionModal';
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 import { normalizeMediaUrl } from '../../utils/mediaUtils';
+import { resolveUserMajorName, FPT_CAMPUSES } from '../../utils/taxonomyUtils';
 
-// Helper to extract clean text and attached images/GIFs from markdown
-function parseQuestionContent(rawBody: string = '') {
+// Helper to extract media and clean text from markdown body
+const parseBodyMedia = (rawBody: string = '') => {
+  if (!rawBody) return { cleanText: '', mediaUrls: [] };
+  const mediaUrls: string[] = [];
   const imgRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
-  const images: Array<{ alt: string; url: string; isGif: boolean }> = [];
   let match;
   while ((match = imgRegex.exec(rawBody)) !== null) {
-    const url = match[2];
-    const alt = match[1] || 'image';
-    const isGif = url.toLowerCase().includes('.gif') || alt.toLowerCase().includes('gif');
-    images.push({ alt, url, isGif });
+    if (match[2]) {
+      mediaUrls.push(match[2].trim());
+    }
   }
-  const cleanText = rawBody.replace(imgRegex, '').trim();
-  return { cleanText, images };
-}
+  const cleanText = rawBody.replace(imgRegex, '').replace(/\s+/g, ' ').trim();
+  return { cleanText, mediaUrls };
+};
 
 export const FeedPage: React.FC = () => {
-  const { currentUser, currentCampus, isAuthenticated } = useAuth();
-  const avatarUrl = normalizeMediaUrl(currentUser?.avatarUrl);
-  const [failedAvatarUrl, setFailedAvatarUrl] = useState<string | null>(null);
-  const { locale, t } = useLanguage();
-  const campusInfo = useCampusDetails(currentUser?.campus || currentCampus);
+  const { currentUser, currentCampus } = useAuth();
+  const { t, locale } = useLanguage();
   const navigate = useNavigate();
 
-  // StackOverflow style tabs: 'interesting' | 'recent' | 'voted' | 'unanswered'
-  const [questionTab, setQuestionTab] = useState<'interesting' | 'recent' | 'voted' | 'unanswered'>('interesting');
-  const [isAskModalOpen, setIsAskModalOpen] = useState(false);
+  // State
+  const [questions, setQuestions] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [isAskModalOpen, setIsAskModalOpen] = useState<boolean>(false);
+  const [questionTab, setQuestionTab] = useState<'interesting' | 'all'>('interesting');
+  const [feedFilter, setFeedFilter] = useState<'newest' | 'votes' | 'unanswered'>('newest');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [page, setPage] = useState<number>(1);
+  const [hasMore, setHasMore] = useState<boolean>(true);
+  const [loadingMore, setLoadingMore] = useState<boolean>(false);
+
+  // Author profiles cache (id -> { fullName, avatarUrl })
+  const [authorProfiles, setAuthorProfiles] = useState<Record<number, { fullName: string; avatarUrl?: string }>>({});
+
+  // Votes & Bookmarks local state
+  const [votes, setVotes] = useState<Record<string, { count: number; userVote: 'UP' | 'DOWN' | null }>>({});
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
 
-  // Questions & infinite feed state
-  const [questions, setQuestions] = useState<any[]>([]);
-  const [pageNumber, setPageNumber] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const [isLoadingQuestions, setIsLoadingQuestions] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [votes, setVotes] = useState<Record<string, { count: number; userVote: 'UP' | 'DOWN' | null }>>({});
+  // Campus info
+  const campusMap: Record<string, { shortName: string; fullName: string; address?: string }> = {
+    HL: { shortName: 'Hòa Lạc', fullName: 'FPT University - Hòa Lạc (Hà Nội)', address: 'Khu CNC Hòa Lạc, Km 29 Đại lộ Thăng Long, H. Thạch Thất, Hà Nội' },
+    HN: { shortName: 'Hòa Lạc', fullName: 'FPT University - Hòa Lạc (Hà Nội)', address: 'Khu CNC Hòa Lạc, Km 29 Đại lộ Thăng Long, H. Thạch Thất, Hà Nội' },
+    HCM: { shortName: 'TP. Hồ Chí Minh', fullName: 'FPT University - TP. Hồ Chí Minh', address: 'Lô E2a-7, Đường D1 Khu Công nghệ cao, P. Long Thạnh Mỹ, TP. Thủ Đức, TP. HCM' },
+    DN: { shortName: 'Đà Nẵng', fullName: 'FPT University - Đà Nẵng', address: 'Khu đô thị công nghệ FPT Đà Nẵng, P. Hòa Hải, Q. Ngũ Hành Sơn, TP. Đà Nẵng' },
+    CT: { shortName: 'Cần Thơ', fullName: 'FPT University - Cần Thơ', address: 'Số 600 đường Nguyễn Văn Cừ (nối dài), P. An Bình, Q. Ninh Kiều, TP. Cần Thơ' },
+    QN: { shortName: 'Quy Nhơn', fullName: 'FPT University - Quy Nhơn', address: 'Khu đô thị An Phú Thịnh, P. Nhơn Bình & Đống Đa, TP. Quy Nhơn, Tỉnh Bình Định' },
+  };
 
-  // 1. Fetch initial questions when tab changes
-  useEffect(() => {
-    let isMounted = true;
-    const loadQuestions = async () => {
-      try {
-        setIsLoadingQuestions(true);
-        setPageNumber(1);
-        setHasMore(true);
+  const campusInfo = campusMap[currentCampus || 'HL'] || campusMap.HL;
+  const studentName = currentUser?.fullName || t('common.student', 'Sinh viên FHub');
+  const studentInitials = studentName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || 'SV';
+  const currentUserMajor = resolveUserMajorName(currentUser);
 
-        const sortBy = questionTab === 'voted' ? 'views' : 'newest';
-        const res = await questionApi.getQuestions({
-          pageNumber: 1,
-          pageSize: 10,
-          sortBy,
-        });
-
-        if (isMounted) {
-          let items = res?.items || [];
-
-          // For 'unanswered' tab, filter questions with 0 answers
-          if (questionTab === 'unanswered') {
-            items = items.filter((q: any) => (q.answerCount || 0) === 0);
-          }
-
-          setQuestions(items);
-          if (items.length < 10) {
-            setHasMore(false);
-          }
-
-          // Load user votes
-          let myVotesMap: Record<string, number> = {};
-          if (isAuthenticated) {
-            try {
-              const myVotes = await voteApi.getMyVotes();
-              myVotes.forEach((v) => {
-                if (v.targetType === 'QUESTION') {
-                  myVotesMap[String(v.targetId)] = v.voteValue;
-                }
-              });
-            } catch {}
-          }
-
-          const initialVotes: Record<string, { count: number; userVote: 'UP' | 'DOWN' | null }> = {};
-          items.forEach((q: any) => {
-            const qId = String(q.questionId);
-            const myVote = myVotesMap[qId];
-            initialVotes[qId] = {
-              count: (q.upvoteCount || 0) - (q.downvoteCount || 0),
-              userVote: myVote === 1 ? 'UP' : myVote === -1 ? 'DOWN' : null,
-            };
-          });
-          setVotes(initialVotes);
-        }
-      } catch (err) {
-        if (isMounted) {
-          setQuestions([]);
-          setHasMore(false);
-        }
-      } finally {
-        if (isMounted) setIsLoadingQuestions(false);
-      }
-    };
-
-    loadQuestions();
-    return () => { isMounted = false; };
-  }, [questionTab, isAuthenticated]);
-
-  // 2. Load more questions (Infinite Feed)
-  const handleLoadMore = async () => {
-    if (isLoadingMore || !hasMore) return;
-    setIsLoadingMore(true);
-    const nextPage = pageNumber + 1;
-
+  // Fetch Questions
+  const loadQuestions = async (targetPage: number = 1, append: boolean = false) => {
     try {
-      const sortBy = questionTab === 'voted' ? 'views' : 'newest';
-      const res = await questionApi.getQuestions({
-        pageNumber: nextPage,
+      if (targetPage === 1) setLoading(true);
+      else setLoadingMore(true);
+
+      const params: any = {
+        pageNumber: targetPage,
         pageSize: 10,
-        sortBy,
-      });
+        status: 'ACTIVE',
+      };
 
-      const newItems = res?.items || [];
-      if (newItems.length === 0) {
-        setHasMore(false);
+      if (searchQuery.trim()) {
+        params.search = searchQuery.trim();
+      }
+
+      if (feedFilter === 'votes') {
+        params.sortBy = 'upvoteCount:desc';
+      } else if (feedFilter === 'unanswered') {
+        params.status = 'ACTIVE';
+      }
+
+      const res = await questionApi.getQuestions(params);
+      let items = res?.items || [];
+
+      // Filter for unanswered if requested
+      if (feedFilter === 'unanswered') {
+        items = items.filter((q: any) => (q.answerCount || 0) === 0);
+      }
+
+      if (append) {
+        setQuestions(prev => [...prev, ...items]);
       } else {
-        setQuestions((prev) => [...prev, ...newItems]);
-        setPageNumber(nextPage);
-        if (newItems.length < 10) setHasMore(false);
+        setQuestions(items);
+      }
 
-        // Update vote state for new items
-        setVotes((prev) => {
-          const nextVotes = { ...prev };
-          newItems.forEach((q: any) => {
-            const qId = String(q.questionId);
-            if (!nextVotes[qId]) {
-              nextVotes[qId] = {
-                count: (q.upvoteCount || 0) - (q.downvoteCount || 0),
-                userVote: null,
-              };
+      setHasMore(items.length >= 10);
+      setPage(targetPage);
+
+      // Initialize votes state
+      const newVotes: Record<string, { count: number; userVote: 'UP' | 'DOWN' | null }> = {};
+      items.forEach((q: any) => {
+        const qId = String(q.questionId || q.id);
+        newVotes[qId] = {
+          count: (q.upvoteCount || 0) - (q.downvoteCount || 0),
+          userVote: null,
+        };
+      });
+      setVotes(prev => ({ ...prev, ...newVotes }));
+
+      // Batch load missing author profiles asynchronously
+      const missingAuthorIds = Array.from(new Set(
+        items
+          .filter((q: any) => !q.isAnonymous && q.authorUserId && q.authorUserId !== Number(currentUser?.id))
+          .map((q: any) => Number(q.authorUserId))
+      )).filter(id => !authorProfiles[id]);
+
+      if (missingAuthorIds.length > 0) {
+        Promise.allSettled(missingAuthorIds.map(id => profileApi.getProfile(id)))
+          .then(results => {
+            const mappedProfiles: Record<number, { fullName: string; avatarUrl?: string }> = {};
+            results.forEach((r, idx) => {
+              if (r.status === 'fulfilled' && r.value) {
+                const val = r.value;
+                const authorId = missingAuthorIds[idx];
+                mappedProfiles[authorId] = {
+                  fullName: val.fullName || val.displayName || '',
+                  avatarUrl: val.avatarUrl || '',
+                };
+              }
+            });
+            if (Object.keys(mappedProfiles).length > 0) {
+              setAuthorProfiles(prev => ({ ...prev, ...mappedProfiles }));
             }
-          });
-          return nextVotes;
-        });
+          })
+          .catch(() => {});
       }
     } catch (err) {
-      setHasMore(false);
+      console.warn('Could not fetch questions feed:', err);
+      if (!append) setQuestions([]);
     } finally {
-      setIsLoadingMore(false);
+      setLoading(false);
+      setLoadingMore(false);
     }
   };
 
-  const handleVote = async (id: string, dir: 'UP' | 'DOWN') => {
-    const numId = Number(id.replace(/\D/g, ''));
-    if (!numId) return;
+  useEffect(() => {
+    loadQuestions(1, false);
+  }, [questionTab, feedFilter]);
 
-    const current = votes[id] || { count: 0, userVote: null };
-    let newCount = current.count;
-    let newVote: 'UP' | 'DOWN' | null = dir;
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    loadQuestions(1, false);
+  };
 
-    if (current.userVote === dir) {
-      newVote = null;
-      newCount += dir === 'UP' ? -1 : 1;
-    } else if (current.userVote === null) {
-      newCount += dir === 'UP' ? 1 : -1;
+  const handleVote = async (questionId: string, direction: 'UP' | 'DOWN') => {
+    const current = votes[questionId] || { count: 0, userVote: null };
+    const numericId = parseInt(questionId, 10);
+    const voteValue = direction === 'UP' ? 1 : -1;
+
+    let nextVote: 'UP' | 'DOWN' | null = direction;
+    let nextCount = current.count;
+
+    if (current.userVote === direction) {
+      nextVote = null;
+      nextCount -= voteValue;
+    } else if (current.userVote) {
+      nextCount += voteValue * 2;
     } else {
-      newCount += dir === 'UP' ? 2 : -2;
+      nextCount += voteValue;
     }
 
-    setVotes((prev) => ({
+    setVotes(prev => ({
       ...prev,
-      [id]: { count: newCount, userVote: newVote },
+      [questionId]: { count: nextCount, userVote: nextVote }
     }));
 
-    try {
-      await voteApi.vote({
-        target_type: 'QUESTION',
-        target_id: numId,
-        vote_value: dir === 'UP' ? 1 : -1,
-      });
-      const stats = await voteApi.getStats('QUESTION', numId);
-      setVotes((prev) => ({
-        ...prev,
-        [id]: {
-          count: stats.score,
-          userVote: stats.myVoteValue === 1 ? 'UP' : stats.myVoteValue === -1 ? 'DOWN' : null,
-        },
-      }));
-    } catch (err) {
-      setVotes((prev) => ({
-        ...prev,
-        [id]: current,
-      }));
+    if (!isNaN(numericId)) {
+      try {
+        await voteApi.vote({
+          target_type: 'QUESTION',
+          target_id: numericId,
+          vote_value: voteValue,
+        });
+        const stats = await voteApi.getStats('QUESTION', numericId);
+        setVotes(prev => ({
+          ...prev,
+          [questionId]: {
+            count: stats.score,
+            userVote: stats.myVoteValue === 1 ? 'UP' : stats.myVoteValue === -1 ? 'DOWN' : null,
+          }
+        }));
+      } catch (err) {
+        console.warn('Vote submission error:', err);
+      }
     }
   };
 
   const toggleBookmark = (id: string) => {
-    setBookmarkedIds((prev) => {
+    setBookmarkedIds(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -223,197 +233,297 @@ export const FeedPage: React.FC = () => {
     });
   };
 
-  const studentName = currentUser?.fullName || t("Sinh viên FHub");
-  const studentInitials = studentName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'SV';
+  // Helper to resolve accurate author name without "Sinh viên [id]"
+  const getAuthorName = (q: any) => {
+    if (q.isAnonymous) return t('common.anonymous', 'Ẩn danh FPTer');
+    const authorId = Number(q.authorUserId || q.author?.id);
+    if (authorId && currentUser?.id && String(authorId) === String(currentUser.id)) {
+      return currentUser.fullName || 'Bạn';
+    }
+    if (q.authorDisplayName && q.authorDisplayName.trim()) return q.authorDisplayName.trim();
+    if (q.author?.fullName && q.author.fullName.trim()) return q.author.fullName.trim();
+    if (q.author?.name && q.author.name.trim()) return q.author.name.trim();
+    if (authorId && authorProfiles[authorId]?.fullName) {
+      return authorProfiles[authorId].fullName;
+    }
+    return 'Thành viên FHub';
+  };
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto pb-16">
-      {/* 1. Header Banner & Quick Ask Box */}
-      <div className="bg-white dark:bg-[#272727] rounded-2xl p-6 border border-slate-200/90 dark:border-transparent hover:dark:border-[#444444] shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-colors">
-        <div className="space-y-1.5 flex-1 min-w-0">
+    <div className="space-y-6">
+      {/* 3.A Welcome Header (Restored Figma #86:118) */}
+      <div className="bg-white dark:bg-[#272727] rounded-2xl p-6 border border-slate-200/90 dark:border-transparent dark:hover:border-[#444444] shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-colors">
+        <div className="space-y-1.5">
           <div
-            className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-[#0076D1] border border-blue-100 cursor-default"
+            className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 dark:bg-blue-950/60 text-[#0076D1] dark:text-blue-400 border border-blue-100 dark:border-blue-800 cursor-default"
             title={`${t(campusInfo.fullName)}${campusInfo.address ? `\n${t('Địa chỉ:')} ${campusInfo.address}` : ''}`}
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-[#0076D1]" />
+            <span className="w-1.5 h-1.5 rounded-full bg-[#0076D1] dark:bg-blue-400" />
             <span>{t('common.campus', 'Campus')}: {campusInfo.shortName}</span>
           </div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tight">
-            {t('auth.welcomeBack', 'Welcome back to FHub')}
+            {t('auth.welcomeBack', 'Chào mừng trở lại FHub')}
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xl leading-relaxed">
-            {t('app.tagline', 'Learn, collaborate, share knowledge, and grow with your academic community.')}
+            {t('app.tagline', 'Học tập, cộng tác, chia sẻ kiến thức và cùng phát triển với cộng đồng học thuật của bạn.')}
           </p>
         </div>
 
-        {/* Quick Ask Button */}
-        <button
-          onClick={() => setIsAskModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700 transition-all cursor-pointer shadow-xs shrink-0"
-        >
-          <Plus className="w-4 h-4" />
-          <span>{t('feed.askQuestion', 'Đặt câu hỏi ngay')}</span>
-        </button>
+        {/* Right user badge */}
+        <div className="flex items-center gap-3 bg-slate-50 dark:bg-[#333333] p-2.5 px-4 rounded-xl border border-slate-100 dark:border-[#272727] shrink-0">
+          <div className="w-10 h-10 rounded-full bg-[#0076D1] text-white flex items-center justify-center font-bold text-xs ring-2 ring-blue-100 dark:ring-blue-900 shrink-0 overflow-hidden">
+            {currentUser?.avatarUrl ? (
+              <img
+                src={normalizeMediaUrl(currentUser.avatarUrl)}
+                alt={studentName}
+                className="w-full h-full object-cover"
+                onError={(e) => { (e.target as any).style.display = 'none'; }}
+              />
+            ) : (
+              <span>{studentInitials}</span>
+            )}
+          </div>
+          <div className="text-left">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{studentName}</span>
+              <CheckCircle2 className="w-3.5 h-3.5 text-blue-500" />
+            </div>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium truncate max-w-[150px]" title={currentUserMajor}>
+                {currentUserMajor}
+              </span>
+              <span className="text-slate-300 dark:text-slate-600 text-[10px]">•</span>
+              <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.2 rounded border border-emerald-100 dark:border-emerald-800">
+                {currentUser?.karma || 0} pts
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* 2. Primary StackOverflow Style Feed Section */}
+      {/* 3.B Quick Navigation Shortcuts (8 Core Modules from Figma - Restored) */}
+      <div className="bg-white dark:bg-[#272727] rounded-2xl p-4 sm:p-5 border border-slate-200/90 dark:border-transparent dark:hover:border-[#444444] shadow-2xs transition-colors">
+        <div className="flex items-center justify-between mb-3.5">
+          <h2 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+            {t('feed.quickShortcuts', 'Phím tắt truy cập nhanh')}
+          </h2>
+          <span className="text-[11px] text-slate-400">{t('feed.eightModules', '8 phân hệ học tập')}</span>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 sm:gap-2.5">
+          {[
+            { label: t('nav.workflows', 'Quy trình'), path: '/workflows', icon: Layers, color: 'text-indigo-600 bg-indigo-50 dark:bg-indigo-950/50 dark:text-indigo-400' },
+            { label: t('nav.articles', 'Bài viết'), path: '/articles', icon: FileCode, color: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/50 dark:text-emerald-400' },
+            { label: t('nav.materials', 'Tài liệu'), path: '/materials', icon: BookOpen, color: 'text-amber-600 bg-amber-50 dark:bg-amber-950/50 dark:text-amber-400' },
+            { label: t('nav.ratings', 'Đánh giá'), path: '/course-ratings', icon: Sparkles, color: 'text-rose-600 bg-rose-50 dark:bg-rose-950/50 dark:text-rose-400' },
+            { label: t('nav.courses', 'Môn học'), path: '/courses', icon: GraduationCap, color: 'text-blue-600 bg-blue-50 dark:bg-blue-950/50 dark:text-blue-400' },
+            { label: t('nav.discussions', 'Thảo luận'), path: '/discussions', icon: HelpCircle, color: 'text-purple-600 bg-purple-50 dark:bg-purple-950/50 dark:text-purple-400' },
+            { label: t('nav.helpdesk', 'Hỗ trợ'), path: '/support', icon: LifeBuoy, color: 'text-teal-600 bg-teal-50 dark:bg-teal-950/50 dark:text-teal-400' },
+            { label: t('nav.reputation', 'Uy tín'), path: '/reputation', icon: Award, color: 'text-orange-600 bg-orange-50 dark:bg-orange-950/50 dark:text-orange-400' },
+          ].map((item, idx) => {
+            const IconComp = item.icon;
+            return (
+              <Link
+                key={idx}
+                to={item.path}
+                className="flex flex-col items-center justify-center p-3 rounded-xl border border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700 hover:shadow-xs transition-all text-center group cursor-pointer bg-slate-50/50 dark:bg-slate-800/40"
+              >
+                <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-1.5 transition-transform group-hover:scale-110 ${item.color}`}>
+                  <IconComp className="w-4 h-4" />
+                </div>
+                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 group-hover:text-[#0076D1] dark:group-hover:text-blue-400 transition-colors">
+                  {item.label}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 3.C Academic Resource Shortcuts (Study Materials & Documents Banner - Restored) */}
+      <div className="bg-gradient-to-r from-blue-500/10 via-indigo-500/5 to-transparent rounded-2xl p-4 sm:p-5 border border-blue-100 dark:border-blue-900/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-10 h-10 rounded-xl bg-[#0076D1] text-white flex items-center justify-center shrink-0 shadow-xs">
+            <BookOpen className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+              {t('feed.resourceLibraryTitle', 'Kho lưu trữ tài liệu học tập FPT')}
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              {t('feed.resourceLibraryDesc', 'Đóng góp slide, đề thi mẫu, đồ án và tài liệu học tập để tích lũy điểm uy tín và mở khóa huy hiệu.')}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+          <Link
+            to="/materials"
+            className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-[#0076D1] dark:text-blue-400 bg-white dark:bg-slate-800 border border-blue-200 dark:border-blue-800 hover:bg-blue-50 transition-colors shadow-2xs"
+          >
+            {t('feed.exploreMaterials', 'Khám phá tài liệu')}
+          </Link>
+        </div>
+      </div>
+
+      {/* 3.D Questions & Academic Discussions (Main Feed Section) */}
       <div className="bg-white dark:bg-[#272727] rounded-2xl border border-slate-200/90 dark:border-transparent dark:hover:border-[#444444] shadow-2xs overflow-hidden transition-colors">
-        {/* Section Header with StackOverflow Tabs */}
-        <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-blue-50 text-[#0076D1] flex items-center justify-center font-bold">
-              <HelpCircle className="w-4 h-4" />
+        {/* Section Header: Title, clean Subtitle without unwanted banners, and Ask Button */}
+        <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-[#0076D1] dark:text-blue-400 flex items-center justify-center font-bold">
+              <HelpCircle className="w-5 h-5" />
             </div>
             <div>
               <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight">
-                {questionTab === 'interesting' ? t('feed.interestingTitle', 'Interesting posts for you') : t('nav.questions', 'Questions & Discussions')}
+                {t('nav.questions', 'Hỏi đáp & Thảo luận')}
               </h2>
-              <p className="text-[11px] text-slate-400">
-                {questionTab === 'interesting'
-                  ? t('feed.interestingSubtitle', 'Bài viết gợi ý dựa trên môn học và xu hướng trao đổi học thuật của bạn')
-                  : t('feed.allQuestionsSubtitle', 'Tất cả câu hỏi và thảo luận học thuật từ cộng đồng sinh viên FPT')}
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {t('feed.discussionsSubtitle', 'Trao đổi kiến thức học thuật, đặt câu hỏi và cùng giải đáp thắc mắc.')}
               </p>
             </div>
           </div>
 
-          {/* StackOverflow Filter Tabs */}
-          <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 self-start md:self-auto overflow-x-auto max-w-full">
-            <button
-              onClick={() => setQuestionTab('interesting')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer whitespace-nowrap ${
-                questionTab === 'interesting'
-                  ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs font-bold'
-                  : 'hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              <span>{t('feed.tabInteresting', 'Dành cho bạn')}</span>
-            </button>
-            <button
-              onClick={() => setQuestionTab('recent')}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer whitespace-nowrap ${
-                questionTab === 'recent'
-                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs font-bold'
-                  : 'hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              {t('feed.tabNewest', 'Mới nhất')}
-            </button>
-            <button
-              onClick={() => setQuestionTab('voted')}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer whitespace-nowrap ${
-                questionTab === 'voted'
-                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs font-bold'
-                  : 'hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              {t('feed.tabTopVoted', 'Bình chọn nhiều')}
-            </button>
-            <button
-              onClick={() => setQuestionTab('unanswered')}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer whitespace-nowrap ${
-                questionTab === 'unanswered'
-                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs font-bold'
-                  : 'hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              {t('feed.tabUnanswered', 'Chưa trả lời')}
-            </button>
-          </div>
+          {/* Action: Ask Question Button */}
+          <button
+            onClick={() => setIsAskModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700 transition-all cursor-pointer shadow-xs shrink-0 self-start md:self-auto"
+          >
+            <Plus className="w-4 h-4" />
+            <span>{t('feed.askQuestionNow', 'Đặt câu hỏi ngay')}</span>
+          </button>
         </div>
 
-        {/* Interesting Posts Info Bar */}
-        {questionTab === 'interesting' && (
-          <div className="px-5 py-2.5 bg-amber-50/60 dark:bg-amber-950/30 border-b border-amber-100 dark:border-amber-900/40 text-[11px] text-amber-800 dark:text-amber-300 flex items-center justify-between animate-in fade-in">
-            <div className="flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-              <span>
-                {t('feed.interestingBanner', 'Được cá nhân hóa cho bạn dựa trên các chủ đề trao đổi sôi nổi tại cơ sở FPT của bạn.')}
-              </span>
-            </div>
-            <Link to="/discussions" className="font-bold hover:underline shrink-0 ml-2">
-              {t('feed.browseAllDiscussions', 'Xem tất cả thảo luận')} →
-            </Link>
+        {/* Optimized Filter Bar: No icons, No scrollbars, Modern pill buttons */}
+        <div className="px-4 py-3 bg-slate-50/60 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          {/* Pill Tabs */}
+          <div className="flex flex-wrap items-center bg-slate-200/70 dark:bg-slate-800 p-1 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 gap-1">
+            <button
+              onClick={() => { setQuestionTab('interesting'); }}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                questionTab === 'interesting'
+                  ? 'bg-white dark:bg-slate-700 text-[#0076D1] dark:text-blue-400 shadow-xs font-bold'
+                  : 'hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              {t('feed.forYou', 'Dành cho bạn')}
+            </button>
+            <button
+              onClick={() => { setQuestionTab('all'); setFeedFilter('newest'); }}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                questionTab === 'all' && feedFilter === 'newest'
+                  ? 'bg-white dark:bg-slate-700 text-[#0076D1] dark:text-blue-400 shadow-xs font-bold'
+                  : 'hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              {t('feed.recent', 'Mới nhất')}
+            </button>
+            <button
+              onClick={() => { setQuestionTab('all'); setFeedFilter('votes'); }}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                questionTab === 'all' && feedFilter === 'votes'
+                  ? 'bg-white dark:bg-slate-700 text-[#0076D1] dark:text-blue-400 shadow-xs font-bold'
+                  : 'hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              {t('feed.topVoted', 'Bình chọn nhiều')}
+            </button>
+            <button
+              onClick={() => { setQuestionTab('all'); setFeedFilter('unanswered'); }}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                questionTab === 'all' && feedFilter === 'unanswered'
+                  ? 'bg-white dark:bg-slate-700 text-[#0076D1] dark:text-blue-400 shadow-xs font-bold'
+                  : 'hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              {t('feed.unanswered', 'Chưa trả lời')}
+            </button>
           </div>
-        )}
 
-        {/* Question Cards Feed */}
-        {isLoadingQuestions ? (
-          <div className="p-16 flex flex-col items-center justify-center space-y-3 text-slate-400">
-            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-            <span className="text-xs font-medium">{t('feed.loadingQuestions', 'Đang tải danh sách câu hỏi...')}</span>
+          {/* Quick Search inside Questions */}
+          <form onSubmit={handleSearchSubmit} className="relative w-full sm:w-64">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={t('feed.searchPlaceholder', 'Tìm kiếm câu hỏi...')}
+              className="w-full pl-8 pr-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#0076D1]"
+            />
+          </form>
+        </div>
+
+        {/* Questions Feed Content */}
+        {loading ? (
+          <div className="p-12 text-center text-slate-400">
+            <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-[#0076D1]" />
+            <p className="text-xs">{t('common.loading', 'Đang tải danh sách câu hỏi...')}</p>
           </div>
         ) : questions.length === 0 ? (
           <div className="p-12 text-center text-slate-400 text-xs">
-            <HelpCircle className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-            <p className="font-semibold text-slate-600 dark:text-slate-300">{t('feed.emptyQuestions', 'Chưa có câu hỏi hoặc thảo luận nào')}</p>
-            <p className="text-[11px] text-slate-400 mt-1">{t('feed.emptyQuestionsDesc', 'Hãy là người đầu tiên đặt câu hỏi để nhận trợ giúp từ bạn học và giảng viên!')}</p>
+            <HelpCircle className="w-8 h-8 mx-auto mb-2 text-slate-300 dark:text-slate-600" />
+            <p className="font-semibold text-slate-600 dark:text-slate-300">
+              {t('feed.emptyQuestions', 'Chưa có câu hỏi nào trong danh mục này')}
+            </p>
+            <p className="text-[11px] text-slate-400 mt-1">
+              {t('feed.emptyQuestionsDesc', 'Hãy là người đầu tiên đặt câu hỏi để nhận trợ giúp từ bạn học và giảng viên!')}
+            </p>
             <button
               onClick={() => setIsAskModalOpen(true)}
-              className="mt-3 px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700 transition-colors"
+              className="mt-3 px-3.5 py-1.5 rounded-xl text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700 transition-colors shadow-2xs"
             >
               + {t('feed.askQuestionNow', 'Đặt câu hỏi ngay')}
             </button>
           </div>
         ) : (
-          <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
+          <div className="divide-y divide-slate-100 dark:divide-slate-800">
             {questions.map((q, idx) => {
               const qId = String(q.questionId || q.id || idx);
-              const authorName = q.isAnonymous ? t('common.anonymous', 'Ẩn danh FPTer') : (q.authorDisplayName || `Sinh viên #${q.authorUserId || 1}`);
-              const voteInfo = votes[qId] || { count: (q.upvoteCount || 0) - (q.downvoteCount || 0), userVote: null };
-              const { cleanText, images } = parseQuestionContent(q.body || q.content);
+              const authorName = getAuthorName(q);
+              const voteInfo = votes[qId] || {
+                count: (q.upvoteCount || 0) - (q.downvoteCount || 0),
+                userVote: null,
+              };
+
+              // Extract images & clean text snippet
+              const { cleanText, mediaUrls } = parseBodyMedia(q.body || q.content || '');
 
               return (
-                <div key={qId} className="p-5 flex flex-col sm:flex-row items-start gap-4 hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors">
-                  {/* Left: StackOverflow Style Stats Badges Column */}
-                  <div className="flex sm:flex-col items-center gap-2 sm:gap-2.5 shrink-0 w-full sm:w-auto justify-between sm:justify-start">
-                    {/* Votes Box */}
-                    <div className="flex sm:flex-col items-center justify-center px-3 py-1.5 sm:py-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700 min-w-[56px] text-center">
-                      <button
-                        onClick={() => handleVote(qId, 'UP')}
-                        className={`p-0.5 rounded hover:bg-slate-200/60 cursor-pointer transition-colors ${
-                          voteInfo.userVote === 'UP' ? 'text-[#0076D1] font-bold' : 'text-slate-400'
-                        }`}
-                        title={t('common.upvote', 'Bình chọn hữu ích')}
-                      >
-                        <ChevronUp className="w-3.5 h-3.5" />
-                      </button>
-                      <span className="text-xs sm:text-sm font-extrabold text-slate-800 dark:text-slate-100 my-0.5">
-                        {voteInfo.count}
-                      </span>
-                      <span className="text-[9px] text-slate-400 uppercase font-semibold">{t('votes', 'phiếu')}</span>
-                    </div>
-
-                    {/* Answers Box (StackOverflow Badge) */}
-                    <div
-                      className={`flex sm:flex-col items-center justify-center px-3 py-1.5 sm:py-2 rounded-xl min-w-[56px] text-center border transition-all ${
-                        q.isSolved || q.hasBestAnswer
-                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                          : (q.answerCount || 0) > 0
-                          ? 'border-emerald-600/70 text-emerald-600 dark:text-emerald-400 bg-emerald-50/60 dark:bg-emerald-950/30'
-                          : 'border-slate-200/80 dark:border-slate-700 text-slate-400 bg-slate-50/50 dark:bg-slate-800/40'
+                <div
+                  key={qId}
+                  className="p-4 sm:p-5 flex items-start gap-3 sm:gap-4 hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors"
+                >
+                  {/* Left: Compact Vertical Vote Counter */}
+                  <div className="flex flex-col items-center justify-center min-w-[42px] bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl p-1 shrink-0 self-start shadow-2xs">
+                    <button
+                      onClick={() => handleVote(qId, 'UP')}
+                      className={`p-1 rounded hover:bg-slate-200/60 dark:hover:bg-slate-700 cursor-pointer transition-colors ${
+                        voteInfo.userVote === 'UP' ? 'text-[#0076D1] font-bold' : 'text-slate-400'
                       }`}
+                      title="Bình chọn tích cực (Upvote)"
                     >
-                      <span className="text-xs sm:text-sm font-extrabold flex items-center gap-1">
-                        {q.isSolved || q.hasBestAnswer ? <CheckCircle2 className="w-3 h-3 text-white" /> : null}
-                        {q.answerCount || 0}
-                      </span>
-                      <span className="text-[9px] uppercase font-semibold">{t('answers', 'trả lời')}</span>
-                    </div>
-
-                    {/* Views Count */}
-                    <div className="text-[11px] text-slate-400 font-mono flex items-center gap-1 px-1">
-                      <Eye className="w-3 h-3" />
-                      <span>{q.viewCount || q.viewsCount || 0}</span>
-                    </div>
+                      <ChevronUp className="w-4 h-4" />
+                    </button>
+                    <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-200 my-0.5">
+                      {voteInfo.count}
+                    </span>
+                    <button
+                      onClick={() => handleVote(qId, 'DOWN')}
+                      className={`p-1 rounded hover:bg-slate-200/60 dark:hover:bg-slate-700 cursor-pointer transition-colors ${
+                        voteInfo.userVote === 'DOWN' ? 'text-rose-600 font-bold' : 'text-slate-400'
+                      }`}
+                      title="Bình chọn tiêu cực (Downvote)"
+                    >
+                      <ChevronDown className="w-4 h-4" />
+                    </button>
                   </div>
 
-                  {/* Right: Question Body & Social Media Attached Media */}
-                  <div className="flex-1 min-w-0 space-y-2 w-full">
+                  {/* Right: Question Body & Media Preview */}
+                  <div className="flex-1 min-w-0 space-y-2">
                     {/* Header: Author & Course Tag */}
                     <div className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-800 dark:text-slate-200">{authorName}</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-200">
+                          {authorName}
+                        </span>
                         <span className="text-slate-400">
                           • {q.createdAt ? new Date(q.createdAt).toLocaleDateString(locale) : t('common.recent', 'Mới đây')}
                         </span>
@@ -441,37 +551,42 @@ export const FeedPage: React.FC = () => {
                       {q.title}
                     </Link>
 
-                    {/* Clean Question Text (Without messy raw markdown image links) */}
+                    {/* Clean Question Text */}
                     {cleanText && (
                       <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-3 leading-relaxed">
                         {cleanText}
                       </p>
                     )}
 
-                    {/* Facebook Style Attached Images / GIFs Gallery */}
-                    {images.length > 0 && (
-                      <Link to={`/discussions/${qId}`} className="block mt-2 group">
-                        {images.length === 1 ? (
-                          <div className="relative rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-950/5 dark:bg-slate-900 max-h-[360px] flex items-center justify-center shadow-xs">
+                    {/* Facebook-style Attached Media / Image Grid */}
+                    {mediaUrls.length > 0 && (
+                      <div className="pt-1">
+                        {mediaUrls.length === 1 ? (
+                          <div className="relative group max-w-lg rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-900/5">
                             <img
-                              src={normalizeMediaUrl(images[0].url)}
-                              alt={images[0].alt}
-                              loading="lazy"
-                              className="w-full h-full max-h-[360px] object-cover group-hover:scale-[1.01] transition-transform duration-200"
+                              src={normalizeMediaUrl(mediaUrls[0])}
+                              alt="Đính kèm"
+                              className="w-full max-h-80 object-cover rounded-xl hover:scale-[1.01] transition-transform cursor-pointer"
+                              onClick={() => navigate(`/discussions/${qId}`)}
                             />
-                            {images[0].isGif && (
-                              <span className="absolute bottom-2.5 left-2.5 px-2 py-0.5 rounded-md bg-black/80 text-white font-mono text-[10px] font-bold tracking-wider backdrop-blur-xs shadow-xs">
+                            {mediaUrls[0].toLowerCase().includes('.gif') && (
+                              <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-black/70 text-[10px] font-bold text-white tracking-wider">
                                 GIF
                               </span>
                             )}
                           </div>
-                        ) : images.length === 2 ? (
-                          <div className="grid grid-cols-2 gap-2 rounded-2xl overflow-hidden">
-                            {images.slice(0, 2).map((img, i) => (
-                              <div key={i} className="relative aspect-video bg-slate-950/5 dark:bg-slate-900 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800">
-                                <img src={normalizeMediaUrl(img.url)} alt={img.alt} loading="lazy" className="w-full h-full object-cover" />
-                                {img.isGif && (
-                                  <span className="absolute bottom-2 left-2 px-1.5 py-0.5 rounded bg-black/80 text-white font-mono text-[9px] font-bold tracking-wider">
+                        ) : mediaUrls.length === 2 ? (
+                          <div className="grid grid-cols-2 gap-1.5 max-w-lg rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
+                            {mediaUrls.slice(0, 2).map((url, imgIdx) => (
+                              <div key={imgIdx} className="relative aspect-video bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                                <img
+                                  src={normalizeMediaUrl(url)}
+                                  alt="Đính kèm"
+                                  className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer"
+                                  onClick={() => navigate(`/discussions/${qId}`)}
+                                />
+                                {url.toLowerCase().includes('.gif') && (
+                                  <span className="absolute top-1.5 left-1.5 px-1 py-0.2 rounded bg-black/70 text-[9px] font-bold text-white">
                                     GIF
                                   </span>
                                 )}
@@ -479,46 +594,53 @@ export const FeedPage: React.FC = () => {
                             ))}
                           </div>
                         ) : (
-                          <div className="grid grid-cols-3 gap-2 rounded-2xl overflow-hidden">
-                            {images.slice(0, 3).map((img, i) => (
-                              <div key={i} className="relative aspect-square bg-slate-950/5 dark:bg-slate-900 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800">
-                                <img src={normalizeMediaUrl(img.url)} alt={img.alt} loading="lazy" className="w-full h-full object-cover" />
-                                {i === 2 && images.length > 3 && (
-                                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white font-bold text-sm">
-                                    +{images.length - 2}
+                          <div className="grid grid-cols-3 gap-1.5 max-w-lg rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
+                            {mediaUrls.slice(0, 3).map((url, imgIdx) => (
+                              <div key={imgIdx} className="relative aspect-square bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                                <img
+                                  src={normalizeMediaUrl(url)}
+                                  alt="Đính kèm"
+                                  className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer"
+                                  onClick={() => navigate(`/discussions/${qId}`)}
+                                />
+                                {imgIdx === 2 && mediaUrls.length > 3 && (
+                                  <div
+                                    className="absolute inset-0 bg-black/60 flex items-center justify-center text-white font-bold text-sm cursor-pointer"
+                                    onClick={() => navigate(`/discussions/${qId}`)}
+                                  >
+                                    +{mediaUrls.length - 2}
                                   </div>
-                                )}
-                                {img.isGif && (
-                                  <span className="absolute bottom-1.5 left-1.5 px-1 py-0.5 rounded bg-black/80 text-white font-mono text-[9px] font-bold tracking-wider">
-                                    GIF
-                                  </span>
                                 )}
                               </div>
                             ))}
                           </div>
                         )}
-                      </Link>
+                      </div>
                     )}
 
-                    {/* Footer: Tags & Action Bar */}
-                    <div className="pt-2 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
-                      <div className="flex items-center gap-3">
+                    {/* Bottom Metadata & Action Row */}
+                    <div className="pt-2 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                      <div className="flex items-center gap-4">
+                        <span className="flex items-center gap-1.5 font-medium">
+                          <MessageSquare className="w-3.5 h-3.5 text-slate-400" />
+                          {q.answerCount || 0} {t('common.answersCount', 'câu trả lời')}
+                        </span>
                         <button
                           onClick={() => toggleBookmark(qId)}
-                          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition-colors ${
+                          className={`flex items-center gap-1 hover:text-[#0076D1] cursor-pointer transition-colors ${
                             bookmarkedIds.has(qId) ? 'text-[#0076D1] font-bold' : ''
                           }`}
                         >
-                          <Bookmark className={`w-3.5 h-3.5 ${bookmarkedIds.has(qId) ? 'fill-[#0076D1]' : ''}`} />
+                          <Bookmark className="w-3.5 h-3.5" />
                           <span>{t('common.bookmark', 'Lưu')}</span>
                         </button>
                       </div>
 
                       <Link
                         to={`/discussions/${qId}`}
-                        className="text-xs font-semibold text-[#0076D1] hover:underline flex items-center gap-1"
+                        className="text-xs font-semibold text-[#0076D1] dark:text-blue-400 hover:underline inline-flex items-center gap-1"
                       >
-                        <span>{t('common.viewDetails', 'Xem chi tiết & Thảo luận')}</span>
+                        <span>{t('common.viewQuestion', 'Xem chi tiết')}</span>
                         <ArrowRight className="w-3 h-3" />
                       </Link>
                     </div>
@@ -529,43 +651,39 @@ export const FeedPage: React.FC = () => {
           </div>
         )}
 
-        {/* 3. Infinite Feed Loader / Load More Button */}
-        {questions.length > 0 && (
-          <div className="p-4 bg-slate-50/80 dark:bg-slate-900/60 border-t border-slate-100 dark:border-slate-800 text-center">
-            {hasMore ? (
-              <button
-                onClick={handleLoadMore}
-                disabled={isLoadingMore}
-                className="px-6 py-2.5 rounded-xl text-xs font-bold text-blue-600 dark:text-blue-400 bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-all cursor-pointer shadow-xs inline-flex items-center gap-2"
-              >
-                {isLoadingMore ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>{t('feed.loadingMore', 'Đang tải thêm câu hỏi...')}</span>
-                  </>
-                ) : (
-                  <>
-                    <span>{t('feed.loadMore', 'Tải thêm thảo luận')}</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </>
-                )}
-              </button>
-            ) : (
-              <p className="text-xs text-slate-400 font-medium py-1">
-                {t('feed.allLoaded', 'Bạn đã xem hết các câu hỏi gần đây.')}
-              </p>
-            )}
+        {/* Load More Button for Infinite Feed Exploration */}
+        {hasMore && !loading && questions.length > 0 && (
+          <div className="p-4 text-center border-t border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-800/20">
+            <button
+              onClick={() => loadQuestions(page + 1, true)}
+              disabled={loadingMore}
+              className="px-5 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-[#0076D1] dark:hover:border-blue-400 hover:text-[#0076D1] transition-all cursor-pointer shadow-2xs inline-flex items-center gap-2"
+            >
+              {loadingMore && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              <span>{loadingMore ? t('common.loading', 'Đang tải thêm...') : t('feed.loadMore', 'Xem thêm câu hỏi...')}</span>
+            </button>
           </div>
         )}
+
+        {/* Footer: Clean View All Link */}
+        <div className="p-3.5 bg-slate-50/80 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 text-center">
+          <Link
+            to="/discussions"
+            className="text-xs font-bold text-[#0076D1] dark:text-blue-400 hover:underline inline-flex items-center gap-1.5"
+          >
+            <span>{t('common.viewAllQuestions', 'Xem tất cả thảo luận')}</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
       </div>
 
       {/* Ask Question Modal */}
       <AskQuestionModal
         isOpen={isAskModalOpen}
         onClose={() => setIsAskModalOpen(false)}
-        onCreated={(newQ: QuestionPost) => {
+        onCreated={() => {
           setIsAskModalOpen(false);
-          navigate(`/discussions/${newQ.id}`);
+          loadQuestions(1, false);
         }}
       />
     </div>

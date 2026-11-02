@@ -233,18 +233,20 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
       setIsSaving(false);
     }
 
+    const displayMajor = specObj?.name ? `${specObj.name} (${specObj.code})` : (majorObj?.name || major);
     setShowSuccessToast(true);
     updateUser({
       fullName: fullName.trim(),
       campus: (campusObj?.code || campus) as any,
+      major: displayMajor,
       ...(avatarUrl ? { avatarUrl } : {}),
     });
     setTimeout(() => {
       onSaveSuccess({
         fullName: fullName.trim(),
         campus: campusObj?.code || campus,
-        major: majorObj?.code || major,
-        specialization: specObj?.code || specialization,
+        major: displayMajor,
+        specialization: specObj?.name || specObj?.code || specialization,
         bio: bio.trim(),
         interests,
         avatarUrl,

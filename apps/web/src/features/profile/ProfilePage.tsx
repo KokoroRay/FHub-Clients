@@ -23,6 +23,7 @@ import { EditProfileModal } from './EditProfileModal';
 import { profileApi, badgeApi, voteApi } from '../../services/api/studentApi';
 import { questionApi } from '../../services/api/contentApi';
 import { normalizeMediaUrl } from '../../utils/mediaUtils';
+import { resolveUserMajorName, FPT_CAMPUSES } from '../../utils/taxonomyUtils';
 
 
 
@@ -102,32 +103,28 @@ export const ProfilePage: React.FC = () => {
       try {
         const live = await profileApi.getProfile(targetUserId);
         if (isMounted && live) {
-          const campusMap: Record<number, string> = {
-            1: 'FPT University - Ha Noi (Hoa Lac)',
-            2: 'FPT University - Ho Chi Minh City',
-            3: 'FPT University - Da Nang',
-            4: 'FPT University - Can Tho',
-            5: 'FPT University - Quy Nhon',
-          };
-          const majorMap: Record<number, string> = {
-            1: 'Software Engineering (K18 - DevOps)',
-            2: 'Computer Science (CS)',
-            3: 'Business Administration (BA)',
-          };
-          setProfileData(prev => ({
-            ...prev,
-            fullName: live.fullName || prev.fullName,
-            email: live.email || prev.email,
-            bio: (live.bio && live.bio !== 'Chưa có thông tin giới thiệu.') ? live.bio : prev.bio,
-            avatarUrl: live.avatarUrl || prev.avatarUrl,
-            studentId: live.studentCode || (currentUser as any)?.studentCode || prev.studentId,
-            major: live.majorCode || majorMap[live.majorId] || prev.major,
-            campus: live.campusCode ? `FPT University - ${live.campusCode}` : (campusMap[live.campusId] || prev.campus),
-            stats: {
-              ...prev.stats,
-              helpfulVotes: live.karma || prev.stats.helpfulVotes,
-            }
-          }));
+          const resolvedMajor = resolveUserMajorName(live);
+
+          setProfileData(prev => {
+            const resolvedCampus = live.campusCode 
+              ? (FPT_CAMPUSES[live.campusCode] || `FPT University - ${live.campusCode}`)
+              : (live.campusId ? (FPT_CAMPUSES[live.campusId] || prev.campus) : prev.campus);
+
+            return {
+              ...prev,
+              fullName: live.fullName || prev.fullName,
+              email: live.email || prev.email,
+              bio: (live.bio && live.bio !== 'Chưa có thông tin giới thiệu.') ? live.bio : prev.bio,
+              avatarUrl: live.avatarUrl || prev.avatarUrl,
+              studentId: live.studentCode || (currentUser as any)?.studentCode || prev.studentId,
+              major: resolvedMajor,
+              campus: resolvedCampus,
+              stats: {
+                ...prev.stats,
+                helpfulVotes: live.karma || prev.stats.helpfulVotes,
+              }
+            };
+          });
         }
       } catch (err) {
         console.warn('Could not fetch user profile from Profile service:', err);
