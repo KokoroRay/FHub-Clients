@@ -24,6 +24,7 @@ import { profileApi, badgeApi, voteApi } from '../../services/api/studentApi';
 import { questionApi } from '../../services/api/contentApi';
 import { normalizeMediaUrl } from '../../utils/mediaUtils';
 import { resolveUserMajorName, FPT_CAMPUSES } from '../../utils/taxonomyUtils';
+import { extractStudentIdFromEmail } from '../../utils/fptEmailValidator';
 
 
 
@@ -37,7 +38,7 @@ export const ProfilePage: React.FC = () => {
   // Profile Data State
   const [profileData, setProfileData] = useState({
     fullName: (currentUser as any)?.fullName || (currentUser as any)?.name || 'Sinh viên FHub',
-    studentId: (currentUser as any)?.studentCode || currentUser?.studentId || '',
+    studentId: (currentUser as any)?.studentCode || currentUser?.studentId || extractStudentIdFromEmail(currentUser?.email) || '',
     email: currentUser?.email || '',
     campus: (currentUser as any)?.campus || 'FPT University',
     community: 'FHub Community',
@@ -116,7 +117,7 @@ export const ProfilePage: React.FC = () => {
               email: live.email || prev.email,
               bio: (live.bio && live.bio !== 'Chưa có thông tin giới thiệu.') ? live.bio : prev.bio,
               avatarUrl: live.avatarUrl || prev.avatarUrl,
-              studentId: live.studentCode || (currentUser as any)?.studentCode || prev.studentId,
+              studentId: live.studentCode || (currentUser as any)?.studentCode || (currentUser as any)?.studentId || extractStudentIdFromEmail(live.email || currentUser?.email) || prev.studentId,
               major: resolvedMajor,
               campus: resolvedCampus,
               stats: {

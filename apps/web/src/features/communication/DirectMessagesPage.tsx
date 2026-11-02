@@ -319,7 +319,7 @@ export const DirectMessagesPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-4 w-full pb-12">
+    <div className="space-y-3 w-full h-[calc(100vh-140px)] flex flex-col min-h-[520px] pb-0">
       {/* Page Title & Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -366,7 +366,7 @@ export const DirectMessagesPage: React.FC = () => {
       </div>
 
       {/* Main Messaging Container: Two-column split layout */}
-      <div className="grid grid-cols-1 md:grid-cols-12 bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden h-[680px]">
+      <div className="grid grid-cols-1 md:grid-cols-12 bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden flex-1 min-h-0">
         {/* Left Column: Conversations List (3.11.2) */}
         <div id="conversations-sidebar" className="md:col-span-5 lg:col-span-4 border-r border-slate-200 flex flex-col h-full bg-slate-50/40">
           {/* Search Header */}
@@ -590,7 +590,7 @@ export const DirectMessagesPage: React.FC = () => {
               </div>
 
               {/* Suggestions Quick Chips */}
-              <div className="px-5 py-2.5 bg-white border-t border-slate-200 flex items-center gap-2 overflow-x-auto">
+              <div className="px-5 py-2 bg-white border-t border-slate-200 flex items-center gap-2 overflow-x-auto scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                 <span className="font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">
                   {t('messages.suggestions', 'SUGGESTIONS:')}
                 </span>
