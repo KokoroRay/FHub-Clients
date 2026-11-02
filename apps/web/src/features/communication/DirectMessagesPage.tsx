@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useRealtime } from '../../context/RealtimeContext';
 import { directMessageApi } from '../../services/api/studentApi';
 
 interface Message {
@@ -66,6 +67,9 @@ export const DirectMessagesPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [inputText, setInputText] = useState('');
+  const { on, send } = useRealtime();
+  const [isPartnerTyping, setIsPartnerTyping] = useState(false);
+  const typingTimerRef = React.useRef<any>(null);
 
   // Modals & Confirmation States
   const [showBlockedModal, setShowBlockedModal] = useState(false);
@@ -201,7 +205,91 @@ export const DirectMessagesPage: React.FC = () => {
     return () => { isMounted = false; };
   }, [activeConvId]);
 
-  const activeConv = conversations.find(c => c.id === activeConvId);
+    const activeConv = conversations.find(c => c.id === activeConvId);
+
+  // Real-time listener for direct messages and typing status
+  useEffect(() => {
+    const unsubMsg = on('CHAT_MESSAGE_RECEIVED', (evt) => {
+      const { conversationId, message, senderId } = evt.payload || {};
+      const convIdStr = String(conversationId || '');
+      const incomingMsgId = String(message?.id || message?.message_id || Date.now());
+      const body = message?.body || '';
+
+      // If message is in currently active conversation
+      if (convIdStr === String(activeConvId)) {
+        const isFromMe = String(senderId) === String(currentUser?.id);
+        const newMsgItem: Message = {
+          id: incomingMsgId,
+          senderId: String(senderId || ''),
+          senderName: isFromMe ? 'Bạn' : (activeConv?.name || 'Đối tác'),
+          senderInitials: isFromMe ? 'ME' : (activeConv?.initials || 'SV'),
+          text: body,
+          time: t('Vừa xong'),
+          isYou: isFromMe,
+          status: 'delivered',
+        };
+
+        setMessages((prev) => {
+          const currentList = prev[convIdStr] || [];
+          if (currentList.some((m) => m.id === newMsgItem.id)) return prev;
+          return {
+            ...prev,
+            [convIdStr]: [...currentList, newMsgItem],
+          };
+        });
+        setIsPartnerTyping(false);
+      }
+
+      // Update conversations list (move to top and update snippet)
+      setConversations((prev) => {
+        const index = prev.findIndex((c) => c.id === convIdStr);
+        if (index === -1) {
+          loadConversations();
+          return prev;
+        }
+        const updatedItem = {
+          ...prev[index],
+          lastMessage: body,
+          lastTime: t('Vừa xong'),
+          unreadCount: convIdStr === String(activeConvId) ? 0 : (prev[index].unreadCount || 0) + 1,
+        };
+        const newList = [...prev];
+        newList.splice(index, 1);
+        newList.unshift(updatedItem);
+        return newList;
+      });
+    });
+
+    const unsubTyping = on('CHAT_TYPING', (evt) => {
+      const { conversationId, senderId } = evt.payload || {};
+      if (String(conversationId) === String(activeConvId) && String(senderId) !== String(currentUser?.id)) {
+        setIsPartnerTyping(true);
+        if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+        typingTimerRef.current = setTimeout(() => {
+          setIsPartnerTyping(false);
+        }, 3500);
+      }
+    });
+
+    const unsubDel = on('CHAT_MESSAGE_DELETED', (evt) => {
+      const { conversationId, messageId } = evt.payload || {};
+      const convIdStr = String(conversationId || '');
+      setMessages((prev) => ({
+        ...prev,
+        [convIdStr]: (prev[convIdStr] || []).filter((m) => m.id !== String(messageId)),
+      }));
+    });
+
+    return () => {
+      unsubMsg();
+      unsubTyping();
+      unsubDel();
+      if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+    };
+  }, [activeConvId, currentUser, activeConv, on, t]);
+
+
+
   const activeMessages = activeConvId ? (messages[activeConvId] || []) : [];
   const unreadTotal = conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
 
@@ -617,7 +705,12 @@ export const DirectMessagesPage: React.FC = () => {
                     id="message-composer-input"
                     rows={2}
                     value={inputText}
-                    onChange={(e) => setInputText(e.target.value)}
+                    onChange={(e) => {
+                        setInputText(e.target.value);
+                        if (activeConv && activeConv.participantId) {
+                          send('CHAT_TYPING', { conversationId: activeConvId }, { recipientId: activeConv.participantId });
+                        }
+                      }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();

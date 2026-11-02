@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { 
   LifeBuoy, 
@@ -22,6 +22,7 @@ import { Button } from '../../components/common/Button';
 import { Input, Textarea, Select } from '../../components/common/Input';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useRealtime } from '../../context/RealtimeContext';
 import { studentSupportTicketApi, StudentTicketItem as ApiTicketItem } from '../../services/api/studentApi';
 
 const mapApiStatus = (status?: string): SupportTicketItem['status'] => {
@@ -70,6 +71,7 @@ interface SupportTicketItem {
 export const SupportTicketsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { currentUser } = useAuth();
+  const { on } = useRealtime();
   const { formatDate, formatTime, locale, t } = useLanguage();
 
   const [tickets, setTickets] = useState<SupportTicketItem[]>([]);
@@ -80,79 +82,91 @@ export const SupportTicketsPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fetch live tickets from Governance Service
-  useEffect(() => {
-    let isMounted = true;
-    const fetchLiveTickets = async () => {
-      try {
-        setLoading(true);
-        const result = await studentSupportTicketApi.getMyTickets({ pageSize: 50 });
-        const items = result?.items || (result as any)?.data || [];
-        if (isMounted) {
-          if (Array.isArray(items) && items.length > 0) {
-            const mapped: SupportTicketItem[] = items.map((entryValue: any) => {
-              const ticketIdNum = entryValue.supportTicketId || entryValue.ticketId || entryValue.id;
-              return {
-                id: String(ticketIdNum),
-                ticketId: entryValue.ticketNumber || `#TK-${ticketIdNum}`,
-                title: entryValue.subject || entryValue.title || 'Support Request',
-                category: entryValue.category || 'General',
-                priority: mapApiPriority(entryValue.priority),
-                status: mapApiStatus(entryValue.status),
-                courseCode: entryValue.courseCode || undefined,
-                createdDate: entryValue.createdAt ? entryValue.createdAt : t("Mới tạo"),
-                updatedDate: entryValue.updatedAt ? entryValue.updatedAt : t("Mới cập nhật"),
-                reporterName: (currentUser as any)?.fullName || (currentUser as any)?.name || t("Sinh viên FHub"),
-                reporterId: currentUser?.studentId || 'SE-STUDENT',
-                reporterInitials: ((currentUser as any)?.fullName || 'SV').split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase(),
-                description: entryValue.description || '',
-                replies: [],
-              };
-            });
+  const fetchLiveTickets = useCallback(async () => {
+    try {
+      setLoading(true);
+      const result = await studentSupportTicketApi.getMyTickets({ pageSize: 50 });
+      const items = result?.items || (result as any)?.data || [];
+      if (Array.isArray(items) && items.length > 0) {
+        const mapped: SupportTicketItem[] = items.map((entryValue: any) => {
+          const ticketIdNum = entryValue.supportTicketId || entryValue.ticketId || entryValue.id;
+          return {
+            id: String(ticketIdNum),
+            ticketId: entryValue.ticketNumber || `#TK-${ticketIdNum}`,
+            title: entryValue.subject || entryValue.title || 'Support Request',
+            category: entryValue.category || 'General',
+            priority: mapApiPriority(entryValue.priority),
+            status: mapApiStatus(entryValue.status),
+            courseCode: entryValue.courseCode || undefined,
+            createdDate: entryValue.createdAt ? entryValue.createdAt : t("Mới tạo"),
+            updatedDate: entryValue.updatedAt ? entryValue.updatedAt : t("Mới cập nhật"),
+            reporterName: (currentUser as any)?.fullName || (currentUser as any)?.name || t("Sinh viên FHub"),
+            reporterId: currentUser?.studentId || 'SE-STUDENT',
+            reporterInitials: ((currentUser as any)?.fullName || 'SV').split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase(),
+            description: entryValue.description || '',
+            replies: [],
+          };
+        });
 
-            setTickets(mapped);
-          } else {
-            setTickets([]);
-          }
-        }
-      } catch (err) {
-        console.warn('Failed to load tickets from Governance API:', err);
-        if (isMounted) setTickets([]);
-      } finally {
-        if (isMounted) setLoading(false);
+        setTickets(mapped);
+      } else {
+        setTickets([]);
       }
-    };
+    } catch (err) {
+      console.warn('Failed to load tickets from Governance API:', err);
+      setTickets([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUser, t]);
 
-    fetchLiveTickets();
-    return () => { isMounted = false; };
-  }, [currentUser]);
-
-  // Fetch ticket details & messages when selecting a ticket
-  useEffect(() => {
+  const fetchDetail = useCallback(async () => {
     if (!selectedTicketId || selectedTicketId.startsWith('t-')) return;
+    try {
+      const detail = await studentSupportTicketApi.getTicketById(selectedTicketId);
+      if (detail && Array.isArray((detail as any).messages)) {
+        const apiReplies: TicketReply[] = (detail as any).messages.map((m: any) => ({
+          id: String(m.supportTicketMessageId || m.messageId || m.id || Date.now()),
+          senderName: m.senderType === 'STAFF' || m.senderRole === 'STAFF' ? 'FHub Academic Support' : 'You',
+          senderInitials: m.senderType === 'STAFF' ? 'AT' : 'MH',
+          senderRole: m.senderType === 'STAFF' ? 'Staff / Helpdesk' : 'Student',
+          isStaff: m.senderType === 'STAFF' || m.senderRole === 'STAFF',
+          time: m.sentAt ? m.sentAt : 'Just now',
+          content: m.body || m.content || '',
+        }));
 
-    const fetchDetail = async () => {
-      try {
-        const detail = await studentSupportTicketApi.getTicketById(selectedTicketId);
-        if (detail && Array.isArray((detail as any).messages)) {
-          const apiReplies: TicketReply[] = (detail as any).messages.map((m: any) => ({
-            id: String(m.supportTicketMessageId || m.messageId || m.id || Date.now()),
-            senderName: m.senderType === 'STAFF' || m.senderRole === 'STAFF' ? 'FHub Academic Support' : 'You',
-            senderInitials: m.senderType === 'STAFF' ? 'AT' : 'MH',
-            senderRole: m.senderType === 'STAFF' ? 'Staff / Helpdesk' : 'Student',
-            isStaff: m.senderType === 'STAFF' || m.senderRole === 'STAFF',
-            time: m.sentAt ? m.sentAt : 'Just now',
-            content: m.body || m.content || '',
-          }));
-
-          setTickets(prev => prev.map(t => t.id === selectedTicketId ? { ...t, replies: apiReplies } : t));
-        }
-      } catch (err) {
-        console.warn('Failed to fetch full ticket messages from API:', err);
+        setTickets((prev) => prev.map((t) => t.id === selectedTicketId ? { ...t, replies: apiReplies } : t));
       }
-    };
-
-    fetchDetail();
+    } catch (err) {
+      console.warn('Failed to fetch full ticket messages from API:', err);
+    }
   }, [selectedTicketId]);
+
+  useEffect(() => {
+    fetchLiveTickets();
+  }, [fetchLiveTickets]);
+
+  useEffect(() => {
+    fetchDetail();
+  }, [fetchDetail]);
+
+  // Real-time synchronization for support tickets
+  useEffect(() => {
+    const unsub = on('TICKET_UPDATED', () => {
+      fetchLiveTickets();
+    });
+    const unsubReply = on('TICKET_REPLIED', (evt) => {
+      fetchLiveTickets();
+      if (selectedTicketId && String(evt.payload?.ticketId) === String(selectedTicketId)) {
+        fetchDetail();
+      }
+    });
+
+    return () => {
+      unsub();
+      unsubReply();
+    };
+  }, [on, selectedTicketId, fetchLiveTickets, fetchDetail]);
 
   // Create Ticket Modal State (Figma #107:9045)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
