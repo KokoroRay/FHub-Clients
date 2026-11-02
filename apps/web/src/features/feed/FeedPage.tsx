@@ -92,7 +92,6 @@ export const FeedPage: React.FC = () => {
       const params: any = {
         pageNumber: targetPage,
         pageSize: 10,
-        status: 'ACTIVE',
       };
 
       if (searchQuery.trim()) {
@@ -116,12 +115,22 @@ export const FeedPage: React.FC = () => {
         items = items.filter((q: any) => (q.answerCount || 0) === 0);
       }
 
-      // If user selected votes, sort by upvoteCount - downvoteCount descending
+      // Handle sorting:
       if (feedFilter === 'votes') {
         items.sort((a: any, b: any) => {
           const scoreA = (a.upvoteCount || 0) - (a.downvoteCount || 0);
           const scoreB = (b.upvoteCount || 0) - (b.downvoteCount || 0);
           return scoreB - scoreA;
+        });
+      } else if (questionTab === 'interesting') {
+        // Priority order for "For You" (Dành cho bạn):
+        // Pinned first, then high interaction (answers + views), then newest
+        items.sort((a: any, b: any) => {
+          if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
+          const scoreA = (a.answerCount || 0) * 3 + (a.viewCount || 0);
+          const scoreB = (b.answerCount || 0) * 3 + (b.viewCount || 0);
+          if (scoreA !== scoreB) return scoreB - scoreA;
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         });
       }
 
