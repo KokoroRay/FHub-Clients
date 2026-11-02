@@ -31,6 +31,9 @@ apiClient.interceptors.request.use(
             const cleanId = String(rawId).replace(/\D/g, '');
             if (cleanId) {
               config.headers['X-Governance-Account-Id'] = cleanId;
+              if (!config.headers['X-User-Id']) {
+                config.headers['X-User-Id'] = cleanId;
+              }
             }
           }
         } catch {
