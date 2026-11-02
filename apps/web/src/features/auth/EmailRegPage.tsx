@@ -3,6 +3,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, User as UserIcon, ArrowRight, ArrowLeft, Eye, EyeOff, ShieldCheck, MapPin, CheckCircle2 } from 'lucide-react';
 import { campusesApi, authApi } from '../../services/api/adminApi';
+import { setPendingRegistration } from './registrationStore';
 import { validateFptEmail, FptEmailValidationResult, MAJOR_LETTER_MAP } from '../../utils/fptEmailValidator';
 
 const VIETNAMESE_NAME_REGEX = /^[a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂưăạảấầẩẫậắằẳẵặẹẻẽềềểỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪễệỉịọỏốồổỗộớờởỡợụủứừỬỮỰỲỴÝỶỸửữựỳỵỷỹ\s]{2,50}$/;
@@ -99,10 +100,9 @@ export const EmailRegPage: React.FC = () => {
 
     setIsLoading(true);
     try {
-      // Request OTP from server first
-      await authApi.requestPasswordRecovery(email.trim());
+      // Contract fix: Request dedicated registration OTP from auth server
+      await authApi.requestRegisterOtp(email.trim());
 
-      // Save non-sensitive metadata for page reload fallback, NEVER plaintext password (R05)
       const regPayload = {
         fullName: fullName.trim(),
         email: email.trim(),
@@ -110,15 +110,13 @@ export const EmailRegPage: React.FC = () => {
         studentCode: (studentId.trim() || emailInfo?.studentCode || '').toUpperCase(),
         campus: campus || emailInfo?.campusCode || 'HN',
       };
-      sessionStorage.setItem('fhub_pending_reg', JSON.stringify({
-        fullName: regPayload.fullName,
-        email: regPayload.email,
-        studentCode: regPayload.studentCode,
-        campus: regPayload.campus,
-      }));
 
-      // Pass full ephemeral state via router navigation history (in-memory)
-      navigate('/otp-verify?mode=register', { state: regPayload });
+      // Security fix: Store credentials strictly in JavaScript memory - NEVER in sessionStorage, localStorage, or history.state
+      setPendingRegistration(regPayload);
+      sessionStorage.removeItem('fhub_pending_reg');
+
+      // Navigate with only non-sensitive email indicator, NO password in history state
+      navigate('/otp-verify?mode=register', { state: { email: regPayload.email } });
     } catch (err: any) {
       const msg = err.response?.data?.message || err.message || t("Không thể gửi mã xác thực OTP. Vui lòng thử lại.");
       setErrorMessage(msg);

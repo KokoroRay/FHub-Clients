@@ -115,20 +115,7 @@ export const LoginPage: React.FC = () => {
 
     try {
       const result = await authApi.googleLogin(idToken);
-      if (result.accessToken) {
-        if (rememberMe) {
-          localStorage.setItem('fhub_token', result.accessToken);
-        } else {
-          sessionStorage.setItem('fhub_token', result.accessToken);
-        }
-      }
-      if (result.refreshToken) {
-        if (rememberMe) {
-          localStorage.setItem('fhub_refresh_token', result.refreshToken);
-        } else {
-          sessionStorage.setItem('fhub_refresh_token', result.refreshToken);
-        }
-      }
+
       const roles = result.user?.roles || [];
       let mappedRole: User['role'] = 'Student';
       if (roles.includes('Admin')) mappedRole = 'Admin';

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { KeyRound, ArrowLeft, ShieldCheck, RotateCcw } from 'lucide-react';
 import { authApi } from '../../services/api/adminApi';
+import { getPendingRegistration, clearPendingRegistration } from './registrationStore';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { User } from '../../types';
@@ -21,6 +22,11 @@ export const OTPVerifyPage: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const getPendingReg = () => {
+    // 1. Check secure in-memory ephemeral store first
+    const inMemory = getPendingRegistration();
+    if (inMemory) return inMemory;
+
+    // 2. Fallback to router state or session storage for non-sensitive data
     try {
       if (location.state && typeof location.state === 'object' && (location.state as any).email) {
         return location.state as any;
@@ -145,7 +151,12 @@ export const OTPVerifyPage: React.FC = () => {
           return;
         }
 
-        const result = await authApi.register(pendingReg);
+        // Contract fix: Attach entered OTP code to the registration request
+        const result = await authApi.register({
+          ...pendingReg,
+          otpCode: code,
+        });
+        clearPendingRegistration();
         sessionStorage.removeItem('fhub_pending_reg');
 
         const userObj: User = {
@@ -177,6 +188,7 @@ export const OTPVerifyPage: React.FC = () => {
 
   const handleBack = () => {
     if (mode === 'register') {
+      clearPendingRegistration();
       navigate('/email-reg');
     } else {
       navigate('/forgot-password');

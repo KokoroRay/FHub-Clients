@@ -74,7 +74,7 @@ export const EmailAuthPage: React.FC = () => {
         status: 'ACTIVE',
         badges: [],
       };
-      login(userObj, result.accessToken, result.refreshToken);
+      login(userObj, result.accessToken, result.refreshToken, rememberMe);
 
       if (mappedRole === 'Admin') navigate('/admin-console');
       else if (mappedRole === 'Community Moderator') navigate('/admin-console/moderation');
