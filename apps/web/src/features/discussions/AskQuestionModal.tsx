@@ -23,6 +23,8 @@ import {
   ChevronDown,
   ChevronUp,
   UploadCloud,
+  Plus,
+  Globe,
   Loader2,
   FileCode,
 } from 'lucide-react';
@@ -37,6 +39,7 @@ import { Input, Select } from '../../components/common/Input';
 import { CourseSelect } from '../../components/common/CourseSelect';
 import { questionApi, contentMediaApi } from '../../services/api/contentApi';
 import { MarkdownPreview } from '../../components/common/MarkdownPreview';
+import { normalizeMediaUrl } from '../../utils/mediaUtils';
 import { FALLBACK_ALL_TAGS } from '../../utils/tagUtils';
 
 export interface AskQuestionModalProps {
@@ -82,6 +85,14 @@ const OLD_UNUSED_TAGS = [
   { id: 120, name: 'winforms', count: 12 },
 ];
 
+interface AttachedMediaItem {
+  id: string;
+  name: string;
+  url: string;
+  type: 'image' | 'gif';
+  sizeBytes?: number;
+}
+
 export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
   isOpen,
   onClose,
@@ -116,6 +127,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
   const [snippetLanguage, setSnippetLanguage] = useState('csharp');
   const [snippetCode, setSnippetCode] = useState('');
   const [snippetFileName, setSnippetFileName] = useState('');
+  const [attachedMedia, setAttachedMedia] = useState<AttachedMediaItem[]>([]);
 
   // 1. Load courses & tags on open
   useEffect(() => {
@@ -374,7 +386,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
     insertFormatting(`\`\`\`${lang}\n`, '\n```\n', t("// Nhập đoạn mã của bạn ở đây"));
   };
 
-  // Media upload to Cloudflare R2 (Support Images & animated GIFs)
+  // Media upload to Cloudflare R2 (Support Images & animated GIFs) - Facebook style attached media
   const handleMediaUpload = async (file: File) => {
     const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif'];
     if (!validTypes.includes(file.type.toLowerCase())) {
@@ -390,9 +402,18 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
     setErrorMessage(null);
     try {
       const res = await contentMediaApi.uploadMedia(file, 'question');
-      const cleanName = (file.name || 'image').replace(/[[\]()]/g, '');
-      const imageMd = `\n![${cleanName}](${res.publicUrl})\n`;
-      insertFormatting(imageMd, '');
+      const cleanName = (file.name || 'image').replace(/[\[\]()]/g, '');
+      const isGif = file.type.toLowerCase().includes('gif') || cleanName.toLowerCase().endsWith('.gif');
+      
+      const newMediaItem: AttachedMediaItem = {
+        id: `media-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+        name: cleanName,
+        url: res.publicUrl,
+        type: isGif ? 'gif' : 'image',
+        sizeBytes: file.size,
+      };
+
+      setAttachedMedia((prev) => [...prev, newMediaItem]);
     } catch (err: any) {
       console.error('Failed to upload image/gif to R2:', err);
       setErrorMessage(t('askModal.errorMediaUploadFailed', 'Tải ảnh/GIF lên Cloudflare R2 thất bại. Vui lòng kiểm tra lại.'));
@@ -402,6 +423,10 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
         fileInputRef.current.value = '';
       }
     }
+  };
+
+  const removeAttachedMedia = (id: string) => {
+    setAttachedMedia((prev) => prev.filter((item) => item.id !== id));
   };
 
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
@@ -442,6 +467,14 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
     setSnippetFileName('');
   };
 
+  const previewFullContent = useMemo(() => {
+    const mediaMd = attachedMedia.map((m) => `![${m.name}](${m.url})`).join('\n\n');
+    if (!content.trim()) {
+      return mediaMd;
+    }
+    return mediaMd ? `${content.trim()}\n\n${mediaMd}` : content.trim();
+  }, [content, attachedMedia]);
+
   const insertTable = () => {
     const tableTemplate = t("\n| Cột 1 | Cột 2 | Cột 3 |\n| :--- | :--- | :--- |\n| Dữ liệu A | Dữ liệu B | Dữ liệu C |\n| Dữ liệu D | Dữ liệu E | Dữ liệu F |\n");
     insertFormatting(tableTemplate, '');
@@ -454,8 +487,9 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
       setErrorMessage(t('askModal.errorTitleMin', 'Tiêu đề câu hỏi quá ngắn. Vui lòng nhập ít nhất 10 ký tự để người khác dễ hiểu vấn đề.'));
       return;
     }
-    if (content.trim().length < 20) {
-      setErrorMessage(t('askModal.errorContentMin', 'Nội dung chi tiết câu hỏi cần tối thiểu 20 ký tự.'));
+    const hasEnoughContent = content.trim().length >= 20 || (content.trim().length >= 10 && attachedMedia.length > 0);
+    if (!hasEnoughContent) {
+      setErrorMessage(t('askModal.errorContentMin', 'Nội dung chi tiết câu hỏi cần tối thiểu 20 ký tự (hoặc 10 ký tự nếu đã đính kèm ảnh/GIF).'));
       return;
     }
 
@@ -469,7 +503,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
     try {
       const res = await questionApi.createQuestion({
         title: title.trim(),
-        body: content.trim(),
+        body: attachedMedia.length > 0 ? `${content.trim()}\n\n${attachedMedia.map((m) => `![${m.name}](${m.url})`).join('\n\n')}` : content.trim(),
         courseId: numericCourseId,
         isAnonymous,
         semanticTagIds: semanticTagIds.length > 0 ? semanticTagIds : undefined,
@@ -509,7 +543,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
       const fallbackQuestion: QuestionPost = {
         id: `q-${Date.now()}`,
         title: title.trim(),
-        content: content.trim(),
+        content: attachedMedia.length > 0 ? `${content.trim()}\n\n${attachedMedia.map((m) => `![${m.name}](${m.url})`).join('\n\n')}` : content.trim(),
         courseCode: courseCode || undefined,
         author: {
           id: isAnonymous ? 'anon' : currentUser?.id || 'usr',
@@ -544,6 +578,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
     setSelectedTags([]);
     setTagInput('');
     setIsAnonymous(false);
+    setAttachedMedia([]);
     setErrorMessage(null);
     setViewMode('write');
   };
@@ -566,6 +601,58 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4">
+{/* Facebook Style Author & Audience Header */}
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full overflow-hidden bg-slate-200 dark:bg-slate-700 flex items-center justify-center font-bold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
+              {isAnonymous ? (
+                <EyeOff className="w-5 h-5 text-purple-600" />
+              ) : currentUser?.avatarUrl ? (
+                <img src={normalizeMediaUrl(currentUser.avatarUrl)} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                <span>{(currentUser?.fullName || 'U').charAt(0).toUpperCase()}</span>
+              )}
+            </div>
+            <div>
+              <p className="font-bold text-sm text-slate-900 dark:text-slate-100 leading-tight">
+                {isAnonymous ? t('askModal.anonymousAuthor', 'Sinh viên FPT (Ẩn danh)') : (currentUser?.fullName || t('askModal.student', 'Sinh viên FPT'))}
+              </p>
+              <div className="flex items-center gap-1.5 mt-1">
+                {/* Facebook style Audience selector pill */}
+                <button
+                  type="button"
+                  onClick={() => setIsAnonymous((prev) => !prev)}
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border transition-all cursor-pointer ${
+                    isAnonymous
+                      ? 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800'
+                      : 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
+                  }`}
+                  title={t('askModal.toggleAudience', 'Thay đổi chế độ hiển thị danh tính')}
+                >
+                  {isAnonymous ? (
+                    <>
+                      <EyeOff className="w-3 h-3 text-purple-600" />
+                      <span>{t('askModal.audienceAnonymous', 'Ẩn danh')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Globe className="w-3 h-3 text-slate-500" />
+                      <span>{t('askModal.audiencePublic', 'Công khai')}</span>
+                    </>
+                  )}
+                  <ChevronDown className="w-3 h-3 opacity-60" />
+                </button>
+
+                {!isAnonymous && currentUser?.campus && (
+                  <span className="text-[11px] text-slate-400 font-medium">
+                    • {currentUser.campus}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
         {errorMessage && (
           <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold flex items-center gap-2">
             <HelpCircle className="w-4 h-4 text-rose-500 shrink-0" />
@@ -1003,17 +1090,105 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
                   className="w-full p-3 text-xs sm:text-sm font-sans leading-relaxed text-slate-800 dark:text-slate-200 placeholder-slate-400 bg-white dark:bg-slate-900 focus:outline-none resize-none"
                   required
                 />
-                <div className="p-3 bg-slate-50/50 dark:bg-slate-950/40 overflow-y-auto max-h-[260px]">
-                  <MarkdownPreview content={content} />
+                <div className="p-3 bg-slate-50/50 dark:bg-slate-950/40 overflow-y-auto max-h-[300px] space-y-2">
+                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 pb-1.5 border-b border-slate-200 dark:border-slate-800">
+                    <Eye className="w-3.5 h-3.5 text-blue-600" />
+                    <span>{t('askModal.previewTitle', 'Bản xem trước')}</span>
+                  </div>
+                  <MarkdownPreview content={previewFullContent} />
                 </div>
               </div>
             )}
 
             {viewMode === 'preview' && (
-              <div className="p-3.5 bg-slate-50/50 dark:bg-slate-950/40 min-h-[190px] max-h-[300px] overflow-y-auto">
-                <MarkdownPreview content={content} />
+              <div className="p-3.5 bg-slate-50/50 dark:bg-slate-950/40 min-h-[190px] max-h-[320px] overflow-y-auto space-y-2">
+                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 pb-1.5 border-b border-slate-200 dark:border-slate-800">
+                  <Eye className="w-3.5 h-3.5 text-blue-600" />
+                  <span>{t('askModal.previewTitle', 'Bản xem trước')}</span>
+                </div>
+                <MarkdownPreview content={previewFullContent} />
               </div>
             )}
+
+            
+          {/* Facebook-style Attached Media Section */}
+          {attachedMedia.length === 0 ? (
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className="p-4 border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 dark:hover:border-blue-400 rounded-2xl bg-slate-50/70 dark:bg-slate-900/40 hover:bg-blue-50/40 dark:hover:bg-blue-950/20 transition-all cursor-pointer flex flex-col items-center justify-center text-center group"
+            >
+              <div className="w-10 h-10 rounded-full bg-slate-200/80 dark:bg-slate-800 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/60 flex items-center justify-center text-slate-600 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 mb-1.5 transition-colors">
+                <UploadCloud className="w-5 h-5" />
+              </div>
+              <p className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200">
+                {t('askModal.addMediaTitle', 'Thêm ảnh hoặc video / GIF')}
+              </p>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                {t('askModal.addMediaSub', 'hoặc kéo và thả tệp từ máy tính, dán (Ctrl+V)')}
+              </p>
+            </div>
+          ) : (
+            <div className="p-3.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-3 animate-in fade-in">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-200">
+                    {t('askModal.mediaUploadedTitle', 'File phương tiện đã tải lên')}
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[11px] bg-blue-100 dark:bg-blue-950 text-blue-600 dark:text-blue-400 font-bold">
+                    {attachedMedia.length}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploadingMedia}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>{t('askModal.addMoreMedia', 'Thêm file khác')}</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                {attachedMedia.map((item) => (
+                  <div
+                    key={item.id}
+                    className="relative group rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-900 aspect-video flex items-center justify-center shadow-xs"
+                  >
+                    <img
+                      src={normalizeMediaUrl(item.url)}
+                      alt={item.name}
+                      className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                    />
+                    {item.type === 'gif' && (
+                      <span className="absolute bottom-2 left-2 px-1.5 py-0.5 rounded bg-black/80 text-white font-mono text-[9px] font-bold tracking-wider backdrop-blur-xs">
+                        GIF
+                      </span>
+                    )}
+                    {/* Remove button like Facebook */}
+                    <button
+                      type="button"
+                      onClick={() => removeAttachedMedia(item.id)}
+                      className="absolute top-2 right-2 w-6 h-6 rounded-full bg-slate-900/85 hover:bg-rose-600 text-white flex items-center justify-center transition-all shadow-md cursor-pointer"
+                      title={t('askModal.removeMedia', 'Gỡ tệp này')}
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                    <div className="absolute inset-x-0 bottom-0 p-1.5 bg-gradient-to-t from-black/80 via-black/40 to-transparent text-[10px] text-white truncate px-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {item.name}
+                    </div>
+                  </div>
+                ))}
+
+                {isUploadingMedia && (
+                  <div className="rounded-xl border border-dashed border-blue-400 bg-blue-50/60 dark:bg-blue-950/40 aspect-video flex flex-col items-center justify-center text-center p-2 text-blue-600 animate-pulse">
+                    <Loader2 className="w-5 h-5 animate-spin mb-1" />
+                    <span className="text-[10px] font-semibold">{t('askModal.uploadingStatus', 'Đang tải lên...')}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
             {/* Character count bar */}
             <div className="px-3 py-1.5 bg-slate-50/80 dark:bg-slate-950/70 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px]">
