@@ -94,7 +94,6 @@ function getAdminHeaders(): HeadersInit {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     'X-Governance-Account-Id': userId,
-    'X-User-Id': userId,
   };
 }
 

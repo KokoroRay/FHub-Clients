@@ -20,25 +20,22 @@ apiClient.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    // Default admin governance and user headers expected by FHub backend services
-    const storedUser = localStorage.getItem('fhub_user');
-    let userId = '1';
-    if (storedUser) {
-      try {
-        const u = JSON.parse(storedUser);
-        const rawId = u.userId ?? u.id;
-        if (rawId != null) userId = String(rawId).replace(/\D/g, '') || '1';
-      } catch {
-        // ignore parse error
-      }
-    }
-
-    if (config.headers) {
-      if (!config.headers['X-Governance-Account-Id']) {
-        config.headers['X-Governance-Account-Id'] = userId;
-      }
-      if (!config.headers['X-User-Id']) {
-        config.headers['X-User-Id'] = userId;
+    // Attach governance account ID only when authenticated
+    if (token && config.headers && !config.headers['X-Governance-Account-Id']) {
+      const storedUser = localStorage.getItem('fhub_user') || sessionStorage.getItem('fhub_user');
+      if (storedUser) {
+        try {
+          const u = JSON.parse(storedUser);
+          const rawId = u.userId ?? u.id;
+          if (rawId != null) {
+            const cleanId = String(rawId).replace(/\D/g, '');
+            if (cleanId) {
+              config.headers['X-Governance-Account-Id'] = cleanId;
+            }
+          }
+        } catch {
+          // ignore parse error
+        }
       }
     }
 
