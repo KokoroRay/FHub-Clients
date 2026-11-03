@@ -16,7 +16,7 @@ export const MainLayout: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#F8F9FA] dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans selection:bg-blue-100 selection:text-blue-900">
       <Header />
-      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-6 flex-1 w-full flex gap-6 items-start">
+      <div className={`${isMessagesPage ? 'max-w-[1680px] px-3 sm:px-6 py-4' : 'max-w-[1280px] px-4 sm:px-6 py-6'} mx-auto flex-1 w-full flex gap-6 items-start`}>
         <LeftSidebar />
         <main className={`flex-1 min-w-0 w-full ${isMessagesPage ? 'pb-2' : 'pb-16'}`}>
           <ErrorBoundary>

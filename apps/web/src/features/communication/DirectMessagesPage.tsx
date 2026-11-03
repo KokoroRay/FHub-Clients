@@ -78,19 +78,30 @@ interface BlockedItem {
   blockedAt: string;
 }
 
-const POPULAR_GIFS = [
-  { id: '1', title: 'Thumbs Up', url: 'https://media.giphy.com/media/111ebonMs90YLu/giphy.gif' },
-  { id: '2', title: 'Celebration', url: 'https://media.giphy.com/media/artj92V8o75VPL7AeQ/giphy.gif' },
-  { id: '3', title: 'Typing Code', url: 'https://media.giphy.com/media/unQ3IJU2RG7DO/giphy.gif' },
-  { id: '4', title: 'Awesome', url: 'https://media.giphy.com/media/3o7abKhOpu0NwenH3O/giphy.gif' },
-  { id: '5', title: 'Clapping', url: 'https://media.giphy.com/media/nbvFVPiEiJH6Q/giphy.gif' },
-  { id: '6', title: 'Cat Typing', url: 'https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif' },
-  { id: '7', title: 'Thank You', url: 'https://media.giphy.com/media/osAcIGJnyeRqaJAbrC/giphy.gif' },
-  { id: '8', title: 'Mind Blown', url: 'https://media.giphy.com/media/26ufdipQqU2lhNA4g/giphy.gif' },
-  { id: '9', title: 'High Five', url: 'https://media.giphy.com/media/3oEjHV0z8S7WM4MwnK/giphy.gif' },
-  { id: '10', title: 'Laughing', url: 'https://media.giphy.com/media/10JhviFuU2gWD6/giphy.gif' },
-  { id: '11', title: 'Happy Dance', url: 'https://media.giphy.com/media/blSTtZehjAZ8I/giphy.gif' },
-  { id: '12', title: 'Confused', url: 'https://media.giphy.com/media/g01ZnwAUvutuK8GIQn/giphy.gif' },
+interface GifItem {
+  id: string;
+  title: string;
+  url: string;
+  tags: string[];
+}
+
+const ALL_GIFS: GifItem[] = [
+  { id: '1', title: 'Thumbs Up', url: 'https://media.giphy.com/media/111ebonMs90YLu/giphy.gif', tags: ['đồng ý', 'like', 'good', 'thịnh hành', 'tuyệt'] },
+  { id: '2', title: 'Celebration', url: 'https://media.giphy.com/media/artj92V8o75VPL7AeQ/giphy.gif', tags: ['chúc mừng', 'thành công', 'party', 'vỗ tay', 'thịnh hành'] },
+  { id: '3', title: 'Typing Code', url: 'https://media.giphy.com/media/unQ3IJU2RG7DO/giphy.gif', tags: ['code', 'lập trình', 'dev', 'hacker', 'fpt'] },
+  { id: '4', title: 'Awesome', url: 'https://media.giphy.com/media/3o7abKhOpu0NwenH3O/giphy.gif', tags: ['tuyệt vời', 'hay', 'thịnh hành', 'vỗ tay'] },
+  { id: '5', title: 'Clapping', url: 'https://media.giphy.com/media/nbvFVPiEiJH6Q/giphy.gif', tags: ['vỗ tay', 'clap', 'khen', 'bravo'] },
+  { id: '6', title: 'Cat Typing', url: 'https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif', tags: ['mèo', 'cat', 'code', 'lập trình', 'cute'] },
+  { id: '7', title: 'Thank You', url: 'https://media.giphy.com/media/osAcIGJnyeRqaJAbrC/giphy.gif', tags: ['cảm ơn', 'thanks', 'thank you', 'biết ơn'] },
+  { id: '8', title: 'Mind Blown', url: 'https://media.giphy.com/media/26ufdipQqU2lhNA4g/giphy.gif', tags: ['bất ngờ', 'ảo', 'wow', 'thịnh hành'] },
+  { id: '9', title: 'High Five', url: 'https://media.giphy.com/media/3oEjHV0z8S7WM4MwnK/giphy.gif', tags: ['đập tay', 'bạn bè', 'team', 'vỗ tay'] },
+  { id: '10', title: 'Laughing', url: 'https://media.giphy.com/media/10JhviFuU2gWD6/giphy.gif', tags: ['haha', 'cười', 'vui', 'funny', 'lol'] },
+  { id: '11', title: 'Happy Dance', url: 'https://media.giphy.com/media/blSTtZehjAZ8I/giphy.gif', tags: ['vui', 'dance', 'nhảy', 'thịnh hành'] },
+  { id: '12', title: 'Confused', url: 'https://media.giphy.com/media/g01ZnwAUvutuK8GIQn/giphy.gif', tags: ['khó hiểu', 'hỏi chấm', 'confused', 'lag'] },
+  { id: '13', title: 'Cat Vibe', url: 'https://media.giphy.com/media/jpbnoe3UIa8TU8LM13/giphy.gif', tags: ['mèo', 'vibe', 'cute', 'nhạc'] },
+  { id: '14', title: 'OK Hand', url: 'https://media.giphy.com/media/3o7abKhOpu0NwenH3O/giphy.gif', tags: ['ok', 'đồng ý', 'nhất trí'] },
+  { id: '15', title: 'Bug Hunting', url: 'https://media.giphy.com/media/ule4akeEDWAYE/giphy.gif', tags: ['lập trình', 'code', 'bug', 'fix'] },
+  { id: '16', title: 'Yes Yes', url: 'https://media.giphy.com/media/nXxOjZrbnbRxS/giphy.gif', tags: ['đồng ý', 'yes', 'chuẩn'] },
 ];
 
 export const DirectMessagesPage: React.FC = () => {
@@ -119,7 +130,7 @@ export const DirectMessagesPage: React.FC = () => {
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [gifSearchQuery, setGifSearchQuery] = useState('');
-  const [gifResults, setGifResults] = useState<{ id: string; title: string; url: string }[]>(POPULAR_GIFS);
+  const [gifResults, setGifResults] = useState<{ id: string; title: string; url: string }[]>(ALL_GIFS);
   const [isLoadingGifs, setIsLoadingGifs] = useState(false);
   const [previewLightboxUrl, setPreviewLightboxUrl] = useState<string | null>(null);
 
@@ -136,7 +147,7 @@ export const DirectMessagesPage: React.FC = () => {
   const [confirmRecallMsgId, setConfirmRecallMsgId] = useState<string | null>(null);
   const [activeMsgMenuId, setActiveMsgMenuId] = useState<string | null>(null);
   const [showDeleteConvModal, setShowDeleteConvModal] = useState(false);
-  const [showClearAllModal, setShowClearAllModal] = useState(false);
+
   const [confirmBlockConv, setConfirmBlockConv] = useState<ConversationItem | null>(null);
   const [confirmUnblockItem, setConfirmUnblockItem] = useState<BlockedItem | null>(null);
   const [blockedList, setBlockedList] = useState<BlockedItem[]>([]);
@@ -160,7 +171,7 @@ export const DirectMessagesPage: React.FC = () => {
             role: c.role || t("Thành viên FHub"),
             statusText: t("Hoạt động"),
             isActiveNow: true,
-            lastMessage: c.lastMessage || '',
+            lastMessage: c.lastMessage && c.lastMessage !== 'Chưa có tin nhắn' ? c.lastMessage : (c.lastMessageType === 'GIF' ? '[Ảnh GIF]' : (c.lastMessageType === 'IMAGE' ? '[Hình ảnh]' : (c.lastMessage || ''))),
             lastTime: c.lastMessageAt ? c.lastMessageAt : t("Vừa xong"),
             unreadCount: c.unreadCount || 0,
             isBlocked: c.isBlocked || false,
@@ -449,6 +460,14 @@ export const DirectMessagesPage: React.FC = () => {
       const idx = prev.findIndex(c => c.id === activeConvId);
       if (idx === -1) return prev;
       const updated = [...prev];
+      updated[idx] = { ...updated[idx], lastMessage: '[Ảnh GIF]', lastTime: new Date().toISOString() };
+      return updated;
+    });
+
+    setConversations(prev => {
+      const idx = prev.findIndex(c => c.id === activeConvId);
+      if (idx === -1) return prev;
+      const updated = [...prev];
       updated[idx] = {
         ...updated[idx],
         lastMessage: trimmed,
@@ -507,6 +526,14 @@ export const DirectMessagesPage: React.FC = () => {
       messageType: 'IMAGE',
       attachmentUrl: localBlobUrl,
     };
+
+    setConversations(prev => {
+      const idx = prev.findIndex(c => c.id === activeConvId);
+      if (idx === -1) return prev;
+      const updated = [...prev];
+      updated[idx] = { ...updated[idx], lastMessage: '[Hình ảnh]', lastTime: new Date().toISOString() };
+      return updated;
+    });
 
     setMessages(prev => ({
       ...prev,
@@ -671,19 +698,7 @@ export const DirectMessagesPage: React.FC = () => {
     }
   };
 
-  // Execute clear all conversations (Xóa tất cả cuộc hội thoại)
-  const executeClearAllConversations = async () => {
-    setShowClearAllModal(false);
-    setConversations([]);
-    setMessages({});
-    setActiveConvId('');
 
-    try {
-      await directMessageApi.clearAllConversations();
-    } catch (err) {
-      console.warn('Failed to clear all conversations:', err);
-    }
-  };
 
   const executeBlockUser = async () => {
     if (!confirmBlockConv) return;
@@ -829,16 +844,7 @@ export const DirectMessagesPage: React.FC = () => {
                 className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#0076D1] text-slate-800 dark:text-slate-100 placeholder-slate-400"
               />
             </div>
-            {conversations.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setShowClearAllModal(true)}
-                title={t('Xóa tất cả cuộc hội thoại')}
-                className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-colors cursor-pointer shrink-0"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            )}
+            
           </div>
 
           {/* Conversations Items */}
@@ -915,7 +921,7 @@ export const DirectMessagesPage: React.FC = () => {
                       </div>
 
                       <p className={`text-xs truncate ${conv.unreadCount > 0 ? 'font-bold text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}>
-                        {conv.lastMessage || t("Chưa có tin nhắn")}
+                        {conv.lastMessage || (conv.lastTime ? '[Ảnh GIF / Tệp]' : t("Chưa có tin nhắn"))}
                       </p>
                     </div>
 
@@ -1719,38 +1725,7 @@ export const DirectMessagesPage: React.FC = () => {
         </div>
       )}
 
-      {/* Confirmation Modal: Xóa tất cả cuộc hội thoại */}
-      {showClearAllModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 max-w-sm w-full p-5 space-y-4 animate-in fade-in zoom-in-95">
-            <div className="flex items-center gap-3 text-rose-600">
-              <div className="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/60">
-                <Trash2 className="w-5 h-5" />
-              </div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{t("Xóa tất cả cuộc hội thoại?")}</h3>
-            </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              {t("Hành động này sẽ xóa toàn bộ danh sách cuộc trò chuyện và tin nhắn của bạn. Bạn không thể hoàn tác thao tác này.")}
-            </p>
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setShowClearAllModal(false)}
-                className="px-3.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer"
-              >
-                {t("common.cancel", "Hủy")}
-              </button>
-              <button
-                type="button"
-                onClick={executeClearAllConversations}
-                className="px-3.5 py-1.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors shadow-2xs cursor-pointer"
-              >
-                {t("Xác nhận xóa tất cả")}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* Confirmation Modal: Block User */}
       {confirmBlockConv && (
