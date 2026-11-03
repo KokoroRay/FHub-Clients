@@ -38,6 +38,7 @@ import { normalizeMediaUrl } from '../../utils/mediaUtils';
 import { Answer, CommentItem, QuestionPost } from '../../types';
 import { Card, CardBody, CardHeader } from '../../components/common/Card';
 import { Badge } from '../../components/common/Badge';
+import { UserHoverCard } from '../../components/common/UserHoverCard';
 import { Button } from '../../components/common/Button';
 import { Textarea } from '../../components/common/Input';
 import { MarkdownPreview } from '../../components/common/MarkdownPreview';
@@ -771,22 +772,33 @@ export const QuestionDetailPage: React.FC = () => {
                     </div>
                   </div>
                 ) : (
-                  <>
-                    <img
-                      src={normalizeMediaUrl(getAuthorAvatar(question.author.id, question.author.avatarUrl, question.author.isAnonymous)) || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
-                      alt={getAuthorDisplayName(question.author.id, question.author.fullName, question.author.isAnonymous)}
-                      className="w-8 h-8 rounded-full object-cover"
-                    />
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-slate-800 dark:text-slate-200">{getAuthorDisplayName(question.author.id, question.author.fullName, question.author.isAnonymous)}</span>
-                        <Badge variant="neutral" size="sm">{question.author.campus || 'FU-HL'}</Badge>
+                  <UserHoverCard
+                    userId={question.author.id}
+                    initialData={{
+                      fullName: getAuthorDisplayName(question.author.id, question.author.fullName, question.author.isAnonymous),
+                      avatarUrl: getAuthorAvatar(question.author.id, question.author.avatarUrl, question.author.isAnonymous),
+                      campus: question.author.campus,
+                    }}
+                  >
+                    <div className="flex items-center gap-2.5 group cursor-pointer">
+                      <img
+                        src={normalizeMediaUrl(getAuthorAvatar(question.author.id, question.author.avatarUrl, question.author.isAnonymous)) || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
+                        alt={getAuthorDisplayName(question.author.id, question.author.fullName, question.author.isAnonymous)}
+                        className="w-8 h-8 rounded-full object-cover group-hover:ring-2 group-hover:ring-[#0076D1] transition-all"
+                      />
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-slate-800 dark:text-slate-200 group-hover:text-[#0076D1] dark:group-hover:text-blue-400 group-hover:underline transition-colors">
+                            {getAuthorDisplayName(question.author.id, question.author.fullName, question.author.isAnonymous)}
+                          </span>
+                          <Badge variant="neutral" size="sm">{question.author.campus || 'FU-HL'}</Badge>
+                        </div>
+                        <span className="text-[10px] text-slate-400">
+                          {t('questions.askedAt', 'Đã hỏi:')} {new Date(question.createdAt).toLocaleDateString(locale)} • {t('questions.views', 'Xem:')} {question.viewsCount} {t('questions.viewsSuffix', 'lượt')}
+                        </span>
                       </div>
-                      <span className="text-[10px] text-slate-400">
-                        {t('questions.askedAt', 'Đã hỏi:')} {new Date(question.createdAt).toLocaleDateString(locale)} • {t('questions.views', 'Xem:')} {question.viewsCount} {t('questions.viewsSuffix', 'lượt')}
-                      </span>
                     </div>
-                  </>
+                  </UserHoverCard>
                 )}
               </div>
 
@@ -929,36 +941,52 @@ export const QuestionDetailPage: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   {ans.author.isAnonymous ? (
-                    <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 flex items-center justify-center font-bold border border-purple-200 dark:border-purple-800 shrink-0">
-                      <EyeOff className="w-4 h-4" />
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 flex items-center justify-center font-bold border border-purple-200 dark:border-purple-800 shrink-0">
+                        <EyeOff className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100">
+                            {getAuthorDisplayName(ans.author.id, ans.author.fullName, ans.author.isAnonymous)}
+                          </span>
+                          <Badge variant="purple" size="sm">{t("Ẩn danh")}</Badge>
+                        </div>
+                        <span className="text-[10px] text-slate-400 font-medium">
+                          {`${t('questions.answeredAt', 'Trả lời:')} ${new Date(ans.createdAt).toLocaleDateString(locale)}`}
+                        </span>
+                      </div>
                     </div>
                   ) : (
-                    <img
-                      src={normalizeMediaUrl(getAuthorAvatar(ans.author.id, ans.author.avatarUrl, ans.author.isAnonymous)) || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
-                      alt={getAuthorDisplayName(ans.author.id, ans.author.fullName, ans.author.isAnonymous)}
-                      className="w-8 h-8 rounded-full object-cover"
-                    />
+                    <UserHoverCard
+                      userId={ans.author.id}
+                      initialData={{
+                        fullName: getAuthorDisplayName(ans.author.id, ans.author.fullName, ans.author.isAnonymous),
+                        avatarUrl: getAuthorAvatar(ans.author.id, ans.author.avatarUrl, ans.author.isAnonymous),
+                        campus: ans.author.campus,
+                      }}
+                    >
+                      <div className="flex items-center gap-3 group cursor-pointer">
+                        <img
+                          src={normalizeMediaUrl(getAuthorAvatar(ans.author.id, ans.author.avatarUrl, ans.author.isAnonymous)) || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
+                          alt={getAuthorDisplayName(ans.author.id, ans.author.fullName, ans.author.isAnonymous)}
+                          className="w-8 h-8 rounded-full object-cover group-hover:ring-2 group-hover:ring-[#0076D1] transition-all"
+                        />
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100 group-hover:text-[#0076D1] dark:group-hover:text-blue-400 group-hover:underline transition-colors">
+                              {getAuthorDisplayName(ans.author.id, ans.author.fullName, ans.author.isAnonymous)}
+                            </span>
+                            <Badge variant="purple" size="sm">{t(ans.author.role)}</Badge>
+                            <Badge variant="neutral" size="sm">{ans.author.campus || 'FU-HL'}</Badge>
+                          </div>
+                          <span className="text-[10px] text-slate-400 font-medium">
+                            {t("Karma: {p0} pts • {p1} {p2}", undefined, { p0: ans.author.karma.toLocaleString(locale), p1: t('questions.answeredAt', 'Trả lời:'), p2: new Date(ans.createdAt).toLocaleDateString(locale) })}
+                          </span>
+                        </div>
+                      </div>
+                    </UserHoverCard>
                   )}
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100">
-                        {getAuthorDisplayName(ans.author.id, ans.author.fullName, ans.author.isAnonymous)}
-                      </span>
-                      {ans.author.isAnonymous ? (
-                        <Badge variant="purple" size="sm">{t("Ẩn danh")}</Badge>
-                      ) : (
-                        <>
-                          <Badge variant="purple" size="sm">{t(ans.author.role)}</Badge>
-                          <Badge variant="neutral" size="sm">{ans.author.campus || 'FU-HL'}</Badge>
-                        </>
-                      )}
-                    </div>
-                    <span className="text-[10px] text-slate-400 font-medium">
-                      {ans.author.isAnonymous
-                        ? `${t('questions.answeredAt', 'Trả lời:')} ${new Date(ans.createdAt).toLocaleDateString(locale)}`
-                        : t("Karma: {p0} pts • {p1} {p2}", undefined, { p0: ans.author.karma.toLocaleString(locale), p1: t('questions.answeredAt', 'Trả lời:'), p2: new Date(ans.createdAt).toLocaleDateString(locale) })}
-                    </span>
-                  </div>
                 </div>
 
                 <div className="flex items-center gap-1.5">

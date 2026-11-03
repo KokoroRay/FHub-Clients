@@ -32,6 +32,7 @@ import { articleApi } from '../../services/api/contentApi';
 import { voteApi, bookmarkApi, notificationApi } from '../../services/api/studentApi';
 import { normalizeMediaUrl } from '../../utils/mediaUtils';
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
+import { UserHoverCard } from '../../components/common/UserHoverCard';
 import {
   loadAllSemanticTags,
   getSemanticTagMap,
@@ -298,17 +299,26 @@ export const ArticleDetailPage: React.FC = () => {
 
                 {/* Author Card Header */}
                 <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-3">
-                  <div className="flex items-center gap-3">
-                    <img src={normalizeMediaUrl(article.author.avatarUrl)} alt={article.author.fullName} className="w-10 h-10 rounded-full object-cover ring-1 ring-slate-200" />
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-sm text-slate-900 dark:text-slate-100">{article.author.fullName}</span>
-                        <Badge variant="neutral" size="sm">{t(article.author.role)}</Badge>
+                  <UserHoverCard
+                    userId={article.authorUserId}
+                    initialData={{
+                      fullName: article.author.fullName,
+                      avatarUrl: article.author.avatarUrl,
+                      campus: article.author.campus,
+                    }}
+                  >
+                    <div className="flex items-center gap-3 group cursor-pointer">
+                      <img src={normalizeMediaUrl(article.author.avatarUrl)} alt={article.author.fullName} className="w-10 h-10 rounded-full object-cover ring-1 ring-slate-200 group-hover:ring-2 group-hover:ring-[#0076D1] transition-all" />
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-sm text-slate-900 dark:text-slate-100 group-hover:text-[#0076D1] dark:group-hover:text-blue-400 group-hover:underline transition-colors">{article.author.fullName}</span>
+                          <Badge variant="neutral" size="sm">{t(article.author.role)}</Badge>
+                        </div>
+                        <div className="text-xs text-slate-400">
+                          {article.author.campus || 'FU-HL'}  {t("• Kỹ thuật phần mềm (SE)")}</div>
                       </div>
-                      <div className="text-xs text-slate-400">
-                        {article.author.campus || 'FU-HL'}  {t("• Kỹ thuật phần mềm (SE)")}</div>
                     </div>
-                  </div>
+                  </UserHoverCard>
 
                   <div className="flex items-center gap-2">
                     <Button

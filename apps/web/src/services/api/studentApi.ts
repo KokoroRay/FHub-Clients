@@ -313,6 +313,7 @@ export interface UserProfileDto {
   email: string;
   fullName: string;
   avatarUrl?: string;
+  coverUrl?: string;
   bio?: string;
   githubUrl?: string;
   linkedinUrl?: string;
@@ -322,6 +323,7 @@ export interface UserProfileDto {
   studentCode?: string;
   karma: number;
   status: string;
+  links?: Array<{ platformName: string; url: string; displayOrder?: number }>;
   mutedTags: Array<{ semanticTagId: number; tagName: string }>;
 }
 
@@ -343,7 +345,14 @@ export interface UserPreferencesDto {
 export const profileApi = {
   getProfile: async (userId: number | string): Promise<any> => {
     const res = await apiClient.get<any>(`/api/profiles/${userId}`);
-    return res.data?.data ?? res.data;
+    const data = res.data?.data ?? res.data;
+    if (data && data.links && Array.isArray(data.links)) {
+      const coverLink = data.links.find((l: any) => (l.platformName || l.PlatformName) === 'COVER_IMAGE');
+      if (coverLink && (coverLink.url || coverLink.Url)) {
+        data.coverUrl = coverLink.url || coverLink.Url;
+      }
+    }
+    return data;
   },
 
   getMyPreferences: async (): Promise<UserPreferencesDto> => {
@@ -351,12 +360,23 @@ export const profileApi = {
     return res.data?.data ?? res.data;
   },
 
-  updatePersonalInfo: async (payload: { displayName?: string; fullName?: string; bio?: string; avatarUrl?: string; links?: any[] }): Promise<any> => {
+  updatePersonalInfo: async (payload: { displayName?: string; fullName?: string; bio?: string; avatarUrl?: string; coverUrl?: string; links?: any[] }): Promise<any> => {
+    let links = payload.links ? [...payload.links] : [];
+    if (payload.coverUrl !== undefined) {
+      links = links.filter((l: any) => l.platformName !== 'COVER_IMAGE' && l.PlatformName !== 'COVER_IMAGE');
+      if (payload.coverUrl) {
+        links.push({
+          platformName: 'COVER_IMAGE',
+          url: payload.coverUrl,
+          displayOrder: 0,
+        });
+      }
+    }
     const res = await apiClient.put<ApiResponse<any>>('/api/profiles/me/personal-info', {
       displayName: payload.displayName || payload.fullName,
       bio: payload.bio,
       avatarUrl: payload.avatarUrl,
-      links: payload.links || []
+      links: links,
     });
     return res.data.data;
   },
@@ -573,7 +593,84 @@ export const badgeApi = {
   },
 };
 
-// ─── 8. Direct Messages & Communication API ────────────────────────────────────
+// ─── 8. Follow API (Go Interaction Service) ───────────────────────────────────
+export interface FollowStats {
+  user_id: number;
+  followers_count: number;
+  following_count: number;
+  is_following: boolean;
+}
+
+export interface FollowUserItem {
+  user_id: number;
+  followed_at: string;
+}
+
+export interface FollowListResponse {
+  items: FollowUserItem[];
+  total_count: number;
+  page: number;
+  page_size: number;
+}
+
+export const followApi = {
+  followUser: async (targetUserId: number | string): Promise<any> => {
+    const res = await apiClient.put(`/api/interactions/users/${targetUserId}/follow`);
+    return res.data;
+  },
+
+  unfollowUser: async (targetUserId: number | string): Promise<any> => {
+    const res = await apiClient.delete(`/api/interactions/users/${targetUserId}/follow`);
+    return res.data;
+  },
+
+  getFollowStatus: async (targetUserId: number | string): Promise<{ target_user_id: number; is_following: boolean }> => {
+    try {
+      const res = await apiClient.get(`/api/interactions/users/${targetUserId}/follow-status`);
+      return res.data;
+    } catch {
+      return { target_user_id: Number(targetUserId), is_following: false };
+    }
+  },
+
+  getFollowStats: async (targetUserId: number | string): Promise<FollowStats> => {
+    try {
+      const res = await apiClient.get(`/api/interactions/users/${targetUserId}/follow-stats`);
+      return res.data;
+    } catch {
+      return {
+        user_id: Number(targetUserId),
+        followers_count: 0,
+        following_count: 0,
+        is_following: false,
+      };
+    }
+  },
+
+  getFollowers: async (targetUserId: number | string, page = 1, pageSize = 20): Promise<FollowListResponse> => {
+    try {
+      const res = await apiClient.get(`/api/interactions/users/${targetUserId}/followers`, {
+        params: { page, pageSize },
+      });
+      return res.data;
+    } catch {
+      return { items: [], total_count: 0, page: 1, page_size: pageSize };
+    }
+  },
+
+  getFollowing: async (targetUserId: number | string, page = 1, pageSize = 20): Promise<FollowListResponse> => {
+    try {
+      const res = await apiClient.get(`/api/interactions/users/${targetUserId}/following`, {
+        params: { page, pageSize },
+      });
+      return res.data;
+    } catch {
+      return { items: [], total_count: 0, page: 1, page_size: pageSize };
+    }
+  },
+};
+
+// ─── 9. Direct Messages & Communication API ────────────────────────────────────
 export interface ConversationDto {
   conversationId: string | number;
   participantId: string | number;
@@ -731,4 +828,3 @@ export const directMessageApi = {
     }
   },
 };
-

@@ -26,6 +26,7 @@ import { questionApi } from '../../services/api/contentApi';
 import { profileApi, voteApi, bookmarkApi, notificationApi } from '../../services/api/studentApi';
 import { AskQuestionModal } from '../discussions/AskQuestionModal';
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
+import { UserHoverCard } from '../../components/common/UserHoverCard';
 import { normalizeMediaUrl } from '../../utils/mediaUtils';
 import { resolveUserMajorName, FPT_CAMPUSES } from '../../utils/taxonomyUtils';
 import { extractStudentIdFromEmail } from '../../utils/fptEmailValidator';
@@ -616,6 +617,7 @@ export const FeedPage: React.FC = () => {
             {questions.map((q, idx) => {
               const qId = String(q.questionId || q.id || idx);
               const authorName = getAuthorName(q);
+              const authorId = Number(q.authorUserId || q.author?.id);
               const voteInfo = votes[qId] || {
                 count: (q.upvoteCount || 0) - (q.downvoteCount || 0),
                 userVote: null,
@@ -660,23 +662,36 @@ export const FeedPage: React.FC = () => {
                     <div className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-2">
                         {q.isAnonymous ? (
-                          <div className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center text-purple-600 dark:text-purple-300 font-bold text-[10px] shrink-0 border border-purple-200 dark:border-purple-800">
-                            ?
-                          </div>
+                          <>
+                            <div className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center text-purple-600 dark:text-purple-300 font-bold text-[10px] shrink-0 border border-purple-200 dark:border-purple-800">
+                              ?
+                            </div>
+                            <span className="font-bold text-slate-800 dark:text-slate-200">
+                              {authorName}
+                            </span>
+                            <span className="px-1.5 py-0.2 rounded text-[10px] bg-purple-50 text-purple-600 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200/50 dark:border-purple-800/60 font-semibold">
+                              {t('common.anonymous', 'Ẩn danh')}
+                            </span>
+                          </>
                         ) : (
-                          <img
-                            src={normalizeMediaUrl(getAuthorAvatar(q)) || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
-                            alt={authorName}
-                            className="w-6 h-6 rounded-full object-cover shrink-0 border border-slate-200 dark:border-slate-700"
-                          />
-                        )}
-                        <span className="font-bold text-slate-800 dark:text-slate-200">
-                          {authorName}
-                        </span>
-                        {q.isAnonymous && (
-                          <span className="px-1.5 py-0.2 rounded text-[10px] bg-purple-50 text-purple-600 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200/50 dark:border-purple-800/60 font-semibold">
-                            {t('common.anonymous', 'Ẩn danh')}
-                          </span>
+                          <UserHoverCard
+                            userId={authorId}
+                            initialData={{
+                              fullName: authorName,
+                              avatarUrl: getAuthorAvatar(q),
+                            }}
+                          >
+                            <div className="flex items-center gap-2 group cursor-pointer">
+                              <img
+                                src={normalizeMediaUrl(getAuthorAvatar(q)) || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
+                                alt={authorName}
+                                className="w-6 h-6 rounded-full object-cover shrink-0 border border-slate-200 dark:border-slate-700 group-hover:ring-2 group-hover:ring-[#0076D1] transition-all"
+                              />
+                              <span className="font-bold text-slate-800 dark:text-slate-200 group-hover:text-[#0076D1] dark:group-hover:text-blue-400 group-hover:underline transition-colors">
+                                {authorName}
+                              </span>
+                            </div>
+                          </UserHoverCard>
                         )}
                         <span className="text-slate-400">
                           • {q.createdAt ? new Date(q.createdAt).toLocaleDateString(locale) : t('common.recent', 'Mới đây')}
