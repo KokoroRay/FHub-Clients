@@ -7,7 +7,7 @@ import {
   HelpCircle,
   Plus,
   MessageSquare,
-  Search,
+
   Bookmark,
   ChevronUp,
   ChevronDown,
@@ -57,7 +57,6 @@ export const FeedPage: React.FC = () => {
   const [isAskModalOpen, setIsAskModalOpen] = useState<boolean>(false);
   const [questionTab, setQuestionTab] = useState<'interesting' | 'all'>('interesting');
   const [feedFilter, setFeedFilter] = useState<'newest' | 'votes' | 'unanswered'>('newest');
-  const [searchQuery, setSearchQuery] = useState<string>('');
   const [page, setPage] = useState<number>(1);
   const [hasMore, setHasMore] = useState<boolean>(true);
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
@@ -95,10 +94,6 @@ export const FeedPage: React.FC = () => {
         pageNumber: targetPage,
         pageSize: 10,
       };
-
-      if (searchQuery.trim()) {
-        params.search = searchQuery.trim();
-      }
 
       // Backend validator strictly accepts: newest, oldest, views, answers
       if (feedFilter === 'votes') {
@@ -229,11 +224,6 @@ export const FeedPage: React.FC = () => {
   useEffect(() => {
     loadQuestions(1, false);
   }, [questionTab, feedFilter]);
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    loadQuestions(1, false);
-  };
 
   const handleVote = async (questionId: string, direction: 'UP' | 'DOWN') => {
     const current = votes[questionId] || { count: 0, userVote: null };
@@ -549,18 +539,6 @@ export const FeedPage: React.FC = () => {
               {t('feed.unanswered', 'Chưa trả lời')}
             </button>
           </div>
-
-          {/* Quick Search inside Questions */}
-          <form onSubmit={handleSearchSubmit} className="relative w-full sm:w-64">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t('feed.searchPlaceholder', 'Tìm kiếm câu hỏi...')}
-              className="w-full pl-8 pr-3 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-[#0076D1]"
-            />
-          </form>
         </div>
 
         {/* Questions Feed Content */}
