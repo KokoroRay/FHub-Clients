@@ -705,17 +705,18 @@ export const directMessageApi = {
       const res = await apiClient.get<any>('/api/communication/conversations');
       const rawList = res.data?.items || res.data?.data || (Array.isArray(res.data) ? res.data : []);
       return rawList.map((c: any) => {
-        const pName = c.participantName ?? c.title ?? 'FHub Student';
+        const pName = c.participantName ?? c.title ?? '';
         const codeMatch = String(pName).match(/\b(CE\d+|SE\d+)\b/i);
         return {
           conversationId: c.conversationId ?? c.conversation_id,
           participantId: c.participantId ?? c.other_participant?.user_id ?? c.other_participant?.communication_account_id ?? 1,
           participantName: pName,
-          participantAvatar: c.participantAvatar ?? '',
-          participantCode: c.participantCode ?? (codeMatch ? codeMatch[1].toUpperCase() : c.other_participant?.user_id ? `CE18012${c.other_participant.user_id}` : 'CE180121'),
+          participantAvatar: c.participantAvatar ?? c.participant_avatar ?? c.other_participant?.avatar_url ?? c.other_participant?.avatarUrl ?? '',
+          participantCode: c.participantCode ?? (codeMatch ? codeMatch[1].toUpperCase() : undefined),
           courseTag: c.courseTag ?? (c.conversation_type === 'GROUP' ? 'Group Project' : 'Direct Message'),
           role: c.role ?? 'Student',
-          lastMessage: c.lastMessage ?? c.last_message_body ?? 'No messages yet',
+          lastMessage: c.lastMessage ?? c.last_message_body ?? '',
+          lastMessageType: c.lastMessageType ?? c.last_message_type,
           lastMessageAt: c.lastMessageAt ?? c.last_message_at ?? '',
           unreadCount: c.unreadCount ?? c.unread_count ?? 0,
           isBlocked: c.isBlocked ?? false,
