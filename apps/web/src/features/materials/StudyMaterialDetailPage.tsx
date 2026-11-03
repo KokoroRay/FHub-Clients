@@ -13,6 +13,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { studyMaterialApi } from '../../services/api/contentApi';
+import { bookmarkApi } from '../../services/api/studentApi';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { UpdateMaterialMetadataModal } from './UpdateMaterialMetadataModal';
@@ -30,6 +31,7 @@ export const StudyMaterialDetailPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [downloadCount, setDownloadCount] = useState(0);
   const [isBookmarked, setIsBookmarked] = useState(false);
+  const [bookmarkId, setBookmarkId] = useState<number | string | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
@@ -74,6 +76,18 @@ export const StudyMaterialDetailPage: React.FC = () => {
           };
           setMaterial(mapped);
           setDownloadCount(data.downloadCount || 0);
+
+          const numId = Number(id ? id.replace(/\D/g, '') : 0);
+          if (numId) {
+            try {
+              const bList = await bookmarkApi.getBookmarks('StudyMaterial');
+              const found = bList.find((b: any) => Number(b.targetId || b.externalTargetId) === numId);
+              if (found && isMounted) {
+                setIsBookmarked(true);
+                setBookmarkId(found.id);
+              }
+            } catch {}
+          }
         }
       } catch (err) {
         if (isMounted) setMaterial(null);
@@ -179,7 +193,16 @@ export const StudyMaterialDetailPage: React.FC = () => {
           {/* Action Buttons */}
           <div className="flex items-center gap-2 shrink-0">
             <button
-              onClick={() => setIsBookmarked(!isBookmarked)}
+              onClick={async () => {
+                const numId = Number(id ? id.replace(/\D/g, '') : 0);
+                if (isBookmarked && bookmarkId) {
+                  setIsBookmarked(false);
+                  try { await bookmarkApi.removeBookmark(bookmarkId); setBookmarkId(null); } catch {}
+                } else if (numId) {
+                  setIsBookmarked(true);
+                  try { const b = await bookmarkApi.addBookmark('StudyMaterial', numId); setBookmarkId(b?.bookmarkId || b?.id || 1); } catch {}
+                }
+              }}
               className={`p-2.5 rounded-xl border transition-colors cursor-pointer ${
                 isBookmarked
                   ? 'bg-blue-50 border-blue-200 text-[#0076D1]'

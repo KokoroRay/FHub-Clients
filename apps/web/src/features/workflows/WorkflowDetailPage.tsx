@@ -11,8 +11,10 @@ import {
   Edit3,
   Trash2,
   X,
+  Bookmark,
 } from 'lucide-react';
 import { workflowApi } from '../../services/api/contentApi';
+import { bookmarkApi } from '../../services/api/studentApi';
 import { courseNodesApi } from '../../services/api/adminApi';
 import { loadAllSemanticTags, getSemanticTagMap, resolveTagNames } from '../../utils/tagUtils';
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
@@ -31,6 +33,8 @@ export const WorkflowDetailPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [copiedStep, setCopiedStep] = useState<number | null>(null);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [bookmarkId, setBookmarkId] = useState<number | string | null>(null);
   const [showEditWorkflowModal, setShowEditWorkflowModal] = useState(false);
   const [showDeleteWorkflowModal, setShowDeleteWorkflowModal] = useState(false);
   const [editWorkflowTitle, setEditWorkflowTitle] = useState('');
@@ -68,6 +72,17 @@ export const WorkflowDetailPage: React.FC = () => {
           const tags = resolveTagNames(data.semanticTagIds, tagMap);
           const technology = (data as any).technology || (tags.length > 0 ? tags[0] : t("Quy trình chuẩn"));
 
+          const numId = Number(id ? id.replace(/\D/g, '') : 0);
+          if (numId) {
+            try {
+              const bList = await bookmarkApi.getBookmarks('Workflow');
+              const found = bList.find((b: any) => Number(b.targetId || b.externalTargetId) === numId);
+              if (found && isMounted) {
+                setIsBookmarked(true);
+                setBookmarkId(found.id);
+              }
+            } catch {}
+          }
           setWorkflow({
             id: String(data.workflowId),
             title: data.title,
@@ -183,6 +198,23 @@ export const WorkflowDetailPage: React.FC = () => {
                 leftIcon={<Trash2 className="w-3.5 h-3.5" />}
               >
                 {t('Delete')}
+              </Button>
+              <Button
+                variant={isBookmarked ? 'secondary' : 'outline'}
+                size="sm"
+                onClick={async () => {
+                  const numId = Number(id ? id.replace(/\D/g, '') : 0);
+                  if (isBookmarked && bookmarkId) {
+                    setIsBookmarked(false);
+                    try { await bookmarkApi.removeBookmark(bookmarkId); setBookmarkId(null); } catch {}
+                  } else if (numId) {
+                    setIsBookmarked(true);
+                    try { const b = await bookmarkApi.addBookmark('Workflow', numId); setBookmarkId(b?.bookmarkId || b?.id || 1); } catch {}
+                  }
+                }}
+                leftIcon={<Bookmark className={`w-3.5 h-3.5 ${isBookmarked ? 'fill-blue-600 text-blue-600' : 'text-slate-500'}`} />}
+              >
+                {isBookmarked ? t('common.saved', 'Đã lưu') : t('common.bookmark', 'Lưu')}
               </Button>
               <Button variant="primary" leftIcon={<Play className="w-4 h-4" />}>
                 {t('Apply Workflow')}

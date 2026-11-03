@@ -65,6 +65,7 @@ export const QuestionDetailPage: React.FC = () => {
   const [showEditQuestionModal, setShowEditQuestionModal] = useState(false);
   const [showDeleteQuestionModal, setShowDeleteQuestionModal] = useState(false);
   const [editingAnswerId, setEditingAnswerId] = useState<string | null>(null);
+  const [editingAnswerBody, setEditingAnswerBody] = useState('');
   const [deletingAnswerId, setDeletingAnswerId] = useState<string | null>(null);
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
@@ -226,8 +227,20 @@ export const QuestionDetailPage: React.FC = () => {
         } catch {}
 
         const answersData = await questionApi.getAnswers(numId);
+        const answersWithComments = await Promise.all(
+          (answersData || []).map(async (ans) => {
+            if (ans.comments && ans.comments.length > 0) return ans;
+            try {
+              const cList = await questionApi.getAnswerComments(ans.answerId);
+              const commentsArr = Array.isArray(cList) ? cList : ((cList as any)?.data || []);
+              return { ...ans, comments: commentsArr };
+            } catch {
+              return { ...ans, comments: [] };
+            }
+          })
+        );
         if (isMounted) {
-          const mappedAnswers: Answer[] = (answersData || []).map((ans) => {
+          const mappedAnswers: Answer[] = (answersWithComments || []).map((ans) => {
             const userVoteVal = myVotesMap[String(ans.answerId)];
             return {
               id: String(ans.answerId),
@@ -475,21 +488,60 @@ export const QuestionDetailPage: React.FC = () => {
 
   const handleMarkBestAnswer = async (ansId: string) => {
     if (!question) return;
+    const targetAns = answers.find(a => a.id === ansId);
+    if (!targetAns) return;
+    const isCurrentlyBest = !!targetAns.isBestAnswer;
+
     const numQId = Number(question.id.replace(/\D/g, ''));
     const numAnsId = Number(ansId.replace(/\D/g, ''));
-    if (numQId && numAnsId) {
+    if (numQId) {
       try {
-        await questionApi.markBestAnswer(numQId, numAnsId);
+        if (isCurrentlyBest) {
+          await questionApi.unmarkBestAnswer(numQId);
+        } else if (numAnsId) {
+          await questionApi.markBestAnswer(numQId, numAnsId);
+        }
       } catch (err) {
-        console.warn('API error marking best answer:', err);
+        console.warn('API error toggling best answer:', err);
       }
     }
     setAnswers((prev) =>
       prev.map((a) => ({
         ...a,
-        isBestAnswer: a.id === ansId ? !a.isBestAnswer : false,
+        isBestAnswer: a.id === ansId ? !isCurrentlyBest : false,
       }))
     );
+  };
+
+  const handleSaveEditAnswer = async (ansId: string) => {
+    if (!question || !editingAnswerBody.trim()) return;
+    const numQId = Number(question.id.replace(/\D/g, ''));
+    const numAnsId = Number(ansId.replace(/\D/g, ''));
+    if (numQId && numAnsId) {
+      try {
+        await questionApi.updateAnswer(numQId, numAnsId, { body: editingAnswerBody.trim() });
+      } catch (err) {
+        console.warn('API error updating answer:', err);
+      }
+    }
+    setAnswers(prev => prev.map(a => a.id === ansId ? { ...a, content: editingAnswerBody.trim() } : a));
+    setEditingAnswerId(null);
+    setEditingAnswerBody('');
+  };
+
+  const handleConfirmDeleteAnswer = async () => {
+    if (!question || !deletingAnswerId) return;
+    const numQId = Number(question.id.replace(/\D/g, ''));
+    const numAnsId = Number(deletingAnswerId.replace(/\D/g, ''));
+    if (numQId && numAnsId) {
+      try {
+        await questionApi.deleteAnswer(numQId, numAnsId);
+      } catch (err) {
+        console.warn('API error deleting answer:', err);
+      }
+    }
+    setAnswers(prev => prev.filter(a => a.id !== deletingAnswerId));
+    setDeletingAnswerId(null);
   };
 
   const handleToggleModVerified = (ansId: string) => {
@@ -874,12 +926,13 @@ export const QuestionDetailPage: React.FC = () => {
                   <label className="text-xs font-semibold text-blue-900 dark:text-blue-300 block">{t("Chỉnh sửa câu trả lời")}</label>
                   <textarea
                     rows={4}
-                    defaultValue={ans.content}
+                    value={editingAnswerBody}
+                    onChange={(e) => setEditingAnswerBody(e.target.value)}
                     className="w-full p-2.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl"
                   />
                   <div className="flex gap-2 justify-end">
-                    <Button size="sm" variant="outline" onClick={() => setEditingAnswerId(null)}>{t("Hủy")}</Button>
-                    <Button size="sm" variant="primary" onClick={() => setEditingAnswerId(null)}>{t("Lưu thay đổi")}</Button>
+                    <Button size="sm" variant="outline" onClick={() => { setEditingAnswerId(null); setEditingAnswerBody(''); }}>{t("Hủy")}</Button>
+                    <Button size="sm" variant="primary" onClick={() => handleSaveEditAnswer(ans.id)}>{t("Lưu thay đổi")}</Button>
                   </div>
                 </div>
               ) : (
@@ -916,7 +969,15 @@ export const QuestionDetailPage: React.FC = () => {
                       id={`btn-edit-answer-${ans.id}`}
                       size="sm"
                       variant="outline"
-                      onClick={() => setEditingAnswerId(editingAnswerId === ans.id ? null : ans.id)}
+                      onClick={() => {
+                        if (editingAnswerId === ans.id) {
+                          setEditingAnswerId(null);
+                          setEditingAnswerBody('');
+                        } else {
+                          setEditingAnswerId(ans.id);
+                          setEditingAnswerBody(ans.content);
+                        }
+                      }}
                       leftIcon={<Edit3 className="w-3.5 h-3.5 text-slate-500" />}
                     >
                       {t('Edit')}
@@ -934,7 +995,7 @@ export const QuestionDetailPage: React.FC = () => {
                       {t('Delete')}
                     </Button>
                   )}
-                  {canMarkBestAnswer && (
+                  {canMarkBestAnswer && String(ans.author?.id || '') !== String(currentUser?.id || '') && (
                     <Button
                       size="sm"
                       variant={ans.isBestAnswer ? 'secondary' : 'outline'}
@@ -1295,10 +1356,7 @@ export const QuestionDetailPage: React.FC = () => {
               <button
                 id="btn-confirm-delete-answer"
                 type="button"
-                onClick={() => {
-                  setAnswers(prev => prev.filter(a => a.id !== deletingAnswerId));
-                  setDeletingAnswerId(null);
-                }}
+                onClick={handleConfirmDeleteAnswer}
                 className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors shadow-xs"
               >
                 {t("Xác nhận xóa")}</button>

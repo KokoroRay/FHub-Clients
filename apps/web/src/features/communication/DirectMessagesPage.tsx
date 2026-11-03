@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   MessageSquare,
   Send,
@@ -63,6 +63,7 @@ export const DirectMessagesPage: React.FC = () => {
   const { formatDate, formatTime, locale, t } = useLanguage();
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [activeConvId, setActiveConvId] = useState<string>('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<Record<string, Message[]>>({});
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -187,6 +188,11 @@ export const DirectMessagesPage: React.FC = () => {
   }, [activeConvId]);
 
     const activeConv = conversations.find(c => c.id === activeConvId);
+
+  // Auto-scroll to latest message
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages.length, activeConvId]);
 
   // Real-time listener for direct messages and typing status
   useEffect(() => {
@@ -656,10 +662,11 @@ export const DirectMessagesPage: React.FC = () => {
                     </div>
                   </div>
                 ))}
+                <div ref={messagesEndRef} />
               </div>
 
               {/* Suggestions Quick Chips */}
-              <div className="px-5 py-2 bg-white border-t border-slate-200 flex items-center gap-2 overflow-x-auto scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              <div className="px-5 py-2 bg-white border-t border-slate-200 flex items-center gap-2 overflow-x-auto scrollbar-thin scrollbar-thumb-slate-300">
                 <span className="font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">
                   {t('messages.suggestions', 'SUGGESTIONS:')}
                 </span>
