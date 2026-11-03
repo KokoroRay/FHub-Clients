@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { extractStudentIdFromEmail } from '../../utils/fptEmailValidator';
 
 export const LeftSidebar: React.FC = () => {
   const { currentUser } = useAuth();
@@ -37,8 +38,11 @@ export const LeftSidebar: React.FC = () => {
     { name: t('nav.bookmarks', 'Bookmarks'), path: '/bookmarks', icon: Bookmark },
   ];
 
+  const myStudentCode = (currentUser as any)?.studentCode || currentUser?.studentId || extractStudentIdFromEmail(currentUser?.email);
+  const myProfilePath = myStudentCode ? `/profile/${myStudentCode}` : (currentUser?.id ? `/profile/${currentUser.id}` : '/profile');
+
   const personalNav = [
-    { name: t('nav.myProfile', 'My Profile'), path: '/profile', icon: Award },
+    { name: t('nav.myProfile', 'My Profile'), path: myProfilePath, icon: Award },
     { name: t('nav.settings', 'Preferences & Privacy'), path: '/settings', icon: Settings2 },
     { name: t('nav.notifications', 'Notifications'), path: '/notifications', icon: Megaphone },
     { name: t('nav.supportTickets', 'Support Tickets'), path: '/tickets', icon: LifeBuoy },

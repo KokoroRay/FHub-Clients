@@ -695,6 +695,7 @@ export interface DirectMessageDto {
   attachmentUrl?: string;
   createdAt: string;
   status?: string;
+  isRecalled?: boolean;
 }
 
 export const directMessageApi = {
@@ -728,17 +729,24 @@ export const directMessageApi = {
     try {
       const res = await apiClient.get<any>(`/api/communication/conversations/${conversationId}/messages`);
       const rawList = res.data?.items || res.data?.data || (Array.isArray(res.data) ? res.data : []);
-      return rawList.map((m: any) => ({
-        messageId: m.messageId ?? m.message_id,
-        conversationId: m.conversationId ?? m.conversation_id,
-        senderId: m.senderId ?? m.sender_account_id,
-        senderName: m.senderName ?? (m.is_mine ? 'Bạn' : 'Thành viên FHub'),
-        content: m.content ?? m.body ?? '',
-        messageType: m.message_type ?? m.messageType ?? 'TEXT',
-        attachmentUrl: m.attachment_url ?? m.attachmentUrl,
-        createdAt: m.createdAt ?? m.sent_at ?? '',
-        status: m.status ?? 'read',
-      }));
+      return rawList.map((m: any) => {
+        const rawType = (m.message_type ?? m.messageType ?? '').toUpperCase();
+        const rawAttach = m.attachment_url ?? m.attachmentUrl;
+        const isImageOrGif = rawType === 'IMAGE' || rawType === 'GIF' || /\.(gif|jpe?g|png|webp)($|\?)/i.test(rawAttach || '');
+        const isRecalled = Boolean(m.deleted_at || m.deletedAt || m.status === 'DELETED' || String(m.content || m.body || '').includes('thu hồi'));
+        return {
+          messageId: m.messageId ?? m.message_id,
+          conversationId: m.conversationId ?? m.conversation_id,
+          senderId: m.senderId ?? m.sender_account_id,
+          senderName: m.senderName ?? (m.is_mine ? 'Bạn' : 'Thành viên FHub'),
+          content: isRecalled ? '[Tin nhắn đã được thu hồi]' : (m.content ?? m.body ?? ''),
+          messageType: isImageOrGif ? (rawType === 'GIF' || /\.gif($|\?)/i.test(rawAttach || '') ? 'GIF' : 'IMAGE') : (rawType || 'TEXT'),
+          attachmentUrl: isRecalled ? undefined : rawAttach,
+          createdAt: m.createdAt ?? m.sent_at ?? '',
+          status: isRecalled ? 'DELETED' : (m.status ?? 'read'),
+          isRecalled,
+        };
+      });
     } catch {
       return [];
     }
@@ -796,6 +804,22 @@ export const directMessageApi = {
       try {
         await apiClient.delete(`/api/communication/messages/${messageId}`);
       } catch {}
+    }
+  },
+
+  deleteConversation: async (conversationId: string | number): Promise<void> => {
+    try {
+      await apiClient.delete(`/api/communication/conversations/${conversationId}`);
+    } catch (err) {
+      console.warn('Failed to delete conversation:', err);
+    }
+  },
+
+  clearAllConversations: async (): Promise<void> => {
+    try {
+      await apiClient.delete('/api/communication/conversations');
+    } catch (err) {
+      console.warn('Failed to clear conversations:', err);
     }
   },
 

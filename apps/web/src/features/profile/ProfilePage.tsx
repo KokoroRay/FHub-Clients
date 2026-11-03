@@ -28,6 +28,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { EditProfileModal } from './EditProfileModal';
 import { profileApi, badgeApi, voteApi, followApi, directMessageApi, FollowStats, FollowUserItem } from '../../services/api/studentApi';
 import { questionApi, contentMediaApi } from '../../services/api/contentApi';
+import { apiClient } from '../../services/api/client';
 import { normalizeMediaUrl, validateImage, IMAGE_ACCEPT } from '../../utils/mediaUtils';
 import { resolveUserMajorName, FPT_CAMPUSES } from '../../utils/taxonomyUtils';
 import { extractStudentIdFromEmail } from '../../utils/fptEmailValidator';
@@ -36,46 +37,92 @@ export const ProfilePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentUser, updateUser } = useAuth();
-  const { formatDate, formatTime, locale, t, language } = useLanguage();
+  const { formatDate, formatTime, locale, t } = useLanguage();
 
-  const isOwnProfile = !id || id === currentUser?.id || id === 'me';
-  const targetUserId = id && id !== 'me' ? Number(id) : Number(currentUser?.id || 4);
+  const myStudentCode = (currentUser as any)?.studentCode || currentUser?.studentId || extractStudentIdFromEmail(currentUser?.email) || '';
+  const isOwnProfile = !id || id === 'me' || String(id).toUpperCase() === String(currentUser?.id).toUpperCase() || (myStudentCode && String(id).toUpperCase() === String(myStudentCode).toUpperCase());
+
+  // Resolved numeric user id
+  const [targetUserId, setTargetUserId] = useState<number>(() => {
+    if (isOwnProfile) return Number(currentUser?.id || 1);
+    const num = Number(id);
+    return !isNaN(num) && num > 0 ? num : 0;
+  });
 
   // Profile Data State
-  const [profileData, setProfileData] = useState({
-    fullName: (currentUser as any)?.fullName || (currentUser as any)?.name || 'Sinh viên FHub',
-    studentId: (currentUser as any)?.studentCode || currentUser?.studentId || extractStudentIdFromEmail(currentUser?.email) || '',
-    email: currentUser?.email || '',
-    campus: (currentUser as any)?.campus || 'FPT University',
-    campusId: (currentUser as any)?.campusId as number | undefined,
-    campusCode: (currentUser as any)?.campusCode as string | undefined,
-    community: 'FHub Community',
-    major: (currentUser as any)?.major || '',
-    majorId: (currentUser as any)?.majorId as number | undefined,
-    majorCode: (currentUser as any)?.majorCode as string | undefined,
-    specialization: (currentUser as any)?.specialization as string | undefined,
-    specializationId: (currentUser as any)?.specializationId as number | undefined,
-    specializationCode: (currentUser as any)?.specializationCode as string | undefined,
-    role: currentUser?.role || 'Student',
-    status: 'Sinh viên FPTU',
-    memberSince: 'Gần đây',
-    bio: 'Chưa có thông tin giới thiệu.',
-    detailedBio: '',
-    interests: [] as string[],
-    avatarUrl: currentUser?.avatarUrl || '',
-    coverUrl: (currentUser as any)?.coverUrl || '',
-    stats: {
-      articlesPublished: 0,
-      articlesSubtext: '0 articles',
-      studyMaterialsShared: 0,
-      materialsSubtext: '0 downloads',
-      courseReviewsWritten: 0,
-      reviewsSubtext: '0 reviews',
-      questionsCount: 0,
-      answersCount: 0,
-      helpfulVotes: (currentUser as any)?.karma || 0,
-      badgesCount: 0,
+  const [profileData, setProfileData] = useState(() => {
+    if (isOwnProfile) {
+      return {
+        fullName: (currentUser as any)?.fullName || (currentUser as any)?.name || 'Sinh viên FHub',
+        studentId: myStudentCode,
+        email: currentUser?.email || '',
+        campus: (currentUser as any)?.campus || 'FPT University',
+        campusId: (currentUser as any)?.campusId as number | undefined,
+        campusCode: (currentUser as any)?.campusCode as string | undefined,
+        community: 'FHub Community',
+        major: (currentUser as any)?.major || '',
+        majorId: (currentUser as any)?.majorId as number | undefined,
+        majorCode: (currentUser as any)?.majorCode as string | undefined,
+        specialization: (currentUser as any)?.specialization as string | undefined,
+        specializationId: (currentUser as any)?.specializationId as number | undefined,
+        specializationCode: (currentUser as any)?.specializationCode as string | undefined,
+        role: currentUser?.role || 'Student',
+        status: 'Sinh viên FPTU',
+        memberSince: 'Gần đây',
+        bio: 'Chưa có thông tin giới thiệu.',
+        detailedBio: '',
+        interests: [] as string[],
+        avatarUrl: currentUser?.avatarUrl || '',
+        coverUrl: (currentUser as any)?.coverUrl || '',
+        stats: {
+          articlesPublished: 0,
+          articlesSubtext: '0 articles',
+          studyMaterialsShared: 0,
+          materialsSubtext: '0 downloads',
+          courseReviewsWritten: 0,
+          reviewsSubtext: '0 reviews',
+          questionsCount: 0,
+          answersCount: 0,
+          helpfulVotes: (currentUser as any)?.karma || 0,
+          badgesCount: 0,
+        }
+      };
     }
+    return {
+      fullName: 'Đang tải...',
+      studentId: typeof id === 'string' && isNaN(Number(id)) ? id.toUpperCase() : '',
+      email: '',
+      campus: 'FPT University',
+      campusId: undefined,
+      campusCode: undefined,
+      community: 'FHub Community',
+      major: '',
+      majorId: undefined,
+      majorCode: undefined,
+      specialization: undefined,
+      specializationId: undefined,
+      specializationCode: undefined,
+      role: 'Student',
+      status: 'Sinh viên FPTU',
+      memberSince: 'Gần đây',
+      bio: 'Chưa có thông tin giới thiệu.',
+      detailedBio: '',
+      interests: [] as string[],
+      avatarUrl: '',
+      coverUrl: '',
+      stats: {
+        articlesPublished: 0,
+        articlesSubtext: '0 articles',
+        studyMaterialsShared: 0,
+        materialsSubtext: '0 downloads',
+        courseReviewsWritten: 0,
+        reviewsSubtext: '0 reviews',
+        questionsCount: 0,
+        answersCount: 0,
+        helpfulVotes: 0,
+        badgesCount: 0,
+      }
+    };
   });
 
   const [questions, setQuestions] = useState<any[]>([]);
@@ -85,7 +132,7 @@ export const ProfilePage: React.FC = () => {
 
   // Follow State
   const [followStats, setFollowStats] = useState<FollowStats>({
-    user_id: targetUserId,
+    user_id: 0,
     followers_count: 0,
     following_count: 0,
     is_following: false,
@@ -95,36 +142,90 @@ export const ProfilePage: React.FC = () => {
 
   // Follow list modal state
   const [followModalType, setFollowModalType] = useState<'followers' | 'following' | null>(null);
-  const [followListItems, setFollowListItems] = useState<FollowUserItem[]>([]);
+  const [followListItems, setFollowListItems] = useState<any[]>([]);
   const [isFollowListLoading, setIsFollowListLoading] = useState(false);
 
   // Quick cover upload state
   const [isUploadingQuickCover, setIsUploadingQuickCover] = useState(false);
+  const [activeTab, setActiveTab] = useState<'overview' | 'questions' | 'answers' | 'badges' | 'votes'>('overview');
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-  // Load Follow stats
-  const loadFollowStats = async () => {
-    try {
-      const stats = await followApi.getFollowStats(targetUserId);
-      setFollowStats(stats);
-    } catch (err) {
-      console.warn('Could not fetch follow stats:', err);
-    }
-  };
-
+  // Scroll to top and resolve target user id whenever id or currentUser changes
   useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    let isMounted = true;
+
+    if (isOwnProfile) {
+      setTargetUserId(Number(currentUser?.id || 1));
+      // Normalize own URL to /profile/MSSV if currently on generic /profile or numeric id
+      if (myStudentCode && (!id || id === 'me' || id === String(currentUser?.id))) {
+        navigate(`/profile/${myStudentCode}`, { replace: true });
+      }
+      return;
+    }
+
+    const num = Number(id);
+    if (!isNaN(num) && num > 0) {
+      setTargetUserId(num);
+      return;
+    }
+
+    // If id is a string studentCode like CE181522, resolve it from identity API
+    const resolveByStudentCode = async () => {
+      try {
+        const res = await apiClient.get<any>('/api/users', { params: { search: id } });
+        const items = res.data?.items || res.data?.data?.items || (Array.isArray(res.data?.data) ? res.data.data : []);
+        if (isMounted && items && items.length > 0) {
+          const matched = items.find((u: any) => 
+            String(u.studentCode || u.student_code || '').toUpperCase() === String(id).toUpperCase() ||
+            String(u.email || '').toUpperCase().includes(String(id).toUpperCase())
+          ) || items[0];
+          const foundId = Number(matched.userId || matched.id);
+          if (foundId > 0) {
+            setTargetUserId(foundId);
+          }
+        }
+      } catch (err) {
+        console.warn('Could not resolve user by student code:', err);
+      }
+    };
+    resolveByStudentCode();
+
+    return () => { isMounted = false; };
+  }, [id, currentUser?.id, isOwnProfile, myStudentCode]);
+
+  // Load Follow stats whenever targetUserId changes
+  useEffect(() => {
+    if (targetUserId <= 0) return;
+    let isMounted = true;
+    const loadFollowStats = async () => {
+      try {
+        const stats = await followApi.getFollowStats(targetUserId);
+        if (isMounted) setFollowStats(stats);
+      } catch (err) {
+        console.warn('Could not fetch follow stats:', err);
+      }
+    };
     loadFollowStats();
+    return () => { isMounted = false; };
   }, [targetUserId]);
 
+  // Fetch Questions for the target user
   useEffect(() => {
+    if (targetUserId <= 0) return;
     let isMounted = true;
     const fetchUserQuestions = async () => {
       try {
         const res = await questionApi.getQuestions({
           mine: isOwnProfile ? true : undefined,
-          pageSize: 20,
+          pageSize: 30,
         });
         if (isMounted && res?.items) {
-          const items = res.items.map((q: any) => ({
+          let list = res.items;
+          if (!isOwnProfile) {
+            list = list.filter((q: any) => Number(q.authorUserId || q.author?.id) === targetUserId);
+          }
+          const items = list.map((q: any) => ({
             id: q.questionId,
             course: q.courseCode || (q.courseId ? `COURSE-${q.courseId}` : 'FHub'),
             title: q.title,
@@ -135,18 +236,17 @@ export const ProfilePage: React.FC = () => {
           }));
           setQuestions(items);
 
-          // Populate answers tab for the user from public discussion questions
+          // Populate answers tab for the user
           try {
             const allQ = await questionApi.getQuestions({ pageSize: 30 });
             if (isMounted && allQ?.items) {
-              const targetUid = targetUserId;
               const foundAnswers: any[] = [];
               const sampleQ = allQ.items.slice(0, 10);
               await Promise.allSettled(sampleQ.map(async (q: any) => {
                 try {
                   const ansList = await questionApi.getAnswers(q.questionId);
                   if (Array.isArray(ansList)) {
-                    ansList.filter((a: any) => Number(a.authorUserId) === targetUid).forEach((a: any) => {
+                    ansList.filter((a: any) => Number(a.authorUserId) === targetUserId).forEach((a: any) => {
                       foundAnswers.push({
                         id: String(a.answerId),
                         course: q.courseCode || 'PRN231',
@@ -170,50 +270,58 @@ export const ProfilePage: React.FC = () => {
     };
     fetchUserQuestions();
     return () => { isMounted = false; };
-  }, [id, currentUser?.id, isOwnProfile, targetUserId]);
+  }, [targetUserId, isOwnProfile]);
 
+  // Fetch Profile details from profile-service
   useEffect(() => {
+    if (targetUserId <= 0) return;
     let isMounted = true;
     const fetchProfile = async () => {
       try {
         const live = await profileApi.getProfile(targetUserId);
         if (isMounted && live) {
           const resolvedMajor = resolveUserMajorName(live);
+          const resolvedCampus = live.campusCode 
+            ? (FPT_CAMPUSES[live.campusCode] || `FPT University - ${live.campusCode}`)
+            : (live.campusId ? (FPT_CAMPUSES[live.campusId] || 'FPT University') : 'FPT University');
 
-          setProfileData(prev => {
-            const resolvedCampus = live.campusCode 
-              ? (FPT_CAMPUSES[live.campusCode] || `FPT University - ${live.campusCode}`)
-              : (live.campusId ? (FPT_CAMPUSES[live.campusId] || prev.campus) : prev.campus);
+          let cover = '';
+          if (live.coverUrl) {
+            cover = live.coverUrl;
+          } else if (live.links && Array.isArray(live.links)) {
+            const cLink = live.links.find((l: any) => (l.platformName || l.PlatformName) === 'COVER_IMAGE');
+            if (cLink) cover = cLink.url || cLink.Url || '';
+          }
 
-            let cover = live.coverUrl || prev.coverUrl;
-            if (!cover && live.links && Array.isArray(live.links)) {
-              const cLink = live.links.find((l: any) => (l.platformName || l.PlatformName) === 'COVER_IMAGE');
-              if (cLink) cover = cLink.url || cLink.Url;
+          const studentCode = live.studentCode || live.studentId || extractStudentIdFromEmail(live.email) || (typeof id === 'string' && isNaN(Number(id)) ? id.toUpperCase() : '');
+
+          // Replace numeric ID in URL with MSSV if available
+          if (!isOwnProfile && studentCode && id && !isNaN(Number(id))) {
+            navigate(`/profile/${studentCode}`, { replace: true });
+          }
+
+          setProfileData(prev => ({
+            ...prev,
+            fullName: live.displayName || live.fullName || (isOwnProfile ? currentUser?.fullName : 'Sinh viên FHub') || 'Sinh viên FHub',
+            email: isOwnProfile ? (currentUser?.email || live.email || '') : (live.email || ''),
+            bio: (live.bio && live.bio !== 'Chưa có thông tin giới thiệu.') ? live.bio : 'Chưa có thông tin giới thiệu.',
+            avatarUrl: live.avatarUrl || (isOwnProfile ? currentUser?.avatarUrl || '' : ''),
+            coverUrl: cover,
+            studentId: studentCode || (isOwnProfile ? myStudentCode : ''),
+            major: resolvedMajor,
+            campus: resolvedCampus,
+            campusId: live.campusId,
+            campusCode: live.campusCode,
+            majorId: live.majorId,
+            majorCode: live.majorCode,
+            specialization: live.specializationName || live.specialization,
+            specializationId: live.specializationId,
+            specializationCode: live.specializationCode,
+            stats: {
+              ...prev.stats,
+              helpfulVotes: live.karma || 0,
             }
-
-            return {
-              ...prev,
-              fullName: live.displayName || live.fullName || prev.fullName,
-              email: live.email || prev.email,
-              bio: (live.bio && live.bio !== 'Chưa có thông tin giới thiệu.') ? live.bio : prev.bio,
-              avatarUrl: live.avatarUrl || prev.avatarUrl,
-              coverUrl: cover || '',
-              studentId: live.studentCode || (currentUser as any)?.studentCode || (currentUser as any)?.studentId || extractStudentIdFromEmail(live.email || currentUser?.email) || prev.studentId,
-              major: resolvedMajor,
-              campus: resolvedCampus,
-              campusId: live.campusId ?? prev.campusId,
-              campusCode: live.campusCode ?? prev.campusCode,
-              majorId: live.majorId ?? prev.majorId,
-              majorCode: live.majorCode ?? prev.majorCode,
-              specialization: live.specializationName || live.specialization || prev.specialization,
-              specializationId: live.specializationId ?? prev.specializationId,
-              specializationCode: live.specializationCode ?? prev.specializationCode,
-              stats: {
-                ...prev.stats,
-                helpfulVotes: live.karma || prev.stats.helpfulVotes,
-              }
-            };
-          });
+          }));
         }
       } catch (err) {
         console.warn('Could not fetch user profile from Profile service:', err);
@@ -222,12 +330,11 @@ export const ProfilePage: React.FC = () => {
 
     fetchProfile();
     return () => { isMounted = false; };
-  }, [id, currentUser?.id, targetUserId]);
+  }, [targetUserId, isOwnProfile, currentUser?.id]);
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'questions' | 'answers' | 'badges' | 'votes'>('overview');
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-
+  // Fetch badges & votes
   useEffect(() => {
+    if (targetUserId <= 0) return;
     let isMounted = true;
     const fetchInteractions = async () => {
       try {
@@ -240,14 +347,15 @@ export const ProfilePage: React.FC = () => {
               'bg-blue-50 text-blue-800 border-blue-200',
               'bg-emerald-50 text-emerald-800 border-emerald-200',
               'bg-purple-50 text-purple-800 border-purple-200',
+              'bg-rose-50 text-rose-800 border-rose-200'
             ];
-            const mapped = apiBadges.map((b: any, idx: number) => ({
-              id: String(b.user_badge_id || b.badge_id || idx),
-              name: b.badge?.name || b.badge_name || b.badgeName || 'FHub Contributor Badge',
-              description: b.badge?.description || b.description || b.award_reason || 'Awarded for verified academic contributions on FHub.',
-              icon: badgeIcons[idx % badgeIcons.length],
-              color: badgeColors[idx % badgeColors.length],
-              earnedDate: b.awarded_at ? b.awarded_at : '2026-10-15T09:00:00Z',
+            const mapped = apiBadges.map((b: any, index: number) => ({
+              id: b.userBadgeId || b.id || index,
+              name: b.name || b.badgeCode,
+              description: b.description || 'Thành tích hoạt động học thuật FHub',
+              icon: badgeIcons[index % badgeIcons.length],
+              earnedDate: b.awardedAt || 'Gần đây',
+              color: badgeColors[index % badgeColors.length]
             }));
             setUserBadges(mapped);
           } else {
@@ -255,76 +363,52 @@ export const ProfilePage: React.FC = () => {
           }
         }
       } catch (err) {
-        console.warn('Backend badges unavailable:', err);
         if (isMounted) setUserBadges([]);
       }
 
       if (isOwnProfile) {
         try {
-          const myVotes = await voteApi.getMyVotes();
-          if (isMounted) {
-            if (myVotes && myVotes.length > 0) {
-              const targetNameMap: Record<string, string> = {
-                QUESTION: t('common.academicQuestion', 'Câu hỏi thảo luận'),
-                ANSWER: t('common.academicAnswer', 'Câu trả lời giải đáp'),
-                ARTICLE: t('common.academicArticle', 'Bài viết chuyên sâu'),
-                WORKFLOW: t('common.academicWorkflow', 'Quy trình thực hành'),
-                STUDYMATERIAL: t('common.studyMaterial', 'Tài liệu học tập'),
-              };
-              const mappedVotes = myVotes.map((v) => {
-                const typeStr = String(v.targetType || 'CONTENT').toUpperCase();
-                const friendlyType = targetNameMap[typeStr] || typeStr;
-                return {
-                  id: String(v.voteId),
-                  targetTitle: `${friendlyType} #${v.targetId}`,
-                  type: typeStr,
-                  vote: v.voteValue > 0 ? 'Upvote (+1)' : 'Downvote (-1)',
-                  date: v.createdAt ? v.createdAt : new Date().toISOString(),
-                  author: t('common.author', 'Tác giả bài đăng'),
-                };
-              });
-              setUserVoteHistory(mappedVotes);
-            } else {
-              setUserVoteHistory([]);
-            }
+          const apiVotes = await voteApi.getMyVotes();
+          if (isMounted && apiVotes && apiVotes.length > 0) {
+            const mappedVotes = apiVotes.map((v: any, index: number) => ({
+              id: index,
+              type: v.targetType === 'QUESTION' ? 'Câu hỏi' : 'Câu trả lời',
+              targetTitle: v.targetTitle || `Bài đăng #${v.targetId}`,
+              author: v.authorName || 'Bạn học',
+              vote: v.voteValue === 1 ? '+1 Upvote' : '-1 Downvote',
+              date: v.createdAt || new Date().toISOString()
+            }));
+            setUserVoteHistory(mappedVotes);
           }
-        } catch (err) {
-          console.warn('Backend vote history unavailable:', err);
-          if (isMounted) setUserVoteHistory([]);
-        }
+        } catch {}
       }
     };
-
     fetchInteractions();
     return () => { isMounted = false; };
-  }, [id, currentUser?.id, isOwnProfile, targetUserId]);
+  }, [targetUserId, isOwnProfile]);
 
   const handleSaveProfile = (updated: any) => {
     setProfileData(prev => ({
       ...prev,
       fullName: updated.fullName,
-      campus: updated.campus,
-      campusId: updated.campusId ?? prev.campusId,
-      campusCode: updated.campusCode ?? prev.campusCode,
-      major: updated.major,
-      majorId: updated.majorId ?? prev.majorId,
-      majorCode: updated.majorCode ?? prev.majorCode,
-      specialization: updated.specialization,
-      specializationId: updated.specializationId ?? prev.specializationId,
-      specializationCode: updated.specializationCode ?? prev.specializationCode,
       bio: updated.bio,
-      interests: updated.interests,
-      avatarUrl: updated.avatarUrl,
+      avatarUrl: updated.avatarUrl || prev.avatarUrl,
       coverUrl: updated.coverUrl ?? prev.coverUrl,
+      major: updated.major,
+      campus: updated.campus,
+      campusId: updated.campusId,
+      campusCode: updated.campusCode,
+      specialization: updated.specialization,
+      specializationId: updated.specializationId,
+      interests: updated.interests,
     }));
     updateUser({
       fullName: updated.fullName,
       avatarUrl: updated.avatarUrl,
-      campus: updated.campusCode || updated.campus,
-      major: updated.major,
       ...(updated.coverUrl ? { coverUrl: updated.coverUrl } : {}),
+      ...(updated.campus ? { campus: updated.campus } : {}),
       ...(updated.campusId ? { campusId: updated.campusId } : {}),
-      ...(updated.majorId ? { majorId: updated.majorId } : {}),
+      ...(updated.major ? { major: updated.major } : {}),
       ...(updated.specializationId ? { specializationId: updated.specializationId } : {}),
     });
   };
@@ -358,7 +442,7 @@ export const ProfilePage: React.FC = () => {
 
   // Follow / Unfollow handler
   const handleToggleFollow = async () => {
-    if (isFollowLoading) return;
+    if (isFollowLoading || targetUserId <= 0) return;
     setIsFollowLoading(true);
     try {
       if (followStats.is_following) {
@@ -383,35 +467,58 @@ export const ProfilePage: React.FC = () => {
     }
   };
 
-  // Start chat handler (When followed -> open conversation)
-  const handleStartChat = async () => {
-    if (isMessageStarting) return;
+  // Handle direct message navigation
+  const handleStartMessage = async () => {
+    if (isMessageStarting || targetUserId <= 0) return;
     setIsMessageStarting(true);
     try {
       const conv = await directMessageApi.createConversation(targetUserId);
-      const convId = conv?.conversation_id || conv?.conversationId;
-      if (convId) {
-        navigate(`/messages?conversationId=${convId}`);
+      if (conv?.conversation_id) {
+        navigate(`/messages?conversationId=${conv.conversation_id}`);
       } else {
         navigate(`/messages?userId=${targetUserId}`);
       }
     } catch (err) {
-      console.warn('Failed to initiate conversation:', err);
       navigate(`/messages?userId=${targetUserId}`);
     } finally {
       setIsMessageStarting(false);
     }
   };
 
-  // Open modal for followers or following
+  // Open modal for followers / following with enriched profiles
   const openFollowListModal = async (type: 'followers' | 'following') => {
+    if (targetUserId <= 0) return;
     setFollowModalType(type);
     setIsFollowListLoading(true);
     try {
       const res = type === 'followers'
         ? await followApi.getFollowers(targetUserId)
         : await followApi.getFollowing(targetUserId);
-      setFollowListItems(res.items || []);
+      const rawItems: FollowUserItem[] = res.items || [];
+
+      // Enrich with real user profiles
+      const enriched = await Promise.all(
+        rawItems.map(async (item) => {
+          try {
+            const uProf = await profileApi.getProfile(item.user_id);
+            const sCode = uProf?.studentCode || extractStudentIdFromEmail(uProf?.email) || `CE${item.user_id}`;
+            return {
+              ...item,
+              fullName: uProf?.displayName || uProf?.fullName || `Sinh viên #${item.user_id}`,
+              avatarUrl: uProf?.avatarUrl || '',
+              studentId: sCode,
+            };
+          } catch {
+            return {
+              ...item,
+              fullName: `Sinh viên #${item.user_id}`,
+              avatarUrl: '',
+              studentId: `CE${item.user_id}`,
+            };
+          }
+        })
+      );
+      setFollowListItems(enriched);
     } catch (err) {
       console.warn('Failed to load follow list:', err);
       setFollowListItems([]);
@@ -421,40 +528,42 @@ export const ProfilePage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 w-full pb-16">
-      {/* Top Header & Actions Bar */}
+    <div className="space-y-6 max-w-5xl mx-auto">
+      {/* Top Banner / Actions Area */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#181C22]">
-            {isOwnProfile ? t('profile.myProfile', 'My Profile') : profileData.fullName}
+          <h1 className="text-2xl font-bold text-[#181C22] dark:text-slate-100">
+            {isOwnProfile ? t('profile.myProfileTitle', 'Hồ sơ của tôi') : profileData.fullName}
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            {isOwnProfile 
-              ? t('profile.subtitle', 'View your personal information and community activity.') 
-              : t("{p0} · {p1} · FPT University", undefined, { p0: t(profileData.role) || profileData.role, p1: t(profileData.major) || profileData.major })}
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+            {isOwnProfile
+              ? t('profile.myProfileSubtitle', 'Xem thông tin cá nhân và hoạt động cộng đồng của bạn.')
+              : t('Xem hồ sơ sinh viên và trao đổi học tập.')}
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2.5">
           {isOwnProfile ? (
             <>
               <button
                 type="button"
                 onClick={() => setIsEditModalOpen(true)}
-                className="px-4 py-2 bg-[#0076D1] hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+                className="px-4 py-2 text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700 rounded-xl shadow-xs transition-colors cursor-pointer"
               >
-                {t('profile.editProfile', 'Edit Profile')}
+                {t('profile.editProfile', 'Chỉnh sửa hồ sơ')}
               </button>
-              <Link
-                to="/settings"
-                className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 border border-slate-200 rounded-xl transition-colors"
-                title={t("Preferences & Settings")}
+              <button
+                type="button"
+                onClick={() => navigate('/settings')}
+                className="p-2 text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl transition-colors cursor-pointer"
+                title={t('Cài đặt')}
               >
                 <Settings className="w-4 h-4" />
-              </Link>
+              </button>
             </>
           ) : (
-            <div className="flex items-center gap-2">
+            <>
               {/* Follow / Unfollow Button */}
               <button
                 type="button"
@@ -470,65 +579,66 @@ export const ProfilePage: React.FC = () => {
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : followStats.is_following ? (
                   <>
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    <span>{t('profile.following', 'Đang theo dõi')}</span>
+                    <UserCheck className="w-4 h-4 text-emerald-600" />
+                    <span>{t('Đang theo dõi')}</span>
                   </>
                 ) : (
                   <>
                     <UserPlus className="w-4 h-4" />
-                    <span>{t('profile.follow', 'Theo dõi')}</span>
+                    <span>{t('Theo dõi')}</span>
                   </>
                 )}
               </button>
 
-              {/* Message Button: Active when following or triggers start chat */}
+              {/* Direct Message Button */}
               <button
                 type="button"
-                onClick={handleStartChat}
-                disabled={isMessageStarting || !followStats.is_following}
-                className={`px-4 py-2 text-xs font-bold rounded-xl shadow-xs transition-colors inline-flex items-center gap-1.5 ${
-                  followStats.is_following
-                    ? 'bg-[#0076D1] hover:bg-blue-700 text-white cursor-pointer'
-                    : 'bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed'
-                }`}
-                title={followStats.is_following ? t('Nhắn tin với người này') : t('Theo dõi người này để mở tính năng trò chuyện')}
+                onClick={handleStartMessage}
+                disabled={isMessageStarting}
+                className="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-xs transition-colors inline-flex items-center gap-1.5 cursor-pointer"
               >
                 {isMessageStarting ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <MessageSquare className="w-4 h-4" />
                 )}
-                <span>{t('profile.message', 'Nhắn tin')}</span>
+                <span>{t('Nhắn tin')}</span>
               </button>
-            </div>
+            </>
           )}
         </div>
       </div>
 
-      {/* Main Profile Info Card with Cover Photo Banner */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-xs overflow-hidden space-y-0">
-        {/* Cover Photo Banner */}
-        <div className="relative w-full h-44 sm:h-52 md:h-60 bg-gradient-to-r from-blue-600 via-sky-600 to-indigo-700 overflow-hidden">
+      {/* Main Profile Card Container */}
+      <div className="bg-white dark:bg-[#272727] rounded-2xl border border-slate-200/90 dark:border-transparent dark:hover:border-[#444444] shadow-xs overflow-hidden transition-colors">
+        {/* Cover Image Banner */}
+        <div className="relative w-full h-48 sm:h-64 md:h-72 bg-gradient-to-r from-blue-700 via-sky-600 to-indigo-800 rounded-t-2xl overflow-hidden shadow-inner">
           {profileData.coverUrl ? (
             <img
               src={normalizeMediaUrl(profileData.coverUrl)}
-              alt="Profile Cover"
+              alt={t('Ảnh bìa')}
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-tr from-blue-700 via-sky-600 to-indigo-600">
-              <span className="text-white/30 font-bold tracking-widest text-2xl uppercase select-none">
-                FHub Community
-              </span>
+            <div className="w-full h-full flex flex-col items-center justify-center text-white/40">
+              <Sparkles className="w-12 h-12 mb-2 stroke-[1.2]" />
+              <span className="text-xs font-medium tracking-wider uppercase">{profileData.campus}</span>
             </div>
           )}
 
-          {/* Quick Change Cover Photo Button for Owner */}
+          {/* Quick Cover Change Button (Only visible on own profile) */}
           {isOwnProfile && (
-            <div className="absolute top-4 right-4">
-              <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-black/50 hover:bg-black/70 text-white rounded-xl text-xs font-semibold backdrop-blur-xs transition-colors shadow-xs">
-                {isUploadingQuickCover ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
-                <span>{isUploadingQuickCover ? t('Đang tải...') : t('Đổi ảnh bìa')}</span>
+            <div className="absolute top-4 right-4 z-20">
+              <label
+                className="px-3.5 py-1.5 rounded-xl bg-black/60 hover:bg-black/80 text-white text-xs font-semibold backdrop-blur-md cursor-pointer transition-all flex items-center gap-1.5 shadow-md border border-white/20"
+                title={t('Thay đổi ảnh bìa nhanh')}
+              >
+                {isUploadingQuickCover ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Camera className="w-4 h-4" />
+                )}
+                <span>{t('Đổi ảnh bìa')}</span>
                 <input
                   type="file"
                   accept={IMAGE_ACCEPT}
@@ -541,91 +651,87 @@ export const ProfilePage: React.FC = () => {
           )}
         </div>
 
-        {/* Profile Details Content */}
+        {/* Profile Details Content: Avatar Overlap + Name & Actions (Clean, NO overlap bug) */}
         <div className="p-6 space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-end gap-5 -mt-16 sm:-mt-20">
-            {/* Avatar overlapping Cover */}
-            <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-gradient-to-tr from-[#0076D1] to-sky-400 flex items-center justify-center text-white font-bold text-3xl overflow-hidden shadow-md ring-4 ring-white shrink-0">
-              {profileData.avatarUrl ? (
-                <img src={normalizeMediaUrl(profileData.avatarUrl)} alt={t("Avatar")} className="w-full h-full object-cover" />
-              ) : (
-                profileData.fullName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() || 'BQ'
-              )}
-            </div>
-
-            <div className="space-y-1.5 flex-1 min-w-0 sm:pt-4">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <h2 className="text-xl font-bold text-[#181C22]">
-                  {profileData.fullName}
-                </h2>
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-semibold bg-amber-50 text-amber-800 border border-amber-200">
-                  {t(profileData.role) || profileData.role}
-                </span>
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono text-slate-600 bg-slate-100 border border-slate-200">
-                  {profileData.studentId === 'Chưa cập nhật' ? t('profile.notUpdated', 'Chưa cập nhật') : profileData.studentId}
-                </span>
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-5">
+            {/* Left: Avatar (overlaps cover) + Full Name, Role, Student ID & Bio (CLEARLY VISIBLE) */}
+            <div className="flex flex-col sm:flex-row sm:items-end gap-5 -mt-16 sm:-mt-20">
+              {/* Avatar overlapping Cover */}
+              <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-2xl bg-gradient-to-tr from-[#0076D1] to-sky-400 flex items-center justify-center text-white font-bold text-3xl overflow-hidden shadow-xl ring-4 ring-white dark:ring-[#272727] shrink-0 z-10 bg-white dark:bg-[#272727]">
+                {profileData.avatarUrl ? (
+                  <img src={normalizeMediaUrl(profileData.avatarUrl)} alt={t("Avatar")} className="w-full h-full object-cover" />
+                ) : (
+                  profileData.fullName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() || 'FH'
+                )}
               </div>
-              <p className="text-xs text-slate-600 leading-relaxed max-w-2xl">
-                {profileData.bio === 'Chưa có thông tin giới thiệu.' ? t('profile.defaultBio', 'Chưa có thông tin giới thiệu.') : profileData.bio}
-              </p>
 
-              {/* Followers & Following Stats (Simple, minimal style) */}
-              <div className="flex items-center gap-3 pt-1 text-xs text-slate-500">
-                <button
-                  type="button"
-                  onClick={() => openFollowListModal('followers')}
-                  className="hover:text-[#0076D1] transition-colors flex items-center gap-1 cursor-pointer"
-                >
-                  <span className="font-bold text-slate-800">{followStats.followers_count}</span>
-                  <span className="text-slate-500">{t('profile.followers', 'người theo dõi')}</span>
-                </button>
-                <span>•</span>
-                <button
-                  type="button"
-                  onClick={() => openFollowListModal('following')}
-                  className="hover:text-[#0076D1] transition-colors flex items-center gap-1 cursor-pointer"
-                >
-                  <span className="font-bold text-slate-800">{followStats.following_count}</span>
-                  <span className="text-slate-500">{t('profile.followingCount', 'đang theo dõi')}</span>
-                </button>
+              {/* User Identity - placed next to avatar, bottom-aligned so it sits below the banner */}
+              <div className="space-y-1 sm:pb-1">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100">
+                    {profileData.fullName}
+                  </h2>
+                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-semibold bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800">
+                    {t(profileData.role) || profileData.role}
+                  </span>
+                  {profileData.studentId && (
+                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold text-blue-700 bg-blue-50 border border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800">
+                      {profileData.studentId}
+                    </span>
+                  )}
+                </div>
+
+                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed max-w-xl">
+                  {profileData.bio === 'Chưa có thông tin giới thiệu.' ? t('Chưa có thông tin giới thiệu.') : profileData.bio}
+                </p>
+
+                {/* Followers & Following Stats */}
+                <div className="flex items-center gap-3 pt-1 text-xs text-slate-500 dark:text-slate-400">
+                  <button
+                    type="button"
+                    onClick={() => openFollowListModal('followers')}
+                    className="hover:text-[#0076D1] dark:hover:text-blue-400 transition-colors flex items-center gap-1 cursor-pointer font-medium"
+                  >
+                    <span className="font-bold text-slate-900 dark:text-slate-100">{followStats.followers_count}</span>
+                    <span>{t('profile.followers', 'người theo dõi')}</span>
+                  </button>
+                  <span>•</span>
+                  <button
+                    type="button"
+                    onClick={() => openFollowListModal('following')}
+                    className="hover:text-[#0076D1] dark:hover:text-blue-400 transition-colors flex items-center gap-1 cursor-pointer font-medium"
+                  >
+                    <span className="font-bold text-slate-900 dark:text-slate-100">{followStats.following_count}</span>
+                    <span>{t('profile.followingCount', 'đang theo dõi')}</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* 4-Item Meta Bar */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 rounded-xl bg-slate-50/70 border border-slate-100">
+          {/* Academic Info Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 text-xs">
             <div>
-              <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                {t('profile.email', 'EMAIL')}
-              </span>
-              <span className="text-xs font-semibold text-slate-800 truncate block mt-0.5">
-                {profileData.email}
+              <span className="font-mono text-[10px] text-slate-400 uppercase font-semibold block">{t('EMAIL')}</span>
+              <span className="font-medium text-slate-800 dark:text-slate-200 truncate block mt-0.5">
+                {profileData.email || 'Chưa cập nhật'}
               </span>
             </div>
-
             <div>
-              <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                {t('profile.community', 'COMMUNITY')}
-              </span>
-              <span className="text-xs font-semibold text-slate-800 truncate block mt-0.5">
+              <span className="font-mono text-[10px] text-slate-400 uppercase font-semibold block">{t('CỘNG ĐỒNG')}</span>
+              <span className="font-medium text-slate-800 dark:text-slate-200 truncate block mt-0.5">
                 {profileData.community}
               </span>
             </div>
-
             <div>
-              <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                {t('profile.major', 'MAJOR')}
-              </span>
-              <span className="text-xs font-semibold text-slate-800 truncate block mt-0.5">
-                {profileData.major === 'Chuyên ngành' ? t('profile.defaultMajor', 'Chuyên ngành') : profileData.major}
+              <span className="font-mono text-[10px] text-slate-400 uppercase font-semibold block">{t('CHUYÊN NGÀNH')}</span>
+              <span className="font-medium text-slate-800 dark:text-slate-200 truncate block mt-0.5">
+                {profileData.specialization || profileData.major || 'Kỹ thuật phần mềm (SE)'}
               </span>
             </div>
-
             <div>
-              <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                {t('profile.campusStatus', 'CAMPUS / STATUS')}
-              </span>
-              <span className="text-xs font-semibold text-slate-800 truncate block mt-0.5">
+              <span className="font-mono text-[10px] text-slate-400 uppercase font-semibold block">{t('CƠ SỞ / TRẠNG THÁI')}</span>
+              <span className="font-medium text-slate-800 dark:text-slate-200 truncate block mt-0.5">
                 {profileData.campus}
               </span>
             </div>
@@ -633,131 +739,56 @@ export const ProfilePage: React.FC = () => {
         </div>
       </div>
 
-      {/* 3 Real Dynamic Stats Highlights Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Card 1: Questions */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-xs">
-          <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-            {t('profile.questionsCountLabel', 'CÂU HỎI ĐÃ ĐẶT')}
-          </span>
+      {/* Engagement Activity Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-white dark:bg-[#272727] p-5 rounded-2xl border border-slate-200/90 dark:border-transparent dark:hover:border-[#444444] shadow-xs transition-colors">
+          <span className="text-[11px] font-mono font-bold text-slate-400 uppercase">{t('CÂU HỎI ĐÃ ĐẶT')}</span>
           <div className="flex items-baseline justify-between mt-2">
-            <span className="text-3xl font-extrabold text-[#181C22]">
-              {questions.length}
-            </span>
-            <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
-              {questions.length} {t('profile.questionsUnit', 'câu hỏi')}
+            <span className="text-3xl font-black text-slate-900 dark:text-slate-100">{questions.length}</span>
+            <span className="text-xs text-blue-600 bg-blue-50 dark:bg-blue-950/60 dark:text-blue-400 px-2 py-0.5 rounded-full font-semibold">
+              {questions.length} {t('Câu hỏi')}
             </span>
           </div>
         </div>
 
-        {/* Card 2: Karma */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-xs">
-          <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-            {t('profile.karmaScoreLabel', 'ĐIỂM UY TÍN (KARMA)')}
-          </span>
+        <div className="bg-white dark:bg-[#272727] p-5 rounded-2xl border border-slate-200/90 dark:border-transparent dark:hover:border-[#444444] shadow-xs transition-colors">
+          <span className="text-[11px] font-mono font-bold text-slate-400 uppercase">{t('ĐIỂM UY TÍN (KARMA)')}</span>
           <div className="flex items-baseline justify-between mt-2">
-            <span className="text-3xl font-extrabold text-[#181C22]">
-              {profileData.stats.helpfulVotes}
-            </span>
-            <span className="text-xs font-semibold text-[#0076D1] bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
-              {profileData.stats.helpfulVotes} {t('profile.pointsUnit', 'điểm')}
+            <span className="text-3xl font-black text-slate-900 dark:text-slate-100">{profileData.stats.helpfulVotes}</span>
+            <span className="text-xs text-emerald-600 bg-emerald-50 dark:bg-emerald-950/60 dark:text-emerald-400 px-2 py-0.5 rounded-full font-semibold">
+              {profileData.stats.helpfulVotes} {t('điểm')}
             </span>
           </div>
         </div>
 
-        {/* Card 3: Badges */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-xs">
-          <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-            {t('profile.badgesEarnedLabel', 'HUY HIỆU ĐÃ ĐẠT')}
-          </span>
+        <div className="bg-white dark:bg-[#272727] p-5 rounded-2xl border border-slate-200/90 dark:border-transparent dark:hover:border-[#444444] shadow-xs transition-colors">
+          <span className="text-[11px] font-mono font-bold text-slate-400 uppercase">{t('HUY HIỆU ĐÃ ĐẠT')}</span>
           <div className="flex items-baseline justify-between mt-2">
-            <span className="text-3xl font-extrabold text-[#181C22]">
-              {userBadges.length}
-            </span>
-            <span className="text-xs font-semibold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100">
-              {userBadges.length} {t('profile.badgesUnit', 'huy hiệu')}
+            <span className="text-3xl font-black text-slate-900 dark:text-slate-100">{userBadges.length}</span>
+            <span className="text-xs text-purple-600 bg-purple-50 dark:bg-purple-950/60 dark:text-purple-300 px-2 py-0.5 rounded-full font-semibold">
+              {userBadges.length} {t('Huy hiệu')}
             </span>
           </div>
         </div>
       </div>
 
-      {/* About Me Section */}
-      <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <div>
-            <h3 className="text-base font-bold text-[#181C22]">{t('profile.aboutMe', 'About Me')}</h3>
-            <p className="text-xs text-slate-400">{t('profile.academicInfo', 'Academic Profile Info')}</p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-              {t('profile.memberSince', 'MEMBER SINCE')}
-            </span>
-            <span className="text-xs font-semibold text-slate-800 block mt-0.5">
-              {profileData.memberSince === 'Gần đây' ? t('profile.recent', 'Gần đây') : profileData.memberSince}
-            </span>
-          </div>
-
-          <div>
-            <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-              {t('profile.studentStatus', 'STUDENT STATUS')}
-            </span>
-            <span className="text-xs font-semibold text-slate-800 block mt-0.5">
-              {profileData.status === 'Sinh viên FPTU' ? t('profile.defaultStatus', 'Sinh viên FPTU') : profileData.status}
-            </span>
-          </div>
-        </div>
-
-        <div className="pt-2">
-          <span className="block font-mono text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-2">
-            {t('profile.interests', 'ACADEMIC & TECH INTERESTS')}
-          </span>
-          {profileData.interests && profileData.interests.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {profileData.interests.map((tag) => (
-                <span
-                  key={tag}
-                  className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <p className="text-xs text-slate-400 italic">
-              {t('profile.noInterests', 'Chưa cập nhật sở thích học thuật / công nghệ.')}
-            </p>
-          )}
-        </div>
-
-        {profileData.detailedBio ? (
-          <p className="text-xs text-slate-600 leading-relaxed pt-2 border-t border-slate-100">
-            {profileData.detailedBio}
-          </p>
-        ) : null}
-      </div>
-
-      {/* Interactive Activity & Contributions Tabs */}
-      <div className="space-y-4">
-        {/* Tab Buttons */}
-        <div className="flex items-center gap-2 border-b border-slate-200 pb-2 overflow-x-auto">
+      {/* Tabs and Content List */}
+      <div className="bg-white dark:bg-[#272727] rounded-2xl border border-slate-200/90 dark:border-transparent dark:hover:border-[#444444] shadow-xs p-6 transition-colors">
+        <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3 overflow-x-auto">
           {[
-            { id: 'overview', label: t('profile.tabOverview', 'Overview') },
-            { id: 'questions', label: `${t('profile.tabQuestions', 'Questions')} (${questions.length})` },
-            { id: 'answers', label: `${t('profile.tabAnswers', 'Answers')} (${answers.length})` },
-            { id: 'badges', label: `${t('profile.tabBadges', 'Badges')} (${userBadges.length})` },
-            ...(isOwnProfile ? [{ id: 'votes', label: `${t('profile.tabVotes', 'Vote History')} (${userVoteHistory.length})` }] : []),
-          ].map((tab) => (
+            { id: 'overview', label: t('Tổng quan') },
+            { id: 'questions', label: `${t('Câu hỏi')} (${questions.length})` },
+            { id: 'answers', label: `${t('Câu trả lời')} (${answers.length})` },
+            { id: 'badges', label: `${t('Huy hiệu')} (${userBadges.length})` },
+            ...(isOwnProfile ? [{ id: 'votes', label: t('Lịch sử bình chọn') }] : []),
+          ].map((tab: any) => (
             <button
               key={tab.id}
-              id={`tab-${tab.id}`}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                 activeTab === tab.id
-                  ? 'bg-white text-[#0076D1] shadow-xs border border-slate-200'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+                  ? 'bg-blue-50 text-[#0076D1] dark:bg-blue-950/60 dark:text-blue-400 shadow-2xs'
+                  : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white'
               }`}
             >
               {tab.label}
@@ -767,249 +798,110 @@ export const ProfilePage: React.FC = () => {
 
         {/* Tab 1: Overview */}
         {activeTab === 'overview' && (
-          <div className="space-y-4">
-            <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h4 className="text-sm font-bold text-slate-800">{t('profile.recentContributions', 'Recent Contributions')}</h4>
-                {questions.length > 0 && (
-                  <button 
-                    onClick={() => setActiveTab('questions')}
-                    className="text-xs font-semibold text-[#0076D1] hover:underline cursor-pointer"
-                  >
-                    {t('common.viewAll', 'Xem tất cả')}
-                  </button>
-                )}
-              </div>
-
-              {questions.length === 0 ? (
-                <div className="py-6 text-center text-xs text-slate-400">
-                  {t('profile.emptyContributions', 'Chưa có hoạt động đóng góp nào gần đây.')}
-                </div>
-              ) : (
-                <div className="divide-y divide-slate-100">
-                  {questions.map((q) => (
-                    <div key={q.id} className="py-3 flex items-center justify-between gap-4">
-                      <div className="space-y-1">
-                        <Link to={`/discussions/${q.id}`} className="text-xs font-bold text-slate-800 hover:text-[#0076D1] line-clamp-1">
-                          {q.title}
-                        </Link>
-                        <div className="flex items-center gap-3 text-[11px] text-slate-400">
-                          <span className="font-mono text-slate-700 bg-slate-100 px-1.5 py-0.2 rounded font-semibold">
-                            {q.course}
-                          </span>
-                          <span>{q.votes} {t('votes')}</span>
-                          <span>{q.answers} {t('answers')}</span>
-                          {q.isSolved && (
-                            <span className="text-emerald-700 font-semibold bg-emerald-50 px-1.5 py-0.2 rounded">
-                              {t('profile.acceptedSolution', 'Accepted Solution')}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <span className="text-xs text-slate-400 whitespace-nowrap">{t(q.time)}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Badges Preview */}
-            <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h4 className="text-sm font-bold text-slate-800">{t('profile.earnedBadges', 'Earned Badges')}</h4>
-                <div className="flex items-center gap-3">
-                  <Link
-                    to="/reputation-rules"
-                    className="text-xs font-semibold text-slate-500 hover:text-[#0076D1] hover:underline"
-                  >
-                    {t('profile.reputationRules', 'Reputation Rules')}
-                  </Link>
-                  {userBadges.length > 0 && (
-                    <button 
-                      onClick={() => setActiveTab('badges')}
-                      className="text-xs font-semibold text-[#0076D1] hover:underline cursor-pointer"
-                    >
-                      {t('common.viewAll', 'Xem tất cả')} ({userBadges.length})
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {userBadges.length === 0 ? (
-                <div className="py-6 text-center text-xs text-slate-400">
-                  {t('profile.emptyBadges', 'Chưa có huy hiệu thành tích nào. Hãy tích cực hoạt động để nhận huy hiệu!')}
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {userBadges.map((b) => (
-                    <div key={b.id} className={`p-3.5 rounded-xl border text-center space-y-1.5 ${b.color}`}>
-                      <span className="text-2xl">{b.icon}</span>
-                      <h5 className="text-xs font-bold">{t(b.name) || b.name}</h5>
-                      <p className="text-[10px] opacity-75">{formatDate(b.earnedDate)}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+          <div className="pt-5 space-y-4">
+            <h4 className="text-xs font-mono font-bold text-slate-400 uppercase">{t('Giới thiệu bản thân')}</h4>
+            <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+              {profileData.bio}
+            </p>
           </div>
         )}
 
         {/* Tab 2: Questions */}
         {activeTab === 'questions' && (
-          <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs">
+          <div className="pt-5 divide-y divide-slate-100 dark:divide-slate-800">
             {questions.length === 0 ? (
-              <div className="py-10 text-center text-xs text-slate-400">
-                {t('profile.emptyQuestions', 'Chưa có câu hỏi nào được tạo.')}
-              </div>
+              <div className="text-center py-8 text-slate-400 text-xs">{t('Chưa có câu hỏi nào.')}</div>
             ) : (
-              <div className="divide-y divide-slate-100">
-                {questions.map((q) => (
-                  <div key={q.id} className="py-4 flex items-start justify-between gap-4">
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
-                          {q.course}
-                        </span>
-                        <Link to={`/discussions/${q.id}`} className="text-sm font-bold text-slate-800 hover:text-[#0076D1]">
-                          {q.title}
-                        </Link>
-                      </div>
-                      <div className="flex items-center gap-3 text-xs text-slate-500">
-                        <span>{q.votes} {t('votes')}</span>
-                        <span>•</span>
-                        <span>{q.answers} {t('answers')}</span>
-                        {q.isSolved && (
-                          <>
-                            <span>•</span>
-                            <span className="text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
-                              {t('Solved')}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    <span className="text-xs text-slate-400 whitespace-nowrap">{t(q.time)}</span>
+              questions.map((q) => (
+                <div key={q.id} className="py-3.5 flex items-center justify-between gap-4">
+                  <div className="space-y-1 min-w-0">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-50 text-[#0076D1] dark:bg-blue-950/60 dark:text-blue-400">
+                      #{q.course}
+                    </span>
+                    <Link
+                      to={`/discussions/${q.id}`}
+                      className="block text-sm font-bold text-slate-900 dark:text-slate-100 hover:text-[#0076D1] dark:hover:text-blue-400 transition-colors truncate"
+                    >
+                      {q.title}
+                    </Link>
                   </div>
-                ))}
-              </div>
+                  <div className="flex items-center gap-3 text-xs text-slate-400 shrink-0">
+                    <span>{q.votes} votes</span>
+                    <span>{q.answers} replies</span>
+                  </div>
+                </div>
+              ))
             )}
           </div>
         )}
 
         {/* Tab 3: Answers */}
         {activeTab === 'answers' && (
-          <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs">
+          <div className="pt-5 divide-y divide-slate-100 dark:divide-slate-800">
             {answers.length === 0 ? (
-              <div className="py-10 text-center text-xs text-slate-400">
-                {t('profile.emptyAnswers', 'Chưa có câu trả lời nào.')}
-              </div>
+              <div className="text-center py-8 text-slate-400 text-xs">{t('Chưa có câu trả lời nào.')}</div>
             ) : (
-              <div className="divide-y divide-slate-100">
-                {answers.map((a) => (
-                  <div key={a.id} className="py-4 space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">
-                          {a.course}
-                        </span>
-                        <h5 className="text-xs font-bold text-slate-800">
-                          {t('profile.answeredOn', 'Answered on:')} <span className="hover:text-[#0076D1] cursor-pointer">{a.questionTitle}</span>
-                        </h5>
-                      </div>
-                      {a.isBestAnswer && (
-                        <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 flex items-center gap-1">
-                          <Sparkles className="w-3 h-3 text-emerald-600" />
-                          {t('profile.bestAnswer', 'Best Answer')}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-slate-600 bg-slate-50/70 p-3 rounded-xl border border-slate-100 italic leading-relaxed">
-                      "{a.excerpt}"
-                    </p>
-                    <div className="flex items-center gap-3 text-[11px] text-slate-400">
-                      <span className="font-semibold text-slate-600">{a.upvotes} {t('profile.helpfulUpvotes', 'helpful upvotes')}</span>
-                      <span>•</span>
-                      <span>{t(a.time)}</span>
-                    </div>
+              answers.map((a) => (
+                <div key={a.id} className="py-3.5 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-50 text-[#0076D1]">
+                      #{a.course}
+                    </span>
+                    <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 truncate">
+                      {a.questionTitle}
+                    </span>
                   </div>
-                ))}
-              </div>
+                  <p className="text-xs text-slate-700 dark:text-slate-200 line-clamp-2">{a.excerpt}</p>
+                </div>
+              ))
             )}
           </div>
         )}
 
         {/* Tab 4: Badges */}
         {activeTab === 'badges' && (
-          <div>
+          <div className="pt-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             {userBadges.length === 0 ? (
-              <div className="bg-white rounded-2xl p-10 border border-slate-100 shadow-xs text-center text-xs text-slate-400">
-                {t('profile.emptyBadges', 'Chưa có huy hiệu nào được trao.')}
-              </div>
+              <div className="col-span-full text-center py-8 text-slate-400 text-xs">{t('Chưa có huy hiệu nào.')}</div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {userBadges.map((b) => (
-                  <div key={b.id} className="bg-white rounded-2xl p-5 border border-slate-100 shadow-xs flex items-start gap-4">
-                    <div className="text-3xl p-3 bg-slate-50 rounded-2xl border border-slate-100 shrink-0">
-                      {b.icon}
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <h4 className="text-sm font-bold text-slate-800">{t(b.name) || b.name}</h4>
-                        <span className="text-[10px] text-slate-400 font-mono">{t('profile.earned', 'Earned')} {formatDate(b.earnedDate)}</span>
-                      </div>
-                      <p className="text-xs text-slate-500 leading-relaxed">
-                        {t(b.description) || b.description}
-                      </p>
-                    </div>
+              userBadges.map((b) => (
+                <div key={b.id} className="p-3 rounded-xl border border-slate-100 dark:border-slate-800 flex items-center gap-3">
+                  <span className="text-2xl">{b.icon}</span>
+                  <div className="min-w-0">
+                    <h5 className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">{b.name}</h5>
+                    <p className="text-[10px] text-slate-400 truncate">{b.description}</p>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))
             )}
           </div>
         )}
 
-        {/* Tab 5: Vote History */}
+        {/* Tab 5: Votes (Own Profile Only) */}
         {activeTab === 'votes' && isOwnProfile && (
-          <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-xs">
+          <div className="pt-5 divide-y divide-slate-100 dark:divide-slate-800">
             {userVoteHistory.length === 0 ? (
-              <div className="py-10 text-center text-xs text-slate-400">
-                {t('profile.emptyVotes', 'Chưa có lịch sử bình chọn nào.')}
-              </div>
+              <div className="text-center py-8 text-slate-400 text-xs">{t('Chưa có lượt bình chọn nào.')}</div>
             ) : (
-              <div className="divide-y divide-slate-100">
-                {userVoteHistory.map((v) => (
-                  <div key={v.id} className="py-3 flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-blue-50 text-[#0076D1] border border-blue-200">
-                        {v.type}
-                      </span>
-                      <div>
-                        <h5 className="text-xs font-bold text-slate-800 hover:text-[#0076D1] cursor-pointer">
-                          {v.targetTitle}
-                        </h5>
-                        <p className="text-[11px] text-slate-400">{t("By")} {v.author}</p>
-                      </div>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <span className="text-xs font-bold text-emerald-600">{v.vote}</span>
-                      <p className="text-[10px] text-slate-400">{formatDate(v.date)}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              userVoteHistory.map((v) => (
+                <div key={v.id} className="py-3 flex items-center justify-between gap-4">
+                  <span className="text-xs font-medium text-slate-800 dark:text-slate-200">{v.targetTitle}</span>
+                  <span className="text-xs font-bold text-emerald-600">{v.vote}</span>
+                </div>
+              ))
             )}
           </div>
         )}
       </div>
 
-      {/* Followers / Following Details Modal (Simple, standard style) */}
+      {/* Followers / Following Details Modal */}
       {followModalType && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-100 max-w-md w-full max-h-[80vh] flex flex-col overflow-hidden">
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 max-w-md w-full max-h-[80vh] flex flex-col overflow-hidden">
+            <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/40">
               <div className="flex items-center gap-2">
                 <Users className="w-4 h-4 text-[#0076D1]" />
-                <h3 className="text-sm font-bold text-[#181C22]">
+                <h3 className="text-sm font-bold text-[#181C22] dark:text-slate-100">
                   {followModalType === 'followers'
                     ? `${t('Người theo dõi')} (${followStats.followers_count})`
                     : `${t('Đang theo dõi')} (${followStats.following_count})`}
@@ -1018,7 +910,7 @@ export const ProfilePage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setFollowModalType(null)}
-                className="p-1 text-slate-400 hover:text-slate-700 rounded-lg"
+                className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1037,26 +929,30 @@ export const ProfilePage: React.FC = () => {
                     : t('Chưa theo dõi người dùng nào.')}
                 </div>
               ) : (
-                <div className="divide-y divide-slate-100">
+                <div className="divide-y divide-slate-100 dark:divide-slate-800">
                   {followListItems.map((item) => (
                     <div key={item.user_id} className="py-2.5 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="w-8 h-8 rounded-full bg-blue-50 text-[#0076D1] border border-blue-200 font-bold text-xs flex items-center justify-center shrink-0">
-                          {`U${item.user_id}`}
+                        <div className="w-9 h-9 rounded-full bg-blue-50 text-[#0076D1] border border-blue-200 font-bold text-xs flex items-center justify-center shrink-0 overflow-hidden">
+                          {item.avatarUrl ? (
+                            <img src={normalizeMediaUrl(item.avatarUrl)} alt={item.fullName} className="w-full h-full object-cover" />
+                          ) : (
+                            item.fullName ? item.fullName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() : `U${item.user_id}`
+                          )}
                         </div>
                         <div className="min-w-0">
-                          <p className="text-xs font-bold text-slate-800 truncate">
-                            {t('Sinh viên')} #{item.user_id}
+                          <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                            {item.fullName}
                           </p>
-                          <span className="text-[10px] text-slate-400 font-mono">
-                            {formatDate(item.followed_at)}
+                          <span className="text-[10px] text-blue-600 dark:text-blue-400 font-mono font-semibold">
+                            {item.studentId}
                           </span>
                         </div>
                       </div>
                       <Link
-                        to={`/profile/${item.user_id}`}
+                        to={`/profile/${item.studentId || item.user_id}`}
                         onClick={() => setFollowModalType(null)}
-                        className="px-2.5 py-1 text-[11px] font-semibold text-[#0076D1] hover:bg-blue-50 border border-blue-200 rounded-lg transition-colors shrink-0"
+                        className="px-2.5 py-1 text-[11px] font-semibold text-[#0076D1] hover:bg-blue-50 border border-blue-200 rounded-lg transition-colors shrink-0 cursor-pointer"
                       >
                         {t('Xem hồ sơ')}
                       </Link>

@@ -17,6 +17,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { profileApi, followApi, FollowStats } from '../../services/api/studentApi';
 import { normalizeMediaUrl } from '../../utils/mediaUtils';
 import { resolveUserMajorName, FPT_CAMPUSES } from '../../utils/taxonomyUtils';
+import { extractStudentIdFromEmail } from '../../utils/fptEmailValidator';
 
 export interface UserHoverCardProps {
   userId?: number | string | null;
@@ -71,6 +72,7 @@ export const UserHoverCard: React.FC<UserHoverCardProps> = ({
     avatarUrl: string;
     major: string;
     campus: string;
+    studentId: string;
     followersCount: number;
     isFollowing: boolean;
   }>({
@@ -78,6 +80,7 @@ export const UserHoverCard: React.FC<UserHoverCardProps> = ({
     avatarUrl: initialData?.avatarUrl || '',
     major: initialData?.major || 'Công nghệ thông tin',
     campus: initialData?.campus || 'FPT University',
+    studentId: initialData?.studentId || '',
     followersCount: 0,
     isFollowing: false,
   });
@@ -134,6 +137,7 @@ export const UserHoverCard: React.FC<UserHoverCardProps> = ({
         avatarUrl: p.avatarUrl || initialData?.avatarUrl || '',
         major: resolvedMajor,
         campus: resolvedCampus,
+        studentId: p.studentCode || p.studentId || extractStudentIdFromEmail(p.email) || String(numUserId),
         followersCount: cached.stats?.followers_count || 0,
         isFollowing: cached.isFollowing,
       });
@@ -165,11 +169,13 @@ export const UserHoverCard: React.FC<UserHoverCardProps> = ({
         ? (FPT_CAMPUSES[profile.campusCode] || profile.campusCode)
         : (profile?.campusId ? (FPT_CAMPUSES[profile.campusId] || 'FPT University') : initialData?.campus || 'FPT University');
 
+      const resolvedStudentId = profile?.studentCode || extractStudentIdFromEmail(profile?.email) || initialData?.studentId || '';
       setUserData({
         fullName: profile?.displayName || profile?.fullName || initialData?.fullName || 'Sinh viên FHub',
         avatarUrl: profile?.avatarUrl || initialData?.avatarUrl || '',
         major: resolvedMajor,
         campus: resolvedCampus,
+        studentId: resolvedStudentId,
         followersCount: stats?.followers_count || 0,
         isFollowing,
       });
@@ -282,7 +288,8 @@ export const UserHoverCard: React.FC<UserHoverCardProps> = ({
   const handleGoToProfile = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     setIsOpen(false);
-    navigate(`/profile/${numUserId}`);
+    const dest = userData.studentId ? `/profile/${userData.studentId}` : `/profile/${numUserId}`;
+    navigate(dest);
   };
 
   const handleDirectMessage = (e: React.MouseEvent) => {
