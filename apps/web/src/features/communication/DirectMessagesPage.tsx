@@ -147,29 +147,10 @@ export const DirectMessagesPage: React.FC = () => {
         }));
         setBlockedList(mapped);
       } else {
-        // Fallback default blocked entry for demonstration if DB returns 0
-        setBlockedList([
-          {
-            blockId: 1,
-            userId: 10,
-            name: 'Phu THG (CE182003)',
-            studentCode: 'CE182003',
-            reason: 'Repeatedly sending unsolicited promotional links and spam messages',
-            blockedAt: 'Yesterday',
-          }
-        ]);
+        setBlockedList([]);
       }
     } catch {
-      setBlockedList([
-        {
-          blockId: 1,
-          userId: 10,
-          name: 'Phu THG (CE182003)',
-          studentCode: 'CE182003',
-          reason: 'Repeatedly sending unsolicited promotional links and spam messages',
-          blockedAt: 'Yesterday',
-        }
-      ]);
+      setBlockedList([]);
     }
   };
 

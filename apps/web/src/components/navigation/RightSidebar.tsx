@@ -1,3 +1,4 @@
+import { extractStudentIdFromEmail } from '../../utils/fptEmailValidator';
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -23,10 +24,10 @@ export const RightSidebar: React.FC = () => {
     setImgError(false);
   }, [currentUser?.avatarUrl]);
 
-  const studentName = currentUser?.fullName || 'Nguyen Minh Tam';
-  const studentId = currentUser?.studentId || 'CE181522';
-  const avatarInitials = studentName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() || 'NT';
-  const majorDisplay = (currentUser as any)?.majorName || (currentUser as any)?.major || 'Software Engineering (K18 - DevOps)';
+  const studentName = currentUser?.fullName || (currentUser as any)?.displayName || t('common.fhubStudent', 'Sinh viên FHub');
+  const studentId = currentUser?.studentId || (currentUser?.email ? extractStudentIdFromEmail(currentUser.email) : '') || '';
+  const avatarInitials = studentName.split(' ').filter(Boolean).map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || 'FH';
+  const majorDisplay = (currentUser as any)?.majorName || (currentUser as any)?.major || t('taxonomy.defaultMajor', 'Công nghệ thông tin');
 
   const activities: Array<{
     id: string;

@@ -6,7 +6,7 @@ import { profileApi } from '../../services/api/studentApi';
 import { contentMediaApi } from '../../services/api/contentApi';
 import { IMAGE_ACCEPT, normalizeMediaUrl, validateImage } from '../../utils/mediaUtils';
 
-const CAMPUS_OPTIONS = [
+export const CAMPUS_OPTIONS = [
   { id: 1, code: 'HN', name: 'Trường Đại học FPT - Hà Nội (Hòa Lạc)' },
   { id: 2, code: 'HCM', name: 'Trường Đại học FPT - TP. Hồ Chí Minh' },
   { id: 3, code: 'DN', name: 'Trường Đại học FPT - Đà Nẵng' },
@@ -14,7 +14,7 @@ const CAMPUS_OPTIONS = [
   { id: 5, code: 'QN', name: 'Trường Đại học FPT - Quy Nhơn' },
 ];
 
-const MAJOR_OPTIONS = [
+export const MAJOR_OPTIONS = [
   { id: 1, code: 'IT', name: 'Công nghệ thông tin (IT)' },
   { id: 2, code: 'CS', name: 'Khoa học máy tính (CS)' },
   { id: 3, code: 'BA', name: 'Quản trị kinh doanh (BA)' },
@@ -26,46 +26,65 @@ const MAJOR_OPTIONS = [
   { id: 9, code: 'CN', name: 'Ngôn ngữ Trung Quốc (CN)' },
 ];
 
-const SPECIALIZATION_OPTIONS: Record<string, Array<{ id: number; code: string; name: string }>> = {
+export const SPECIALIZATION_OPTIONS: Record<string, Array<{ id: number; code: string; name: string }>> = {
   IT: [
-    { id: 1, code: 'SE', name: 'Kỹ thuật phần mềm (Software Engineering)' },
-    { id: 2, code: 'AI', name: 'Trí tuệ nhân tạo (AI & Machine Learning)' },
-    { id: 3, code: 'IA', name: 'An toàn thông tin (Information Assurance)' },
-    { id: 4, code: 'IS', name: 'Hệ thống thông tin (Information Systems)' },
-    { id: 5, code: 'IC', name: 'Thiết kế vi mạch bán dẫn (Semiconductor IC)' },
-    { id: 6, code: 'AS', name: 'Công nghệ ô tô số (Digital Automotive)' },
-    { id: 7, code: 'DS', name: 'Khoa học dữ liệu ứng dụng (Data Science)' },
-    { id: 8, code: 'GD', name: 'Thiết kế đồ họa và Mỹ thuật số' },
-    { id: 9, code: 'RA', name: 'Robot và Trí tuệ nhân tạo (Robotics & AI)' },
+    { id: 1, code: 'SE', name: 'Kỹ thuật phần mềm' },
+    { id: 2, code: 'AI', name: 'Trí tuệ nhân tạo' },
+    { id: 3, code: 'IA', name: 'An toàn thông tin' },
+    { id: 4, code: 'IS', name: 'Hệ thống thông tin' },
+    { id: 5, code: 'IC', name: 'Thiết kế vi mạch bán dẫn' },
+    { id: 6, code: 'AS', name: 'Công nghệ ô tô số' },
+    { id: 7, code: 'DS', name: 'Khoa học dữ liệu ứng dụng' },
+    { id: 8, code: 'GD', name: 'Thiết kế đồ họa & Mỹ thuật số' },
+    { id: 9, code: 'RA', name: 'Robot & Trí tuệ nhân tạo' },
     { id: 10, code: 'IT', name: 'Công nghệ thông tin chung' },
   ],
   CS: [
-    { id: 11, code: 'CS-AI', name: 'Trí tuệ nhân tạo và Khoa học dữ liệu' },
+    { id: 11, code: 'CS-AI', name: 'Trí tuệ nhân tạo & Khoa học dữ liệu' },
+    { id: 12, code: 'CS-SEC', name: 'An ninh mạng & An toàn số' },
   ],
   BA: [
-    { id: 12, code: 'D-MKT', name: 'Digital Marketing' },
-    { id: 13, code: 'IB', name: 'Kinh doanh quốc tế' },
-    { id: 14, code: 'HM', name: 'Quản trị khách sạn' },
-    { id: 15, code: 'FIN', name: 'Tài chính doanh nghiệp' },
+    { id: 13, code: 'DM', name: 'Digital Marketing' },
+    { id: 14, code: 'IB', name: 'Kinh doanh quốc tế' },
+    { id: 15, code: 'EC', name: 'Thương mại điện tử' },
+    { id: 16, code: 'BBA', name: 'Quản trị kinh doanh' },
+    { id: 17, code: 'HM', name: 'Quản trị khách sạn' },
+    { id: 18, code: 'TM', name: 'Quản trị dịch vụ du lịch & lữ hành' },
+    { id: 19, code: 'SCM', name: 'Logistics & Quản lý chuỗi cung ứng' },
+    { id: 20, code: 'BA-DA', name: 'Phân tích kinh doanh' },
+    { id: 21, code: 'FIN', name: 'Fintech (Công nghệ tài chính)' },
+    { id: 22, code: 'CF', name: 'Tài chính doanh nghiệp' },
+    { id: 23, code: 'SF', name: 'Tài chính thông minh' },
+    { id: 24, code: 'BF', name: 'Tài chính ngân hàng' },
+    { id: 25, code: 'EEM', name: 'Quản trị giải trí & sự kiện' },
+    { id: 26, code: 'CXM', name: 'Quản trị trải nghiệm khách hàng' },
+    { id: 27, code: 'PM', name: 'Quản trị thu mua' },
   ],
   MC: [
-    { id: 16, code: 'PR', name: 'Quan hệ công chúng (Public Relations)' },
-    { id: 17, code: 'MM', name: 'Truyền thông đa phương tiện' },
+    { id: 28, code: 'MMC', name: 'Truyền thông đa phương tiện' },
+    { id: 29, code: 'PR', name: 'Quan hệ công chúng' },
+    { id: 30, code: 'IMC', name: 'Truyền thông Marketing tích hợp' },
+    { id: 31, code: 'BC', name: 'Truyền thông thương hiệu' },
   ],
   LAW: [
-    { id: 18, code: 'ELAW', name: 'Luật kinh tế quốc tế' },
+    { id: 32, code: 'EL', name: 'Luật kinh tế' },
+    { id: 33, code: 'ITL', name: 'Luật thương mại quốc tế' },
   ],
   EN: [
-    { id: 19, code: 'BEN', name: 'Tiếng Anh thương mại' },
+    { id: 34, code: 'EN-GEN', name: 'Ngôn ngữ Anh' },
+    { id: 35, code: 'EN-BUS', name: 'Tiếng Anh thương mại' },
   ],
   JP: [
-    { id: 20, code: 'BJP', name: 'Tiếng Nhật thương mại' },
+    { id: 36, code: 'JP-GEN', name: 'Ngôn ngữ Nhật' },
+    { id: 37, code: 'JP-BUS', name: 'Tiếng Nhật thương mại' },
   ],
   KR: [
-    { id: 21, code: 'BKR', name: 'Tiếng Hàn thương mại' },
+    { id: 38, code: 'KR-GEN', name: 'Ngôn ngữ Hàn Quốc' },
+    { id: 39, code: 'KR-BUS', name: 'Tiếng Hàn thương mại' },
   ],
   CN: [
-    { id: 22, code: 'BCN', name: 'Tiếng Trung thương mại' },
+    { id: 40, code: 'CN-GEN', name: 'Ngôn ngữ Trung Quốc' },
+    { id: 41, code: 'CN-BUS', name: 'Tiếng Trung thương mại' },
   ],
 };
 
@@ -77,8 +96,14 @@ interface EditProfileModalProps {
     fullName: string;
     email: string;
     campus: string;
+    campusId?: number;
+    campusCode?: string;
     major: string;
+    majorId?: number;
+    majorCode?: string;
     specialization?: string;
+    specializationId?: number;
+    specializationCode?: string;
     bio: string;
     interests: string[];
     avatarUrl?: string;
@@ -97,35 +122,102 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
   const [fullName, setFullName] = useState(initialData.fullName);
 
-  // Normalize initial campus
-  const rawCampus = (initialData.campus || '').toLowerCase();
-  const initialCampusCode =
-    rawCampus.includes('can tho') || rawCampus.includes('cần thơ') || rawCampus === 'ct'
-      ? 'CT'
-      : rawCampus.includes('ho chi minh') || rawCampus.includes('hcm')
-      ? 'HCM'
-      : rawCampus.includes('da nang') || rawCampus.includes('dn')
-      ? 'DN'
-      : rawCampus.includes('quy nhon') || rawCampus.includes('qn')
-      ? 'QN'
-      : CAMPUS_OPTIONS.find(
-          (c) => c.code.toLowerCase() === rawCampus || c.name.toLowerCase().includes(rawCampus)
-        )?.code || 'CT';
+  // 1. Initial campus resolution
+  const initialCampusCode = (() => {
+    if (initialData.campusId) {
+      const found = CAMPUS_OPTIONS.find((c) => c.id === Number(initialData.campusId));
+      if (found) return found.code;
+    }
+    if (initialData.campusCode) {
+      const code = initialData.campusCode.toUpperCase();
+      const found = CAMPUS_OPTIONS.find((c) => c.code === code || (code === 'HL' && c.code === 'HN'));
+      if (found) return found.code;
+    }
+    const rawCampus = (initialData.campus || '').toLowerCase();
+    if (rawCampus.includes('can tho') || rawCampus.includes('cần thơ') || rawCampus === 'ct') return 'CT';
+    if (rawCampus.includes('ho chi minh') || rawCampus.includes('hcm') || rawCampus.includes('hồ chí minh')) return 'HCM';
+    if (rawCampus.includes('da nang') || rawCampus.includes('đà nẵng') || rawCampus === 'dn') return 'DN';
+    if (rawCampus.includes('quy nhon') || rawCampus.includes('quy nhơn') || rawCampus === 'qn') return 'QN';
+    if (rawCampus.includes('ha noi') || rawCampus.includes('hà nội') || rawCampus.includes('hoa lac') || rawCampus.includes('hòa lạc') || rawCampus === 'hn' || rawCampus === 'hl') return 'HN';
+    const match = CAMPUS_OPTIONS.find(
+      (c) => c.code.toLowerCase() === rawCampus || c.name.toLowerCase().includes(rawCampus) || rawCampus.includes(c.name.toLowerCase())
+    );
+    return match?.code || 'HN';
+  })();
   const [campus, setCampus] = useState(initialCampusCode);
 
-  // Normalize initial major
-  const initialMajorCode = MAJOR_OPTIONS.find(
-    (m) => m.code.toLowerCase() === (initialData.major || '').toLowerCase() ||
-           m.name.toLowerCase().includes((initialData.major || '').toLowerCase())
-  )?.code || 'IT';
+  // 2. Initial major resolution
+  const initialMajorCode = (() => {
+    if (initialData.majorId) {
+      const found = MAJOR_OPTIONS.find((m) => m.id === Number(initialData.majorId));
+      if (found) return found.code;
+    }
+    if (initialData.specializationId) {
+      const targetId = Number(initialData.specializationId);
+      for (const [mCode, specs] of Object.entries(SPECIALIZATION_OPTIONS)) {
+        if (specs.some((s) => s.id === targetId)) return mCode;
+      }
+    }
+    if (initialData.specializationCode) {
+      const targetCode = initialData.specializationCode.toUpperCase();
+      for (const [mCode, specs] of Object.entries(SPECIALIZATION_OPTIONS)) {
+        if (specs.some((s) => s.code.toUpperCase() === targetCode)) return mCode;
+      }
+    }
+    if (initialData.specialization) {
+      const target = initialData.specialization.toLowerCase();
+      for (const [mCode, specs] of Object.entries(SPECIALIZATION_OPTIONS)) {
+        if (specs.some((s) => s.code.toLowerCase() === target || s.name.toLowerCase().includes(target) || target.includes(s.name.toLowerCase()))) {
+          return mCode;
+        }
+      }
+    }
+    if (initialData.majorCode) {
+      const target = initialData.majorCode.toUpperCase();
+      const found = MAJOR_OPTIONS.find((m) => m.code === target);
+      if (found) return found.code;
+    }
+    if (initialData.major) {
+      const rawMajor = initialData.major.toLowerCase();
+      const found = MAJOR_OPTIONS.find(
+        (m) => m.code.toLowerCase() === rawMajor || m.name.toLowerCase().includes(rawMajor) || rawMajor.includes(m.name.toLowerCase())
+      );
+      if (found) return found.code;
+      for (const [mCode, specs] of Object.entries(SPECIALIZATION_OPTIONS)) {
+        if (specs.some((s) => s.code.toLowerCase() === rawMajor || rawMajor.includes(s.code.toLowerCase()) || s.name.toLowerCase().includes(rawMajor) || rawMajor.includes(s.name.toLowerCase()))) {
+          return mCode;
+        }
+      }
+    }
+    return 'IT';
+  })();
   const [major, setMajor] = useState(initialMajorCode);
 
-  // Specialization
+  // 3. Initial specialization resolution
   const currentSpecializations = SPECIALIZATION_OPTIONS[major] || SPECIALIZATION_OPTIONS.IT;
-  const initialSpecCode = currentSpecializations.find(
-    (s) => s.code.toLowerCase() === (initialData.specialization || '').toLowerCase() ||
-           s.name.toLowerCase().includes((initialData.specialization || '').toLowerCase())
-  )?.code || currentSpecializations[0]?.code || 'SE';
+  const initialSpecCode = (() => {
+    if (initialData.specializationId) {
+      const targetId = Number(initialData.specializationId);
+      const found = currentSpecializations.find((s) => s.id === targetId);
+      if (found) return found.code;
+    }
+    if (initialData.specializationCode) {
+      const target = initialData.specializationCode.toUpperCase();
+      const found = currentSpecializations.find((s) => s.code.toUpperCase() === target);
+      if (found) return found.code;
+    }
+    if (initialData.specialization) {
+      const target = initialData.specialization.toLowerCase();
+      const found = currentSpecializations.find((s) => s.code.toLowerCase() === target || s.name.toLowerCase().includes(target) || target.includes(s.name.toLowerCase()));
+      if (found) return found.code;
+    }
+    if (initialData.major) {
+      const target = initialData.major.toLowerCase();
+      const found = currentSpecializations.find((s) => s.code.toLowerCase() === target || target.includes(s.code.toLowerCase()) || s.name.toLowerCase().includes(target) || target.includes(s.name.toLowerCase()));
+      if (found) return found.code;
+    }
+    return currentSpecializations[0]?.code || 'SE';
+  })();
   const [specialization, setSpecialization] = useState(initialSpecCode);
 
   const [bio, setBio] = useState(initialData.bio);
@@ -244,9 +336,15 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     setTimeout(() => {
       onSaveSuccess({
         fullName: fullName.trim(),
-        campus: campusObj?.code || campus,
+        campus: campusObj?.name || campus,
+        campusId: campusObj?.id,
+        campusCode: campusObj?.code,
         major: displayMajor,
+        majorId: majorObj?.id,
+        majorCode: majorObj?.code,
         specialization: specObj?.name || specObj?.code || specialization,
+        specializationId: specObj?.id,
+        specializationCode: specObj?.code,
         bio: bio.trim(),
         interests,
         avatarUrl,

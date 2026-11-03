@@ -95,8 +95,6 @@ export const QuestionDetailPage: React.FC = () => {
     if (numId && currentUser?.id && String(numId) === String(currentUser.id)) {
       return currentUser.fullName || (currentUser as any)?.displayName || currentUser.email?.split('@')[0] || t('common.you', 'Bạn');
     }
-    if (numId && authorProfiles[numId]?.fullName) return authorProfiles[numId].fullName;
-    if (numId && KNOWN_SEED_USERS[numId]) return KNOWN_SEED_USERS[numId];
     if (displayName && displayName.trim()) {
       const trimmed = displayName.trim();
       const isPlaceholder =
@@ -107,6 +105,8 @@ export const QuestionDetailPage: React.FC = () => {
         trimmed === 'Anonymous Student';
       if (!isPlaceholder) return trimmed;
     }
+    if (numId && authorProfiles[numId]?.fullName) return authorProfiles[numId].fullName;
+    if (numId && KNOWN_SEED_USERS[numId]) return KNOWN_SEED_USERS[numId];
     return t('common.fhubMember', 'Thành viên FHub');
   };
 

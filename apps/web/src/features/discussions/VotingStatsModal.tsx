@@ -43,32 +43,7 @@ export const VotingStatsModal: React.FC<VotingStatsModalProps> = ({
     karmaWeight: string;
     avatar?: string;
     time: string;
-  }> = [
-    {
-      id: 'v1',
-      name: 'Huynh Le Cong Bien (CE181207)',
-      role: 'Student · K18 Software Engineering',
-      vote: 'UP',
-      karmaWeight: '+5 Karma',
-      time: '15 mins ago',
-    },
-    {
-      id: 'v2',
-      name: 'Nguyen Quoc Bao (CE180121)',
-      role: 'Student · K18 Software Engineering',
-      vote: 'UP',
-      karmaWeight: '+5 Karma',
-      time: '1 hour ago',
-    },
-    {
-      id: 'v3',
-      name: 'Le Trong Tan (CE190370)',
-      role: 'Student · K19 Software Engineering',
-      vote: 'UP',
-      karmaWeight: '+5 Karma',
-      time: '3 hours ago',
-    },
-  ];
+  }> = [];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">

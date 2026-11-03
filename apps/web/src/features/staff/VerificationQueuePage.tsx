@@ -23,28 +23,28 @@ interface VerificationRequest {
 export const VerificationQueuePage: React.FC = () => {
   const { t } = useLanguage();
   const { on } = useRealtime();
-  const [requests, setRequests] = useState<VerificationRequest[]>([
-    {
-      id: 'req-1',
-      fullName: 'Phan Quoc Bao',
-      email: 'baopq.he160234@fpt.edu.vn',
-      studentId: 'HE160234',
-      campus: 'HL',
-      studentCardImageUrl: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=600&auto=format&fit=crop&q=80',
-      submittedAt: '10 mins ago',
-      status: 'PENDING',
-    },
-    {
-      id: 'req-2',
-      fullName: 'Vu Thi Minh Hanh',
-      email: 'hanhvtm.se170112@fpt.edu.vn',
-      studentId: 'SE170112',
-      campus: 'HCM',
-      studentCardImageUrl: 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=600&auto=format&fit=crop&q=80',
-      submittedAt: '35 mins ago',
-      status: 'PENDING',
-    },
-  ]);
+  const [requests, setRequests] = useState<VerificationRequest[]>([]);
+
+  React.useEffect(() => {
+    userManagementApi.getVerificationsList('PENDING').then((list: any[]) => {
+      if (Array.isArray(list) && list.length > 0) {
+        setRequests(list.map((it: any) => ({
+          id: String(it.verificationId || it.id),
+          fullName: it.fullName || it.userFullName || 'Sinh viên yêu cầu xác thực',
+          email: it.email || '',
+          studentId: it.studentCode || it.studentId || '',
+          campus: it.campus || 'FPTU',
+          studentCardImageUrl: it.cardFrontUrl || it.studentCardImageUrl || '',
+          submittedAt: it.submittedAt ? it.submittedAt.slice(0, 16).replace('T', ' ') : 'Gần đây',
+          status: it.status || 'PENDING',
+        })));
+      } else {
+        setRequests([]);
+      }
+    }).catch(() => {
+      setRequests([]);
+    });
+  }, []);
 
   const [selectedReq, setSelectedReq] = useState<VerificationRequest | null>(null);
 

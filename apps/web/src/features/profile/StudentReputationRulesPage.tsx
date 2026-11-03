@@ -34,8 +34,8 @@ export const StudentReputationRulesPage: React.FC = () => {
             const mapped: ReputationRuleItem[] = apiRules.map((r) => ({
               id: String(r.rule_id),
               code: r.action_type,
-              name: r.action_type.replace(/_/g, ' '),
-              category: r.karma_delta < 0 ? 'PENALTY' : (r.action_type.includes('ANSWER') || r.action_type.includes('QUESTION') ? 'DISCUSSION' : 'CONTENT'),
+              name: (r as any).rule_name || r.action_type.replace(/_/g, ' '),
+              category: (r as any).category || (r.karma_delta < 0 ? 'PENALTY' : (r.action_type.includes('ANSWER') || r.action_type.includes('QUESTION') ? 'DISCUSSION' : (r.action_type.includes('COMMUNITY') || r.action_type.includes('REPORT') ? 'COMMUNITY' : 'CONTENT'))),
               pointDelta: r.karma_delta,
               dailyCap: r.daily_cap,
               description: r.description,

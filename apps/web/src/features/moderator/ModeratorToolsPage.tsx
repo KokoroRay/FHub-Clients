@@ -160,7 +160,7 @@ export const ModeratorToolsPage: React.FC = () => {
         {
           contentReportId: 101,
           reporterUserId: 4,
-          reporterName: 'Nguyen Minh Tam (CE181522)',
+          reporterName: 'FHub Student (Reporter)',
           targetType: 'QUESTION',
           targetId: 15,
           reason: 'SPAM / Promotional Content',
