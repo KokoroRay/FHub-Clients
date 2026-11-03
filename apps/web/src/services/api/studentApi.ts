@@ -680,6 +680,7 @@ export interface ConversationDto {
   courseTag?: string;
   role?: string;
   lastMessage?: string;
+  lastMessageType?: string;
   lastMessageAt?: string;
   unreadCount?: number;
   isBlocked?: boolean;

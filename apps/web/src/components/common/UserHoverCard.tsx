@@ -18,6 +18,7 @@ import { profileApi, followApi, FollowStats } from '../../services/api/studentAp
 import { normalizeMediaUrl } from '../../utils/mediaUtils';
 import { resolveUserMajorName, FPT_CAMPUSES } from '../../utils/taxonomyUtils';
 import { extractStudentIdFromEmail } from '../../utils/fptEmailValidator';
+import { apiClient } from '../../services/api/client';
 
 export interface UserHoverCardProps {
   userId?: number | string | null;
@@ -169,7 +170,14 @@ export const UserHoverCard: React.FC<UserHoverCardProps> = ({
         ? (FPT_CAMPUSES[profile.campusCode] || profile.campusCode)
         : (profile?.campusId ? (FPT_CAMPUSES[profile.campusId] || 'FPT University') : initialData?.campus || 'FPT University');
 
-      const resolvedStudentId = profile?.studentCode || extractStudentIdFromEmail(profile?.email) || initialData?.studentId || '';
+      let resolvedStudentId = profile?.studentCode || extractStudentIdFromEmail(profile?.email) || initialData?.studentId || '';
+      if (!resolvedStudentId) {
+        try {
+          const userRes = await apiClient.get<any>(`/api/users/${numUserId}`);
+          const u = userRes.data?.data || userRes.data;
+          resolvedStudentId = u?.studentCode || extractStudentIdFromEmail(u?.email) || '';
+        } catch {}
+      }
       setUserData({
         fullName: profile?.displayName || profile?.fullName || initialData?.fullName || 'Sinh viên FHub',
         avatarUrl: profile?.avatarUrl || initialData?.avatarUrl || '',
@@ -457,15 +465,17 @@ export const UserHoverCard: React.FC<UserHoverCardProps> = ({
                     )}
                   </button>
 
-                  {/* Nhắn tin Button */}
-                  <button
-                    type="button"
-                    onClick={handleDirectMessage}
-                    className="flex-1 py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-sm cursor-pointer"
-                  >
-                    <MessageCircle className="w-3.5 h-3.5" />
-                    <span>{t('Nhắn tin')}</span>
-                  </button>
+                  {/* Nhắn tin Button - only when following */}
+                  {userData.isFollowing && (
+                    <button
+                      type="button"
+                      onClick={handleDirectMessage}
+                      className="flex-1 py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors shadow-sm cursor-pointer"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" />
+                      <span>{t('Nhắn tin')}</span>
+                    </button>
+                  )}
 
                   {/* View Full Profile Icon Button */}
                   <button

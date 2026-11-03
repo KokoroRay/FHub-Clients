@@ -21,7 +21,9 @@ import {
   UserCheck,
   Loader2,
   X,
-  Users
+  Users,
+  HelpCircle,
+  CheckCircle
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -150,14 +152,14 @@ export const ProfilePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'questions' | 'answers' | 'badges' | 'votes'>('overview');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
-  // Scroll to top and resolve target user id whenever id or currentUser changes
+  // 1. Resolve Target User ID and normalize URL to MSSV
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
     let isMounted = true;
 
     if (isOwnProfile) {
-      setTargetUserId(Number(currentUser?.id || 1));
-      // Normalize own URL to /profile/MSSV if currently on generic /profile or numeric id
+      const ownId = Number(currentUser?.id || 1);
+      setTargetUserId(ownId);
       if (myStudentCode && (!id || id === 'me' || id === String(currentUser?.id))) {
         navigate(`/profile/${myStudentCode}`, { replace: true });
       }
@@ -167,10 +169,30 @@ export const ProfilePage: React.FC = () => {
     const num = Number(id);
     if (!isNaN(num) && num > 0) {
       setTargetUserId(num);
+      // Look up student code to replace numeric ID in URL immediately
+      apiClient.get<any>(`/api/users/${num}`).then(res => {
+        if (!isMounted) return;
+        const u = res.data?.data || res.data;
+        const code = u?.studentCode || extractStudentIdFromEmail(u?.email);
+        if (code) {
+          navigate(`/profile/${code}`, { replace: true });
+        }
+      }).catch(() => {
+        // Fallback search
+        apiClient.get<any>('/api/users', { params: { search: String(num) } }).then(sRes => {
+          if (!isMounted) return;
+          const items = sRes.data?.items || sRes.data?.data?.items || [];
+          const found = items.find((item: any) => Number(item.userId || item.id) === num);
+          const sCode = found?.studentCode || extractStudentIdFromEmail(found?.email);
+          if (sCode) {
+            navigate(`/profile/${sCode}`, { replace: true });
+          }
+        }).catch(() => {});
+      });
       return;
     }
 
-    // If id is a string studentCode like CE181522, resolve it from identity API
+    // If id is a string studentCode like CE181522, resolve numeric ID
     const resolveByStudentCode = async () => {
       try {
         const res = await apiClient.get<any>('/api/users', { params: { search: id } });
@@ -194,23 +216,33 @@ export const ProfilePage: React.FC = () => {
     return () => { isMounted = false; };
   }, [id, currentUser?.id, isOwnProfile, myStudentCode]);
 
-  // Load Follow stats whenever targetUserId changes
+  // 2. Load Follow stats & status whenever targetUserId changes
   useEffect(() => {
     if (targetUserId <= 0) return;
     let isMounted = true;
     const loadFollowStats = async () => {
       try {
-        const stats = await followApi.getFollowStats(targetUserId);
-        if (isMounted) setFollowStats(stats);
+        const [stats, statusRes] = await Promise.allSettled([
+          followApi.getFollowStats(targetUserId),
+          !isOwnProfile ? followApi.getFollowStatus(targetUserId) : Promise.resolve({ is_following: false })
+        ]);
+        if (isMounted) {
+          const s = stats.status === 'fulfilled' ? stats.value : { user_id: targetUserId, followers_count: 0, following_count: 0, is_following: false };
+          const isF = statusRes.status === 'fulfilled' ? statusRes.value.is_following : s.is_following;
+          setFollowStats({
+            ...s,
+            is_following: isF,
+          });
+        }
       } catch (err) {
         console.warn('Could not fetch follow stats:', err);
       }
     };
     loadFollowStats();
     return () => { isMounted = false; };
-  }, [targetUserId]);
+  }, [targetUserId, isOwnProfile]);
 
-  // Fetch Questions for the target user
+  // 3. Fetch Questions for the target user
   useEffect(() => {
     if (targetUserId <= 0) return;
     let isMounted = true;
@@ -236,7 +268,7 @@ export const ProfilePage: React.FC = () => {
           }));
           setQuestions(items);
 
-          // Populate answers tab for the user
+          // Populate answers tab
           try {
             const allQ = await questionApi.getQuestions({ pageSize: 30 });
             if (isMounted && allQ?.items) {
@@ -272,59 +304,65 @@ export const ProfilePage: React.FC = () => {
     return () => { isMounted = false; };
   }, [targetUserId, isOwnProfile]);
 
-  // Fetch Profile details from profile-service
+  // 4. Fetch Profile details from profile-service & Identity
   useEffect(() => {
     if (targetUserId <= 0) return;
     let isMounted = true;
     const fetchProfile = async () => {
       try {
-        const live = await profileApi.getProfile(targetUserId);
-        if (isMounted && live) {
-          const resolvedMajor = resolveUserMajorName(live);
-          const resolvedCampus = live.campusCode 
-            ? (FPT_CAMPUSES[live.campusCode] || `FPT University - ${live.campusCode}`)
-            : (live.campusId ? (FPT_CAMPUSES[live.campusId] || 'FPT University') : 'FPT University');
+        const [live, identityRes] = await Promise.allSettled([
+          profileApi.getProfile(targetUserId),
+          apiClient.get<any>(`/api/users/${targetUserId}`).catch(() => null)
+        ]);
+
+        const profileDataLive = live.status === 'fulfilled' ? live.value : null;
+        const identityUser = identityRes.status === 'fulfilled' && identityRes.value ? (identityRes.value.data?.data || identityRes.value.data) : null;
+
+        if (isMounted && profileDataLive) {
+          const resolvedMajor = resolveUserMajorName(profileDataLive);
+          const resolvedCampus = profileDataLive.campusCode 
+            ? (FPT_CAMPUSES[profileDataLive.campusCode] || `FPT University - ${profileDataLive.campusCode}`)
+            : (profileDataLive.campusId ? (FPT_CAMPUSES[profileDataLive.campusId] || 'FPT University') : 'FPT University');
 
           let cover = '';
-          if (live.coverUrl) {
-            cover = live.coverUrl;
-          } else if (live.links && Array.isArray(live.links)) {
-            const cLink = live.links.find((l: any) => (l.platformName || l.PlatformName) === 'COVER_IMAGE');
+          if (profileDataLive.coverUrl) {
+            cover = profileDataLive.coverUrl;
+          } else if (profileDataLive.links && Array.isArray(profileDataLive.links)) {
+            const cLink = profileDataLive.links.find((l: any) => (l.platformName || l.PlatformName) === 'COVER_IMAGE');
             if (cLink) cover = cLink.url || cLink.Url || '';
           }
 
-          const studentCode = live.studentCode || live.studentId || extractStudentIdFromEmail(live.email) || (typeof id === 'string' && isNaN(Number(id)) ? id.toUpperCase() : '');
+          const studentCode = identityUser?.studentCode || profileDataLive.studentCode || profileDataLive.studentId || extractStudentIdFromEmail(identityUser?.email || profileDataLive.email) || (typeof id === 'string' && isNaN(Number(id)) ? id.toUpperCase() : '');
 
-          // Replace numeric ID in URL with MSSV if available
           if (!isOwnProfile && studentCode && id && !isNaN(Number(id))) {
             navigate(`/profile/${studentCode}`, { replace: true });
           }
 
           setProfileData(prev => ({
             ...prev,
-            fullName: live.displayName || live.fullName || (isOwnProfile ? currentUser?.fullName : 'Sinh viên FHub') || 'Sinh viên FHub',
-            email: isOwnProfile ? (currentUser?.email || live.email || '') : (live.email || ''),
-            bio: (live.bio && live.bio !== 'Chưa có thông tin giới thiệu.') ? live.bio : 'Chưa có thông tin giới thiệu.',
-            avatarUrl: live.avatarUrl || (isOwnProfile ? currentUser?.avatarUrl || '' : ''),
+            fullName: profileDataLive.displayName || profileDataLive.fullName || identityUser?.fullName || (isOwnProfile ? currentUser?.fullName : 'Sinh viên FHub') || 'Sinh viên FHub',
+            email: isOwnProfile ? (currentUser?.email || profileDataLive.email || '') : (identityUser?.email || profileDataLive.email || ''),
+            bio: (profileDataLive.bio && profileDataLive.bio !== 'Chưa có thông tin giới thiệu.') ? profileDataLive.bio : 'Chưa có thông tin giới thiệu.',
+            avatarUrl: profileDataLive.avatarUrl || identityUser?.avatarUrl || (isOwnProfile ? currentUser?.avatarUrl || '' : ''),
             coverUrl: cover,
             studentId: studentCode || (isOwnProfile ? myStudentCode : ''),
-            major: resolvedMajor,
-            campus: resolvedCampus,
-            campusId: live.campusId,
-            campusCode: live.campusCode,
-            majorId: live.majorId,
-            majorCode: live.majorCode,
-            specialization: live.specializationName || live.specialization,
-            specializationId: live.specializationId,
-            specializationCode: live.specializationCode,
+            major: resolvedMajor || identityUser?.major,
+            campus: resolvedCampus || identityUser?.campus,
+            campusId: profileDataLive.campusId,
+            campusCode: profileDataLive.campusCode,
+            majorId: profileDataLive.majorId,
+            majorCode: profileDataLive.majorCode,
+            specialization: profileDataLive.specializationName || profileDataLive.specialization,
+            specializationId: profileDataLive.specializationId,
+            specializationCode: profileDataLive.specializationCode,
             stats: {
               ...prev.stats,
-              helpfulVotes: live.karma || 0,
+              helpfulVotes: profileDataLive.karma || identityUser?.karma || 0,
             }
           }));
         }
       } catch (err) {
-        console.warn('Could not fetch user profile from Profile service:', err);
+        console.warn('Could not fetch user profile:', err);
       }
     };
 
@@ -332,7 +370,7 @@ export const ProfilePage: React.FC = () => {
     return () => { isMounted = false; };
   }, [targetUserId, isOwnProfile, currentUser?.id]);
 
-  // Fetch badges & votes
+  // 5. Fetch Badges
   useEffect(() => {
     if (targetUserId <= 0) return;
     let isMounted = true;
@@ -341,20 +379,20 @@ export const ProfilePage: React.FC = () => {
         const apiBadges = isOwnProfile ? await badgeApi.getMyBadges() : await badgeApi.getUserBadges(targetUserId);
         if (isMounted) {
           if (apiBadges && apiBadges.length > 0) {
-            const badgeIcons = ['🏅', '🚀', '📚', '⭐', '🏆'];
+            const badgeIcons = ['🏅', '🚀', '📚', '⭐', '🏆', '💡', '🎓'];
             const badgeColors = [
-              'bg-amber-50 text-amber-800 border-amber-200',
-              'bg-blue-50 text-blue-800 border-blue-200',
-              'bg-emerald-50 text-emerald-800 border-emerald-200',
-              'bg-purple-50 text-purple-800 border-purple-200',
-              'bg-rose-50 text-rose-800 border-rose-200'
+              'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800',
+              'bg-blue-50 text-blue-800 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800',
+              'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800',
+              'bg-purple-50 text-purple-800 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-800',
+              'bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800'
             ];
             const mapped = apiBadges.map((b: any, index: number) => ({
               id: b.userBadgeId || b.id || index,
               name: b.name || b.badgeCode,
               description: b.description || 'Thành tích hoạt động học thuật FHub',
               icon: badgeIcons[index % badgeIcons.length],
-              earnedDate: b.awardedAt || 'Gần đây',
+              earnedDate: b.awardedAt ? new Date(b.awardedAt).toLocaleDateString() : 'Gần đây',
               color: badgeColors[index % badgeColors.length]
             }));
             setUserBadges(mapped);
@@ -571,7 +609,7 @@ export const ProfilePage: React.FC = () => {
                 disabled={isFollowLoading}
                 className={`px-4 py-2 text-xs font-bold rounded-xl shadow-xs transition-colors inline-flex items-center gap-1.5 cursor-pointer ${
                   followStats.is_following
-                    ? 'bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-600 border border-slate-200 hover:border-rose-200'
+                    ? 'bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-600 border border-slate-200 hover:border-rose-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700'
                     : 'bg-[#0076D1] hover:bg-blue-700 text-white'
                 }`}
               >
@@ -580,30 +618,32 @@ export const ProfilePage: React.FC = () => {
                 ) : followStats.is_following ? (
                   <>
                     <UserCheck className="w-4 h-4 text-emerald-600" />
-                    <span>{t('Đang theo dõi')}</span>
+                    <span>Đang theo dõi</span>
                   </>
                 ) : (
                   <>
                     <UserPlus className="w-4 h-4" />
-                    <span>{t('Theo dõi')}</span>
+                    <span>Theo dõi</span>
                   </>
                 )}
               </button>
 
-              {/* Direct Message Button */}
-              <button
-                type="button"
-                onClick={handleStartMessage}
-                disabled={isMessageStarting}
-                className="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-xs transition-colors inline-flex items-center gap-1.5 cursor-pointer"
-              >
-                {isMessageStarting ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <MessageSquare className="w-4 h-4" />
-                )}
-                <span>{t('Nhắn tin')}</span>
-              </button>
+              {/* Direct Message Button - ONLY visible when currently following */}
+              {followStats.is_following && (
+                <button
+                  type="button"
+                  onClick={handleStartMessage}
+                  disabled={isMessageStarting}
+                  className="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-xs transition-colors inline-flex items-center gap-1.5 cursor-pointer animate-in fade-in"
+                >
+                  {isMessageStarting ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <MessageSquare className="w-4 h-4" />
+                  )}
+                  <span>{t('Nhắn tin')}</span>
+                </button>
+              )}
             </>
           )}
         </div>
@@ -654,10 +694,10 @@ export const ProfilePage: React.FC = () => {
         {/* Profile Details Content: Avatar Overlap + Name & Actions (Clean, NO overlap bug) */}
         <div className="p-6 space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-5">
-            {/* Left: Avatar (overlaps cover) + Full Name, Role, Student ID & Bio (CLEARLY VISIBLE) */}
-            <div className="flex flex-col sm:flex-row sm:items-end gap-5 -mt-16 sm:-mt-20">
+            {/* Left: Avatar (ONLY avatar has -mt-16 to overlap cover cleanly) */}
+            <div className="flex flex-col sm:flex-row sm:items-end gap-5">
               {/* Avatar overlapping Cover */}
-              <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-2xl bg-gradient-to-tr from-[#0076D1] to-sky-400 flex items-center justify-center text-white font-bold text-3xl overflow-hidden shadow-xl ring-4 ring-white dark:ring-[#272727] shrink-0 z-10 bg-white dark:bg-[#272727]">
+              <div className="relative -mt-16 sm:-mt-20 w-28 h-28 sm:w-32 sm:h-32 rounded-2xl bg-gradient-to-tr from-[#0076D1] to-sky-400 flex items-center justify-center text-white font-bold text-3xl overflow-hidden shadow-xl ring-4 ring-white dark:ring-[#272727] shrink-0 z-10 bg-white dark:bg-[#272727]">
                 {profileData.avatarUrl ? (
                   <img src={normalizeMediaUrl(profileData.avatarUrl)} alt={t("Avatar")} className="w-full h-full object-cover" />
                 ) : (
@@ -665,8 +705,8 @@ export const ProfilePage: React.FC = () => {
                 )}
               </div>
 
-              {/* User Identity - placed next to avatar, bottom-aligned so it sits below the banner */}
-              <div className="space-y-1 sm:pb-1">
+              {/* User Identity - placed cleanly below cover banner with pt-2 */}
+              <div className="space-y-1 sm:pb-1 pt-2 sm:pt-0">
                 <div className="flex flex-wrap items-center gap-2.5">
                   <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-slate-100">
                     {profileData.fullName}
@@ -796,13 +836,139 @@ export const ProfilePage: React.FC = () => {
           ))}
         </div>
 
-        {/* Tab 1: Overview */}
+        {/* Tab 1: Overview - Rich Dashboard with contributions, recent questions, answers and achievements */}
         {activeTab === 'overview' && (
-          <div className="pt-5 space-y-4">
-            <h4 className="text-xs font-mono font-bold text-slate-400 uppercase">{t('Giới thiệu bản thân')}</h4>
-            <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
-              {profileData.bio}
-            </p>
+          <div className="pt-5 space-y-6">
+            {/* Bio */}
+            <div>
+              <h4 className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider mb-2">{t('Giới thiệu bản thân')}</h4>
+              <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                {profileData.bio}
+              </p>
+            </div>
+
+            {/* Featured Badges & Achievements */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Award className="w-4 h-4 text-purple-600" />
+                  <span>{t('Thành tựu & Huy hiệu nổi bật')} ({userBadges.length})</span>
+                </h4>
+                {userBadges.length > 3 && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('badges')}
+                    className="text-xs text-[#0076D1] hover:underline font-semibold cursor-pointer"
+                  >
+                    {t('Xem tất cả')}
+                  </button>
+                )}
+              </div>
+              {userBadges.length === 0 ? (
+                <div className="p-4 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 text-center text-slate-400 text-xs">
+                  {t('Chưa có huy hiệu nào được ghi nhận. Tích cực tham gia hỏi đáp để nhận huy hiệu học thuật!')}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {userBadges.slice(0, 3).map((b) => (
+                    <div key={b.id} className={`p-3.5 rounded-xl border flex items-center gap-3 ${b.color}`}>
+                      <span className="text-2xl">{b.icon}</span>
+                      <div className="min-w-0">
+                        <h5 className="text-xs font-bold truncate">{b.name}</h5>
+                        <p className="text-[10px] opacity-80 truncate">{b.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Recent Questions Contributed */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <HelpCircle className="w-4 h-4 text-blue-600" />
+                  <span>{t('Câu hỏi đã đăng')} ({questions.length})</span>
+                </h4>
+                {questions.length > 3 && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('questions')}
+                    className="text-xs text-[#0076D1] hover:underline font-semibold cursor-pointer"
+                  >
+                    {t('Xem tất cả')}
+                  </button>
+                )}
+              </div>
+              {questions.length === 0 ? (
+                <div className="p-4 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 text-center text-slate-400 text-xs">
+                  {t('Chưa đăng câu hỏi học tập nào.')}
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {questions.slice(0, 3).map((q) => (
+                    <div key={q.id} className="py-2.5 flex items-center justify-between gap-3">
+                      <div className="min-w-0 flex items-center gap-2">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-50 text-[#0076D1] dark:bg-blue-950/60 dark:text-blue-400 shrink-0">
+                          #{q.course}
+                        </span>
+                        <Link
+                          to={`/discussions/${q.id}`}
+                          className="text-xs font-bold text-slate-800 dark:text-slate-200 hover:text-[#0076D1] dark:hover:text-blue-400 truncate"
+                        >
+                          {q.title}
+                        </Link>
+                      </div>
+                      <div className="text-[11px] text-slate-400 shrink-0 flex items-center gap-2">
+                        <span>{q.votes} votes</span>
+                        <span>•</span>
+                        <span>{q.answers} trả lời</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Recent Answers Contributed */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <CheckCircle className="w-4 h-4 text-emerald-600" />
+                  <span>{t('Đóng góp câu trả lời')} ({answers.length})</span>
+                </h4>
+                {answers.length > 2 && (
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('answers')}
+                    className="text-xs text-[#0076D1] hover:underline font-semibold cursor-pointer"
+                  >
+                    {t('Xem tất cả')}
+                  </button>
+                )}
+              </div>
+              {answers.length === 0 ? (
+                <div className="p-4 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 text-center text-slate-400 text-xs">
+                  {t('Chưa đóng góp câu trả lời nào cho cộng đồng.')}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {answers.slice(0, 2).map((a) => (
+                    <div key={a.id} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 space-y-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
+                          {a.questionTitle}
+                        </span>
+                        <span className="text-[10px] text-emerald-600 font-bold shrink-0">
+                          +{a.upvotes} upvotes
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">{a.excerpt}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -898,14 +1064,12 @@ export const ProfilePage: React.FC = () => {
       {followModalType && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in">
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 max-w-md w-full max-h-[80vh] flex flex-col overflow-hidden">
-            <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/40">
-              <div className="flex items-center gap-2">
+            <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-2 font-bold text-sm text-slate-900 dark:text-slate-100">
                 <Users className="w-4 h-4 text-[#0076D1]" />
-                <h3 className="text-sm font-bold text-[#181C22] dark:text-slate-100">
-                  {followModalType === 'followers'
-                    ? `${t('Người theo dõi')} (${followStats.followers_count})`
-                    : `${t('Đang theo dõi')} (${followStats.following_count})`}
-                </h3>
+                <span>
+                  {followModalType === 'followers' ? t('Danh sách người theo dõi') : t('Danh sách đang theo dõi')}
+                </span>
               </div>
               <button
                 type="button"
@@ -916,78 +1080,77 @@ export const ProfilePage: React.FC = () => {
               </button>
             </div>
 
-            <div className="p-4 flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 p-2">
               {isFollowListLoading ? (
-                <div className="p-8 text-center text-slate-400">
-                  <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-[#0076D1]" />
-                  <p className="text-xs">{t('Đang tải danh sách...')}</p>
+                <div className="p-8 text-center text-slate-400 text-xs">
+                  <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-[#0076D1]" />
+                  <span>{t('Đang tải danh sách...')}</span>
                 </div>
               ) : followListItems.length === 0 ? (
                 <div className="p-8 text-center text-slate-400 text-xs">
                   {followModalType === 'followers'
                     ? t('Chưa có người nào theo dõi.')
-                    : t('Chưa theo dõi người dùng nào.')}
+                    : t('Chưa theo dõi người nào.')}
                 </div>
               ) : (
-                <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {followListItems.map((item) => (
-                    <div key={item.user_id} className="py-2.5 flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="w-9 h-9 rounded-full bg-blue-50 text-[#0076D1] border border-blue-200 font-bold text-xs flex items-center justify-center shrink-0 overflow-hidden">
-                          {item.avatarUrl ? (
-                            <img src={normalizeMediaUrl(item.avatarUrl)} alt={item.fullName} className="w-full h-full object-cover" />
-                          ) : (
-                            item.fullName ? item.fullName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() : `U${item.user_id}`
-                          )}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
-                            {item.fullName}
-                          </p>
-                          <span className="text-[10px] text-blue-600 dark:text-blue-400 font-mono font-semibold">
-                            {item.studentId}
-                          </span>
-                        </div>
+                followListItems.map((item) => (
+                  <Link
+                    key={item.user_id}
+                    to={`/profile/${item.studentId || item.user_id}`}
+                    onClick={() => setFollowModalType(null)}
+                    className="p-3 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-colors group cursor-pointer"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-[#0076D1] dark:text-blue-400 flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden border border-blue-100 dark:border-blue-900">
+                        {item.avatarUrl ? (
+                          <img src={normalizeMediaUrl(item.avatarUrl)} alt={item.fullName} className="w-full h-full object-cover" />
+                        ) : (
+                          item.fullName.slice(0, 2).toUpperCase()
+                        )}
                       </div>
-                      <Link
-                        to={`/profile/${item.studentId || item.user_id}`}
-                        onClick={() => setFollowModalType(null)}
-                        className="px-2.5 py-1 text-[11px] font-semibold text-[#0076D1] hover:bg-blue-50 border border-blue-200 rounded-lg transition-colors shrink-0 cursor-pointer"
-                      >
-                        {t('Xem hồ sơ')}
-                      </Link>
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-slate-900 dark:text-slate-100 group-hover:text-[#0076D1] transition-colors truncate">
+                          {item.fullName}
+                        </p>
+                        <p className="text-[10px] text-slate-400 font-mono">
+                          {item.studentId}
+                        </p>
+                      </div>
                     </div>
-                  ))}
-                </div>
+                    <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-[#0076D1] transition-colors shrink-0" />
+                  </Link>
+                ))
               )}
             </div>
           </div>
         </div>
       )}
 
-      {/* Edit Profile Modal */}
-      <EditProfileModal
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        onSaveSuccess={handleSaveProfile}
-        initialData={{
-          fullName: profileData.fullName,
-          email: profileData.email,
-          campus: profileData.campus,
-          campusId: profileData.campusId,
-          campusCode: profileData.campusCode,
-          major: profileData.major,
-          majorId: profileData.majorId,
-          majorCode: profileData.majorCode,
-          specialization: profileData.specialization,
-          specializationId: profileData.specializationId,
-          specializationCode: profileData.specializationCode,
-          bio: profileData.bio,
-          interests: profileData.interests,
-          avatarUrl: profileData.avatarUrl,
-          coverUrl: profileData.coverUrl,
-        }}
-      />
+      {/* Edit Profile Modal (Only for own profile) */}
+      {isOwnProfile && (
+        <EditProfileModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          initialData={{
+            fullName: profileData.fullName,
+            email: profileData.email,
+            bio: profileData.bio,
+            avatarUrl: profileData.avatarUrl,
+            coverUrl: profileData.coverUrl,
+            campus: profileData.campus,
+            campusId: profileData.campusId,
+            campusCode: profileData.campusCode,
+            major: profileData.major,
+            majorId: profileData.majorId,
+            majorCode: profileData.majorCode,
+            specialization: profileData.specialization,
+            specializationId: profileData.specializationId,
+            specializationCode: profileData.specializationCode,
+            interests: profileData.interests,
+          }}
+          onSaveSuccess={handleSaveProfile}
+        />
+      )}
     </div>
   );
 };
