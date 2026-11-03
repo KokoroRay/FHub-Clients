@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { Suspense } from 'react';
+import { LoadingFallback } from '../components/common/LoadingFallback';
 import { NavLink, Outlet, Link } from 'react-router-dom';
 import {
   Building2,
@@ -103,7 +104,7 @@ export const AdminLayout: React.FC = () => {
 
         {/* Main Admin Content */}
         <main className="flex-1 min-w-0 pb-12">
-          <Outlet />
+          <Suspense fallback={<LoadingFallback />}><Outlet /></Suspense>
         </main>
       </div>
     </div>

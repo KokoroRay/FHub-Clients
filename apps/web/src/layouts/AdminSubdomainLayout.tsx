@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
+import { LoadingFallback } from '../components/common/LoadingFallback';
 import {
   NavLink, Outlet, Link, useNavigate } from 'react-router-dom';
 import {
@@ -399,7 +400,9 @@ export const AdminSubdomainLayout: React.FC = () => {
         {/* Main Content Area */}
         <main className="flex-1 min-w-0 h-full overflow-y-auto p-6 lg:p-8">
           <ErrorBoundary>
-            <Outlet />
+            <Suspense fallback={<LoadingFallback />}>
+              <Outlet />
+            </Suspense>
           </ErrorBoundary>
         </main>
       </div>

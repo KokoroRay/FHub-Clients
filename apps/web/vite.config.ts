@@ -8,6 +8,30 @@ export default defineConfig({
     react(),
     tailwindcss()
   ],
+  build: {
+    target: 'esnext',
+    chunkSizeWarningLimit: 800,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('react-dom') || id.includes('react-router-dom') || id.includes('/react/')) {
+              return 'vendor-react';
+            }
+            if (id.includes('@tiptap')) {
+              return 'vendor-tiptap';
+            }
+            if (id.includes('@tanstack') || id.includes('axios')) {
+              return 'vendor-query';
+            }
+            if (id.includes('lucide-react')) {
+              return 'vendor-icons';
+            }
+          }
+        }
+      }
+    }
+  },
   server: {
     port: 5173,
     proxy: {

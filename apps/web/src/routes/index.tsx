@@ -1,5 +1,4 @@
-import { NewsManagementPage } from '../features/news/NewsManagementPage';
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { MainLayout } from '../layouts/MainLayout';
 import { AdminLayout } from '../layouts/AdminLayout';
@@ -8,112 +7,105 @@ import { AuthLayout } from '../layouts/AuthLayout';
 import { ProtectedRoute } from './ProtectedRoute';
 import { AdminProtectedRoute } from './AdminProtectedRoute';
 import { isOpsSubdomain } from '../utils/subdomain';
+import { LoadingFallback } from '../components/common/LoadingFallback';
+
+// Typesafe helper for lazy named exports
+const lazyNamed = <T extends Record<string, any>, K extends keyof T>(
+  factory: () => Promise<T>,
+  name: K
+) => lazy(() => factory().then(m => ({ default: m[name] })));
 
 // Feed & Academic Pages
-import { FeedPage } from '../features/feed/FeedPage';
-import { CourseListPage } from '../features/courses/CourseListPage';
-import { CourseDetailPage } from '../features/courses/CourseDetailPage';
-import { QuestionListPage } from '../features/discussions/QuestionListPage';
-import { QuestionDetailPage } from '../features/discussions/QuestionDetailPage';
-import { ArticleListPage } from '../features/articles/ArticleListPage';
-import { ArticleDetailPage } from '../features/articles/ArticleDetailPage';
-import { CreateArticlePage } from '../features/articles/CreateArticlePage';
-import { SeriesDetailPage } from '../features/articles/SeriesDetailPage';
-import { WorkflowListPage } from '../features/workflows/WorkflowListPage';
-import { WorkflowDetailPage } from '../features/workflows/WorkflowDetailPage';
-import { StudyMaterialListPage } from '../features/materials/StudyMaterialListPage';
-import { StudyMaterialDetailPage } from '../features/materials/StudyMaterialDetailPage';
-import { CourseEvaluationListPage } from '../features/evaluations/CourseEvaluationListPage';
-import { CourseEvaluationDetailPage } from '../features/evaluations/CourseEvaluationDetailPage';
+const FeedPage = lazyNamed(() => import('../features/feed/FeedPage'), 'FeedPage');
+const CourseListPage = lazyNamed(() => import('../features/courses/CourseListPage'), 'CourseListPage');
+const CourseDetailPage = lazyNamed(() => import('../features/courses/CourseDetailPage'), 'CourseDetailPage');
+const QuestionListPage = lazyNamed(() => import('../features/discussions/QuestionListPage'), 'QuestionListPage');
+const QuestionDetailPage = lazyNamed(() => import('../features/discussions/QuestionDetailPage'), 'QuestionDetailPage');
+const ArticleListPage = lazyNamed(() => import('../features/articles/ArticleListPage'), 'ArticleListPage');
+const ArticleDetailPage = lazyNamed(() => import('../features/articles/ArticleDetailPage'), 'ArticleDetailPage');
+const CreateArticlePage = lazyNamed(() => import('../features/articles/CreateArticlePage'), 'CreateArticlePage');
+const SeriesDetailPage = lazyNamed(() => import('../features/articles/SeriesDetailPage'), 'SeriesDetailPage');
+const WorkflowListPage = lazyNamed(() => import('../features/workflows/WorkflowListPage'), 'WorkflowListPage');
+const WorkflowDetailPage = lazyNamed(() => import('../features/workflows/WorkflowDetailPage'), 'WorkflowDetailPage');
+const StudyMaterialListPage = lazyNamed(() => import('../features/materials/StudyMaterialListPage'), 'StudyMaterialListPage');
+const StudyMaterialDetailPage = lazyNamed(() => import('../features/materials/StudyMaterialDetailPage'), 'StudyMaterialDetailPage');
+const CourseEvaluationListPage = lazyNamed(() => import('../features/evaluations/CourseEvaluationListPage'), 'CourseEvaluationListPage');
+const CourseEvaluationDetailPage = lazyNamed(() => import('../features/evaluations/CourseEvaluationDetailPage'), 'CourseEvaluationDetailPage');
 
 // Profile & Communication & Support
-import { ProfilePage } from '../features/profile/ProfilePage';
-import { ProfileSettingsPage } from '../features/profile/ProfileSettingsPage';
-import { StudentReputationRulesPage } from '../features/profile/StudentReputationRulesPage';
-import { DirectMessagesPage } from '../features/communication/DirectMessagesPage';
-import { NotificationsPage } from '../features/communication/NotificationsPage';
-import { MentorshipPage } from '../features/communication/MentorshipPage';
-import { SupportTicketsPage } from '../features/governance/SupportTicketsPage';
-import { BookmarksPage } from '../features/bookmarks/BookmarksPage';
+const ProfilePage = lazyNamed(() => import('../features/profile/ProfilePage'), 'ProfilePage');
+const ProfileSettingsPage = lazyNamed(() => import('../features/profile/ProfileSettingsPage'), 'ProfileSettingsPage');
+const StudentReputationRulesPage = lazyNamed(() => import('../features/profile/StudentReputationRulesPage'), 'StudentReputationRulesPage');
+const DirectMessagesPage = lazyNamed(() => import('../features/communication/DirectMessagesPage'), 'DirectMessagesPage');
+const NotificationsPage = lazyNamed(() => import('../features/communication/NotificationsPage'), 'NotificationsPage');
+const MentorshipPage = lazyNamed(() => import('../features/communication/MentorshipPage'), 'MentorshipPage');
+const SupportTicketsPage = lazyNamed(() => import('../features/governance/SupportTicketsPage'), 'SupportTicketsPage');
+const BookmarksPage = lazyNamed(() => import('../features/bookmarks/BookmarksPage'), 'BookmarksPage');
 
 // Special Roles Desk
-import { ModeratorToolsPage } from '../features/moderator/ModeratorToolsPage';
-import { OfficialBroadcastsPage } from '../features/moderator/OfficialBroadcastsPage';
-import { AlumniKarmaPage } from '../features/moderator/AlumniKarmaPage';
+const ModeratorToolsPage = lazyNamed(() => import('../features/moderator/ModeratorToolsPage'), 'ModeratorToolsPage');
+const OfficialBroadcastsPage = lazyNamed(() => import('../features/moderator/OfficialBroadcastsPage'), 'OfficialBroadcastsPage');
+const AlumniKarmaPage = lazyNamed(() => import('../features/moderator/AlumniKarmaPage'), 'AlumniKarmaPage');
+const NewsManagementPage = lazyNamed(() => import('../features/news/NewsManagementPage'), 'NewsManagementPage');
 
 // Admin Subdomain Core Pages (Figma Mapped)
-import {
-  AdminDashboardPage,
-  UserManagementPage,
-  UserDetailPage,
-  SupportTicketsAdminPage,
-  CampusesPage,
-  CampusDetailPage,
-  MajorsPage,
-  MajorDetailPage,
-  CourseNodesAdminPage,
-  CourseNodeDetailPage,
-  ReputationRulesPage,
-  AchievementBadgesPage,
-  AuditLogsPage,
-  AuditLogDetailPage,
-  SystemHealthAdminPage,
-  AdminLoginPage,
-  SpecializationsPage,
-  SpecializationDetailPage,
-  SemanticTagsPage,
-  StaffAccountsAdminPage,
-} from '../features/admin/pages';
+const AdminDashboardPage = lazyNamed(() => import('../features/admin/pages/AdminDashboardPage'), 'AdminDashboardPage');
+const UserManagementPage = lazyNamed(() => import('../features/admin/pages/UserManagementPage'), 'UserManagementPage');
+const UserDetailPage = lazyNamed(() => import('../features/admin/pages/UserDetailPage'), 'UserDetailPage');
+const SupportTicketsAdminPage = lazyNamed(() => import('../features/admin/pages/SupportTicketsAdminPage'), 'SupportTicketsAdminPage');
+const CampusesPage = lazyNamed(() => import('../features/admin/pages/CampusesPage'), 'CampusesPage');
+const CampusDetailPage = lazyNamed(() => import('../features/admin/pages/CampusDetailPage'), 'CampusDetailPage');
+const MajorsPage = lazyNamed(() => import('../features/admin/pages/MajorsPage'), 'MajorsPage');
+const MajorDetailPage = lazyNamed(() => import('../features/admin/pages/MajorDetailPage'), 'MajorDetailPage');
+const CourseNodesAdminPage = lazyNamed(() => import('../features/admin/pages/CourseNodesAdminPage'), 'CourseNodesAdminPage');
+const CourseNodeDetailPage = lazyNamed(() => import('../features/admin/pages/CourseNodeDetailPage'), 'CourseNodeDetailPage');
+const ReputationRulesPage = lazyNamed(() => import('../features/admin/pages/ReputationRulesPage'), 'ReputationRulesPage');
+const AchievementBadgesPage = lazyNamed(() => import('../features/admin/pages/AchievementBadgesPage'), 'AchievementBadgesPage');
+const AuditLogsPage = lazyNamed(() => import('../features/admin/pages/AuditLogsPage'), 'AuditLogsPage');
+const AuditLogDetailPage = lazyNamed(() => import('../features/admin/pages/AuditLogDetailPage'), 'AuditLogDetailPage');
+const SystemHealthAdminPage = lazyNamed(() => import('../features/admin/pages/SystemHealthAdminPage'), 'SystemHealthAdminPage');
+const AdminLoginPage = lazyNamed(() => import('../features/admin/pages/AdminLoginPage'), 'AdminLoginPage');
+const SpecializationsPage = lazyNamed(() => import('../features/admin/pages/SpecializationsPage'), 'SpecializationsPage');
+const SpecializationDetailPage = lazyNamed(() => import('../features/admin/pages/SpecializationDetailPage'), 'SpecializationDetailPage');
+const SemanticTagsPage = lazyNamed(() => import('../features/admin/pages/SemanticTagsPage'), 'SemanticTagsPage');
+const StaffAccountsAdminPage = lazyNamed(() => import('../features/admin/pages/StaffAccountsAdminPage'), 'StaffAccountsAdminPage');
 
 // Admin & Staff Governance Pages
-import { RolePolicyManagementPage } from '../features/admin/RolePolicyManagementPage';
-import { AIModerationPage } from '../features/admin/AIModerationPage';
-import { VerificationQueuePage } from '../features/staff/VerificationQueuePage';
+const RolePolicyManagementPage = lazyNamed(() => import('../features/admin/RolePolicyManagementPage'), 'RolePolicyManagementPage');
+const AIModerationPage = lazyNamed(() => import('../features/admin/AIModerationPage'), 'AIModerationPage');
+const VerificationQueuePage = lazyNamed(() => import('../features/staff/VerificationQueuePage'), 'VerificationQueuePage');
 
 // Auth Pages
-import { LoginPage } from '../features/auth/LoginPage';
-import { RegisterPage } from '../features/auth/RegisterPage';
-import { ForgotPasswordPage } from '../features/auth/ForgotPasswordPage';
-import { NotFoundPage } from '../features/common/NotFoundPage';
+const LoginPage = lazyNamed(() => import('../features/auth/LoginPage'), 'LoginPage');
+const RegisterPage = lazyNamed(() => import('../features/auth/RegisterPage'), 'RegisterPage');
+const ForgotPasswordPage = lazyNamed(() => import('../features/auth/ForgotPasswordPage'), 'ForgotPasswordPage');
+const NotFoundPage = lazyNamed(() => import('../features/common/NotFoundPage'), 'NotFoundPage');
 
 // Landing & Public Pages (UC02)
-import { LandingPage } from '../features/landing/LandingPage';
-import { TechBlogPage } from '../features/landing/TechBlogPage';
-import { CourseRatingsPage } from '../features/landing/CourseRatingsPage';
+const LandingPage = lazyNamed(() => import('../features/landing/LandingPage'), 'LandingPage');
+const TechBlogPage = lazyNamed(() => import('../features/landing/TechBlogPage'), 'TechBlogPage');
+const CourseRatingsPage = lazyNamed(() => import('../features/landing/CourseRatingsPage'), 'CourseRatingsPage');
 
 // Standardized Screenflow Auth Pages (UC01)
-import { CampusSelectionPage } from '../features/auth/CampusSelectionPage';
-import { AuthOptionsPage } from '../features/auth/AuthOptionsPage';
-import { FPTSSOPage } from '../features/auth/FPTSSOPage';
-import { EmailAuthPage } from '../features/auth/EmailAuthPage';
-import { EmailRegPage } from '../features/auth/EmailRegPage';
-import { OTPVerifyPage } from '../features/auth/OTPVerifyPage';
-import { ResetPasswordPage } from '../features/auth/ResetPasswordPage';
+const CampusSelectionPage = lazyNamed(() => import('../features/auth/CampusSelectionPage'), 'CampusSelectionPage');
+const AuthOptionsPage = lazyNamed(() => import('../features/auth/AuthOptionsPage'), 'AuthOptionsPage');
+const FPTSSOPage = lazyNamed(() => import('../features/auth/FPTSSOPage'), 'FPTSSOPage');
+const EmailAuthPage = lazyNamed(() => import('../features/auth/EmailAuthPage'), 'EmailAuthPage');
+const EmailRegPage = lazyNamed(() => import('../features/auth/EmailRegPage'), 'EmailRegPage');
+const OTPVerifyPage = lazyNamed(() => import('../features/auth/OTPVerifyPage'), 'OTPVerifyPage');
+const ResetPasswordPage = lazyNamed(() => import('../features/auth/ResetPasswordPage'), 'ResetPasswordPage');
 
 /**
  * Subdomain Routes Definition (ops.fhub.com.vn / ops.localhost)
- * Clean URLs mapped directly to root:
- * - / -> AdminDashboardPage (Figma 55:2)
- * - /login -> AdminLoginPage
- * - /users -> UserManagementPage (Figma 55:4074)
- * - /users/:id -> UserDetailPage (Figma 55:3199)
- * - /tickets -> SupportTicketsAdminPage (Figma 56:4833)
- * - /campuses -> CampusesPage (Figma 57:6972)
- * - /campuses/:code -> CampusDetailPage (Figma 58:8220)
- * - /majors -> MajorsPage (Figma 59:9018)
- * - /majors/:code -> MajorDetailPage (Figma 59:9908)
- * - /courses -> CourseNodesAdminPage (Courses Registry)
- * - /courses/:code -> CourseNodeDetailPage (Course Detail)
- * - /reputation -> ReputationRulesPage (Figma 56:5629)
- * - /badges -> AchievementBadgesPage (Figma 57:6275)
- * - /audit-logs -> AuditLogsPage (Figma 64:12427)
- * - /audit-logs/:id -> AuditLogDetailPage (Figma 65:13172)
- * - /health -> SystemHealthAdminPage
  */
 const getSubdomainRoutes = () => [
   {
     path: '/login',
-    element: <AdminLoginPage />,
+    element: (
+      <Suspense fallback={<LoadingFallback />}>
+        <AdminLoginPage />
+      </Suspense>
+    ),
   },
   {
     path: '/',
@@ -264,7 +256,14 @@ const getMainPortalRoutes = () => [
   },
 
   // Public Entry & Resources (UC02)
-  { path: '/landing', element: <LandingPage /> },
+  {
+    path: '/landing',
+    element: (
+      <Suspense fallback={<LoadingFallback />}>
+        <LandingPage />
+      </Suspense>
+    ),
+  },
 
   // Auth Routes
   {
@@ -286,17 +285,19 @@ const getMainPortalRoutes = () => [
       { path: 'otp-verify', element: <OTPVerifyPage /> },
       { path: 'reset-password', element: <ResetPasswordPage /> },
     ],
-
   },
 
   // Fallback 404 page
   {
     path: '*',
-    element: <NotFoundPage />,
+    element: (
+      <Suspense fallback={<LoadingFallback />}>
+        <NotFoundPage />
+      </Suspense>
+    ),
   },
 ];
 
 export const router = createBrowserRouter(
   isOpsSubdomain() ? getSubdomainRoutes() : getMainPortalRoutes()
 );
-

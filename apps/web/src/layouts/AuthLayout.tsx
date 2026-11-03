@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { Suspense } from 'react';
+import { LoadingFallback } from '../components/common/LoadingFallback';
 import { Navigate, Outlet, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ThemeToggle } from '../components/common/ThemeToggle';
@@ -46,7 +47,7 @@ export const AuthLayout: React.FC = () => {
 
       {/* 2. Main Content */}
       <main className="w-full max-w-5xl mx-auto px-4 sm:px-6 py-6 my-auto flex justify-center">
-        <Outlet />
+        <Suspense fallback={<LoadingFallback />}><Outlet /></Suspense>
       </main>
 
       {/* 3. Footer */}
