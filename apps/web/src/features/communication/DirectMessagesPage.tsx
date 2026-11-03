@@ -33,6 +33,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useRealtime } from '../../context/RealtimeContext';
 import { directMessageApi, profileApi } from '../../services/api/studentApi';
+import { userManagementApi } from '../../services/api/adminApi';
 import { contentMediaApi } from '../../services/api/contentApi';
 import { validateImage, normalizeMediaUrl } from '../../utils/mediaUtils';
 
@@ -163,7 +164,7 @@ export const DirectMessagesPage: React.FC = () => {
             id: String(c.conversationId),
             participantId: String(c.participantId),
             name: c.participantName || t("Sinh viên #{p0}", undefined, { p0: c.participantId }),
-            avatarUrl: undefined,
+            avatarUrl: c.participantAvatar || undefined,
             initials,
             initialsBg: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-800',
             studentId: c.participantCode || `SE-${c.participantId}`,
@@ -182,18 +183,37 @@ export const DirectMessagesPage: React.FC = () => {
         // Asynchronously enrich with real profile details (real name, avatar, MSSV)
         data.forEach(async (c) => {
           try {
-            const prof = await profileApi.getProfile(c.participantId);
-            if (prof) {
+            let prof: any = null;
+            try {
+              prof = await profileApi.getProfile(c.participantId);
+            } catch (_) {}
+
+            let avatar = prof?.avatarUrl || prof?.avatar;
+            let fullName = prof?.fullName || prof?.name;
+            let studentCode = prof?.studentCode || prof?.mssv;
+
+            if (!avatar || !studentCode || !fullName) {
+              try {
+                const u = await userManagementApi.getAccountById(c.participantId);
+                if (u) {
+                  avatar = avatar || u.avatarUrl;
+                  fullName = fullName || u.fullName;
+                  studentCode = studentCode || u.studentCode;
+                }
+              } catch (_) {}
+            }
+
+            if (prof || avatar || fullName) {
               setConversations(prev => prev.map(item => {
                 if (item.participantId === String(c.participantId)) {
-                  const fullName = prof.fullName || prof.name || item.name;
-                  const inits = fullName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
+                  const finalName = fullName || item.name;
+                  const inits = finalName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
                   return {
                     ...item,
-                    name: fullName,
-                    avatarUrl: prof.avatarUrl || prof.avatar,
-                    studentId: prof.studentCode || prof.mssv || item.studentId,
-                    role: prof.major || prof.academicYear || item.role,
+                    name: finalName,
+                    avatarUrl: avatar || item.avatarUrl,
+                    studentId: studentCode || item.studentId,
+                    role: prof?.major || prof?.academicYear || item.role,
                     initials: inits || item.initials,
                   };
                 }
@@ -829,7 +849,7 @@ export const DirectMessagesPage: React.FC = () => {
           id="conversations-sidebar"
           className={`${
             activeConvId ? 'hidden md:flex' : 'flex'
-          } w-full md:w-80 lg:w-96 border-r border-slate-200 dark:border-slate-800 flex-col h-full bg-slate-50/40 dark:bg-slate-900/40 shrink-0`}
+          } w-full md:w-80 border-r border-slate-200 dark:border-slate-800 flex-col h-full bg-slate-50/40 dark:bg-slate-900/40 shrink-0`}
         >
           {/* Search Header + Clear All Conversations Button */}
           <div className="p-3 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center gap-2">
