@@ -336,7 +336,21 @@ export const DirectMessagesPage: React.FC = () => {
   }, [activeConvId, currentUser]);
 
   const activeConv = conversations.find(c => c.id === activeConvId);
-  const activeMessages = messages[activeConvId] || [];
+  const rawActiveMessages = messages[activeConvId] || [];
+  // Ensure strict deduplication by ID and matching optimistic content
+  const activeMessages = rawActiveMessages.filter((msg, idx, arr) => {
+    // 1. Keep only first occurrence of each ID
+    if (arr.findIndex(m => m.id === msg.id) !== idx) return false;
+    // 2. If this is a pending temporary message, but a confirmed message with the same content exists, discard temp
+    if (msg.id.startsWith('m-temp-') || msg.id.startsWith('m-img-') || msg.id.startsWith('m-gif-')) {
+      const hasConfirmed = arr.some(
+        m => !m.id.startsWith('m-temp-') && !m.id.startsWith('m-img-') && !m.id.startsWith('m-gif-') &&
+        ((msg.text && m.text === msg.text) || (msg.attachmentUrl && m.attachmentUrl === msg.attachmentUrl))
+      );
+      if (hasConfirmed) return false;
+    }
+    return true;
+  });
 
   // Filter shared images & files in current active conversation
   const sharedImages = activeMessages.filter(
@@ -429,6 +443,24 @@ export const DirectMessagesPage: React.FC = () => {
         setMessages((prev) => {
           const currentList = prev[convIdStr] || [];
           if (currentList.some((m) => m.id === newMsgItem.id)) return prev;
+
+          // Deduplicate if incoming message matches our own pending optimistic message
+          if (isFromMe) {
+            const matchingTempIdx = currentList.findIndex(
+              (m) =>
+                (m.id.startsWith('m-temp-') || m.id.startsWith('m-img-') || m.id.startsWith('m-gif-')) &&
+                (m.text === body || (attachmentUrl && m.attachmentUrl === attachmentUrl))
+            );
+            if (matchingTempIdx !== -1) {
+              const updatedList = [...currentList];
+              updatedList[matchingTempIdx] = newMsgItem;
+              return {
+                ...prev,
+                [convIdStr]: updatedList,
+              };
+            }
+          }
+
           return {
             ...prev,
             [convIdStr]: [...currentList, newMsgItem],
@@ -530,14 +562,6 @@ export const DirectMessagesPage: React.FC = () => {
       const idx = prev.findIndex(c => c.id === activeConvId);
       if (idx === -1) return prev;
       const updated = [...prev];
-      updated[idx] = { ...updated[idx], lastMessage: '[Ảnh GIF]', lastTime: new Date().toISOString() };
-      return updated;
-    });
-
-    setConversations(prev => {
-      const idx = prev.findIndex(c => c.id === activeConvId);
-      if (idx === -1) return prev;
-      const updated = [...prev];
       updated[idx] = {
         ...updated[idx],
         lastMessage: trimmed,
@@ -548,10 +572,20 @@ export const DirectMessagesPage: React.FC = () => {
 
     try {
       const res = await directMessageApi.sendMessage(activeConvId, trimmed);
-      setMessages(prev => ({
-        ...prev,
-        [activeConvId]: (prev[activeConvId] || []).map(m => m.id === optimisticId ? { ...m, id: String(res.messageId), status: 'delivered' } : m)
-      }));
+      setMessages(prev => {
+        const list = prev[activeConvId] || [];
+        const alreadyHasServerId = list.some(m => m.id === String(res.messageId));
+        if (alreadyHasServerId) {
+          return {
+            ...prev,
+            [activeConvId]: list.filter(m => m.id !== optimisticId)
+          };
+        }
+        return {
+          ...prev,
+          [activeConvId]: list.map(m => m.id === optimisticId ? { ...m, id: String(res.messageId), status: 'delivered' } : m)
+        };
+      });
 
       if (activeConv.participantId) {
         send('CHAT_MESSAGE_RECEIVED', {
@@ -622,15 +656,25 @@ export const DirectMessagesPage: React.FC = () => {
         attachmentUrl: finalR2Url,
       });
 
-      setMessages(prev => ({
-        ...prev,
-        [activeConvId]: (prev[activeConvId] || []).map(m => m.id === optimisticId ? {
-          ...m,
-          id: String(res.messageId),
-          attachmentUrl: finalR2Url,
-          status: 'delivered'
-        } : m)
-      }));
+      setMessages(prev => {
+        const list = prev[activeConvId] || [];
+        const alreadyHasServerId = list.some(m => m.id === String(res.messageId));
+        if (alreadyHasServerId) {
+          return {
+            ...prev,
+            [activeConvId]: list.filter(m => m.id !== optimisticId)
+          };
+        }
+        return {
+          ...prev,
+          [activeConvId]: list.map(m => m.id === optimisticId ? {
+            ...m,
+            id: String(res.messageId),
+            attachmentUrl: finalR2Url,
+            status: 'delivered'
+          } : m)
+        };
+      });
 
       if (activeConv.participantId) {
         send('CHAT_MESSAGE_RECEIVED', {
@@ -684,10 +728,20 @@ export const DirectMessagesPage: React.FC = () => {
         attachmentUrl: gifUrl,
       });
 
-      setMessages(prev => ({
-        ...prev,
-        [activeConvId]: (prev[activeConvId] || []).map(m => m.id === optimisticId ? { ...m, id: String(res.messageId), status: 'delivered' } : m)
-      }));
+      setMessages(prev => {
+        const list = prev[activeConvId] || [];
+        const alreadyHasServerId = list.some(m => m.id === String(res.messageId));
+        if (alreadyHasServerId) {
+          return {
+            ...prev,
+            [activeConvId]: list.filter(m => m.id !== optimisticId)
+          };
+        }
+        return {
+          ...prev,
+          [activeConvId]: list.map(m => m.id === optimisticId ? { ...m, id: String(res.messageId), status: 'delivered' } : m)
+        };
+      });
 
       if (activeConv.participantId) {
         send('CHAT_MESSAGE_RECEIVED', {
