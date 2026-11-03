@@ -95,6 +95,35 @@ export const ProfilePage: React.FC = () => {
             time: q.createdAt ? new Date(q.createdAt).toLocaleDateString() : 'Vừa xong',
           }));
           setQuestions(items);
+
+          // Populate answers tab for the user from public discussion questions
+          try {
+            const allQ = await questionApi.getQuestions({ pageSize: 30 });
+            if (isMounted && allQ?.items) {
+              const targetUid = isOwnProfile ? Number(currentUser?.id) : Number(id);
+              const foundAnswers: any[] = [];
+              const sampleQ = allQ.items.slice(0, 10);
+              await Promise.allSettled(sampleQ.map(async (q: any) => {
+                try {
+                  const ansList = await questionApi.getAnswers(q.questionId);
+                  if (Array.isArray(ansList)) {
+                    ansList.filter((a: any) => Number(a.authorUserId) === targetUid).forEach((a: any) => {
+                      foundAnswers.push({
+                        id: String(a.answerId),
+                        course: q.courseCode || 'PRN231',
+                        questionTitle: q.title,
+                        isBestAnswer: !!a.isBestAnswer,
+                        excerpt: a.body ? (a.body.length > 150 ? a.body.slice(0, 150) + '...' : a.body) : t('common.academicAnswer', 'Câu trả lời giải đáp'),
+                        upvotes: a.upvoteCount || 0,
+                        time: a.createdAt || 'Recent',
+                      });
+                    });
+                  }
+                } catch {}
+              }));
+              if (isMounted) setAnswers(foundAnswers);
+            }
+          } catch {}
         }
       } catch (err) {
         if (isMounted) setQuestions([]);
@@ -191,11 +220,20 @@ export const ProfilePage: React.FC = () => {
           const myVotes = await voteApi.getMyVotes();
           if (isMounted) {
             if (myVotes && myVotes.length > 0) {
+              const targetNameMap: Record<string, string> = {
+                QUESTION: t('common.academicQuestion', 'Câu hỏi thảo luận'),
+                ANSWER: t('common.academicAnswer', 'Câu trả lời giải đáp'),
+                ARTICLE: t('common.academicArticle', 'Bài viết chuyên sâu'),
+                WORKFLOW: t('common.academicWorkflow', 'Quy trình thực hành'),
+                STUDYMATERIAL: t('common.studyMaterial', 'Tài liệu học tập'),
+              };
               const mappedVotes = myVotes.map((v) => {
+                const typeStr = String(v.targetType || 'CONTENT').toUpperCase();
+                const friendlyType = targetNameMap[typeStr] || typeStr;
                 return {
                   id: String(v.voteId),
-                  targetTitle: `${v.targetType} #${v.targetId}`,
-                  type: String(v.targetType).toUpperCase(),
+                  targetTitle: `${friendlyType} #${v.targetId}`,
+                  type: typeStr,
                   vote: v.voteValue > 0 ? 'Upvote (+1)' : 'Downvote (-1)',
                   date: v.createdAt ? v.createdAt : new Date().toISOString(),
                   author: t('common.author', 'Tác giả bài đăng'),

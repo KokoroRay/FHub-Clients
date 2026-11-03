@@ -232,10 +232,14 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
   const handleAddInterest = () => {
     const clean = newInterest.trim();
-    if (clean && !interests.includes(clean)) {
-      setInterests((prev) => [...prev, clean]);
-      setNewInterest('');
+    if (!clean) return;
+    if (interests.some((it) => it.toLowerCase() === clean.toLowerCase())) {
+      setErrorMessage(t('profile.interestDuplicate', 'Chủ đề hoặc kỹ năng này đã tồn tại trong danh sách.'));
+      return;
     }
+    setInterests((prev) => [...prev, clean]);
+    setNewInterest('');
+    setErrorMessage(null);
   };
 
   const handleRemoveInterest = (tag: string) => {
