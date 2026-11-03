@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { Header } from '../components/navigation/Header';
 import { LeftSidebar } from '../components/navigation/LeftSidebar';
 import { RightSidebar } from '../components/navigation/RightSidebar';
 import { ErrorBoundary } from '../components/common/ErrorBoundary';
+import { LoadingFallback } from '../components/common/LoadingFallback';
 
 export const MainLayout: React.FC = () => {
   const location = useLocation();
@@ -18,7 +19,9 @@ export const MainLayout: React.FC = () => {
         <LeftSidebar />
         <main className={`flex-1 min-w-0 w-full ${isMessagesPage ? 'pb-2' : 'pb-16'}`}>
           <ErrorBoundary>
-            <Outlet />
+            <Suspense fallback={<LoadingFallback />}>
+              <Outlet />
+            </Suspense>
           </ErrorBoundary>
         </main>
         {showRightSidebar && <RightSidebar />}
@@ -26,4 +29,3 @@ export const MainLayout: React.FC = () => {
     </div>
   );
 };
-

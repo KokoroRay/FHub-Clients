@@ -157,32 +157,7 @@ export const QuestionListPage: React.FC = () => {
           });
           setVotesState(initialVotesState);
 
-          // Synchronize accurate vote stats from interaction service
-          Promise.allSettled(
-            items.map(async (item) => {
-              const qId = String(item.questionId);
-              const stats = await voteApi.getStats('QUESTION', item.questionId);
-              return {
-                qId,
-                score: stats.score,
-                userVote: stats.myVoteValue === 1 ? ('UP' as const) : stats.myVoteValue === -1 ? ('DOWN' as const) : null,
-              };
-            })
-          ).then((results) => {
-            if (!isMounted) return;
-            setVotesState((prev) => {
-              const updated = { ...prev };
-              results.forEach((res) => {
-                if (res.status === 'fulfilled' && res.value) {
-                  updated[res.value.qId] = {
-                    score: res.value.score,
-                    userVote: res.value.userVote,
-                  };
-                }
-              });
-              return updated;
-            });
-          });
+          // Initial votes and userVote are already populated above via myVotesMap and upvote/downvote delta
         }
       } catch (err) {
         if (isMounted) setQuestions([]);

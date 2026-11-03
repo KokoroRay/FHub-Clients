@@ -45,6 +45,9 @@ const parseBodyMedia = (rawBody: string = '') => {
   return { cleanText, mediaUrls };
 };
 
+// Module-level in-memory cache to eliminate duplicate author profile fetches across tab changes
+const globalAuthorProfileCache: Record<number, { fullName: string; avatarUrl?: string }> = {};
+
 export const FeedPage: React.FC = () => {
   const { currentUser, currentCampus } = useAuth();
   const { t, locale } = useLanguage();
@@ -62,7 +65,7 @@ export const FeedPage: React.FC = () => {
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
 
   // Author profiles cache (id -> { fullName, avatarUrl })
-  const [authorProfiles, setAuthorProfiles] = useState<Record<number, { fullName: string; avatarUrl?: string }>>({});
+  const [authorProfiles, setAuthorProfiles] = useState<Record<number, { fullName: string; avatarUrl?: string }>>(() => ({ ...globalAuthorProfileCache }));
 
   // Votes & Bookmarks local state
   const [votes, setVotes] = useState<Record<string, { count: number; userVote: 'UP' | 'DOWN' | null }>>({});
@@ -154,29 +157,30 @@ export const FeedPage: React.FC = () => {
       });
       setVotes(prev => ({ ...prev, ...newVotes }));
 
-      // Synchronize exact real-time vote statistics and active vote status from interaction-service
-      const idMap = items.map((q: any, idx: number) => {
-        const qId = String(q.questionId || q.id || idx);
-        const numId = Number(String(q.questionId || q.id).replace(/\D/g, ''));
-        return { qId, numId };
-      }).filter((item: any) => !isNaN(item.numId) && item.numId > 0);
-
-      if (idMap.length > 0) {
-        Promise.allSettled(idMap.map((item: any) => voteApi.getStats('QUESTION', item.numId)))
-          .then(results => {
+      // Synchronize user votes efficiently using 1 single getMyVotes call (reduces 10 parallel HTTP requests)
+      if (currentUser && items.length > 0) {
+        voteApi.getMyVotes()
+          .then(myVotes => {
+            const myVoteMap: Record<number, number> = {};
+            myVotes.forEach((v: any) => {
+              if (v.targetType === 'QUESTION') {
+                myVoteMap[Number(v.targetId)] = v.voteValue;
+              }
+            });
             setVotes(prev => {
               const updated = { ...prev };
-              results.forEach((r, idx) => {
-                if (r.status === 'fulfilled' && r.value) {
-                  const stats = r.value;
-                  const key = idMap[idx].qId;
-                  const numKey = String(idMap[idx].numId);
+              items.forEach((q: any) => {
+                const qId = String(q.questionId || q.id);
+                const numId = Number(String(q.questionId || q.id).replace(/\D/g, ''));
+                const myVal = myVoteMap[numId];
+                if (myVal !== undefined) {
+                  const currentScore = updated[qId]?.count ?? ((q.upvoteCount || 0) - (q.downvoteCount || 0));
                   const entry = {
-                    count: stats.score,
-                    userVote: stats.myVoteValue === 1 ? 'UP' as const : stats.myVoteValue === -1 ? 'DOWN' as const : null,
+                    count: currentScore,
+                    userVote: myVal === 1 ? ('UP' as const) : myVal === -1 ? ('DOWN' as const) : null,
                   };
-                  updated[key] = entry;
-                  updated[numKey] = entry;
+                  updated[qId] = entry;
+                  if (!isNaN(numId) && numId > 0) updated[String(numId)] = entry;
                 }
               });
               return updated;
@@ -185,12 +189,12 @@ export const FeedPage: React.FC = () => {
           .catch(() => {});
       }
 
-      // Batch load missing author profiles asynchronously
+      // Batch load missing author profiles asynchronously using global cache to prevent redundant requests
       const missingAuthorIds = Array.from(new Set(
         items
           .filter((q: any) => !q.isAnonymous && q.authorUserId && q.authorUserId !== Number(currentUser?.id))
           .map((q: any) => Number(q.authorUserId))
-      )).filter(id => !authorProfiles[id]);
+      )).filter(id => !globalAuthorProfileCache[id]);
 
       if (missingAuthorIds.length > 0) {
         Promise.allSettled(missingAuthorIds.map(id => profileApi.getProfile(id)))
@@ -200,10 +204,12 @@ export const FeedPage: React.FC = () => {
               if (r.status === 'fulfilled' && r.value) {
                 const val = r.value;
                 const authorId = missingAuthorIds[idx];
-                mappedProfiles[authorId] = {
+                const prof = {
                   fullName: val.fullName || val.displayName || '',
                   avatarUrl: val.avatarUrl || '',
                 };
+                globalAuthorProfileCache[authorId] = prof;
+                mappedProfiles[authorId] = prof;
               }
             });
             if (Object.keys(mappedProfiles).length > 0) {
