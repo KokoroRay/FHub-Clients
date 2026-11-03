@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 
 import { Link, useSearchParams } from 'react-router-dom';
 import {
+  Bookmark,
   Search,
   Plus,
   ChevronUp,
@@ -18,7 +19,7 @@ import {
 import { QuestionPost } from '../../types';
 import { AskQuestionModal } from './AskQuestionModal';
 import { questionApi } from '../../services/api/contentApi';
-import { voteApi } from '../../services/api/studentApi';
+import { voteApi, bookmarkApi } from '../../services/api/studentApi';
 import { courseNodesApi, semanticTagsApi } from '../../services/api/adminApi';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -46,12 +47,30 @@ export const QuestionListPage: React.FC = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(shouldOpenCreate);
   const [questions, setQuestions] = useState<QuestionPost[]>([]);
   const [votesState, setVotesState] = useState<Record<string, { score: number; userVote: 'UP' | 'DOWN' | null }>>({});
+  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
+  const [bookmarkMap, setBookmarkMap] = useState<Map<string, number | string>>(new Map());
   const [availableCourses, setAvailableCourses] = useState<Array<{ id: number; code: string; title: string }>>([]);
   const [allTags, setAllTags] = useState<SemanticTagItem[]>(FALLBACK_ALL_TAGS);
   const [tagsMap, setTagsMap] = useState<Record<number, string>>({});
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
 
+  
+  useEffect(() => {
+    let isMounted = true;
+    bookmarkApi.getBookmarks('Question')
+      .then((bList) => {
+        if (!isMounted) return;
+        const bMap = new Map<string, number | string>();
+        bList.forEach((b) => {
+          bMap.set(String(b.targetId), (b.id ?? b.bookmarkId ?? 0));
+        });
+        setBookmarkMap(bMap);
+        setBookmarkedIds(new Set(Array.from(bMap.keys())));
+      })
+      .catch(() => {});
+    return () => { isMounted = false; };
+  }, []);
   useEffect(() => {
     let isMounted = true;
     const loadMetadata = async () => {
@@ -180,6 +199,41 @@ export const QuestionListPage: React.FC = () => {
     });
     return list;
   }, [allTags, questions]);
+
+    const toggleBookmark = async (id: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const isBookmarked = bookmarkedIds.has(id);
+    const existingBookmarkId = bookmarkMap.get(id);
+    const numId = Number(id.replace(/\D/g, '')) || Number(id);
+
+    if (isBookmarked && existingBookmarkId) {
+      setBookmarkedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      try {
+        await bookmarkApi.removeBookmark(existingBookmarkId);
+        setBookmarkMap((prev) => {
+          const next = new Map(prev);
+          next.delete(id);
+          return next;
+        });
+      } catch (err) {
+        console.warn('Failed to remove bookmark:', err);
+      }
+    } else {
+      setBookmarkedIds((prev) => new Set(prev).add(id));
+      try {
+        const res = await bookmarkApi.addBookmark('Question', numId);
+        const bId = res?.bookmark_id ?? res?.data?.bookmark_id ?? res?.id ?? Date.now();
+        setBookmarkMap((prev) => new Map(prev).set(id, bId));
+      } catch (err) {
+        console.warn('Failed to add bookmark:', err);
+      }
+    }
+  };
 
   const handleVote = async (id: string, dir: 'UP' | 'DOWN', e: React.MouseEvent) => {
     e.preventDefault();
@@ -592,6 +646,18 @@ export const QuestionListPage: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={(e) => toggleBookmark(q.id, e)}
+                        className={`p-1 rounded-lg border transition-colors cursor-pointer ${
+                          bookmarkedIds.has(q.id)
+                            ? 'bg-blue-50 border-blue-200 text-[#0076D1] dark:bg-blue-950/60 dark:border-blue-800'
+                            : 'border-transparent text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600'
+                        }`}
+                        title={bookmarkedIds.has(q.id) ? t('common.saved', 'Đã lưu') : t('common.bookmark', 'Lưu')}
+                      >
+                        <Bookmark className={`w-3.5 h-3.5 ${bookmarkedIds.has(q.id) ? 'fill-current' : ''}`} />
+                      </button>
                       <div className="flex items-center gap-1 text-slate-400">
                         <Eye className="w-3.5 h-3.5" />
                         <span>{q.viewsCount} {t('views')}</span>

@@ -23,7 +23,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useRealtime } from '../../context/RealtimeContext';
 import { questionApi } from '../../services/api/contentApi';
-import { profileApi, voteApi } from '../../services/api/studentApi';
+import { profileApi, voteApi, bookmarkApi } from '../../services/api/studentApi';
 import { AskQuestionModal } from '../discussions/AskQuestionModal';
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 import { normalizeMediaUrl } from '../../utils/mediaUtils';
@@ -70,6 +70,7 @@ export const FeedPage: React.FC = () => {
   // Votes & Bookmarks local state
   const [votes, setVotes] = useState<Record<string, { count: number; userVote: 'UP' | 'DOWN' | null }>>({});
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
+  const [bookmarkMap, setBookmarkMap] = useState<Map<string, number | string>>(new Map());
 
   // Campus info
   const campusMap: Record<string, { shortName: string; fullName: string; address?: string }> = {
@@ -284,13 +285,37 @@ export const FeedPage: React.FC = () => {
     }
   };
 
-  const toggleBookmark = (id: string) => {
-    setBookmarkedIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+  const toggleBookmark = async (id: string) => {
+    const isBookmarked = bookmarkedIds.has(id);
+    const existingBookmarkId = bookmarkMap.get(id);
+    const numId = Number(id.replace(/\D/g, '')) || Number(id);
+
+    if (isBookmarked && existingBookmarkId) {
+      setBookmarkedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      try {
+        await bookmarkApi.removeBookmark(existingBookmarkId);
+        setBookmarkMap((prev) => {
+          const next = new Map(prev);
+          next.delete(id);
+          return next;
+        });
+      } catch (err) {
+        console.warn('Failed to remove bookmark:', err);
+      }
+    } else {
+      setBookmarkedIds((prev) => new Set(prev).add(id));
+      try {
+        const res = await bookmarkApi.addBookmark('Question', numId);
+        const bId = res?.bookmark_id ?? res?.data?.bookmark_id ?? res?.id ?? Date.now();
+        setBookmarkMap((prev) => new Map(prev).set(id, bId));
+      } catch (err) {
+        console.warn('Failed to add bookmark:', err);
+      }
+    }
   };
 
   // Helper to resolve accurate author name without "Sinh viên [id]"
@@ -739,12 +764,15 @@ export const FeedPage: React.FC = () => {
                         </span>
                         <button
                           onClick={() => toggleBookmark(qId)}
-                          className={`flex items-center gap-1 hover:text-[#0076D1] cursor-pointer transition-colors ${
-                            bookmarkedIds.has(qId) ? 'text-[#0076D1] font-bold' : ''
+                          className={`flex items-center gap-1.5 cursor-pointer transition-colors ${
+                            bookmarkedIds.has(qId)
+                              ? 'text-[#0076D1] dark:text-blue-400 font-bold'
+                              : 'text-slate-500 hover:text-[#0076D1] dark:hover:text-blue-400'
                           }`}
+                          title={bookmarkedIds.has(qId) ? t('common.saved', 'Đã lưu') : t('common.bookmark', 'Lưu')}
                         >
-                          <Bookmark className="w-3.5 h-3.5" />
-                          <span>{t('common.bookmark', 'Lưu')}</span>
+                          <Bookmark className={`w-3.5 h-3.5 ${bookmarkedIds.has(qId) ? 'fill-current' : ''}`} />
+                          <span>{bookmarkedIds.has(qId) ? t('common.saved', 'Đã lưu') : t('common.bookmark', 'Lưu')}</span>
                         </button>
                       </div>
 

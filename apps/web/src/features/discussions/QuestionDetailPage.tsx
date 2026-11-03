@@ -771,7 +771,7 @@ export const QuestionDetailPage: React.FC = () => {
                   onClick={toggleBookmark}
                   leftIcon={<Bookmark className={`w-3.5 h-3.5 ${isBookmarked ? 'fill-blue-600' : ''}`} />}
                 >
-                  {isBookmarked ? t('Bookmarks') : t('Save')}
+                  {isBookmarked ? t('common.saved', 'Đã lưu') : t('common.bookmark', 'Lưu')}
                 </Button>
                 <ContentActionMenu
                   targetType="QUESTION"

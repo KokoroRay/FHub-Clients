@@ -23,6 +23,7 @@ import { StudyMaterial } from '../../types';
 import { UploadStudyMaterialModal } from './UploadStudyMaterialModal';
 import { AddExternalLinkModal } from './AddExternalLinkModal';
 import { studyMaterialApi } from '../../services/api/contentApi';
+import { bookmarkApi } from '../../services/api/studentApi';
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 import { useLanguage } from '../../context/LanguageContext';
 import {
@@ -50,9 +51,25 @@ export const StudyMaterialListPage: React.FC = () => {
   const [availableCourses, setAvailableCourses] = useState<CourseNodeListItem[]>([]);
   const [allTags, setAllTags] = useState<SemanticTagItem[]>(FALLBACK_ALL_TAGS);
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
+  const [bookmarkMap, setBookmarkMap] = useState<Map<string, number | string>>(new Map());
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 8;
 
+  React.useEffect(() => {
+    let isMounted = true;
+    bookmarkApi.getBookmarks('StudyMaterial')
+      .then((bList) => {
+        if (!isMounted) return;
+        const bMap = new Map<string, number | string>();
+        bList.forEach((b) => {
+          bMap.set(String(b.targetId), (b.id ?? b.bookmarkId ?? 0));
+        });
+        setBookmarkMap(bMap);
+        setBookmarkedIds(new Set(Array.from(bMap.keys())));
+      })
+      .catch(() => {});
+    return () => { isMounted = false; };
+  }, []);
   React.useEffect(() => {
     courseNodesApi.getCourseNodes({ pageSize: 2000 })
       .then((res) => setAvailableCourses(res?.items || []))
@@ -123,15 +140,39 @@ export const StudyMaterialListPage: React.FC = () => {
     fetchMaterials();
   }, [searchQuery, availableCourses]);
 
-  const toggleBookmark = (id: string, e: React.MouseEvent) => {
+  const toggleBookmark = async (id: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setBookmarkedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+    const isBookmarked = bookmarkedIds.has(id);
+    const existingBookmarkId = bookmarkMap.get(id);
+    const numId = Number(id.replace(/\D/g, '')) || Number(id);
+
+    if (isBookmarked && existingBookmarkId) {
+      setBookmarkedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      try {
+        await bookmarkApi.removeBookmark(existingBookmarkId);
+        setBookmarkMap((prev) => {
+          const next = new Map(prev);
+          next.delete(id);
+          return next;
+        });
+      } catch (err) {
+        console.warn('Failed to remove bookmark:', err);
+      }
+    } else {
+      setBookmarkedIds((prev) => new Set(prev).add(id));
+      try {
+        const res = await bookmarkApi.addBookmark('StudyMaterial', numId);
+        const bId = res?.bookmark_id ?? res?.data?.bookmark_id ?? res?.id ?? Date.now();
+        setBookmarkMap((prev) => new Map(prev).set(id, bId));
+      } catch (err) {
+        console.warn('Failed to add bookmark:', err);
+      }
+    }
   };
 
   const filteredMaterials = materials
@@ -315,15 +356,16 @@ export const StudyMaterialListPage: React.FC = () => {
 
                 <div className="flex items-center gap-1">
                   <button
+                    type="button"
                     onClick={(e) => toggleBookmark(mat.id, e)}
                     className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
                       bookmarkedIds.has(mat.id)
-                        ? 'bg-blue-50 border-blue-200 text-[#0076D1]'
-                        : 'border-transparent text-slate-400 hover:bg-slate-100'
+                        ? 'bg-blue-50 border-blue-200 text-[#0076D1] dark:bg-blue-950/60 dark:border-blue-800'
+                        : 'border-transparent text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600'
                     }`}
-                    title={t("Bookmark")}
+                    title={bookmarkedIds.has(mat.id) ? t("common.saved", "Đã lưu") : t("common.bookmark", "Lưu")}
                   >
-                    <Bookmark className="w-4 h-4" />
+                    <Bookmark className={`w-4 h-4 ${bookmarkedIds.has(mat.id) ? 'fill-current' : ''}`} />
                   </button>
                   <ContentActionMenu
                     targetType="STUDY_MATERIAL"
