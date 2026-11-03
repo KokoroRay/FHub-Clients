@@ -13,50 +13,111 @@ export interface RealtimeEvent<T = any> {
 
 export type RealtimeStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
 
+export type NotificationSoundType = 'messenger' | 'discord' | 'classic';
+
 interface RealtimeContextType {
   status: RealtimeStatus;
   onlineCount: number;
   send: (type: string, payload?: any, extra?: { conversationId?: number | string; recipientId?: number | string }) => void;
   on: (eventType: string, handler: (event: RealtimeEvent) => void) => () => void;
-  playNotificationSound: () => void;
+  playNotificationSound: (overrideType?: NotificationSoundType) => void;
+  isSoundEnabled: boolean;
+  setIsSoundEnabled: (enabled: boolean) => void;
+  soundType: NotificationSoundType;
+  setSoundType: (type: NotificationSoundType) => void;
 }
 
 const RealtimeContext = createContext<RealtimeContextType | undefined>(undefined);
 
-// Web Audio API chime - zero external asset dependencies, 100% reliable
-const playChimeSound = () => {
-  try {
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContextClass) return;
-    const ctx = new AudioContextClass();
-    const now = ctx.currentTime;
+// Web Audio API Sound Synthesizers - zero external asset dependencies, 100% reliable
+const playMessengerChime = (ctx: AudioContext) => {
+  const now = ctx.currentTime;
 
-    const osc1 = ctx.createOscillator();
-    const osc2 = ctx.createOscillator();
-    const gainNode = ctx.createGain();
+  // Initial bright marimba tone
+  const osc1 = ctx.createOscillator();
+  const gain1 = ctx.createGain();
+  osc1.type = 'sine';
+  osc1.frequency.setValueAtTime(1318.5, now); // E6
+  osc1.frequency.exponentialRampToValueAtTime(1174.66, now + 0.08);
 
-    osc1.type = 'sine';
-    osc1.frequency.setValueAtTime(587.33, now); // D5
-    osc1.frequency.exponentialRampToValueAtTime(880, now + 0.15); // A5
+  gain1.gain.setValueAtTime(0.22, now);
+  gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
 
-    osc2.type = 'sine';
-    osc2.frequency.setValueAtTime(880, now + 0.15);
-    osc2.frequency.exponentialRampToValueAtTime(1174.66, now + 0.3); // D6
+  osc1.connect(gain1);
+  gain1.connect(ctx.destination);
+  osc1.start(now);
+  osc1.stop(now + 0.12);
 
-    gainNode.gain.setValueAtTime(0.08, now);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+  // Follow-up ping
+  const osc2 = ctx.createOscillator();
+  const gain2 = ctx.createGain();
+  osc2.type = 'sine';
+  osc2.frequency.setValueAtTime(1760, now + 0.07); // A6
+  osc2.frequency.exponentialRampToValueAtTime(1567.98, now + 0.18);
 
-    osc1.connect(gainNode);
-    osc2.connect(gainNode);
-    gainNode.connect(ctx.destination);
+  gain2.gain.setValueAtTime(0.28, now + 0.07);
+  gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
 
-    osc1.start(now);
-    osc1.stop(now + 0.15);
-    osc2.start(now + 0.15);
-    osc2.stop(now + 0.35);
-  } catch (err) {
-    // Ignore audio autoplay restrictions
-  }
+  osc2.connect(gain2);
+  gain2.connect(ctx.destination);
+  osc2.start(now + 0.07);
+  osc2.stop(now + 0.22);
+};
+
+const playDiscordChime = (ctx: AudioContext) => {
+  const now = ctx.currentTime;
+
+  const osc1 = ctx.createOscillator();
+  const gain1 = ctx.createGain();
+  osc1.type = 'sine';
+  osc1.frequency.setValueAtTime(987.77, now); // B5
+  gain1.gain.setValueAtTime(0.18, now);
+  gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+
+  osc1.connect(gain1);
+  gain1.connect(ctx.destination);
+  osc1.start(now);
+  osc1.stop(now + 0.09);
+
+  const osc2 = ctx.createOscillator();
+  const gain2 = ctx.createGain();
+  osc2.type = 'sine';
+  osc2.frequency.setValueAtTime(1318.51, now + 0.08); // E6
+  gain2.gain.setValueAtTime(0.24, now + 0.08);
+  gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+
+  osc2.connect(gain2);
+  gain2.connect(ctx.destination);
+  osc2.start(now + 0.08);
+  osc2.stop(now + 0.24);
+};
+
+const playClassicChime = (ctx: AudioContext) => {
+  const now = ctx.currentTime;
+
+  const osc1 = ctx.createOscillator();
+  const osc2 = ctx.createOscillator();
+  const gainNode = ctx.createGain();
+
+  osc1.type = 'sine';
+  osc1.frequency.setValueAtTime(587.33, now); // D5
+  osc1.frequency.exponentialRampToValueAtTime(880, now + 0.15); // A5
+
+  osc2.type = 'sine';
+  osc2.frequency.setValueAtTime(880, now + 0.15);
+  osc2.frequency.exponentialRampToValueAtTime(1174.66, now + 0.3); // D6
+
+  gainNode.gain.setValueAtTime(0.1, now);
+  gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+  osc1.connect(gainNode);
+  osc2.connect(gainNode);
+  gainNode.connect(ctx.destination);
+
+  osc1.start(now);
+  osc1.stop(now + 0.15);
+  osc2.start(now + 0.15);
+  osc2.stop(now + 0.35);
 };
 
 const getWebSocketUrl = (token: string, userId: string | number, role: string): string => {
@@ -87,6 +148,69 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<RealtimeStatus>('disconnected');
   const [onlineCount, setOnlineCount] = useState<number>(1);
+
+  // Sound settings
+  const [isSoundEnabled, setIsSoundEnabledState] = useState<boolean>(() => {
+    try {
+      const v = localStorage.getItem('fhub_sound_enabled');
+      return v === null ? true : v === 'true';
+    } catch {
+      return true;
+    }
+  });
+
+  const [soundType, setSoundTypeState] = useState<NotificationSoundType>(() => {
+    try {
+      const v = localStorage.getItem('fhub_sound_type');
+      return (v === 'discord' || v === 'classic' || v === 'messenger') ? v : 'messenger';
+    } catch {
+      return 'messenger';
+    }
+  });
+
+  const setIsSoundEnabled = useCallback((enabled: boolean) => {
+    setIsSoundEnabledState(enabled);
+    try {
+      localStorage.setItem('fhub_sound_enabled', String(enabled));
+    } catch {}
+  }, []);
+
+  const setSoundType = useCallback((type: NotificationSoundType) => {
+    setSoundTypeState(type);
+    try {
+      localStorage.setItem('fhub_sound_type', type);
+    } catch {}
+  }, []);
+
+  const lastPlayedRef = useRef<number>(0);
+
+  const playNotificationSound = useCallback((overrideType?: NotificationSoundType) => {
+    const targetType = overrideType || soundType;
+    if (!overrideType && !isSoundEnabled) return;
+
+    const now = Date.now();
+    if (now - lastPlayedRef.current < 250 && !overrideType) return;
+    lastPlayedRef.current = now;
+
+    try {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextClass) return;
+      const ctx = new AudioContextClass();
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
+
+      if (targetType === 'discord') {
+        playDiscordChime(ctx);
+      } else if (targetType === 'classic') {
+        playClassicChime(ctx);
+      } else {
+        playMessengerChime(ctx);
+      }
+    } catch {
+      // Ignore audio restrictions
+    }
+  }, [isSoundEnabled, soundType]);
 
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<number | null>(null);
@@ -160,7 +284,7 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         queryClient.invalidateQueries({ queryKey: ['notifications'] });
         queryClient.invalidateQueries({ queryKey: ['notifications', 'unread-count'] });
         if (event.type === 'NOTIFICATION_NEW') {
-          playChimeSound();
+          playNotificationSound();
         }
         break;
 
@@ -172,7 +296,7 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
           queryClient.invalidateQueries({ queryKey: ['messages', String(event.payload.conversationId)] });
         }
         if (event.type === 'CHAT_MESSAGE_RECEIVED') {
-          playChimeSound();
+          playNotificationSound();
         }
         break;
 
@@ -181,14 +305,14 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         queryClient.invalidateQueries({ queryKey: ['admin', 'moderation-reports'] });
         queryClient.invalidateQueries({ queryKey: ['moderator', 'reports'] });
         if (event.type === 'MODERATION_NEW_REPORT') {
-          playChimeSound();
+          playNotificationSound();
         }
         break;
 
       case 'VERIFICATION_NEW_REQUEST':
         queryClient.invalidateQueries({ queryKey: ['admin', 'verifications'] });
         queryClient.invalidateQueries({ queryKey: ['staff', 'verifications'] });
-        playChimeSound();
+        playNotificationSound();
         break;
 
       case 'TICKET_UPDATED':
@@ -200,13 +324,13 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         if (event.payload?.ticketId) {
           queryClient.invalidateQueries({ queryKey: ['support-ticket', String(event.payload.ticketId)] });
         }
-        playChimeSound();
+        playNotificationSound();
         break;
 
       case 'OFFICIAL_BROADCAST_ALERT':
         queryClient.invalidateQueries({ queryKey: ['student', 'broadcasts'] });
         queryClient.invalidateQueries({ queryKey: ['broadcasts'] });
-        playChimeSound();
+        playNotificationSound();
         break;
 
       case 'CONTENT_INTERACTION':
@@ -354,7 +478,11 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         onlineCount,
         send,
         on,
-        playNotificationSound: playChimeSound,
+        playNotificationSound,
+        isSoundEnabled,
+        setIsSoundEnabled,
+        soundType,
+        setSoundType,
       }}
     >
       {children}

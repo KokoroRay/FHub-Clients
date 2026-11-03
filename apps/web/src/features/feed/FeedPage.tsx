@@ -23,7 +23,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useRealtime } from '../../context/RealtimeContext';
 import { questionApi } from '../../services/api/contentApi';
-import { profileApi, voteApi, bookmarkApi } from '../../services/api/studentApi';
+import { profileApi, voteApi, bookmarkApi, notificationApi } from '../../services/api/studentApi';
 import { AskQuestionModal } from '../discussions/AskQuestionModal';
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 import { normalizeMediaUrl } from '../../utils/mediaUtils';
@@ -273,6 +273,23 @@ export const FeedPage: React.FC = () => {
           [questionId]: finalEntry,
           [String(numericId)]: finalEntry,
         }));
+
+        if (direction === 'UP') {
+          const targetQ = questions.find((q: any) => String(q.questionId || q.id) === String(questionId) || String(q.id || '').replace(/\D/g, '') === String(numericId));
+          const authorId = targetQ?.authorUserId || targetQ?.author?.id || targetQ?.author_user_id;
+          if (authorId && String(authorId) !== String(currentUser?.id)) {
+            const senderName = currentUser?.fullName || (currentUser as any)?.displayName || t('common.peerStudent', 'Một bạn học');
+            notificationApi.createNotification({
+              recipientUserId: Number(authorId),
+              type: 'UPVOTE',
+              title: `${senderName} đã thích câu hỏi của bạn`,
+              message: targetQ?.title ? `"${targetQ.title.slice(0, 80)}..."` : 'Ai đó đã thích bài viết của bạn',
+              actionUrl: `/questions/${numericId}`,
+              targetType: 'QUESTION',
+              targetId: numericId,
+            });
+          }
+        }
       } catch (err) {
         console.warn('Vote submission error:', err);
         // Rollback optimistic update on error

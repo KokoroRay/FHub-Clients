@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   MessageSquare,
   Send,
@@ -13,12 +14,23 @@ import {
   X,
   Plus,
   AlertTriangle,
-  UserCheck
+  UserCheck,
+  ArrowLeft,
+  Image as ImageIcon,
+  Sparkles,
+  Loader2,
+  Maximize2,
+  Download,
+  Smile,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useRealtime } from '../../context/RealtimeContext';
 import { directMessageApi } from '../../services/api/studentApi';
+import { contentMediaApi } from '../../services/api/contentApi';
+import { validateImage, normalizeMediaUrl } from '../../utils/mediaUtils';
 
 interface Message {
   id: string;
@@ -29,6 +41,8 @@ interface Message {
   time: string;
   isYou: boolean;
   status?: 'sent' | 'delivered' | 'read';
+  messageType?: string;
+  attachmentUrl?: string;
 }
 
 interface ConversationItem {
@@ -58,19 +72,49 @@ interface BlockedItem {
   blockedAt: string;
 }
 
+const POPULAR_GIFS = [
+  { id: '1', title: 'Thumbs Up', url: 'https://media.giphy.com/media/111ebonMs90YLu/giphy.gif' },
+  { id: '2', title: 'Celebration', url: 'https://media.giphy.com/media/artj92V8o75VPL7AeQ/giphy.gif' },
+  { id: '3', title: 'Typing Code', url: 'https://media.giphy.com/media/unQ3IJU2RG7DO/giphy.gif' },
+  { id: '4', title: 'Awesome', url: 'https://media.giphy.com/media/3o7abKhOpu0NwenH3O/giphy.gif' },
+  { id: '5', title: 'Clapping', url: 'https://media.giphy.com/media/nbvFVPiEiJH6Q/giphy.gif' },
+  { id: '6', title: 'Cat Typing', url: 'https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif' },
+  { id: '7', title: 'Thank You', url: 'https://media.giphy.com/media/osAcIGJnyeRqaJAbrC/giphy.gif' },
+  { id: '8', title: 'Mind Blown', url: 'https://media.giphy.com/media/26ufdipQqU2lhNA4g/giphy.gif' },
+  { id: '9', title: 'High Five', url: 'https://media.giphy.com/media/3oEjHV0z8S7WM4MwnK/giphy.gif' },
+  { id: '10', title: 'Laughing', url: 'https://media.giphy.com/media/10JhviFuU2gWD6/giphy.gif' },
+  { id: '11', title: 'Happy Dance', url: 'https://media.giphy.com/media/blSTtZehjAZ8I/giphy.gif' },
+  { id: '12', title: 'Confused', url: 'https://media.giphy.com/media/g01ZnwAUvutuK8GIQn/giphy.gif' },
+];
+
 export const DirectMessagesPage: React.FC = () => {
   const { currentUser } = useAuth();
   const { formatDate, formatTime, locale, t } = useLanguage();
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
-  const [activeConvId, setActiveConvId] = useState<string>('');
+  const [activeConvId, setActiveConvId] = useState<string>(() => {
+    return searchParams.get('conversationId') || searchParams.get('convId') || '';
+  });
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [messages, setMessages] = useState<Record<string, Message[]>>({});
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [inputText, setInputText] = useState('');
-  const { on, send } = useRealtime();
+  const { on, send, isSoundEnabled, setIsSoundEnabled, playNotificationSound } = useRealtime();
   const [isPartnerTyping, setIsPartnerTyping] = useState(false);
-  const typingTimerRef = React.useRef<any>(null);
+  const typingTimerRef = useRef<any>(null);
+
+  // Uploading and GIF Picker States
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [showGifPicker, setShowGifPicker] = useState(false);
+  const [gifSearchQuery, setGifSearchQuery] = useState('');
+  const [gifResults, setGifResults] = useState<{ id: string; title: string; url: string }[]>(POPULAR_GIFS);
+  const [isLoadingGifs, setIsLoadingGifs] = useState(false);
+  const [previewLightboxUrl, setPreviewLightboxUrl] = useState<string | null>(null);
 
   // Modals & Confirmation States
   const [showBlockedModal, setShowBlockedModal] = useState(false);
@@ -107,7 +151,7 @@ export const DirectMessagesPage: React.FC = () => {
             participantId: String(c.participantId),
             name: c.participantName || t("Sinh viên #{p0}", undefined, { p0: c.participantId }),
             initials,
-            initialsBg: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+            initialsBg: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-800',
             studentId: c.participantCode || `SE-${c.participantId}`,
             courseTag: c.courseTag || 'FHub',
             role: c.role || t("Thành viên FHub"),
@@ -120,8 +164,13 @@ export const DirectMessagesPage: React.FC = () => {
           };
         });
         setConversations(mapped);
-        if (!activeConvId) {
-          setActiveConvId(mapped[0]?.id || '');
+
+        // Auto-select conversation: respect query param if present, else pick first conversation
+        const queryConv = searchParams.get('conversationId') || searchParams.get('convId');
+        if (queryConv && mapped.some(c => c.id === queryConv)) {
+          setActiveConvId(queryConv);
+        } else if (!activeConvId && mapped.length > 0) {
+          setActiveConvId(mapped[0].id);
         }
       } else {
         setConversations([]);
@@ -143,8 +192,8 @@ export const DirectMessagesPage: React.FC = () => {
           userId: b.blocked_user_id || b.blocked_account_id || 10,
           name: b.name || `Phu THG (CE182003)`,
           studentCode: b.student_code || 'CE182003',
-          reason: b.reason || 'Repeatedly sending unsolicited promotional links and spam messages',
-          blockedAt: b.created_at ? b.created_at : 'Yesterday',
+          reason: b.reason || 'Chặn tin nhắn trực tiếp',
+          blockedAt: b.created_at ? b.created_at : 'Hôm qua',
         }));
         setBlockedList(mapped);
       } else {
@@ -160,6 +209,13 @@ export const DirectMessagesPage: React.FC = () => {
     loadBlockedUsers();
   }, []);
 
+  // Update query params when active conversation changes
+  useEffect(() => {
+    if (activeConvId) {
+      setSearchParams({ conversationId: activeConvId }, { replace: true });
+    }
+  }, [activeConvId, setSearchParams]);
+
   useEffect(() => {
     if (!activeConvId) return;
     let isMounted = true;
@@ -167,16 +223,21 @@ export const DirectMessagesPage: React.FC = () => {
       try {
         const data = await directMessageApi.getMessages(activeConvId);
         if (isMounted && data && data.length > 0) {
-          const mapped: Message[] = data.map((m) => ({
-            id: String(m.messageId),
-            senderId: String(m.senderId),
-            senderName: m.senderName,
-            senderInitials: m.senderName ? m.senderName.slice(0, 2).toUpperCase() : 'SV',
-            text: m.content,
-            time: m.createdAt ? m.createdAt : t("Vừa xong"),
-            isYou: String(m.senderId) === '1' || String(m.senderId) === '8' || String(m.senderId) === '4' || m.senderName === 'Bạn',
-            status: 'read',
-          }));
+          const mapped: Message[] = data.map((m) => {
+            const isMine = String(m.senderId) === String(currentUser?.id) || m.senderName === 'Bạn';
+            return {
+              id: String(m.messageId),
+              senderId: String(m.senderId),
+              senderName: isMine ? 'Bạn' : m.senderName,
+              senderInitials: isMine ? 'ME' : (m.senderName ? m.senderName.slice(0, 2).toUpperCase() : 'SV'),
+              text: m.content,
+              time: m.createdAt ? m.createdAt : t("Vừa xong"),
+              isYou: isMine,
+              status: 'read',
+              messageType: m.messageType || 'TEXT',
+              attachmentUrl: m.attachmentUrl,
+            };
+          });
           setMessages(prev => ({ ...prev, [activeConvId]: mapped }));
         }
       } catch (err) {
@@ -185,14 +246,14 @@ export const DirectMessagesPage: React.FC = () => {
     };
     loadMessages();
     return () => { isMounted = false; };
-  }, [activeConvId]);
+  }, [activeConvId, currentUser]);
 
-    const activeConv = conversations.find(c => c.id === activeConvId);
+  const activeConv = conversations.find(c => c.id === activeConvId);
 
   // Auto-scroll to latest message
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages.length, activeConvId]);
+  }, [messages[activeConvId]?.length, activeConvId]);
 
   // Real-time listener for direct messages and typing status
   useEffect(() => {
@@ -200,7 +261,9 @@ export const DirectMessagesPage: React.FC = () => {
       const { conversationId, message, senderId } = evt.payload || {};
       const convIdStr = String(conversationId || '');
       const incomingMsgId = String(message?.id || message?.message_id || Date.now());
-      const body = message?.body || '';
+      const body = message?.body || message?.content || '';
+      const messageType = message?.message_type || message?.messageType || 'TEXT';
+      const attachmentUrl = message?.attachment_url || message?.attachmentUrl;
 
       // If message is in currently active conversation
       if (convIdStr === String(activeConvId)) {
@@ -214,6 +277,8 @@ export const DirectMessagesPage: React.FC = () => {
           time: t('Vừa xong'),
           isYou: isFromMe,
           status: 'delivered',
+          messageType,
+          attachmentUrl,
         };
 
         setMessages((prev) => {
@@ -236,7 +301,7 @@ export const DirectMessagesPage: React.FC = () => {
         }
         const updatedItem = {
           ...prev[index],
-          lastMessage: body,
+          lastMessage: messageType === 'IMAGE' ? t('messages.sentImage', '[Hình ảnh]') : messageType === 'GIF' ? t('messages.sentGif', '[GIF]') : body,
           lastTime: t('Vừa xong'),
           unreadCount: convIdStr === String(activeConvId) ? 0 : (prev[index].unreadCount || 0) + 1,
         };
@@ -275,7 +340,39 @@ export const DirectMessagesPage: React.FC = () => {
     };
   }, [activeConvId, currentUser, activeConv, on, t]);
 
+  // Live GIF search against Giphy public API
+  useEffect(() => {
+    if (!gifSearchQuery.trim()) {
+      setGifResults(POPULAR_GIFS);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        setIsLoadingGifs(true);
+        const res = await fetch(`https://api.giphy.com/v1/gifs/search?api_key=GlVGYHkr3WSBnllCa54iDKvdTeOqyLQI&q=${encodeURIComponent(gifSearchQuery)}&limit=16&rating=g`);
+        const json = await res.json();
+        if (json.data && Array.isArray(json.data) && json.data.length > 0) {
+          const parsed = json.data.map((item: any) => ({
+            id: item.id,
+            title: item.title || 'GIF',
+            url: item.images?.downsized_medium?.url || item.images?.fixed_height?.url || item.images?.original?.url,
+          }));
+          setGifResults(parsed);
+        } else {
+          // Fallback filter
+          const filtered = POPULAR_GIFS.filter(g => g.title.toLowerCase().includes(gifSearchQuery.toLowerCase()));
+          setGifResults(filtered.length > 0 ? filtered : POPULAR_GIFS);
+        }
+      } catch (err) {
+        const filtered = POPULAR_GIFS.filter(g => g.title.toLowerCase().includes(gifSearchQuery.toLowerCase()));
+        setGifResults(filtered.length > 0 ? filtered : POPULAR_GIFS);
+      } finally {
+        setIsLoadingGifs(false);
+      }
+    }, 350);
 
+    return () => clearTimeout(timer);
+  }, [gifSearchQuery]);
 
   const activeMessages = activeConvId ? (messages[activeConvId] || []) : [];
   const unreadTotal = conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
@@ -288,6 +385,7 @@ export const DirectMessagesPage: React.FC = () => {
     )
   );
 
+  // Send Text Message
   const handleSendMessage = async (textToSend?: string) => {
     const content = textToSend || inputText.trim();
     if (!content || !activeConv || activeConv.isBlocked) return;
@@ -295,47 +393,136 @@ export const DirectMessagesPage: React.FC = () => {
     const optimisticId = `m-${Date.now()}`;
     const newMsg: Message = {
       id: optimisticId,
-      senderId: '1',
-      senderName: 'Bạn',
+      senderId: String(currentUser?.id || '1'),
+      senderName: currentUser?.fullName || 'Bạn',
       senderInitials: 'ME',
       text: content,
-      time: 'Vừa xong',
+      time: t('Vừa xong'),
       isYou: true,
-      status: 'delivered',
+      status: 'sent',
+      messageType: 'TEXT',
     };
 
     setMessages(prev => ({
       ...prev,
-      [activeConvId]: [...(prev[activeConvId] || []), newMsg],
+      [activeConvId]: [...(prev[activeConvId] || []), newMsg]
     }));
-
-    setConversations(prev => prev.map(c =>
-      c.id === activeConvId
-        ? { ...c, lastMessage: content, lastTime: 'Vừa xong' }
-        : c
-    ));
-
-    if (!textToSend) setInputText('');
+    setInputText('');
 
     try {
-      await directMessageApi.sendMessage(activeConvId, content);
+      const res = await directMessageApi.sendMessage(activeConvId, { body: content, messageType: 'TEXT' });
+      setMessages(prev => ({
+        ...prev,
+        [activeConvId]: (prev[activeConvId] || []).map(m => m.id === optimisticId ? { ...m, id: String(res.messageId), status: 'delivered' } : m)
+      }));
     } catch (err) {
-      console.warn('Backend send message notice:', err);
+      console.warn('Failed to send message:', err);
+    }
+  };
+
+  // Upload image to Cloudflare R2 and send as chat message
+  const handleImageFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !activeConv || activeConv.isBlocked) return;
+
+    try {
+      validateImage(file, 10);
+      setIsUploadingImage(true);
+
+      // Upload to Cloudflare R2 via content-service
+      const uploadResult = await contentMediaApi.uploadMedia(file, 'chat', String(activeConvId));
+      const imageUrl = uploadResult.publicUrl || (uploadResult as any).url;
+
+      const optimisticId = `m-img-${Date.now()}`;
+      const newMsg: Message = {
+        id: optimisticId,
+        senderId: String(currentUser?.id || '1'),
+        senderName: currentUser?.fullName || 'Bạn',
+        senderInitials: 'ME',
+        text: '',
+        time: t('Vừa xong'),
+        isYou: true,
+        status: 'sent',
+        messageType: 'IMAGE',
+        attachmentUrl: imageUrl,
+      };
+
+      setMessages(prev => ({
+        ...prev,
+        [activeConvId]: [...(prev[activeConvId] || []), newMsg]
+      }));
+
+      // Send to backend communication-service
+      const res = await directMessageApi.sendMessage(activeConvId, {
+        body: '',
+        messageType: 'IMAGE',
+        attachmentUrl: imageUrl,
+      });
+
+      setMessages(prev => ({
+        ...prev,
+        [activeConvId]: (prev[activeConvId] || []).map(m => m.id === optimisticId ? { ...m, id: String(res.messageId), status: 'delivered' } : m)
+      }));
+    } catch (err: any) {
+      alert(err.message || t('messages.uploadFailed', 'Tải ảnh thất bại. Vui lòng thử lại.'));
+    } finally {
+      setIsUploadingImage(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  // Send GIF
+  const handleSelectGif = async (gifUrl: string) => {
+    if (!activeConv || activeConv.isBlocked) return;
+    setShowGifPicker(false);
+
+    const optimisticId = `m-gif-${Date.now()}`;
+    const newMsg: Message = {
+      id: optimisticId,
+      senderId: String(currentUser?.id || '1'),
+      senderName: currentUser?.fullName || 'Bạn',
+      senderInitials: 'ME',
+      text: '',
+      time: t('Vừa xong'),
+      isYou: true,
+      status: 'sent',
+      messageType: 'GIF',
+      attachmentUrl: gifUrl,
+    };
+
+    setMessages(prev => ({
+      ...prev,
+      [activeConvId]: [...(prev[activeConvId] || []), newMsg]
+    }));
+
+    try {
+      const res = await directMessageApi.sendMessage(activeConvId, {
+        body: '',
+        messageType: 'GIF',
+        attachmentUrl: gifUrl,
+      });
+
+      setMessages(prev => ({
+        ...prev,
+        [activeConvId]: (prev[activeConvId] || []).map(m => m.id === optimisticId ? { ...m, id: String(res.messageId), status: 'delivered' } : m)
+      }));
+    } catch (err) {
+      console.warn('Failed to send GIF:', err);
     }
   };
 
   const executeDeleteMessage = async () => {
-    if (!confirmDeleteMsgId) return;
+    if (!confirmDeleteMsgId || !activeConvId) return;
     const msgId = confirmDeleteMsgId;
     setMessages(prev => ({
       ...prev,
-      [activeConvId]: (prev[activeConvId] || []).filter(m => m.id !== msgId),
+      [activeConvId]: (prev[activeConvId] || []).filter(m => m.id !== msgId)
     }));
     setConfirmDeleteMsgId(null);
     try {
       await directMessageApi.deleteMessage(activeConvId, msgId);
     } catch (err) {
-      console.warn('Backend delete message notice:', err);
+      console.warn('Failed to delete message on backend:', err);
     }
   };
 
@@ -383,11 +570,14 @@ export const DirectMessagesPage: React.FC = () => {
   const handleStartNewConversation = async () => {
     if (!selectedRecipient) return;
     try {
-      await directMessageApi.createConversation(selectedRecipient.id, initialMsgText.trim() || undefined);
+      const res = await directMessageApi.createConversation(selectedRecipient.id, initialMsgText.trim() || undefined);
       setShowNewConvModal(false);
       setSelectedRecipient(null);
       setInitialMsgText('');
       await loadConversations();
+      if (res?.conversation_id) {
+        setActiveConvId(String(res.conversation_id));
+      }
     } catch (err) {
       console.warn('Failed to start conversation:', err);
     }
@@ -395,19 +585,28 @@ export const DirectMessagesPage: React.FC = () => {
 
   return (
     <div className="space-y-3 w-full h-[calc(100vh-140px)] flex flex-col min-h-[520px] pb-0">
+      {/* Hidden File Input for Image Upload */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept="image/*"
+        className="hidden"
+        onChange={handleImageFileSelect}
+      />
+
       {/* Page Title & Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-[#181C22]">{t('messages.title', 'Messages')}</h1>
+            <h1 className="text-2xl font-bold text-[#181C22] dark:text-slate-100">{t('messages.title', 'Messages')}</h1>
             {unreadTotal > 0 && (
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#EBF5FF] text-[#0076D1] border border-[#BFDBFE]">
-                {unreadTotal} {t('messages.unread', 'unread')}
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#EBF5FF] dark:bg-blue-950/60 text-[#0076D1] dark:text-blue-400 border border-[#BFDBFE] dark:border-blue-800">
+                {unreadTotal} {t('messages.unread', 'chưa đọc')}
               </span>
             )}
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            {t('messages.subtitle', 'Real-time peer discussions, course study groups, and assignment mentorship.')}
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+            {t('messages.subtitle', 'Trao đổi trực tiếp theo thời gian thực, học nhóm và hướng dẫn đồ án.')}
           </p>
         </div>
 
@@ -418,13 +617,13 @@ export const DirectMessagesPage: React.FC = () => {
             type="button"
             onClick={() => {
               setSelectedRecipient(availablePeers[0]);
-              setInitialMsgText(t("Chào bạn, mình muốn trao đổi về bài tập lớn PRN231 và đồ án Capstone."));
+              setInitialMsgText('');
               setShowNewConvModal(true);
             }}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-[#0076D1] hover:bg-blue-700 rounded-xl transition-colors shadow-xs"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-[#0076D1] hover:bg-blue-700 rounded-xl transition-colors shadow-xs cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>{t('messages.newConversation', 'New Conversation')}</span>
+            <span>{t('messages.newConversation', 'Cuộc trò chuyện mới')}</span>
           </button>
 
           {/* Blocked Users Button (3.11.7) */}
@@ -432,44 +631,66 @@ export const DirectMessagesPage: React.FC = () => {
             id="btn-blocked-users"
             type="button"
             onClick={() => setShowBlockedModal(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors shadow-xs"
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-xs cursor-pointer"
           >
             <Ban className="w-3.5 h-3.5 text-red-500" />
-            <span>{t('messages.blockedUsers', 'Blocked Users')} ({blockedList.length})</span>
+            <span>{t('messages.blockedUsers', 'Đã chặn')} ({blockedList.length})</span>
           </button>
         </div>
       </div>
 
-      {/* Main Messaging Container: Two-column split layout */}
-      <div className="grid grid-cols-1 md:grid-cols-12 bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden flex-1 min-h-0">
-        {/* Left Column: Conversations List (3.11.2) */}
-        <div id="conversations-sidebar" className="md:col-span-5 lg:col-span-4 border-r border-slate-200 flex flex-col h-full bg-slate-50/40">
+      {/* Main Messaging Container: Modern split layout that never collapses */}
+      <div className="flex bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden flex-1 min-h-0 h-full">
+        {/* Left Column: Conversations List (Always visible on desktop, toggled on mobile) */}
+        <div
+          id="conversations-sidebar"
+          className={`${
+            activeConvId ? 'hidden md:flex' : 'flex'
+          } w-full md:w-80 lg:w-96 border-r border-slate-200 dark:border-slate-800 flex-col h-full bg-slate-50/40 dark:bg-slate-900/40 shrink-0`}
+        >
           {/* Search Header */}
-          <div className="p-3.5 border-b border-slate-200 bg-white">
+          <div className="p-3.5 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
             <div className="relative">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 id="search-conversations-input"
                 type="text"
-                placeholder={t('messages.searchPlaceholder', 'Search messages, peers, or courses...')}
+                placeholder={t('messages.searchPlaceholder', 'Tìm tin nhắn, bạn học hoặc môn học...')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#0076D1]"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#0076D1] text-slate-800 dark:text-slate-100 placeholder-slate-400"
               />
             </div>
           </div>
 
           {/* Conversations Items */}
-          <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
+          <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60">
             {loading ? (
               <div className="p-8 text-center text-slate-400">
+                <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-[#0076D1]" />
                 <p className="text-xs">{t('messages.loading', 'Đang tải cuộc trò chuyện...')}</p>
               </div>
             ) : filteredConversations.length === 0 ? (
-              <div className="p-8 text-center text-slate-400">
-                <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                <p className="text-xs font-medium">{t('messages.emptyTitle', 'Chưa có cuộc trò chuyện nào')}</p>
-                <p className="text-[11px] text-slate-400 mt-1">{t('messages.emptyDesc', 'Các tin nhắn trực tiếp với bạn học sẽ xuất hiện ở đây.')}</p>
+              <div className="p-8 text-center text-slate-400 space-y-3">
+                <MessageSquare className="w-8 h-8 mx-auto opacity-30 text-[#0076D1]" />
+                <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  {t('messages.emptyTitle', 'Chưa có cuộc trò chuyện nào')}
+                </p>
+                <p className="text-[11px] text-slate-400">
+                  {t('messages.emptyDesc', 'Nhấn nút tạo mới bên dưới để bắt đầu nhắn tin với bạn học.')}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedRecipient(availablePeers[0]);
+                    setInitialMsgText('');
+                    setShowNewConvModal(true);
+                  }}
+                  className="px-3 py-1.5 bg-[#0076D1] text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-colors shadow-2xs inline-flex items-center gap-1.5"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>{t('messages.startNow', 'Bắt đầu ngay')}</span>
+                </button>
               </div>
             ) : (
               filteredConversations.map((conv) => {
@@ -484,8 +705,8 @@ export const DirectMessagesPage: React.FC = () => {
                     }}
                     className={`flex items-start gap-3 p-3.5 cursor-pointer transition-colors ${
                       isSelected
-                        ? 'bg-blue-50/80 border-l-4 border-[#0076D1]'
-                        : 'hover:bg-slate-50 bg-white'
+                        ? 'bg-blue-50/80 dark:bg-blue-950/40 border-l-4 border-[#0076D1]'
+                        : 'hover:bg-slate-50 dark:hover:bg-slate-800/60 bg-white dark:bg-slate-900'
                     }`}
                   >
                     {/* Peer Avatar & Status Indicator */}
@@ -494,14 +715,14 @@ export const DirectMessagesPage: React.FC = () => {
                         {conv.initials}
                       </div>
                       {conv.isActiveNow && (
-                        <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-white" />
+                        <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900" />
                       )}
                     </div>
 
                     {/* Metadata & Preview */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-0.5">
-                        <span className="text-xs font-bold text-slate-800 truncate">
+                        <span className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
                           {conv.name}
                         </span>
                         <span className="text-[10px] text-slate-400 font-mono">
@@ -510,16 +731,16 @@ export const DirectMessagesPage: React.FC = () => {
                       </div>
 
                       <div className="flex items-center gap-1.5 mb-1">
-                        <span className="text-[10px] text-slate-500 font-mono">
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-mono">
                           {conv.studentId}
                         </span>
-                        <span className="text-slate-300">•</span>
-                        <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-semibold bg-blue-50 text-[#0076D1] border border-blue-100">
+                        <span className="text-slate-300 dark:text-slate-600">•</span>
+                        <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-semibold bg-blue-50 dark:bg-blue-950/60 text-[#0076D1] dark:text-blue-400 border border-blue-100 dark:border-blue-900">
                           {conv.courseTag}
                         </span>
                       </div>
 
-                      <p className={`text-xs truncate ${conv.unreadCount > 0 ? 'font-bold text-slate-900' : 'text-slate-500'}`}>
+                      <p className={`text-xs truncate ${conv.unreadCount > 0 ? 'font-bold text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}>
                         {conv.lastMessage || t("Chưa có tin nhắn")}
                       </p>
                     </div>
@@ -536,275 +757,509 @@ export const DirectMessagesPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Column: Active Conversation & Messages (3.11.3 & 3.11.4) */}
-        <div id="active-conversation-pane" className="md:col-span-7 lg:col-span-8 flex flex-col h-full bg-white">
+        {/* Right Column: Active Conversation & Messages (Always visible on desktop, toggled on mobile) */}
+        <div
+          id="active-conversation-pane"
+          className={`${
+            activeConvId ? 'flex' : 'hidden md:flex'
+          } flex-1 min-w-0 flex-col h-full bg-white dark:bg-slate-900`}
+        >
           {activeConv ? (
             <>
               {/* Conversation Header Bar (3.11.3) */}
-              <div id="conversation-header" className="p-4 border-b border-slate-200 flex items-center justify-between gap-3 bg-white">
+              <div id="conversation-header" className="p-3.5 sm:p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 bg-white dark:bg-slate-900">
                 <div className="flex items-center gap-3 min-w-0">
+                  {/* Mobile Back Button */}
+                  <button
+                    type="button"
+                    onClick={() => setActiveConvId('')}
+                    className="md:hidden p-1.5 -ml-1 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 rounded-lg"
+                    title={t('common.back', 'Quay lại danh sách')}
+                  >
+                    <ArrowLeft className="w-5 h-5" />
+                  </button>
+
                   <div className="relative shrink-0">
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm border ${activeConv.initialsBg}`}>
                       {activeConv.initials}
                     </div>
                     {activeConv.isActiveNow && (
-                      <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-white" />
+                      <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900" />
                     )}
                   </div>
 
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-bold text-slate-800 truncate">
+                      <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">
                         {activeConv.name}
                       </h3>
-                      <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-semibold bg-blue-50 text-[#0076D1] border border-blue-100">
-                        [{activeConv.courseTag}]
+                      <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-semibold bg-blue-50 dark:bg-blue-950/60 text-[#0076D1] dark:text-blue-400 border border-blue-100 dark:border-blue-900">
+                        {activeConv.courseTag}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 text-[11px] text-slate-400">
-                      <span className="text-emerald-600 font-semibold">{t(activeConv.statusText) || activeConv.statusText}</span>
+                    <div className="flex items-center gap-2 text-xs text-slate-400">
+                      <span>{activeConv.role}</span>
                       <span>•</span>
-                      <span className="truncate">{t(activeConv.role)}</span>
-                      <span>•</span>
-                      <span className="inline-flex items-center gap-0.5 text-slate-400">
-                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-                        {t('messages.encrypted', 'Encrypted')}
+                      <span className="text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        {activeConv.statusText}
                       </span>
+                      {isPartnerTyping && (
+                        <>
+                          <span>•</span>
+                          <span className="text-[#0076D1] dark:text-blue-400 font-semibold animate-pulse">
+                            {t('messages.typing', 'đang soạn tin...')}
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
 
-                {/* Right Header Options (3.11.8) */}
-                <div className="relative flex items-center gap-2">
+                {/* Quick Sound Mute/Unmute & Options */}
+                <div className="flex items-center gap-1.5 relative">
                   <button
-                    id="btn-conversation-options"
+                    type="button"
+                    onClick={() => {
+                      const nextVal = !isSoundEnabled;
+                      setIsSoundEnabled(nextVal);
+                      if (nextVal) playNotificationSound();
+                    }}
+                    title={isSoundEnabled ? t('messages.muteSound', 'Tắt âm thanh thông báo') : t('messages.unmuteSound', 'Bật âm thanh thông báo')}
+                    className={`p-2 rounded-lg transition-colors cursor-pointer ${
+                      isSoundEnabled
+                        ? 'text-[#0076D1] hover:bg-blue-50 dark:hover:bg-blue-950/40'
+                        : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    {isSoundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4 text-slate-400" />}
+                  </button>
+
+                  <button
                     type="button"
                     onClick={() => setIsOptionsOpen(!isOptionsOpen)}
-                    className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors"
+                    className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
                   >
                     <MoreVertical className="w-4 h-4" />
                   </button>
 
                   {isOptionsOpen && (
-                    <div className="absolute right-0 top-full mt-1 w-44 bg-white rounded-xl shadow-lg border border-slate-200 py-1.5 z-20">
+                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 py-1.5 z-20">
                       <button
-                        id="btn-trigger-block-modal"
                         type="button"
                         onClick={() => {
                           setConfirmBlockConv(activeConv);
                           setIsOptionsOpen(false);
                         }}
-                        className="w-full px-3 py-2 text-left text-xs text-red-600 hover:bg-red-50 flex items-center gap-2 font-semibold"
+                        className="w-full text-left px-3.5 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center gap-2"
                       >
                         <Ban className="w-3.5 h-3.5" />
-                        <span>{t('messages.blockPeer', 'Block User')}</span>
+                        <span>{t('messages.blockUser', 'Chặn người dùng này')}</span>
                       </button>
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Message History Stream (3.11.4) */}
-              <div id="messages-stream" className="flex-1 overflow-y-auto p-5 space-y-4 bg-slate-50/30">
-                <div className="text-center">
-                  <span className="inline-block px-3 py-1 rounded-full text-[10px] font-mono text-slate-400 bg-white border border-slate-200 shadow-2xs">
-                    {t('messages.today', 'Today')}
-                  </span>
-                </div>
-
-                {activeMessages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    id={`message-bubble-${msg.id}`}
-                    className={`flex items-end gap-2 group ${msg.isYou ? 'justify-end' : 'justify-start'}`}
-                  >
-                    {!msg.isYou && (
-                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-[10px] border shrink-0 ${activeConv.initialsBg}`}>
-                        {activeConv.initials || msg.senderInitials}
+              {/* Messages Scroll Area (3.11.4) */}
+              <div className="flex-1 p-4 sm:p-5 overflow-y-auto space-y-4 bg-slate-50/20 dark:bg-slate-900/20">
+                {activeMessages.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-center text-slate-400 p-8">
+                    <MessageSquare className="w-10 h-10 mb-2 opacity-20 text-[#0076D1]" />
+                    <p className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                      {t('messages.noHistory', 'Bắt đầu cuộc trò chuyện với')} {activeConv.name}
+                    </p>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      {t('messages.safeAcademicNotice', 'Mọi trao đổi được bảo vệ theo Quy tắc Học thuật của FHub.')}
+                    </p>
+                  </div>
+                ) : (
+                  activeMessages.map((msg) => (
+                    <div
+                      key={msg.id}
+                      className={`flex gap-3 items-end ${msg.isYou ? 'flex-row-reverse' : 'flex-row'}`}
+                    >
+                      {/* Avatar */}
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
+                        msg.isYou
+                          ? 'bg-[#0076D1] text-white'
+                          : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                      }`}>
+                        {msg.senderInitials}
                       </div>
-                    )}
 
-                    <div className={`max-w-md space-y-1 ${msg.isYou ? 'items-end' : 'items-start'}`}>
-                      <div
-                        className={`p-3.5 rounded-2xl text-xs leading-relaxed shadow-2xs ${
+                      {/* Bubble */}
+                      <div className={`max-w-[78%] sm:max-w-[65%] space-y-1 ${msg.isYou ? 'items-end' : 'items-start'} flex flex-col`}>
+                        <div className={`p-3 rounded-2xl text-xs leading-relaxed shadow-2xs ${
                           msg.isYou
                             ? 'bg-[#0076D1] text-white rounded-br-xs'
-                            : 'bg-white text-slate-800 border border-slate-200 rounded-bl-xs'
-                        }`}
-                      >
-                        {msg.text}
-                      </div>
+                            : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200/80 dark:border-slate-700 rounded-bl-xs'
+                        }`}>
+                          {/* Image Attachment (Stored in Cloudflare R2) */}
+                          {msg.attachmentUrl && (msg.messageType === 'IMAGE' || msg.messageType === 'GIF') && (
+                            <div className="mb-2 relative group overflow-hidden rounded-xl bg-slate-100 dark:bg-slate-950">
+                              <img
+                                src={normalizeMediaUrl(msg.attachmentUrl)}
+                                alt="Attachment"
+                                className="max-h-60 sm:max-h-72 w-auto object-cover rounded-xl cursor-pointer hover:opacity-95 transition-opacity"
+                                onClick={() => setPreviewLightboxUrl(normalizeMediaUrl(msg.attachmentUrl))}
+                              />
+                              <div className="absolute bottom-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 rounded-lg p-1 text-white">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setPreviewLightboxUrl(normalizeMediaUrl(msg.attachmentUrl));
+                                  }}
+                                  title="Phóng to"
+                                  className="p-1 hover:bg-white/20 rounded"
+                                >
+                                  <Maximize2 className="w-3.5 h-3.5" />
+                                </button>
+                                <a
+                                  href={normalizeMediaUrl(msg.attachmentUrl)}
+                                  download
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  title="Tải về"
+                                  className="p-1 hover:bg-white/20 rounded"
+                                >
+                                  <Download className="w-3.5 h-3.5" />
+                                </a>
+                              </div>
+                            </div>
+                          )}
 
-                      <div className={`flex items-center gap-1.5 px-1 text-[10px] text-slate-400 ${msg.isYou ? 'justify-end' : 'justify-start'}`}>
-                        <span>{formatTime(msg.time)}</span>
-                        {msg.isYou && msg.status && (
-                          <span className="flex items-center text-blue-500">
-                            {msg.status === 'read' ? (
-                              <CheckCheck className="w-3.5 h-3.5" />
-                            ) : (
-                              <Check className="w-3.5 h-3.5" />
-                            )}
-                          </span>
-                        )}
-                        {/* Delete Message Action (3.11.6) */}
-                        {msg.isYou && (
-                          <button
-                            id={`btn-delete-msg-${msg.id}`}
-                            type="button"
-                            onClick={() => setConfirmDeleteMsgId(msg.id)}
-                            title={t('messages.deleteMessage', 'Delete message')}
-                            className="text-slate-400 hover:text-red-500 transition-colors ml-1"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                        )}
+                          {/* Message Body Text */}
+                          {msg.text && (
+                            <p className="whitespace-pre-wrap break-words">{msg.text}</p>
+                          )}
+                        </div>
+
+                        {/* Meta & Delete Action */}
+                        <div className={`flex items-center gap-1 text-[10px] text-slate-400 ${msg.isYou ? 'justify-end' : 'justify-start'}`}>
+                          <span>{formatTime(msg.time)}</span>
+                          {msg.isYou && (
+                            <span>
+                              {msg.status === 'read' ? (
+                                <CheckCheck className="w-3 h-3 text-[#0076D1] dark:text-blue-400 inline" />
+                              ) : (
+                                <Check className="w-3 h-3 inline" />
+                              )}
+                            </span>
+                          )}
+                          {msg.isYou && (
+                            <button
+                              id={`btn-delete-msg-${msg.id}`}
+                              type="button"
+                              onClick={() => setConfirmDeleteMsgId(msg.id)}
+                              title={t('messages.deleteMessage', 'Xóa tin nhắn')}
+                              className="text-slate-400 hover:text-red-500 transition-colors ml-1 cursor-pointer"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
                 <div ref={messagesEndRef} />
               </div>
 
               {/* Suggestions Quick Chips */}
-              <div className="px-5 py-2 bg-white border-t border-slate-200 flex items-center gap-2 overflow-x-auto scrollbar-thin scrollbar-thumb-slate-300">
+              <div className="px-4 py-2 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex items-center gap-2 overflow-x-auto scrollbar-thin scrollbar-thumb-slate-300">
                 <span className="font-mono text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0">
-                  {t('messages.suggestions', 'SUGGESTIONS:')}
+                  {t('messages.suggestions', 'GỢI Ý:')}
                 </span>
                 {[
-                  "Hi! Could we review the SEP490 Docker Compose & CI/CD pipeline?",
-                  "Could you share the PRN231 Clean Architecture reference kit?",
-                  "Thanks a lot for the detailed troubleshooting guide!",
+                  "Chào bạn! Cho mình hỏi về bài tập lớn môn này với.",
+                  "Bạn có tài liệu ôn thi môn này không, chia sẻ cho mình với?",
+                  "Cảm ơn bạn nhiều nhé, giải thích rất dễ hiểu!",
                 ].map((sugg) => (
                   <button
                     key={sugg}
                     type="button"
                     onClick={() => handleSendMessage(sugg)}
-                    className="px-2.5 py-1 text-xs text-slate-600 hover:text-[#0076D1] bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-200 rounded-lg transition-colors whitespace-nowrap"
+                    className="px-2.5 py-1 text-xs text-slate-600 dark:text-slate-300 hover:text-[#0076D1] dark:hover:text-blue-400 bg-slate-50 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors whitespace-nowrap cursor-pointer"
                   >
                     {sugg}
                   </button>
                 ))}
               </div>
 
-              {/* Message Composer Dock (3.11.5) */}
-              <div id="message-composer" className="p-4 border-t border-slate-200 bg-white">
+              {/* Message Composer Dock */}
+              <div id="message-composer" className="p-3.5 sm:p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 relative">
+                {/* Uploading progress notification banner */}
+                {isUploadingImage && (
+                  <div className="mb-2 p-2 bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 rounded-xl flex items-center gap-2 text-xs text-[#0076D1] dark:text-blue-400 font-semibold animate-pulse">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>{t('messages.uploadingImageR2', 'Đang tải ảnh lên Cloudflare R2...')}</span>
+                  </div>
+                )}
+
+                {/* GIF Picker Popover */}
+                {showGifPicker && (
+                  <div className="absolute bottom-20 left-4 z-40 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 p-3 w-80 sm:w-96 animate-in slide-in-from-bottom-2">
+                    <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-700 mb-2">
+                      <div className="flex items-center gap-1.5 font-bold text-xs text-slate-800 dark:text-slate-100">
+                        <Sparkles className="w-4 h-4 text-purple-600" />
+                        <span>{t('messages.sendGif', 'Gửi ảnh GIF')}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowGifPicker(false)}
+                        className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* GIF search */}
+                    <div className="relative mb-2">
+                      <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        placeholder={t('messages.searchGifPlaceholder', 'Tìm kiếm GIF trên Giphy...')}
+                        value={gifSearchQuery}
+                        onChange={(e) => setGifSearchQuery(e.target.value)}
+                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                      />
+                    </div>
+
+                    {/* GIF categories */}
+                    <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 scrollbar-none mb-2">
+                      {['Thịnh hành', 'Lập trình', 'Vỗ tay', 'Haha', 'Cảm ơn', 'Mèo'].map(cat => (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => setGifSearchQuery(cat === 'Thịnh hành' ? '' : cat)}
+                          className="px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-purple-50 hover:text-purple-600 dark:hover:bg-slate-600 whitespace-nowrap cursor-pointer"
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* GIF Results Grid */}
+                    <div className="grid grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1">
+                      {isLoadingGifs ? (
+                        <div className="col-span-2 py-8 text-center text-slate-400 text-xs">
+                          <Loader2 className="w-5 h-5 animate-spin mx-auto mb-1 text-purple-600" />
+                          <span>{t('common.loading', 'Đang tìm kiếm...')}</span>
+                        </div>
+                      ) : gifResults.length === 0 ? (
+                        <div className="col-span-2 py-6 text-center text-slate-400 text-xs">
+                          <span>{t('messages.noGifFound', 'Không tìm thấy GIF phù hợp')}</span>
+                        </div>
+                      ) : (
+                        gifResults.map(gif => (
+                          <div
+                            key={gif.id}
+                            onClick={() => handleSelectGif(gif.url)}
+                            className="h-24 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-900 cursor-pointer hover:scale-105 transition-transform"
+                          >
+                            <img src={gif.url} alt={gif.title} className="w-full h-full object-cover" />
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <div className="relative">
                   <textarea
                     id="message-composer-input"
                     rows={2}
                     value={inputText}
                     onChange={(e) => {
-                        setInputText(e.target.value);
-                        if (activeConv && activeConv.participantId) {
-                          send('CHAT_TYPING', { conversationId: activeConvId }, { recipientId: activeConv.participantId });
-                        }
-                      }}
+                      setInputText(e.target.value);
+                      if (activeConv && activeConv.participantId) {
+                        send('CHAT_TYPING', { conversationId: activeConvId }, { recipientId: activeConv.participantId });
+                      }
+                    }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
                         handleSendMessage();
                       }
                     }}
-                    placeholder={t('messages.composerPlaceholder', 'Type a real-time message... (Press Enter to send, Shift + Enter for new line)')}
-                    className="w-full p-3 pr-24 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#0076D1] resize-none"
+                    placeholder={t('messages.composerPlaceholder', 'Nhập tin nhắn... (Nhấn Enter để gửi, Shift + Enter để xuống dòng)')}
+                    className="w-full p-3 pr-24 pl-24 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#0076D1] resize-none text-slate-800 dark:text-slate-100 placeholder-slate-400"
                   />
+
+                  {/* Left Attachment Actions (Image & GIF) */}
+                  <div className="absolute left-3 bottom-3 flex items-center gap-1.5">
+                    {/* Send Image (R2) */}
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploadingImage}
+                      title={t('messages.sendImageTooltip', 'Gửi ảnh (Lưu trữ Cloudflare R2)')}
+                      className="p-1.5 text-slate-500 hover:text-[#0076D1] hover:bg-blue-50 dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      <ImageIcon className="w-4 h-4" />
+                    </button>
+
+                    {/* Send GIF */}
+                    <button
+                      type="button"
+                      onClick={() => setShowGifPicker(!showGifPicker)}
+                      title={t('messages.sendGifTooltip', 'Gửi ảnh GIF Giphy')}
+                      className={`px-2 py-1 text-[11px] font-black rounded-lg transition-colors cursor-pointer ${
+                        showGifPicker
+                          ? 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300'
+                          : 'text-slate-500 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-slate-700'
+                      }`}
+                    >
+                      GIF
+                    </button>
+                  </div>
+
+                  {/* Right Send Action */}
                   <div className="absolute right-3 bottom-3 flex items-center gap-2">
                     <span className="text-[10px] text-slate-400 hidden sm:inline">
-                      {t("Ctrl + Enter")}</span>
+                      {t("Ctrl + Enter")}
+                    </span>
                     <button
                       id="btn-send-message"
                       type="button"
                       onClick={() => handleSendMessage()}
                       disabled={!inputText.trim()}
-                      className="px-4 py-1.5 text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700 disabled:opacity-40 rounded-lg shadow-xs transition-colors flex items-center gap-1.5"
+                      className="px-4 py-1.5 text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700 disabled:opacity-40 rounded-lg shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
                     >
-                      <span>{t('messages.send', 'Send')}</span>
+                      <span>{t('messages.send', 'Gửi')}</span>
                       <Send className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
 
                 <div className="mt-2 flex items-center justify-between text-[11px] text-slate-400">
-                  <span>{t('messages.guidelines', 'FHub Academic Communication Guidelines apply.')}</span>
-                  <span>{t('messages.replySla', 'Replies typically within 15 minutes.')}</span>
+                  <span>{t('messages.guidelines', 'Tuân thủ Quy tắc Giao tiếp Học thuật FHub.')}</span>
+                  <span>{t('messages.replySla', 'Phản hồi tức thì qua WebSocket.')}</span>
                 </div>
               </div>
             </>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-400">
-              <MessageSquare className="w-12 h-12 mb-3 text-slate-300 stroke-1" />
-              <p className="text-sm font-semibold text-slate-600">{t('messages.selectTitle', 'Select a Conversation')}</p>
-              <p className="text-xs text-slate-400 mt-1">{t('messages.selectDesc', 'Choose a conversation from the left sidebar to start messaging.')}</p>
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-400 space-y-3">
+              <div className="w-16 h-16 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-[#0076D1] dark:text-blue-400 flex items-center justify-center">
+                <MessageSquare className="w-8 h-8" />
+              </div>
+              <h3 className="text-base font-bold text-slate-800 dark:text-slate-200">
+                {t('messages.selectTitle', 'Chọn một cuộc trò chuyện')}
+              </h3>
+              <p className="text-xs text-slate-400 max-w-sm">
+                {t('messages.selectDesc', 'Chọn người bạn học từ danh sách bên trái hoặc nhấn nút bên dưới để bắt đầu nhắn tin trao đổi.')}
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedRecipient(availablePeers[0]);
+                  setInitialMsgText('');
+                  setShowNewConvModal(true);
+                }}
+                className="mt-2 px-4 py-2 bg-[#0076D1] text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-colors shadow-xs inline-flex items-center gap-2 cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>{t('messages.newConversation', 'Bắt đầu cuộc trò chuyện mới')}</span>
+              </button>
             </div>
           )}
         </div>
       </div>
 
+      {/* ─── Lightbox Modal for Image Preview ───────────────────────────────── */}
+      {previewLightboxUrl && (
+        <div
+          onClick={() => setPreviewLightboxUrl(null)}
+          className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in cursor-zoom-out"
+        >
+          <div className="relative max-w-4xl max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={previewLightboxUrl}
+              alt="Full Preview"
+              className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl"
+            />
+            <button
+              type="button"
+              onClick={() => setPreviewLightboxUrl(null)}
+              className="absolute top-3 right-3 p-2 bg-black/60 hover:bg-black/80 text-white rounded-full transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ─── 3.11.1 Create Conversation Modal ─────────────────────────────────── */}
       {showNewConvModal && (
         <div id="modal-create-conversation" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full p-6 space-y-4 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 max-w-lg w-full p-6 space-y-4 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <div className="flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-blue-50 text-[#0076D1]">
+                <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-[#0076D1] dark:text-blue-400">
                   <MessageSquare className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-slate-900">{t("Start New Conversation")}</h3>
-                  <p className="text-xs text-slate-500">{t("Initiate a private direct messaging thread with another student or mentor")}</p>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">{t("Start New Conversation")}</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{t("Bắt đầu nhắn tin trực tiếp với bạn học hoặc mentor")}</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowNewConvModal(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg"
+                className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Recipient Search & Selector */}
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-700">{t("Select Recipient Member")}</label>
+            {/* Recipient Search & List */}
+            <div className="space-y-3">
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                {t("Select Peer / Student")}
+              </label>
+
               <div className="relative">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
-                  placeholder={t("Search by student name or code (e.g. BienHLC, CE181207)...")}
+                  placeholder={t("Tìm theo tên, MSSV (CE18..., SE14...)...")}
                   value={newRecipientSearch}
                   onChange={(e) => setNewRecipientSearch(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#0076D1]"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-8 pr-3 py-2 text-xs focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-[#0076D1] text-slate-800 dark:text-slate-100"
                 />
               </div>
 
-              {/* Recipient Cards */}
-              <div className="max-h-44 overflow-y-auto space-y-1.5 pt-1">
+              <div className="max-h-48 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl">
                 {availablePeers
-                  .filter(p => p.name.toLowerCase().includes(newRecipientSearch.toLowerCase()) || p.code.toLowerCase().includes(newRecipientSearch.toLowerCase()))
-                  .map((peer) => {
-                    const isPicked = selectedRecipient?.id === peer.id;
+                  .filter(p =>
+                    p.name.toLowerCase().includes(newRecipientSearch.toLowerCase()) ||
+                    p.code.toLowerCase().includes(newRecipientSearch.toLowerCase())
+                  )
+                  .map(peer => {
+                    const isSelected = selectedRecipient?.id === peer.id;
                     return (
                       <div
                         key={peer.id}
                         onClick={() => setSelectedRecipient(peer)}
-                        className={`p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
-                          isPicked
-                            ? 'bg-blue-50/80 border-[#0076D1] ring-1 ring-[#0076D1]'
-                            : 'bg-white border-slate-200 hover:bg-slate-50'
+                        className={`p-3 flex items-center justify-between cursor-pointer transition-colors ${
+                          isSelected ? 'bg-blue-50 dark:bg-blue-950/60' : 'hover:bg-slate-50 dark:hover:bg-slate-800/60'
                         }`}
                       >
                         <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 font-bold text-xs flex items-center justify-center border border-emerald-200">
+                          <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/60 text-[#0076D1] dark:text-blue-300 flex items-center justify-center font-bold text-xs">
                             {peer.avatar}
                           </div>
                           <div>
-                            <div className="text-xs font-bold text-slate-800">{peer.name}</div>
-                            <div className="text-[10px] text-slate-500 font-mono">{peer.code} • {peer.major}</div>
+                            <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{peer.name}</p>
+                            <p className="text-[10px] text-slate-400 font-mono">{peer.code} • {peer.role}</p>
                           </div>
                         </div>
-                        {isPicked && (
-                          <span className="w-5 h-5 rounded-full bg-[#0076D1] text-white flex items-center justify-center">
-                            <Check className="w-3 h-3 stroke-[3]" />
+                        {isSelected && (
+                          <span className="w-5 h-5 rounded-full bg-[#0076D1] text-white flex items-center justify-center text-xs">
+                            <Check className="w-3 h-3" />
                           </span>
                         )}
                       </div>
@@ -813,201 +1268,198 @@ export const DirectMessagesPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Optional Initial Message Field */}
+            {/* Initial Message Input */}
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700">{t("Initial Message (Optional)")}</label>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                {t("Tin nhắn mở đầu (Tùy chọn)")}
+              </label>
               <textarea
-                rows={3}
+                rows={2}
                 value={initialMsgText}
                 onChange={(e) => setInitialMsgText(e.target.value)}
-                placeholder={t("Introduce yourself or describe the academic topic you'd like to discuss...")}
-                className="w-full p-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#0076D1] resize-none"
+                placeholder={t("Nhập lời chào hoặc nội dung câu hỏi...")}
+                className="w-full p-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-[#0076D1] text-slate-800 dark:text-slate-100 resize-none"
               />
             </div>
 
             {/* Modal Actions */}
-            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
               <button
                 type="button"
                 onClick={() => setShowNewConvModal(false)}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+                className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
               >
-                {t("Cancel")}</button>
+                {t("common.cancel", "Hủy")}
+              </button>
               <button
-                id="btn-confirm-start-conversation"
                 type="button"
                 onClick={handleStartNewConversation}
                 disabled={!selectedRecipient}
-                className="px-5 py-2 text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700 disabled:opacity-40 rounded-xl transition-colors shadow-xs"
+                className="px-4 py-2 text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700 disabled:opacity-50 rounded-xl transition-colors shadow-xs cursor-pointer"
               >
-                {t("Start Conversation")}</button>
+                {t("Start Direct Message")}
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ─── 3.11.6 Delete Message Confirmation Dialog ────────────────────────── */}
-      {confirmDeleteMsgId && (
-        <div id="modal-delete-message" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full p-6 space-y-4 animate-in fade-in">
-            <div className="flex items-center gap-3 text-red-600">
-              <div className="p-2.5 rounded-xl bg-red-50">
-                <Trash2 className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-slate-900">{t("Delete Message")}</h3>
-                <p className="text-xs text-slate-500">{t("Permanently remove this message")}</p>
-              </div>
-            </div>
-
-            <p className="text-xs text-slate-600 leading-relaxed">
-              {t("Are you sure you want to delete this message? This message will be permanently removed for all participants in this conversation.")}</p>
-
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setConfirmDeleteMsgId(null)}
-                className="px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
-              >
-                {t("Cancel")}</button>
-              <button
-                id="btn-confirm-delete-msg"
-                type="button"
-                onClick={executeDeleteMessage}
-                className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors shadow-xs"
-              >
-                {t("Delete Message")}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ─── 3.11.8 Block User Confirmation Modal ─────────────────────────────── */}
-      {confirmBlockConv && (
-        <div id="modal-block-user" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full p-6 space-y-4 animate-in fade-in">
-            <div className="flex items-center gap-3 text-red-600">
-              <div className="p-2.5 rounded-xl bg-red-50">
-                <Ban className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-slate-900">{t("Block User")}</h3>
-                <p className="text-xs text-slate-500">{confirmBlockConv.name}</p>
-              </div>
-            </div>
-
-            <div className="p-3 bg-red-50/50 border border-red-100 rounded-xl space-y-1">
-              <p className="text-xs font-semibold text-red-700">{t("Direct Messages Will Be Restricted")}</p>
-              <p className="text-[11px] text-red-600 leading-relaxed">
-                {t("When you block this user, they will no longer be able to initiate new conversations, send you real-time direct messages, or see your online status.")}</p>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setConfirmBlockConv(null)}
-                className="px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
-              >
-                {t("Cancel")}</button>
-              <button
-                id="btn-confirm-block-user"
-                type="button"
-                onClick={executeBlockUser}
-                className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors shadow-xs"
-              >
-                {t("Block User")}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ─── 3.11.7 & 3.11.9 Blocked Users List Modal & Unblock ─────────────────── */}
+      {/* ─── 3.11.7 Blocked Users Modal ────────────────────────────────────────── */}
       {showBlockedModal && (
-        <div id="modal-blocked-users-list" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 space-y-4 animate-in fade-in">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <Ban className="w-4 h-4 text-red-500" />
-                <span>{t('messages.blockedPeers', 'Blocked Users List')} ({blockedList.length})</span>
-              </h3>
+        <div id="modal-blocked-users" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 max-w-lg w-full p-6 space-y-4 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-xl bg-red-50 dark:bg-red-950/60 text-red-600">
+                  <Ban className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">{t('messages.blockedUsers', 'Danh sách đã chặn')}</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{t("Những người dùng này không thể gửi tin nhắn cho bạn")}</p>
+                </div>
+              </div>
               <button
                 type="button"
                 onClick={() => setShowBlockedModal(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg"
+                className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <p className="text-xs text-slate-500 leading-relaxed">
-              {t('messages.blockedPeersDesc', 'Blocked peers cannot view your online presence or message you directly. You can unblock them at any time.')}
-            </p>
-
-            <div className="divide-y divide-slate-100 max-h-64 overflow-y-auto">
+            <div className="max-h-64 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
               {blockedList.length === 0 ? (
-                <div className="py-6 text-center text-xs text-slate-400">
-                  {t("No blocked users on record.")}</div>
+                <div className="p-8 text-center text-slate-400">
+                  <UserCheck className="w-8 h-8 mx-auto mb-2 opacity-30 text-emerald-600" />
+                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">{t("Không có người dùng nào bị chặn")}</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">{t("Danh sách chặn của bạn hiện đang trống.")}</p>
+                </div>
               ) : (
-                blockedList.map((u) => (
-                  <div key={u.blockId} className="py-3 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg bg-red-50 text-red-600 font-bold text-xs flex items-center justify-center border border-red-100">
-                        {u.studentCode.slice(0, 2)}
-                      </div>
-                      <div>
-                        <h4 className="text-xs font-bold text-slate-800">{u.name}</h4>
-                        <p className="text-[10px] text-slate-400 font-mono">{u.studentCode} • {t(u.reason)}</p>
-                      </div>
+                blockedList.map(item => (
+                  <div key={item.blockId} className="p-3 flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{item.name}</p>
+                      <p className="text-[10px] text-slate-400">{item.studentCode} • {item.reason}</p>
                     </div>
-                    {/* Unblock User Action (3.11.9) */}
                     <button
-                      id={`btn-unblock-user-${u.blockId}`}
                       type="button"
-                      onClick={() => setConfirmUnblockItem(u)}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors"
+                      onClick={() => setConfirmUnblockItem(item)}
+                      className="px-3 py-1.5 text-xs font-semibold text-[#0076D1] dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/60 rounded-lg transition-colors cursor-pointer"
                     >
-                      <Unlock className="w-3.5 h-3.5" />
-                      <span>{t('messages.unblock', 'Unblock')}</span>
+                      {t("Bỏ chặn")}
                     </button>
                   </div>
                 ))
               )}
             </div>
+
+            <div className="flex justify-end pt-2 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setShowBlockedModal(false)}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+              >
+                {t("common.close", "Đóng")}
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* ─── 3.11.9 Unblock User Confirmation Modal ────────────────────────────── */}
+      {/* Confirmation Modal: Delete Message */}
+      {confirmDeleteMsgId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 max-w-sm w-full p-5 space-y-4 animate-in fade-in zoom-in-95">
+            <div className="flex items-center gap-3 text-rose-600">
+              <div className="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/60">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{t("Xác nhận xóa tin nhắn?")}</h3>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              {t("Tin nhắn này sẽ bị xóa khỏi cuộc trò chuyện của cả hai bên và không thể phục hồi.")}
+            </p>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setConfirmDeleteMsgId(null)}
+                className="px-3.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer"
+              >
+                {t("common.cancel", "Hủy")}
+              </button>
+              <button
+                type="button"
+                onClick={executeDeleteMessage}
+                className="px-3.5 py-1.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors shadow-2xs cursor-pointer"
+              >
+                {t("Xóa tin nhắn")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal: Block User */}
+      {confirmBlockConv && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 max-w-sm w-full p-5 space-y-4 animate-in fade-in zoom-in-95">
+            <div className="flex items-center gap-3 text-red-600">
+              <div className="p-2 rounded-xl bg-red-50 dark:bg-red-950/60">
+                <Ban className="w-5 h-5" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{t("Chặn người dùng này?")}</h3>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              {t("Bạn sẽ không nhận được tin nhắn trực tiếp từ")} <strong>{confirmBlockConv.name}</strong> {t("nữa. Bạn có thể bỏ chặn bất kỳ lúc nào.")}
+            </p>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setConfirmBlockConv(null)}
+                className="px-3.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer"
+              >
+                {t("common.cancel", "Hủy")}
+              </button>
+              <button
+                type="button"
+                onClick={executeBlockUser}
+                className="px-3.5 py-1.5 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors shadow-2xs cursor-pointer"
+              >
+                {t("Chặn")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal: Unblock User */}
       {confirmUnblockItem && (
-        <div id="modal-unblock-confirm" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full p-6 space-y-4 animate-in fade-in">
-            <div className="flex items-center gap-3 text-emerald-600">
-              <div className="p-2.5 rounded-xl bg-emerald-50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 max-w-sm w-full p-5 space-y-4 animate-in fade-in zoom-in-95">
+            <div className="flex items-center gap-3 text-[#0076D1]">
+              <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/60">
                 <Unlock className="w-5 h-5" />
               </div>
-              <div>
-                <h3 className="text-sm font-bold text-slate-900">{t("Unblock User")}</h3>
-                <p className="text-xs text-slate-500">{confirmUnblockItem.name}</p>
-              </div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{t("Bỏ chặn người dùng?")}</h3>
             </div>
-
-            <p className="text-xs text-slate-600 leading-relaxed">
-              {t("Are you sure you want to unblock")} <strong>{confirmUnblockItem.name}</strong>{t("? They will be able to initiate direct messages and view your presence again.")}</p>
-
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              {t("Sau khi bỏ chặn, bạn và")} <strong>{confirmUnblockItem.name}</strong> {t("có thể gửi tin nhắn cho nhau bình thường.")}
+            </p>
+            <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 type="button"
                 onClick={() => setConfirmUnblockItem(null)}
-                className="px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+                className="px-3.5 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer"
               >
-                {t("Cancel")}</button>
+                {t("common.cancel", "Hủy")}
+              </button>
               <button
-                id="btn-confirm-unblock-action"
                 type="button"
                 onClick={executeUnblockUser}
-                className="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-colors shadow-xs"
+                className="px-3.5 py-1.5 text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700 rounded-xl transition-colors shadow-2xs cursor-pointer"
               >
-                {t("Confirm Unblock")}</button>
+                {t("Xác nhận bỏ chặn")}
+              </button>
             </div>
           </div>
         </div>

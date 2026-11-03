@@ -32,7 +32,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { questionApi, alumniApi } from '../../services/api/contentApi';
-import { voteApi, bookmarkApi, profileApi } from '../../services/api/studentApi';
+import { voteApi, bookmarkApi, profileApi, notificationApi } from '../../services/api/studentApi';
 import { courseNodesApi, semanticTagsApi } from '../../services/api/adminApi';
 import { normalizeMediaUrl } from '../../utils/mediaUtils';
 import { Answer, CommentItem, QuestionPost } from '../../types';
@@ -406,6 +406,19 @@ export const QuestionDetailPage: React.FC = () => {
       const stats = await voteApi.getStats('QUESTION', numId);
       setUpvotes(stats.score);
       setUserVote(stats.myVoteValue === 1 ? 'UP' : stats.myVoteValue === -1 ? 'DOWN' : null);
+
+      if (type === 'UP' && question?.author?.id && String(question.author.id) !== String(currentUser?.id)) {
+        const senderName = currentUser?.fullName || (currentUser as any)?.displayName || t('common.peerStudent', 'Một bạn học');
+        notificationApi.createNotification({
+          recipientUserId: Number(question.author.id),
+          type: 'UPVOTE',
+          title: `${senderName} đã thích câu hỏi của bạn`,
+          message: `"${question.title?.slice(0, 80)}..."`,
+          actionUrl: `/questions/${id}`,
+          targetType: 'QUESTION',
+          targetId: numId,
+        });
+      }
     } catch (err) {
       setUserVote(prevVote);
       setUpvotes(prevScore);
@@ -479,6 +492,19 @@ export const QuestionDetailPage: React.FC = () => {
             : a
         )
       );
+
+      if (type === 'UP' && currentAns?.author?.id && String(currentAns.author.id) !== String(currentUser?.id)) {
+        const senderName = currentUser?.fullName || (currentUser as any)?.displayName || t('common.peerStudent', 'Một bạn học');
+        notificationApi.createNotification({
+          recipientUserId: Number(currentAns.author.id),
+          type: 'UPVOTE',
+          title: `${senderName} đã thích câu trả lời của bạn`,
+          message: `"${currentAns.content?.slice(0, 80)}..."`,
+          actionUrl: `/questions/${id}#${ansId}`,
+          targetType: 'ANSWER',
+          targetId: numAnsId,
+        });
+      }
     } catch (err) {
       setAnswers((prev) =>
         prev.map((a) => (a.id === ansId ? { ...a, userVote: prevVote, upvotes: prevScore } : a))
@@ -595,6 +621,19 @@ export const QuestionDetailPage: React.FC = () => {
 
     setAnswers([...answers, newAns]);
     setNewAnswerContent('');
+
+    if (question?.author?.id && String(question.author.id) !== String(currentUser?.id)) {
+      const senderName = currentUser?.fullName || (currentUser as any)?.displayName || t('common.peerStudent', 'Một bạn học');
+      notificationApi.createNotification({
+        recipientUserId: Number(question.author.id),
+        type: 'ANSWER',
+        title: `${senderName} đã trả lời câu hỏi của bạn`,
+        message: `"${question.title?.slice(0, 80)}..."`,
+        actionUrl: `/questions/${id}`,
+        targetType: 'QUESTION',
+        targetId: numQId,
+      });
+    }
   };
 
   const handleAddComment = async (ansId: string) => {
@@ -627,6 +666,20 @@ export const QuestionDetailPage: React.FC = () => {
       prev.map((a) => (a.id === ansId ? { ...a, comments: [...a.comments, newComment] } : a))
     );
     setCommentInputs({ ...commentInputs, [ansId]: '' });
+
+    const targetAns = answers.find(a => a.id === ansId);
+    if (targetAns?.author?.id && String(targetAns.author.id) !== String(currentUser?.id)) {
+      const senderName = currentUser?.fullName || (currentUser as any)?.displayName || t('common.peerStudent', 'Một bạn học');
+      notificationApi.createNotification({
+        recipientUserId: Number(targetAns.author.id),
+        type: 'COMMENT',
+        title: `${senderName} đã bình luận vào câu trả lời của bạn`,
+        message: `"${text.slice(0, 80)}..."`,
+        actionUrl: `/questions/${id}#${ansId}`,
+        targetType: 'ANSWER',
+        targetId: numAnsId,
+      });
+    }
   };
 
   const copySnippet = (codeText: string) => {

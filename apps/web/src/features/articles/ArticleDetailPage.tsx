@@ -29,7 +29,7 @@ import { Button } from '../../components/common/Button';
 import { Textarea } from '../../components/common/Input';
 import { MarkdownPreview } from '../../components/common/MarkdownPreview';
 import { articleApi } from '../../services/api/contentApi';
-import { voteApi, bookmarkApi } from '../../services/api/studentApi';
+import { voteApi, bookmarkApi, notificationApi } from '../../services/api/studentApi';
 import { normalizeMediaUrl } from '../../utils/mediaUtils';
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 import {
@@ -75,6 +75,7 @@ export const ArticleDetailPage: React.FC = () => {
             likesCount: 0,
             category,
             tags,
+            authorUserId: data.authorUserId,
             author: {
               fullName: data.authorStaffId
                 ? 'FPT Faculty Staff'
@@ -149,6 +150,19 @@ export const ArticleDetailPage: React.FC = () => {
       const stats = await voteApi.getStats('ARTICLE', numId);
       setLikesCount(stats.score);
       setIsLiked(stats.myVoteValue === 1);
+
+      if (!prevLiked && article?.authorUserId && String(article.authorUserId) !== String(currentUser?.id)) {
+        const senderName = currentUser?.fullName || (currentUser as any)?.displayName || t('common.peerStudent', 'Một bạn học');
+        notificationApi.createNotification({
+          recipientUserId: Number(article.authorUserId),
+          type: 'UPVOTE',
+          title: `${senderName} đã thích bài viết của bạn`,
+          message: `"${article.title?.slice(0, 80)}..."`,
+          actionUrl: `/articles/${id}`,
+          targetType: 'ARTICLE',
+          targetId: numId,
+        });
+      }
     } catch (err) {
       setIsLiked(prevLiked);
       setLikesCount(prevCount);
@@ -189,16 +203,30 @@ export const ArticleDetailPage: React.FC = () => {
   const handleAddComment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!commentText.trim()) return;
+    const authorName = currentUser?.fullName || (currentUser as any)?.displayName || 'Bạn (Sinh viên FHub)';
+    const textToSend = commentText;
     setComments([
       ...comments,
       {
         id: `cmt-${Date.now()}`,
-        author: { fullName: 'Bạn (Sinh viên FHub)', avatarUrl: '', campus: 'FU' },
-        content: commentText,
-        createdAt: 'Vừa xong',
+        author: { fullName: authorName, avatarUrl: currentUser?.avatarUrl || '', campus: currentUser?.campus || 'FU' },
+        content: textToSend,
+        createdAt: t('common.justNow', 'Vừa xong'),
       },
     ]);
     setCommentText('');
+
+    if (article?.authorUserId && String(article.authorUserId) !== String(currentUser?.id)) {
+      notificationApi.createNotification({
+        recipientUserId: Number(article.authorUserId),
+        type: 'COMMENT',
+        title: `${authorName} đã bình luận bài viết của bạn`,
+        message: `"${textToSend.slice(0, 80)}..."`,
+        actionUrl: `/articles/${id}`,
+        targetType: 'ARTICLE',
+        targetId: Number(id?.replace(/\D/g, '') || 0),
+      });
+    }
   };
 
   const tocItems = [

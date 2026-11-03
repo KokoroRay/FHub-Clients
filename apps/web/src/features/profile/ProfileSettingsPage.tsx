@@ -13,8 +13,12 @@ import {
   BookOpen,
   Sun,
   Moon,
-  Globe
+  Globe,
+  Volume2,
+  VolumeX,
+  Play
 } from 'lucide-react';
+import { useRealtime } from '../../context/RealtimeContext';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage, SupportedLanguage } from '../../context/LanguageContext';
 import { useTheme, AppTheme } from '../../context/ThemeContext';
@@ -26,6 +30,7 @@ export const ProfileSettingsPage: React.FC = () => {
   const { currentUser } = useAuth();
   const { language, setLanguage, t } = useLanguage();
   const { theme, setTheme } = useTheme();
+  const { isSoundEnabled, setIsSoundEnabled, soundType, setSoundType, playNotificationSound } = useRealtime();
 
   // Feed & Interface Preferences
   const [defaultFeed, setDefaultFeed] = useState<'global' | 'courses' | 'workflows'>('global');
@@ -390,6 +395,81 @@ export const ProfileSettingsPage: React.FC = () => {
                   className="w-4 h-4 rounded text-[#0076D1] focus:ring-blue-200 border-slate-300 dark:border-slate-600 cursor-pointer"
                 />
               </label>
+
+              {/* Sound notification toggle & sound selector */}
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-3">
+                <label className="flex items-center justify-between cursor-pointer group">
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <Volume2 className="w-3.5 h-3.5 text-[#0076D1]" />
+                      <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 group-hover:text-[#0076D1] transition-colors">
+                        {t('settings.soundNotifications', 'Âm thanh thông báo tin nhắn')}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      {t('settings.soundNotificationsDesc', 'Phát chuông thông báo khi có người nhắn tin hoặc nhận thông báo mới.')}
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={isSoundEnabled}
+                    onChange={(e) => {
+                      const val = e.target.checked;
+                      setIsSoundEnabled(val);
+                      if (val) playNotificationSound(soundType);
+                    }}
+                    className="w-4 h-4 rounded text-[#0076D1] focus:ring-blue-200 border-slate-300 dark:border-slate-600 cursor-pointer"
+                  />
+                </label>
+
+                {isSoundEnabled && (
+                  <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200/80 dark:border-slate-700 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-medium text-slate-600 dark:text-slate-300">
+                        {t('settings.soundType', 'Kiểu âm thanh thông báo:')}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => playNotificationSound(soundType)}
+                        className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-[#0076D1] bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded border border-blue-200 dark:border-blue-800 transition-colors shadow-xs"
+                      >
+                        <Play className="w-3 h-3 fill-current" />
+                        {t('settings.testSound', 'Nghe thử')}
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {[
+                        { id: 'messenger', label: 'Facebook Messenger', desc: 'Pop / Ting nhẹ nhàng' },
+                        { id: 'discord', label: 'Discord', desc: 'Message Ping hài hòa' },
+                        { id: 'classic', label: 'FHub Classic', desc: 'Chuông Chime thanh thoát' },
+                      ].map((item) => (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => {
+                            setSoundType(item.id as any);
+                            playNotificationSound(item.id as any);
+                          }}
+                          className={`p-2.5 rounded-lg text-left border transition-all text-xs cursor-pointer ${
+                            soundType === item.id
+                              ? 'border-[#0076D1] bg-white dark:bg-slate-800 shadow-xs font-semibold text-[#0076D1] ring-1 ring-[#0076D1]'
+                              : 'border-slate-200 dark:border-slate-700 bg-white/70 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 hover:border-slate-300'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold">{item.label}</span>
+                            {soundType === item.id && (
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#0076D1]" />
+                            )}
+                          </div>
+                          <div className="text-[10px] text-slate-400 font-normal mt-0.5">{item.desc}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
 
               <label className="flex items-start justify-between cursor-pointer group pt-3 border-t border-slate-100 dark:border-slate-800">
                 <div className="pr-4">

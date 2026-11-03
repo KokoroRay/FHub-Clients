@@ -106,6 +106,32 @@ export const notificationApi = {
   deleteNotification: async (id: number | string): Promise<void> => {
     await apiClient.delete(`/api/communication/notifications/${id}`);
   },
+
+  createNotification: async (payload: {
+    recipientUserId: number | string;
+    type: string;
+    title: string;
+    message: string;
+    actionUrl?: string;
+    targetType?: string;
+    targetId?: number | string;
+  }): Promise<any> => {
+    try {
+      const res = await apiClient.post('/api/communication/notifications', {
+        recipient_user_id: Number(payload.recipientUserId),
+        type: payload.type,
+        title: payload.title,
+        message: payload.message,
+        action_url: payload.actionUrl,
+        target_type: payload.targetType,
+        target_id: payload.targetId ? Number(payload.targetId) : undefined,
+      });
+      return res.data;
+    } catch (err) {
+      console.warn('Failed to dispatch notification:', err);
+      return null;
+    }
+  },
 };
 
 // ─── 2.5 Broadcast Campaigns API (Go Communication Service) ───────────────────
@@ -568,6 +594,8 @@ export interface DirectMessageDto {
   senderId: string | number;
   senderName: string;
   content: string;
+  messageType?: string;
+  attachmentUrl?: string;
   createdAt: string;
   status?: string;
 }
@@ -609,6 +637,8 @@ export const directMessageApi = {
         senderId: m.senderId ?? m.sender_account_id,
         senderName: m.senderName ?? (m.is_mine ? 'Bạn' : 'Thành viên FHub'),
         content: m.content ?? m.body ?? '',
+        messageType: m.message_type ?? m.messageType ?? 'TEXT',
+        attachmentUrl: m.attachment_url ?? m.attachmentUrl,
         createdAt: m.createdAt ?? m.sent_at ?? '',
         status: m.status ?? 'read',
       }));
@@ -617,10 +647,20 @@ export const directMessageApi = {
     }
   },
 
-  sendMessage: async (conversationId: string | number, content: string): Promise<DirectMessageDto> => {
+  sendMessage: async (
+    conversationId: string | number,
+    payload: string | { body?: string; messageType?: string; attachmentUrl?: string }
+  ): Promise<DirectMessageDto> => {
+    const isObj = typeof payload === 'object' && payload !== null;
+    const bodyText = isObj ? (payload.body || '') : payload;
+    const msgType = isObj ? (payload.messageType || 'TEXT') : 'TEXT';
+    const attachUrl = isObj ? payload.attachmentUrl : undefined;
+
     const res = await apiClient.post<any>(`/api/communication/conversations/${conversationId}/messages`, {
-      content,
-      body: content,
+      message_type: msgType,
+      body: bodyText,
+      attachment_url: attachUrl,
+      content: bodyText,
     });
     const d = res.data?.data || res.data;
     return {
@@ -628,7 +668,9 @@ export const directMessageApi = {
       conversationId,
       senderId: d?.sender_account_id || d?.senderId || 1,
       senderName: 'Bạn',
-      content,
+      content: bodyText,
+      messageType: msgType,
+      attachmentUrl: attachUrl,
       createdAt: new Date().toISOString(),
       status: 'sent',
     };
