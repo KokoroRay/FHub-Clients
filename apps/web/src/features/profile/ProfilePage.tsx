@@ -205,10 +205,53 @@ export const ProfilePage: React.FC = () => {
           const foundId = Number(matched.userId || matched.id);
           if (foundId > 0) {
             setTargetUserId(foundId);
+            return;
           }
+        }
+
+        // Fallback: Check if profile-service can resolve by student code or ID
+        try {
+          const prof = await profileApi.getProfile(id);
+          if (prof && (prof.userId || prof.id)) {
+            setTargetUserId(Number(prof.userId || prof.id));
+            return;
+          }
+        } catch (_) {}
+
+        // Fallback: Check if the string has a trailing numeric user ID (e.g., legacy CE1801215 -> 15)
+        const trailingNumMatch = String(id).match(/(?:12|CE|SE)(\d+)$/i);
+        if (trailingNumMatch) {
+          const candId = Number(trailingNumMatch[1]);
+          if (candId > 0) {
+            try {
+              const uRes = await apiClient.get<any>(`/api/users/${candId}`);
+              const u = uRes.data?.data || uRes.data;
+              if (u) {
+                setTargetUserId(candId);
+                const sCode = u.studentCode || extractStudentIdFromEmail(u.email);
+                if (sCode) navigate(`/profile/${sCode}`, { replace: true });
+                return;
+              }
+            } catch (_) {}
+          }
+        }
+
+        if (isMounted) {
+          setProfileData(prev => ({
+            ...prev,
+            fullName: t('Không tìm thấy người dùng'),
+            bio: t('Người dùng không tồn tại hoặc đã bị gỡ bỏ khỏi hệ thống.'),
+          }));
         }
       } catch (err) {
         console.warn('Could not resolve user by student code:', err);
+        if (isMounted) {
+          setProfileData(prev => ({
+            ...prev,
+            fullName: t('Không tìm thấy người dùng'),
+            bio: t('Người dùng không tồn tại hoặc đã bị gỡ bỏ khỏi hệ thống.'),
+          }));
+        }
       }
     };
     resolveByStudentCode();

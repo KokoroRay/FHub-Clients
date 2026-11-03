@@ -36,6 +36,7 @@ import { directMessageApi, profileApi } from '../../services/api/studentApi';
 import { userManagementApi } from '../../services/api/adminApi';
 import { contentMediaApi } from '../../services/api/contentApi';
 import { validateImage, normalizeMediaUrl } from '../../utils/mediaUtils';
+import { extractStudentIdFromEmail } from '../../utils/fptEmailValidator';
 
 interface Message {
   id: string;
@@ -167,7 +168,7 @@ export const DirectMessagesPage: React.FC = () => {
             avatarUrl: c.participantAvatar || undefined,
             initials,
             initialsBg: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border-emerald-800',
-            studentId: c.participantCode || `SE-${c.participantId}`,
+            studentId: c.participantCode || '',
             courseTag: c.courseTag || 'FHub',
             role: c.role || t("Thành viên FHub"),
             statusText: t("Hoạt động"),
@@ -198,12 +199,12 @@ export const DirectMessagesPage: React.FC = () => {
                 if (u) {
                   avatar = avatar || u.avatarUrl;
                   fullName = fullName || u.fullName;
-                  studentCode = studentCode || u.studentCode;
+                  studentCode = studentCode || u.studentCode || extractStudentIdFromEmail(u.email);
                 }
               } catch (_) {}
             }
 
-            if (prof || avatar || fullName) {
+            if (prof || avatar || fullName || studentCode) {
               setConversations(prev => prev.map(item => {
                 if (item.participantId === String(c.participantId)) {
                   const finalName = fullName || item.name;
@@ -255,11 +256,11 @@ export const DirectMessagesPage: React.FC = () => {
       if (data && data.length > 0) {
         const mapped: BlockedItem[] = data.map((b: any) => ({
           blockId: b.user_block_id || b.userBlockId || b.id || 1,
-          userId: b.blocked_user_id || b.blocked_account_id || 10,
-          name: b.name || `Phu THG (CE182003)`,
-          studentCode: b.student_code || 'CE182003',
-          reason: b.reason || 'Chặn tin nhắn trực tiếp',
-          blockedAt: b.created_at ? b.created_at : 'Hôm qua',
+          userId: b.blocked_user_id || b.blocked_account_id || 0,
+          name: b.name || t("Người dùng #{p0}", undefined, { p0: b.blocked_user_id || b.id || '' }),
+          studentCode: b.student_code || b.studentCode || '',
+          reason: b.reason || t('Chặn tin nhắn trực tiếp'),
+          blockedAt: b.created_at ? b.created_at : '',
         }));
         setBlockedList(mapped);
       } else {
@@ -344,6 +345,55 @@ export const DirectMessagesPage: React.FC = () => {
   const sharedFiles = activeMessages.filter(
     m => !m.isRecalled && m.attachmentUrl && !sharedImages.some(img => img.id === m.id)
   );
+
+  // Fetch GIFs from GIPHY in real-time (Trending or Search like Messenger)
+  useEffect(() => {
+    if (!showGifPicker) return;
+    let isCancelled = false;
+    const GIPHY_KEY = 'sXpGFDGZs0Dv1mmNFvYaGUvYwKX0PWIh';
+    setIsLoadingGifs(true);
+
+    const timer = setTimeout(async () => {
+      try {
+        const query = gifSearchQuery.trim();
+        const url = query
+          ? `https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_KEY}&q=${encodeURIComponent(query)}&limit=28&rating=g`
+          : `https://api.giphy.com/v1/gifs/trending?api_key=${GIPHY_KEY}&limit=28&rating=g`;
+        const res = await fetch(url);
+        const data = await res.json();
+        if (!isCancelled && data && Array.isArray(data.data) && data.data.length > 0) {
+          const items = data.data.map((g: any) => ({
+            id: g.id,
+            title: g.title || 'GIF',
+            url: g.images?.fixed_height?.url || g.images?.downsized?.url || g.images?.original?.url,
+          }));
+          setGifResults(items);
+        } else if (!isCancelled && query) {
+          const q = query.toLowerCase();
+          const localFiltered = ALL_GIFS.filter(g => g.title.toLowerCase().includes(q) || g.tags.some(t => t.includes(q)));
+          setGifResults(localFiltered);
+        } else if (!isCancelled) {
+          setGifResults(ALL_GIFS);
+        }
+      } catch (err) {
+        if (!isCancelled) {
+          const q = gifSearchQuery.trim().toLowerCase();
+          if (q) {
+            setGifResults(ALL_GIFS.filter(g => g.title.toLowerCase().includes(q) || g.tags.some(t => t.includes(q))));
+          } else {
+            setGifResults(ALL_GIFS);
+          }
+        }
+      } finally {
+        if (!isCancelled) setIsLoadingGifs(false);
+      }
+    }, 250);
+
+    return () => {
+      isCancelled = true;
+      clearTimeout(timer);
+    };
+  }, [gifSearchQuery, showGifPicker]);
 
   // Auto-scroll to latest message
   useEffect(() => {
@@ -981,7 +1031,7 @@ export const DirectMessagesPage: React.FC = () => {
 
                   {/* Clickable Avatar to View Profile with MSSV */}
                   <Link
-                    to={`/profile/${activeConv.studentId || activeConv.participantId}`}
+                    to={activeConv.studentId && !activeConv.studentId.startsWith('SE-') ? `/profile/${activeConv.studentId}` : `/profile/${activeConv.participantId}`}
                     title={t('Xem trang cá nhân của {p0}', undefined, { p0: activeConv.name })}
                     className="relative shrink-0 group"
                   >
@@ -1004,16 +1054,18 @@ export const DirectMessagesPage: React.FC = () => {
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <Link
-                        to={`/profile/${activeConv.studentId || activeConv.participantId}`}
+                        to={activeConv.studentId && !activeConv.studentId.startsWith('SE-') ? `/profile/${activeConv.studentId}` : `/profile/${activeConv.participantId}`}
                         title={t('Xem trang cá nhân')}
                         className="text-sm font-bold text-slate-800 dark:text-slate-100 hover:text-[#0076D1] dark:hover:text-blue-400 transition-colors truncate flex items-center gap-1 group"
                       >
                         <span>{activeConv.name}</span>
                         <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400" />
                       </Link>
-                      <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-semibold bg-blue-50 dark:bg-blue-950/60 text-[#0076D1] dark:text-blue-400 border border-blue-100 dark:border-blue-900">
-                        {activeConv.studentId || activeConv.courseTag}
-                      </span>
+                      {activeConv.studentId && !activeConv.studentId.startsWith('SE-') && (
+                        <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-semibold bg-blue-50 dark:bg-blue-950/60 text-[#0076D1] dark:text-blue-400 border border-blue-100 dark:border-blue-900">
+                          {activeConv.studentId}
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-2 text-xs text-slate-400">
                       <span>{activeConv.role}</span>
@@ -1048,7 +1100,7 @@ export const DirectMessagesPage: React.FC = () => {
                     <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 py-1.5 z-30 animate-in fade-in zoom-in-95">
                       {/* View Profile */}
                       <Link
-                        to={`/profile/${activeConv.studentId || activeConv.participantId}`}
+                        to={activeConv.studentId && !activeConv.studentId.startsWith('SE-') ? `/profile/${activeConv.studentId}` : `/profile/${activeConv.participantId}`}
                         onClick={() => setIsOptionsOpen(false)}
                         className="w-full text-left px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"
                       >
@@ -1349,37 +1401,63 @@ export const DirectMessagesPage: React.FC = () => {
 
                     {/* GIF categories */}
                     <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 scrollbar-none mb-2">
-                      {['Thịnh hành', 'Lập trình', 'Vỗ tay', 'Haha', 'Cảm ơn', 'Mèo'].map(cat => (
-                        <button
-                          key={cat}
-                          type="button"
-                          onClick={() => setGifSearchQuery(cat === 'Thịnh hành' ? '' : cat)}
-                          className="px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-purple-50 hover:text-purple-600 dark:hover:bg-slate-600 whitespace-nowrap cursor-pointer"
-                        >
-                          {cat}
-                        </button>
-                      ))}
+                      {[
+                        { label: 'Thịnh hành', q: '' },
+                        { label: 'Haha', q: 'haha' },
+                        { label: 'Vui vẻ', q: 'happy' },
+                        { label: 'Mèo', q: 'cat' },
+                        { label: 'Vỗ tay', q: 'applause' },
+                        { label: 'Cảm ơn', q: 'thank you' },
+                        { label: 'Khóc', q: 'crying' },
+                        { label: 'Anime', q: 'anime' },
+                        { label: 'Lập trình', q: 'coding' },
+                        { label: 'Party', q: 'party' },
+                      ].map(cat => {
+                        const isActive = (cat.q === '' && gifSearchQuery === '') || (cat.q !== '' && gifSearchQuery.toLowerCase() === cat.q);
+                        return (
+                          <button
+                            key={cat.label}
+                            type="button"
+                            onClick={() => setGifSearchQuery(cat.q)}
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-colors whitespace-nowrap cursor-pointer ${
+                              isActive
+                                ? 'bg-purple-600 text-white shadow-2xs'
+                                : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-purple-50 hover:text-purple-600 dark:hover:bg-slate-600'
+                            }`}
+                          >
+                            {cat.label}
+                          </button>
+                        );
+                      })}
                     </div>
 
                     {/* GIF Results Grid */}
-                    <div className="grid grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-64 overflow-y-auto pr-1">
                       {isLoadingGifs ? (
-                        <div className="col-span-2 py-8 text-center text-slate-400 text-xs">
-                          <Loader2 className="w-5 h-5 animate-spin mx-auto mb-1 text-purple-600" />
-                          <span>{t('common.loading', 'Đang tìm kiếm...')}</span>
+                        <div className="col-span-full py-10 text-center text-slate-400 text-xs">
+                          <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-purple-600" />
+                          <span>{t('messages.searchingGif', 'Đang tìm kiếm GIF từ Giphy...')}</span>
                         </div>
                       ) : gifResults.length === 0 ? (
-                        <div className="col-span-2 py-6 text-center text-slate-400 text-xs">
-                          <span>{t('messages.noGifFound', 'Không tìm thấy GIF phù hợp')}</span>
+                        <div className="col-span-full py-8 text-center text-slate-400 text-xs">
+                          <p>{t('messages.noGifFound', 'Không tìm thấy GIF phù hợp.')}</p>
+                          <button
+                            type="button"
+                            onClick={() => setGifSearchQuery('')}
+                            className="mt-2 text-xs text-purple-600 dark:text-purple-400 font-semibold hover:underline cursor-pointer"
+                          >
+                            {t('messages.backToTrending', 'Xem GIF thịnh hành')}
+                          </button>
                         </div>
                       ) : (
                         gifResults.map(gif => (
                           <div
                             key={gif.id}
                             onClick={() => handleSelectGif(gif.url)}
-                            className="h-24 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-900 cursor-pointer hover:scale-105 transition-transform"
+                            className="h-28 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 cursor-pointer hover:scale-[1.03] hover:ring-2 ring-purple-500 transition-all group relative"
+                            title={gif.title}
                           >
-                            <img src={gif.url} alt={gif.title} className="w-full h-full object-cover" />
+                            <img src={gif.url} alt={gif.title} loading="lazy" className="w-full h-full object-cover group-hover:brightness-105 transition-all" />
                           </div>
                         ))
                       )}
