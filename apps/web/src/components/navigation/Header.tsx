@@ -4,6 +4,7 @@ import {
   Search,
   Plus,
   Bell,
+  MessageSquare,
   MapPin,
   ChevronDown,
   HelpCircle,
@@ -31,6 +32,7 @@ export const Header: React.FC = () => {
   const [showNotifDrawer, setShowNotifDrawer] = useState(false);
   const [campuses, setCampuses] = useState<Array<{ code: string; name: string }>>([]);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [hasUnreadMessages, setHasUnreadMessages] = useState<boolean>(false);
   const [notifLoading, setNotifLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -66,12 +68,19 @@ export const Header: React.FC = () => {
     const unsubDel = on('NOTIFICATION_DELETED', () => {
       fetchNotifications();
     });
+    const unsubChat = on('CHAT_MESSAGE_RECEIVED', (evt) => {
+      const { senderId } = evt.payload || {};
+      if (currentUser?.id && String(currentUser.id) !== String(senderId)) {
+        setHasUnreadMessages(true);
+      }
+    });
 
     return () => {
       unsubNew();
       unsubRead();
       unsubAllRead();
       unsubDel();
+      unsubChat();
     };
   }, [on]);
 
@@ -255,6 +264,19 @@ export const Header: React.FC = () => {
                 }
                 items={createMenu}
               />
+
+              {/* Direct Messages Quick Link (Facebook Messenger style) */}
+              <Link
+                to="/messages"
+                onClick={() => setHasUnreadMessages(false)}
+                className="p-2 text-slate-500 dark:text-slate-400 hover:text-[#0076D1] hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors relative cursor-pointer"
+                title={t('nav.messages', 'Tin nhắn')}
+              >
+                <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
+                {hasUnreadMessages && (
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#0076D1] rounded-full ring-2 ring-white dark:ring-slate-900 animate-pulse" />
+                )}
+              </Link>
 
               {/* Notifications Link & Live Drawer */}
               <div className="relative">

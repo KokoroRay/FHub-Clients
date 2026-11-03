@@ -24,7 +24,14 @@ export const CourseListPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [courses, setCourses] = useState<CourseNodeListItem[]>([]);
   const [majors, setMajors] = useState<MajorListItem[]>([]);
-  const [bookmarkedCodes, setBookmarkedCodes] = useState<Set<string>>(new Set());
+  const [bookmarkedCodes, setBookmarkedCodes] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('fhub_bookmarked_courses');
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
   const [isLoading, setIsLoading] = useState(true);
 
   // Pagination states
@@ -68,6 +75,9 @@ export const CourseListPage: React.FC = () => {
       const next = new Set(prev);
       if (next.has(code)) next.delete(code);
       else next.add(code);
+      try {
+        localStorage.setItem('fhub_bookmarked_courses', JSON.stringify(Array.from(next)));
+      } catch {}
       return next;
     });
   };

@@ -5,6 +5,7 @@ import { LeftSidebar } from '../components/navigation/LeftSidebar';
 import { RightSidebar } from '../components/navigation/RightSidebar';
 import { ErrorBoundary } from '../components/common/ErrorBoundary';
 import { LoadingFallback } from '../components/common/LoadingFallback';
+import { MessengerPopupToast } from '../components/common/MessengerPopupToast';
 
 export const MainLayout: React.FC = () => {
   const location = useLocation();
@@ -26,6 +27,7 @@ export const MainLayout: React.FC = () => {
         </main>
         {showRightSidebar && <RightSidebar />}
       </div>
+      <MessengerPopupToast />
     </div>
   );
 };

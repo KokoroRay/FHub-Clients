@@ -20,6 +20,7 @@ import {
 import { SharedWorkflow } from '../../types';
 import { CreateWorkflowModal } from './CreateWorkflowModal';
 import { workflowApi } from '../../services/api/contentApi';
+import { bookmarkApi } from '../../services/api/studentApi';
 import { courseNodesApi, CourseNodeListItem } from '../../services/api/adminApi';
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 import { useLanguage } from '../../context/LanguageContext';
@@ -40,6 +41,7 @@ export const WorkflowListPage: React.FC = () => {
   const [selectedCourse, setSelectedCourse] = useState('ALL');
   const [sortBy, setSortBy] = useState<'newest' | 'most_used' | 'most_viewed'>('newest');
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
+  const [bookmarkMap, setBookmarkMap] = useState<Map<string, number | string>>(new Map());
   const [isCreateOpen, setIsCreateOpen] = useState(shouldOpenCreate);
   const [workflows, setWorkflows] = useState<SharedWorkflow[]>([]);
   const [allTags, setAllTags] = useState<SemanticTagItem[]>([]);
@@ -163,15 +165,39 @@ export const WorkflowListPage: React.FC = () => {
     };
   }, [searchQuery, coursesList, allTags]);
 
-  const toggleBookmark = (id: string, e: React.MouseEvent) => {
+  const toggleBookmark = async (id: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setBookmarkedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+    const isBookmarked = bookmarkedIds.has(id);
+    const existingBookmarkId = bookmarkMap.get(id);
+    const numId = Number(id.replace(/\D/g, '')) || Number(id);
+
+    if (isBookmarked && existingBookmarkId) {
+      setBookmarkedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      try {
+        await bookmarkApi.removeBookmark(existingBookmarkId);
+        setBookmarkMap((prev) => {
+          const next = new Map(prev);
+          next.delete(id);
+          return next;
+        });
+      } catch (err) {
+        console.warn('Failed to remove bookmark:', err);
+      }
+    } else {
+      setBookmarkedIds((prev) => new Set(prev).add(id));
+      try {
+        const res = await bookmarkApi.addBookmark('Workflow', numId);
+        const bId = res?.bookmark_id ?? res?.data?.bookmark_id ?? res?.id ?? Date.now();
+        setBookmarkMap((prev) => new Map(prev).set(id, bId));
+      } catch (err) {
+        console.warn('Failed to add bookmark:', err);
+      }
+    }
   };
 
   const getCategoryTheme = (category?: string) => {
