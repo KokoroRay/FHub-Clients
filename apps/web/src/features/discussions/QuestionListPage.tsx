@@ -24,6 +24,7 @@ import { courseNodesApi, semanticTagsApi } from '../../services/api/adminApi';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
+import { UserHoverCard } from '../../components/common/UserHoverCard';
 import {
   loadAllSemanticTags,
   getSemanticTagMap,
@@ -619,22 +620,31 @@ export const QuestionListPage: React.FC = () => {
                           </span>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-1.5">
-                          {q.author.avatarUrl ? (
-                            <img
-                              src={q.author.avatarUrl}
-                              alt={q.author.fullName}
-                              className="w-5 h-5 rounded-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-5 h-5 rounded-full bg-blue-100 text-[#0076D1] flex items-center justify-center font-bold text-[10px]">
-                              {q.author.fullName.substring(0, 2).toUpperCase()}
-                            </div>
-                          )}
-                          <span className="font-semibold text-slate-700 dark:text-slate-300">
-                            @{q.author.fullName.toLowerCase().replace(/\s+/g, '_')}
-                          </span>
-                        </div>
+                        <UserHoverCard
+                          userId={q.author.id}
+                          initialData={{
+                            fullName: q.author.fullName,
+                            avatarUrl: q.author.avatarUrl,
+                            campus: q.author.campus,
+                          }}
+                        >
+                          <div className="flex items-center gap-1.5 group cursor-pointer">
+                            {q.author.avatarUrl ? (
+                              <img
+                                src={q.author.avatarUrl}
+                                alt={q.author.fullName}
+                                className="w-5 h-5 rounded-full object-cover group-hover:ring-1 group-hover:ring-[#0076D1] transition-all"
+                              />
+                            ) : (
+                              <div className="w-5 h-5 rounded-full bg-blue-100 text-[#0076D1] flex items-center justify-center font-bold text-[10px] group-hover:ring-1 group-hover:ring-[#0076D1] transition-all">
+                                {q.author.fullName.substring(0, 2).toUpperCase()}
+                              </div>
+                            )}
+                            <span className="font-semibold text-slate-700 dark:text-slate-300 group-hover:text-[#0076D1] dark:group-hover:text-blue-400 group-hover:underline transition-colors">
+                              @{q.author.fullName.toLowerCase().replace(/\s+/g, '_')}
+                            </span>
+                          </div>
+                        </UserHoverCard>
                       )}
                       <span>·</span>
                       <span>

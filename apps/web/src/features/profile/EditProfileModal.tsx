@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
-import { X, Upload, CheckCircle2, Shield, Loader2, ChevronDown } from 'lucide-react';
+import { X, Upload, CheckCircle2, Shield, Loader2, ChevronDown, Image as ImageIcon } from 'lucide-react';
 import { profileApi } from '../../services/api/studentApi';
 import { contentMediaApi } from '../../services/api/contentApi';
 import { IMAGE_ACCEPT, normalizeMediaUrl, validateImage } from '../../utils/mediaUtils';
@@ -107,6 +107,7 @@ interface EditProfileModalProps {
     bio: string;
     interests: string[];
     avatarUrl?: string;
+    coverUrl?: string;
   };
 }
 
@@ -129,20 +130,16 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
       if (found) return found.code;
     }
     if (initialData.campusCode) {
-      const code = initialData.campusCode.toUpperCase();
-      const found = CAMPUS_OPTIONS.find((c) => c.code === code || (code === 'HL' && c.code === 'HN'));
+      const target = initialData.campusCode.toUpperCase();
+      const found = CAMPUS_OPTIONS.find((c) => c.code.toUpperCase() === target);
       if (found) return found.code;
     }
-    const rawCampus = (initialData.campus || '').toLowerCase();
-    if (rawCampus.includes('can tho') || rawCampus.includes('cần thơ') || rawCampus === 'ct') return 'CT';
-    if (rawCampus.includes('ho chi minh') || rawCampus.includes('hcm') || rawCampus.includes('hồ chí minh')) return 'HCM';
-    if (rawCampus.includes('da nang') || rawCampus.includes('đà nẵng') || rawCampus === 'dn') return 'DN';
-    if (rawCampus.includes('quy nhon') || rawCampus.includes('quy nhơn') || rawCampus === 'qn') return 'QN';
-    if (rawCampus.includes('ha noi') || rawCampus.includes('hà nội') || rawCampus.includes('hoa lac') || rawCampus.includes('hòa lạc') || rawCampus === 'hn' || rawCampus === 'hl') return 'HN';
-    const match = CAMPUS_OPTIONS.find(
-      (c) => c.code.toLowerCase() === rawCampus || c.name.toLowerCase().includes(rawCampus) || rawCampus.includes(c.name.toLowerCase())
-    );
-    return match?.code || 'HN';
+    if (initialData.campus) {
+      const target = initialData.campus.toLowerCase();
+      const found = CAMPUS_OPTIONS.find((c) => c.code.toLowerCase() === target || c.name.toLowerCase().includes(target) || target.includes(c.name.toLowerCase()));
+      if (found) return found.code;
+    }
+    return 'HN';
   })();
   const [campus, setCampus] = useState(initialCampusCode);
 
@@ -152,39 +149,17 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
       const found = MAJOR_OPTIONS.find((m) => m.id === Number(initialData.majorId));
       if (found) return found.code;
     }
-    if (initialData.specializationId) {
-      const targetId = Number(initialData.specializationId);
-      for (const [mCode, specs] of Object.entries(SPECIALIZATION_OPTIONS)) {
-        if (specs.some((s) => s.id === targetId)) return mCode;
-      }
-    }
-    if (initialData.specializationCode) {
-      const targetCode = initialData.specializationCode.toUpperCase();
-      for (const [mCode, specs] of Object.entries(SPECIALIZATION_OPTIONS)) {
-        if (specs.some((s) => s.code.toUpperCase() === targetCode)) return mCode;
-      }
-    }
-    if (initialData.specialization) {
-      const target = initialData.specialization.toLowerCase();
-      for (const [mCode, specs] of Object.entries(SPECIALIZATION_OPTIONS)) {
-        if (specs.some((s) => s.code.toLowerCase() === target || s.name.toLowerCase().includes(target) || target.includes(s.name.toLowerCase()))) {
-          return mCode;
-        }
-      }
-    }
     if (initialData.majorCode) {
       const target = initialData.majorCode.toUpperCase();
-      const found = MAJOR_OPTIONS.find((m) => m.code === target);
+      const found = MAJOR_OPTIONS.find((m) => m.code.toUpperCase() === target);
       if (found) return found.code;
     }
     if (initialData.major) {
-      const rawMajor = initialData.major.toLowerCase();
-      const found = MAJOR_OPTIONS.find(
-        (m) => m.code.toLowerCase() === rawMajor || m.name.toLowerCase().includes(rawMajor) || rawMajor.includes(m.name.toLowerCase())
-      );
+      const target = initialData.major.toLowerCase();
+      const found = MAJOR_OPTIONS.find((m) => m.code.toLowerCase() === target || m.name.toLowerCase().includes(target) || target.includes(m.name.toLowerCase()));
       if (found) return found.code;
       for (const [mCode, specs] of Object.entries(SPECIALIZATION_OPTIONS)) {
-        if (specs.some((s) => s.code.toLowerCase() === rawMajor || rawMajor.includes(s.code.toLowerCase()) || s.name.toLowerCase().includes(rawMajor) || rawMajor.includes(s.name.toLowerCase()))) {
+        if (specs.some((s) => s.code.toLowerCase() === target || s.name.toLowerCase().includes(target) || target.includes(s.name.toLowerCase()))) {
           return mCode;
         }
       }
@@ -223,9 +198,17 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   const [bio, setBio] = useState(initialData.bio);
   const [interests, setInterests] = useState<string[]>(initialData.interests || ['Programming', 'Web Development', 'Software Engineering']);
   const [newInterest, setNewInterest] = useState('');
+
+  // Avatar state
   const [photoPreview, setPhotoPreview] = useState(normalizeMediaUrl(initialData.avatarUrl) || '');
   const [uploadedAvatarUrl, setUploadedAvatarUrl] = useState<string | null>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+
+  // Cover image state
+  const [coverPreview, setCoverPreview] = useState(normalizeMediaUrl(initialData.coverUrl) || '');
+  const [uploadedCoverUrl, setUploadedCoverUrl] = useState<string | null>(null);
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
+
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -248,30 +231,29 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    e.target.value = '';
     if (!file) return;
 
     try {
       validateImage(file, 5);
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : t('Ảnh không hợp lệ.'));
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'Ảnh không hợp lệ');
       return;
     }
-    setErrorMessage(null);
 
-    // Show instant preview
+    setIsUploadingPhoto(true);
+    setErrorMessage(null);
     const localUrl = URL.createObjectURL(file);
     setPhotoPreview(localUrl);
-    setIsUploadingPhoto(true);
 
     try {
-      const res = await contentMediaApi.uploadMedia(file, 'avatar');
-      const remoteUrl = res.publicUrl;
-      setPhotoPreview(remoteUrl);
-      setUploadedAvatarUrl(remoteUrl);
+      const uploadedMedia = await contentMediaApi.uploadMedia(file, 'AVATAR');
+      const finalUrl = uploadedMedia.publicUrl;
+      if (!finalUrl) throw new Error('Không nhận được URL ảnh từ server');
+      setUploadedAvatarUrl(finalUrl);
+      setPhotoPreview(normalizeMediaUrl(finalUrl));
     } catch (err) {
-      setPhotoPreview(photoPreview);
-      setErrorMessage(err instanceof Error ? err.message : t('Không tải được ảnh đại diện. Vui lòng thử lại.'));
+      setErrorMessage(err instanceof Error ? err.message : t('Không tải được ảnh lên. Vui lòng thử lại.'));
+      setPhotoPreview(normalizeMediaUrl(initialData.avatarUrl) || '');
     } finally {
       URL.revokeObjectURL(localUrl);
       setIsUploadingPhoto(false);
@@ -281,6 +263,42 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   const handleRemovePhoto = () => {
     setPhotoPreview('');
     setUploadedAvatarUrl('');
+  };
+
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      validateImage(file, 10);
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : 'Ảnh không hợp lệ');
+      return;
+    }
+
+    setIsUploadingCover(true);
+    setErrorMessage(null);
+    const localUrl = URL.createObjectURL(file);
+    setCoverPreview(localUrl);
+
+    try {
+      const uploadedMedia = await contentMediaApi.uploadMedia(file, 'GENERAL');
+      const finalUrl = uploadedMedia.publicUrl;
+      if (!finalUrl) throw new Error('Không nhận được URL ảnh bìa từ server');
+      setUploadedCoverUrl(finalUrl);
+      setCoverPreview(normalizeMediaUrl(finalUrl));
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : t('Không tải được ảnh bìa. Vui lòng thử lại.'));
+      setCoverPreview(normalizeMediaUrl(initialData.coverUrl) || '');
+    } finally {
+      URL.revokeObjectURL(localUrl);
+      setIsUploadingCover(false);
+    }
+  };
+
+  const handleRemoveCover = () => {
+    setCoverPreview('');
+    setUploadedCoverUrl('');
   };
 
   const handleMajorChange = (newMajor: string) => {
@@ -293,7 +311,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isUploadingPhoto || isSaving || showSuccessToast) return;
+    if (isUploadingPhoto || isUploadingCover || isSaving || showSuccessToast) return;
     if (!fullName.trim()) {
       setErrorMessage(t('profileEditModal.errorFullNameEmpty', 'Họ và tên không được để trống.'));
       return;
@@ -307,12 +325,16 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     setIsSaving(true);
     const savedPhoto = uploadedAvatarUrl ?? (photoPreview.startsWith('blob:') ? '' : photoPreview);
     const avatarUrl = savedPhoto ? new URL(savedPhoto, window.location.origin).href : '';
+
+    const savedCover = uploadedCoverUrl ?? (coverPreview.startsWith('blob:') ? '' : coverPreview);
+
     try {
       const results = await Promise.allSettled([
         profileApi.updatePersonalInfo({
           fullName: fullName.trim(),
           bio: bio.trim(),
           avatarUrl,
+          coverUrl: savedCover,
         }),
         profileApi.updateAcademicInfo({
           campusId: campusObj?.id ?? 1,
@@ -346,12 +368,13 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
         major: displayMajor,
         majorId: majorObj?.id,
         majorCode: majorObj?.code,
-        specialization: specObj?.name || specObj?.code || specialization,
+        specialization: specObj?.name || specialization,
         specializationId: specObj?.id,
         specializationCode: specObj?.code,
         bio: bio.trim(),
         interests,
         avatarUrl,
+        coverUrl: savedCover,
       });
       setShowSuccessToast(false);
       onClose();
@@ -398,7 +421,53 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
         )}
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          {/* Profile Photo Section (Figma #106:7767) */}
+          {/* Cover Photo Section */}
+          <div className="pb-4 border-b border-slate-100 space-y-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <ImageIcon className="w-4 h-4 text-[#0076D1]" />
+                  <span>{t('profileEditModal.coverTitle', 'Ảnh bìa (Cover Image)')}</span>
+                </h3>
+                <p className="text-[11px] text-slate-500">
+                  {t('profileEditModal.coverDesc', 'Tỷ lệ khuyến nghị 16:9 hoặc ảnh ngang, tối đa 10MB.')}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-[#0076D1] hover:bg-blue-100 border border-blue-200 rounded-lg text-xs font-semibold transition-colors">
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>{isUploadingCover ? t('profileEditModal.uploadingCover', 'Đang tải...') : t('profileEditModal.uploadCover', 'Tải ảnh bìa')}</span>
+                  <input type="file" accept={IMAGE_ACCEPT} className="hidden" disabled={isUploadingCover || isSaving} onChange={handleCoverUpload} />
+                </label>
+                {coverPreview && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveCover}
+                    disabled={isUploadingCover || isSaving}
+                    className="px-2.5 py-1.5 text-red-600 hover:bg-red-50 rounded-lg text-xs font-semibold transition-colors"
+                  >{t('Gỡ')}</button>
+                )}
+              </div>
+            </div>
+
+            {/* Cover Preview Container */}
+            <div className="relative w-full h-28 sm:h-36 rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
+              {coverPreview ? (
+                <img src={normalizeMediaUrl(coverPreview)} alt="Cover preview" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-r from-blue-600 via-sky-600 to-indigo-700 flex items-center justify-center text-white/50 text-xs font-medium">
+                  {t('Chưa có ảnh bìa tùy chỉnh (Sử dụng ảnh nền mặc định FHub)')}
+                </div>
+              )}
+              {isUploadingCover && (
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                  <Loader2 className="w-6 h-6 text-white animate-spin" />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Profile Photo Section (Avatar) */}
           <div className="flex items-start gap-4 pb-4 border-b border-slate-100">
             <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#0076D1] to-sky-400 flex items-center justify-center text-white font-bold text-xl overflow-hidden shadow-xs shrink-0">
               {photoPreview ? (
@@ -611,7 +680,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
             >{t('profileEditModal.cancelBtn', 'Hủy bỏ')}</button>
             <button
               type="submit"
-              disabled={isUploadingPhoto || isSaving || showSuccessToast}
+              disabled={isUploadingPhoto || isUploadingCover || isSaving || showSuccessToast}
               className="px-5 py-2 text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700 rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50"
             >{t('profileEditModal.saveBtn', 'Lưu thay đổi')}</button>
           </div>

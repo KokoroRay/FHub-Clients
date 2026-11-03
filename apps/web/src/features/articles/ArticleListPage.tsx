@@ -17,6 +17,7 @@ import { Article, Series } from '../../types';
 import { articleApi, seriesApi } from '../../services/api/contentApi';
 import { voteApi, bookmarkApi } from '../../services/api/studentApi';
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
+import { UserHoverCard } from '../../components/common/UserHoverCard';
 import { useLanguage } from '../../context/LanguageContext';
 import {
   loadAllSemanticTags,
@@ -446,27 +447,35 @@ export const ArticleListPage: React.FC = () => {
                   <div className="pt-4 border-t border-slate-100 mt-4 space-y-3">
                     <div className="flex items-center justify-between text-xs">
                       {/* Author Info */}
-                      <div className="flex items-center gap-2">
-                        {art.author.avatarUrl ? (
-                          <img
-                            src={art.author.avatarUrl}
-                            alt={art.author.fullName}
-                            className="w-7 h-7 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-7 h-7 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs">
-                            {art.author.fullName.substring(0, 2).toUpperCase()}
-                          </div>
-                        )}
-                        <div>
-                          <div className="font-bold text-slate-800 line-clamp-1">
-                            {t(art.author.fullName)}
-                          </div>
-                          <div className="text-[10px] text-slate-400">
-                            {t(art.author.role || 'Student')}
+                      <UserHoverCard
+                        userId={art.author.id}
+                        initialData={{
+                          fullName: art.author.fullName,
+                          avatarUrl: art.author.avatarUrl,
+                        }}
+                      >
+                        <div className="flex items-center gap-2 group cursor-pointer">
+                          {art.author.avatarUrl ? (
+                            <img
+                              src={art.author.avatarUrl}
+                              alt={art.author.fullName}
+                              className="w-7 h-7 rounded-full object-cover group-hover:ring-1 group-hover:ring-[#0076D1] transition-all"
+                            />
+                          ) : (
+                            <div className="w-7 h-7 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-xs group-hover:ring-1 group-hover:ring-[#0076D1] transition-all">
+                              {art.author.fullName.substring(0, 2).toUpperCase()}
+                            </div>
+                          )}
+                          <div>
+                            <div className="font-bold text-slate-800 line-clamp-1 group-hover:text-[#0076D1] dark:group-hover:text-blue-400 group-hover:underline transition-colors">
+                              {t(art.author.fullName)}
+                            </div>
+                            <div className="text-[10px] text-slate-400">
+                              {t(art.author.role || 'Student')}
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      </UserHoverCard>
 
                       {/* Metrics */}
                       <div className="flex items-center gap-3 text-slate-500 font-semibold">

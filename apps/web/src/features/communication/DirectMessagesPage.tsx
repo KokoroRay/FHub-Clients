@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import {
   MessageSquare,
   Send,
@@ -12,7 +12,6 @@ import {
   Ban,
   Unlock,
   X,
-  Plus,
   AlertTriangle,
   UserCheck,
   ArrowLeft,
@@ -23,7 +22,11 @@ import {
   Download,
   Smile,
   Volume2,
-  VolumeX
+  VolumeX,
+  User,
+  FolderArchive,
+  FileText,
+  ExternalLink
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -89,6 +92,7 @@ const POPULAR_GIFS = [
 
 export const DirectMessagesPage: React.FC = () => {
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
   const { formatDate, formatTime, locale, t } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -116,28 +120,15 @@ export const DirectMessagesPage: React.FC = () => {
   const [isLoadingGifs, setIsLoadingGifs] = useState(false);
   const [previewLightboxUrl, setPreviewLightboxUrl] = useState<string | null>(null);
 
-  // Modals & Confirmation States
+  // Modals & Panels
   const [showBlockedModal, setShowBlockedModal] = useState(false);
-  const [showNewConvModal, setShowNewConvModal] = useState(false);
+  const [showMediaPanel, setShowMediaPanel] = useState(false);
+  const [mediaTab, setMediaTab] = useState<'images' | 'files'>('images');
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
   const [confirmDeleteMsgId, setConfirmDeleteMsgId] = useState<string | null>(null);
   const [confirmBlockConv, setConfirmBlockConv] = useState<ConversationItem | null>(null);
   const [confirmUnblockItem, setConfirmUnblockItem] = useState<BlockedItem | null>(null);
-
-  // New Conversation Modal State
-  const [newRecipientSearch, setNewRecipientSearch] = useState('');
-  const [selectedRecipient, setSelectedRecipient] = useState<any>(null);
-  const [initialMsgText, setInitialMsgText] = useState('');
   const [blockedList, setBlockedList] = useState<BlockedItem[]>([]);
-
-  // Sample peer users for New Conversation selector
-  const availablePeers = [
-    { id: 3, name: 'Bien HLC (SE Lead)', code: 'CE181207', role: 'K18 SE Student', avatar: 'BH', major: 'Software Engineering' },
-    { id: 5, name: 'Bao NQ (Mobile)', code: 'CE180121', role: 'K18 SE Student', avatar: 'BN', major: 'Software Engineering' },
-    { id: 7, name: 'Tan LT (Frontend)', code: 'CE190370', role: 'K19 SE Student', avatar: 'TL', major: 'Software Engineering' },
-    { id: 6, name: 'Phu THG (Data)', code: 'CE182003', role: 'K18 SE Student', avatar: 'PT', major: 'Software Engineering' },
-    { id: 2, name: 'Hoang TM (K14 Alumni)', code: 'SE140001', role: 'FPTU Alumni Mentor', avatar: 'HT', major: 'Software Engineering' },
-  ];
 
   const loadConversations = async () => {
     try {
@@ -167,8 +158,14 @@ export const DirectMessagesPage: React.FC = () => {
 
         // Auto-select conversation: respect query param if present, else pick first conversation
         const queryConv = searchParams.get('conversationId') || searchParams.get('convId');
+        const queryUserId = searchParams.get('userId');
         if (queryConv && mapped.some(c => c.id === queryConv)) {
           setActiveConvId(queryConv);
+        } else if (queryUserId) {
+          const found = mapped.find(c => String(c.participantId) === String(queryUserId));
+          if (found) {
+            setActiveConvId(found.id);
+          }
         } else if (!activeConvId && mapped.length > 0) {
           setActiveConvId(mapped[0].id);
         }
@@ -208,6 +205,24 @@ export const DirectMessagesPage: React.FC = () => {
     loadConversations();
     loadBlockedUsers();
   }, []);
+
+  // When navigated with ?userId=..., ensure conversation exists or create it
+  useEffect(() => {
+    const queryUserId = searchParams.get('userId');
+    if (!queryUserId || !currentUser) return;
+    const existing = conversations.find(c => String(c.participantId) === String(queryUserId));
+    if (existing) {
+      setActiveConvId(existing.id);
+    } else {
+      directMessageApi.createConversation(queryUserId).then((conv) => {
+        if (conv?.conversation_id) {
+          loadConversations().then(() => {
+            setActiveConvId(String(conv.conversation_id));
+          });
+        }
+      });
+    }
+  }, [searchParams.get('userId')]);
 
   // Update query params when active conversation changes
   useEffect(() => {
@@ -249,6 +264,15 @@ export const DirectMessagesPage: React.FC = () => {
   }, [activeConvId, currentUser]);
 
   const activeConv = conversations.find(c => c.id === activeConvId);
+  const activeMessages = messages[activeConvId] || [];
+
+  // Filter shared images & files in current active conversation
+  const sharedImages = activeMessages.filter(
+    m => m.attachmentUrl && (m.messageType === 'IMAGE' || m.messageType === 'GIF' || /\.(jpe?g|png|gif|webp)$/i.test(m.attachmentUrl))
+  );
+  const sharedFiles = activeMessages.filter(
+    m => m.attachmentUrl && !sharedImages.some(img => img.id === m.id)
+  );
 
   // Auto-scroll to latest message
   useEffect(() => {
@@ -299,104 +323,56 @@ export const DirectMessagesPage: React.FC = () => {
           loadConversations();
           return prev;
         }
-        const updatedItem = {
-          ...prev[index],
-          lastMessage: messageType === 'IMAGE' ? t('messages.sentImage', '[Hình ảnh]') : messageType === 'GIF' ? t('messages.sentGif', '[GIF]') : body,
-          lastTime: t('Vừa xong'),
-          unreadCount: convIdStr === String(activeConvId) ? 0 : (prev[index].unreadCount || 0) + 1,
-        };
-        const newList = [...prev];
-        newList.splice(index, 1);
-        newList.unshift(updatedItem);
-        return newList;
+        const updated = [...prev];
+        const conv = { ...updated[index] };
+        conv.lastMessage = body || (messageType === 'IMAGE' ? t('Đã gửi một ảnh') : t('Đã gửi một tệp'));
+        conv.lastTime = new Date().toISOString();
+        if (convIdStr !== String(activeConvId)) {
+          conv.unreadCount = (conv.unreadCount || 0) + 1;
+        }
+        updated.splice(index, 1);
+        updated.unshift(conv);
+        return updated;
       });
+
+      if (String(senderId) !== String(currentUser?.id) && isSoundEnabled) {
+        playNotificationSound();
+      }
     });
 
     const unsubTyping = on('CHAT_TYPING', (evt) => {
-      const { conversationId, senderId } = evt.payload || {};
-      if (String(conversationId) === String(activeConvId) && String(senderId) !== String(currentUser?.id)) {
+      const { conversationId } = evt.payload || {};
+      if (String(conversationId) === String(activeConvId)) {
         setIsPartnerTyping(true);
         if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
         typingTimerRef.current = setTimeout(() => {
           setIsPartnerTyping(false);
-        }, 3500);
+        }, 3000);
       }
-    });
-
-    const unsubDel = on('CHAT_MESSAGE_DELETED', (evt) => {
-      const { conversationId, messageId } = evt.payload || {};
-      const convIdStr = String(conversationId || '');
-      setMessages((prev) => ({
-        ...prev,
-        [convIdStr]: (prev[convIdStr] || []).filter((m) => m.id !== String(messageId)),
-      }));
     });
 
     return () => {
       unsubMsg();
       unsubTyping();
-      unsubDel();
       if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
     };
-  }, [activeConvId, currentUser, activeConv, on, t]);
+  }, [activeConvId, currentUser?.id, isSoundEnabled, activeConv?.name, activeConv?.initials]);
 
-  // Live GIF search against Giphy public API
-  useEffect(() => {
-    if (!gifSearchQuery.trim()) {
-      setGifResults(POPULAR_GIFS);
-      return;
-    }
-    const timer = setTimeout(async () => {
-      try {
-        setIsLoadingGifs(true);
-        const res = await fetch(`https://api.giphy.com/v1/gifs/search?api_key=GlVGYHkr3WSBnllCa54iDKvdTeOqyLQI&q=${encodeURIComponent(gifSearchQuery)}&limit=16&rating=g`);
-        const json = await res.json();
-        if (json.data && Array.isArray(json.data) && json.data.length > 0) {
-          const parsed = json.data.map((item: any) => ({
-            id: item.id,
-            title: item.title || 'GIF',
-            url: item.images?.downsized_medium?.url || item.images?.fixed_height?.url || item.images?.original?.url,
-          }));
-          setGifResults(parsed);
-        } else {
-          // Fallback filter
-          const filtered = POPULAR_GIFS.filter(g => g.title.toLowerCase().includes(gifSearchQuery.toLowerCase()));
-          setGifResults(filtered.length > 0 ? filtered : POPULAR_GIFS);
-        }
-      } catch (err) {
-        const filtered = POPULAR_GIFS.filter(g => g.title.toLowerCase().includes(gifSearchQuery.toLowerCase()));
-        setGifResults(filtered.length > 0 ? filtered : POPULAR_GIFS);
-      } finally {
-        setIsLoadingGifs(false);
-      }
-    }, 350);
+  // Send text message
+  const handleSendMessage = async (customText?: string) => {
+    const textToSend = customText ?? inputText;
+    if (!textToSend.trim() || !activeConv || activeConv.isBlocked) return;
 
-    return () => clearTimeout(timer);
-  }, [gifSearchQuery]);
+    const trimmed = textToSend.trim();
+    if (!customText) setInputText('');
 
-  const activeMessages = activeConvId ? (messages[activeConvId] || []) : [];
-  const unreadTotal = conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
-
-  const filteredConversations = conversations.filter(c =>
-    !c.isBlocked && (
-      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.courseTag.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.studentId.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-  );
-
-  // Send Text Message
-  const handleSendMessage = async (textToSend?: string) => {
-    const content = textToSend || inputText.trim();
-    if (!content || !activeConv || activeConv.isBlocked) return;
-
-    const optimisticId = `m-${Date.now()}`;
+    const optimisticId = `m-temp-${Date.now()}`;
     const newMsg: Message = {
       id: optimisticId,
       senderId: String(currentUser?.id || '1'),
       senderName: currentUser?.fullName || 'Bạn',
       senderInitials: 'ME',
-      text: content,
+      text: trimmed,
       time: t('Vừa xong'),
       isYou: true,
       status: 'sent',
@@ -407,64 +383,112 @@ export const DirectMessagesPage: React.FC = () => {
       ...prev,
       [activeConvId]: [...(prev[activeConvId] || []), newMsg]
     }));
-    setInputText('');
+
+    setConversations(prev => {
+      const idx = prev.findIndex(c => c.id === activeConvId);
+      if (idx === -1) return prev;
+      const updated = [...prev];
+      updated[idx] = {
+        ...updated[idx],
+        lastMessage: trimmed,
+        lastTime: new Date().toISOString(),
+      };
+      return updated;
+    });
 
     try {
-      const res = await directMessageApi.sendMessage(activeConvId, { body: content, messageType: 'TEXT' });
+      const res = await directMessageApi.sendMessage(activeConvId, trimmed);
       setMessages(prev => ({
         ...prev,
         [activeConvId]: (prev[activeConvId] || []).map(m => m.id === optimisticId ? { ...m, id: String(res.messageId), status: 'delivered' } : m)
       }));
+
+      if (activeConv.participantId) {
+        send('CHAT_MESSAGE_RECEIVED', {
+          conversationId: activeConvId,
+          senderId: currentUser?.id,
+          message: {
+            id: res.messageId,
+            body: trimmed,
+            message_type: 'TEXT',
+          }
+        }, { recipientId: activeConv.participantId });
+      }
     } catch (err) {
-      console.warn('Failed to send message:', err);
+      console.warn('Failed to send message via API:', err);
     }
   };
 
-  // Upload image to Cloudflare R2 and send as chat message
+  // Upload and send image to Cloudflare R2
   const handleImageFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !activeConv || activeConv.isBlocked) return;
 
     try {
       validateImage(file, 10);
-      setIsUploadingImage(true);
+    } catch (err: any) {
+      alert(err?.message || 'Ảnh không hợp lệ.');
+      return;
+    }
 
-      // Upload to Cloudflare R2 via content-service
-      const uploadResult = await contentMediaApi.uploadMedia(file, 'chat', String(activeConvId));
-      const imageUrl = uploadResult.publicUrl || (uploadResult as any).url;
+    setIsUploadingImage(true);
+    const localBlobUrl = URL.createObjectURL(file);
+    const optimisticId = `m-img-${Date.now()}`;
+    const newMsg: Message = {
+      id: optimisticId,
+      senderId: String(currentUser?.id || '1'),
+      senderName: currentUser?.fullName || 'Bạn',
+      senderInitials: 'ME',
+      text: '',
+      time: t('Vừa xong'),
+      isYou: true,
+      status: 'sent',
+      messageType: 'IMAGE',
+      attachmentUrl: localBlobUrl,
+    };
 
-      const optimisticId = `m-img-${Date.now()}`;
-      const newMsg: Message = {
-        id: optimisticId,
-        senderId: String(currentUser?.id || '1'),
-        senderName: currentUser?.fullName || 'Bạn',
-        senderInitials: 'ME',
-        text: '',
-        time: t('Vừa xong'),
-        isYou: true,
-        status: 'sent',
-        messageType: 'IMAGE',
-        attachmentUrl: imageUrl,
-      };
+    setMessages(prev => ({
+      ...prev,
+      [activeConvId]: [...(prev[activeConvId] || []), newMsg]
+    }));
 
-      setMessages(prev => ({
-        ...prev,
-        [activeConvId]: [...(prev[activeConvId] || []), newMsg]
-      }));
+    try {
+      const uploadedMedia = await contentMediaApi.uploadMedia(file, 'ATTACHMENT');
+      const finalR2Url = uploadedMedia.publicUrl;
 
-      // Send to backend communication-service
+      if (!finalR2Url) throw new Error('Không nhận được URL ảnh từ server');
+
       const res = await directMessageApi.sendMessage(activeConvId, {
         body: '',
         messageType: 'IMAGE',
-        attachmentUrl: imageUrl,
+        attachmentUrl: finalR2Url,
       });
 
       setMessages(prev => ({
         ...prev,
-        [activeConvId]: (prev[activeConvId] || []).map(m => m.id === optimisticId ? { ...m, id: String(res.messageId), status: 'delivered' } : m)
+        [activeConvId]: (prev[activeConvId] || []).map(m => m.id === optimisticId ? {
+          ...m,
+          id: String(res.messageId),
+          attachmentUrl: finalR2Url,
+          status: 'delivered'
+        } : m)
       }));
-    } catch (err: any) {
-      alert(err.message || t('messages.uploadFailed', 'Tải ảnh thất bại. Vui lòng thử lại.'));
+
+      if (activeConv.participantId) {
+        send('CHAT_MESSAGE_RECEIVED', {
+          conversationId: activeConvId,
+          senderId: currentUser?.id,
+          message: {
+            id: res.messageId,
+            body: '',
+            message_type: 'IMAGE',
+            attachment_url: finalR2Url,
+          }
+        }, { recipientId: activeConv.participantId });
+      }
+    } catch (err) {
+      console.warn('Failed to upload & send image:', err);
+      alert(t('Không thể tải ảnh lên. Vui lòng thử lại.'));
     } finally {
       setIsUploadingImage(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -567,21 +591,13 @@ export const DirectMessagesPage: React.FC = () => {
     }
   };
 
-  const handleStartNewConversation = async () => {
-    if (!selectedRecipient) return;
-    try {
-      const res = await directMessageApi.createConversation(selectedRecipient.id, initialMsgText.trim() || undefined);
-      setShowNewConvModal(false);
-      setSelectedRecipient(null);
-      setInitialMsgText('');
-      await loadConversations();
-      if (res?.conversation_id) {
-        setActiveConvId(String(res.conversation_id));
-      }
-    } catch (err) {
-      console.warn('Failed to start conversation:', err);
-    }
-  };
+  const filteredConversations = conversations.filter(c =>
+    c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    c.studentId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    c.courseTag.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const unreadTotal = conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
 
   return (
     <div className="space-y-3 w-full h-[calc(100vh-140px)] flex flex-col min-h-[520px] pb-0">
@@ -611,22 +627,7 @@ export const DirectMessagesPage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Create Conversation Button (3.11.1) */}
-          <button
-            id="btn-create-conversation"
-            type="button"
-            onClick={() => {
-              setSelectedRecipient(availablePeers[0]);
-              setInitialMsgText('');
-              setShowNewConvModal(true);
-            }}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-[#0076D1] hover:bg-blue-700 rounded-xl transition-colors shadow-xs cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>{t('messages.newConversation', 'Cuộc trò chuyện mới')}</span>
-          </button>
-
-          {/* Blocked Users Button (3.11.7) */}
+          {/* Blocked Users Button */}
           <button
             id="btn-blocked-users"
             type="button"
@@ -639,9 +640,9 @@ export const DirectMessagesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Messaging Container: Modern split layout that never collapses */}
+      {/* Main Messaging Container: Split layout with Conversations, Chat Pane and Media Drawer */}
       <div className="flex bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden flex-1 min-h-0 h-full">
-        {/* Left Column: Conversations List (Always visible on desktop, toggled on mobile) */}
+        {/* Left Column: Conversations List */}
         <div
           id="conversations-sidebar"
           className={`${
@@ -676,21 +677,9 @@ export const DirectMessagesPage: React.FC = () => {
                 <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                   {t('messages.emptyTitle', 'Chưa có cuộc trò chuyện nào')}
                 </p>
-                <p className="text-[11px] text-slate-400">
-                  {t('messages.emptyDesc', 'Nhấn nút tạo mới bên dưới để bắt đầu nhắn tin với bạn học.')}
+                <p className="text-[11px] text-slate-400 max-w-xs mx-auto">
+                  {t('Theo dõi bạn bè hoặc người hướng dẫn trên trang cá nhân của họ để mở tính năng trò chuyện trực tiếp.')}
                 </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedRecipient(availablePeers[0]);
-                    setInitialMsgText('');
-                    setShowNewConvModal(true);
-                  }}
-                  className="px-3 py-1.5 bg-[#0076D1] text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-colors shadow-2xs inline-flex items-center gap-1.5"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>{t('messages.startNow', 'Bắt đầu ngay')}</span>
-                </button>
               </div>
             ) : (
               filteredConversations.map((conv) => {
@@ -757,7 +746,7 @@ export const DirectMessagesPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Column: Active Conversation & Messages (Always visible on desktop, toggled on mobile) */}
+        {/* Middle Column: Active Conversation & Messages */}
         <div
           id="active-conversation-pane"
           className={`${
@@ -766,7 +755,7 @@ export const DirectMessagesPage: React.FC = () => {
         >
           {activeConv ? (
             <>
-              {/* Conversation Header Bar (3.11.3) */}
+              {/* Conversation Header Bar with View Profile & Media Drawer links */}
               <div id="conversation-header" className="p-3.5 sm:p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 bg-white dark:bg-slate-900">
                 <div className="flex items-center gap-3 min-w-0">
                   {/* Mobile Back Button */}
@@ -779,20 +768,30 @@ export const DirectMessagesPage: React.FC = () => {
                     <ArrowLeft className="w-5 h-5" />
                   </button>
 
-                  <div className="relative shrink-0">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm border ${activeConv.initialsBg}`}>
+                  {/* Clickable Avatar to View Profile */}
+                  <Link
+                    to={`/profile/${activeConv.participantId}`}
+                    title={t('Xem trang cá nhân của {p0}', undefined, { p0: activeConv.name })}
+                    className="relative shrink-0 group"
+                  >
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm border ${activeConv.initialsBg} group-hover:ring-2 ring-[#0076D1] transition-all`}>
                       {activeConv.initials}
                     </div>
                     {activeConv.isActiveNow && (
                       <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900" />
                     )}
-                  </div>
+                  </Link>
 
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">
-                        {activeConv.name}
-                      </h3>
+                      <Link
+                        to={`/profile/${activeConv.participantId}`}
+                        title={t('Xem trang cá nhân')}
+                        className="text-sm font-bold text-slate-800 dark:text-slate-100 hover:text-[#0076D1] dark:hover:text-blue-400 transition-colors truncate flex items-center gap-1 group"
+                      >
+                        <span>{activeConv.name}</span>
+                        <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-slate-400" />
+                      </Link>
                       <span className="px-1.5 py-0.2 rounded text-[10px] font-mono font-semibold bg-blue-50 dark:bg-blue-950/60 text-[#0076D1] dark:text-blue-400 border border-blue-100 dark:border-blue-900">
                         {activeConv.courseTag}
                       </span>
@@ -816,8 +815,23 @@ export const DirectMessagesPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Quick Sound Mute/Unmute & Options */}
+                {/* Quick Action Tools on Header */}
                 <div className="flex items-center gap-1.5 relative">
+                  {/* Toggle Media & Documents Drawer */}
+                  <button
+                    type="button"
+                    onClick={() => setShowMediaPanel(!showMediaPanel)}
+                    title={t('Tài liệu & Ảnh đã gửi')}
+                    className={`p-2 rounded-lg transition-colors cursor-pointer ${
+                      showMediaPanel
+                        ? 'text-[#0076D1] bg-blue-50 dark:bg-blue-950/60'
+                        : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <FolderArchive className="w-4 h-4" />
+                  </button>
+
+                  {/* Sound Toggle */}
                   <button
                     type="button"
                     onClick={() => {
@@ -835,6 +849,7 @@ export const DirectMessagesPage: React.FC = () => {
                     {isSoundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4 text-slate-400" />}
                   </button>
 
+                  {/* 3-dots options menu */}
                   <button
                     type="button"
                     onClick={() => setIsOptionsOpen(!isOptionsOpen)}
@@ -844,14 +859,40 @@ export const DirectMessagesPage: React.FC = () => {
                   </button>
 
                   {isOptionsOpen && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 py-1.5 z-20">
+                    <div className="absolute right-0 top-full mt-2 w-52 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 py-1.5 z-30">
+                      {/* View Profile */}
+                      <Link
+                        to={`/profile/${activeConv.participantId}`}
+                        onClick={() => setIsOptionsOpen(false)}
+                        className="w-full text-left px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-750 flex items-center gap-2"
+                      >
+                        <User className="w-3.5 h-3.5 text-blue-600" />
+                        <span>{t('Xem trang cá nhân')}</span>
+                      </Link>
+
+                      {/* View Shared Media & Docs */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowMediaPanel(true);
+                          setIsOptionsOpen(false);
+                        }}
+                        className="w-full text-left px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-750 flex items-center gap-2 cursor-pointer"
+                      >
+                        <FolderArchive className="w-3.5 h-3.5 text-purple-600" />
+                        <span>{t('Ảnh & Tài liệu đã gửi')}</span>
+                      </button>
+
+                      <div className="border-t border-slate-100 dark:border-slate-700 my-1" />
+
+                      {/* Block User */}
                       <button
                         type="button"
                         onClick={() => {
                           setConfirmBlockConv(activeConv);
                           setIsOptionsOpen(false);
                         }}
-                        className="w-full text-left px-3.5 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center gap-2"
+                        className="w-full text-left px-3.5 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center gap-2 cursor-pointer"
                       >
                         <Ban className="w-3.5 h-3.5" />
                         <span>{t('messages.blockUser', 'Chặn người dùng này')}</span>
@@ -861,7 +902,7 @@ export const DirectMessagesPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Messages Scroll Area (3.11.4) */}
+              {/* Messages Scroll Area */}
               <div className="flex-1 p-4 sm:p-5 overflow-y-auto space-y-4 bg-slate-50/20 dark:bg-slate-900/20">
                 {activeMessages.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-center text-slate-400 p-8">
@@ -912,7 +953,7 @@ export const DirectMessagesPage: React.FC = () => {
                                     setPreviewLightboxUrl(normalizeMediaUrl(msg.attachmentUrl));
                                   }}
                                   title="Phóng to"
-                                  className="p-1 hover:bg-white/20 rounded"
+                                  className="p-1 hover:bg-white/20 rounded cursor-pointer"
                                 >
                                   <Maximize2 className="w-3.5 h-3.5" />
                                 </button>
@@ -1010,7 +1051,7 @@ export const DirectMessagesPage: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setShowGifPicker(false)}
-                        className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
+                        className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 cursor-pointer"
                       >
                         <X className="w-4 h-4" />
                       </button>
@@ -1102,209 +1143,200 @@ export const DirectMessagesPage: React.FC = () => {
                       <ImageIcon className="w-4 h-4" />
                     </button>
 
-                    {/* Send GIF */}
+                    {/* GIF Picker Trigger */}
                     <button
                       type="button"
                       onClick={() => setShowGifPicker(!showGifPicker)}
-                      title={t('messages.sendGifTooltip', 'Gửi ảnh GIF Giphy')}
-                      className={`px-2 py-1 text-[11px] font-black rounded-lg transition-colors cursor-pointer ${
+                      title={t('messages.sendGifTooltip', 'Gửi ảnh GIF động')}
+                      className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
                         showGifPicker
-                          ? 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300'
+                          ? 'text-purple-600 bg-purple-50 dark:bg-purple-950/60'
                           : 'text-slate-500 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-slate-700'
                       }`}
                     >
-                      GIF
+                      <Smile className="w-4 h-4" />
                     </button>
                   </div>
 
-                  {/* Right Send Action */}
-                  <div className="absolute right-3 bottom-3 flex items-center gap-2">
-                    <span className="text-[10px] text-slate-400 hidden sm:inline">
-                      {t("Ctrl + Enter")}
-                    </span>
-                    <button
-                      id="btn-send-message"
-                      type="button"
-                      onClick={() => handleSendMessage()}
-                      disabled={!inputText.trim()}
-                      className="px-4 py-1.5 text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700 disabled:opacity-40 rounded-lg shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <span>{t('messages.send', 'Gửi')}</span>
-                      <Send className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="mt-2 flex items-center justify-between text-[11px] text-slate-400">
-                  <span>{t('messages.guidelines', 'Tuân thủ Quy tắc Giao tiếp Học thuật FHub.')}</span>
-                  <span>{t('messages.replySla', 'Phản hồi tức thì qua WebSocket.')}</span>
+                  {/* Send Action Button */}
+                  <button
+                    id="btn-send-message"
+                    type="button"
+                    onClick={() => handleSendMessage()}
+                    disabled={!inputText.trim()}
+                    className="absolute right-3 bottom-3 p-2 bg-[#0076D1] hover:bg-blue-700 disabled:opacity-40 text-white rounded-xl transition-all shadow-xs cursor-pointer"
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             </>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-400 space-y-3">
-              <div className="w-16 h-16 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-[#0076D1] dark:text-blue-400 flex items-center justify-center">
-                <MessageSquare className="w-8 h-8" />
-              </div>
-              <h3 className="text-base font-bold text-slate-800 dark:text-slate-200">
-                {t('messages.selectTitle', 'Chọn một cuộc trò chuyện')}
+            <div className="h-full flex flex-col items-center justify-center text-center text-slate-400 p-8 space-y-3">
+              <MessageSquare className="w-12 h-12 opacity-25 text-[#0076D1]" />
+              <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                {t('messages.selectConversation', 'Chọn một cuộc trò chuyện để bắt đầu')}
               </h3>
               <p className="text-xs text-slate-400 max-w-sm">
-                {t('messages.selectDesc', 'Chọn người bạn học từ danh sách bên trái hoặc nhấn nút bên dưới để bắt đầu nhắn tin trao đổi.')}
+                {t('Nhắn tin trực tiếp với bạn học hoặc giảng viên bằng cách theo dõi họ từ trang cá nhân.')}
               </p>
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedRecipient(availablePeers[0]);
-                  setInitialMsgText('');
-                  setShowNewConvModal(true);
-                }}
-                className="mt-2 px-4 py-2 bg-[#0076D1] text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-colors shadow-xs inline-flex items-center gap-2 cursor-pointer"
-              >
-                <Plus className="w-4 h-4" />
-                <span>{t('messages.newConversation', 'Bắt đầu cuộc trò chuyện mới')}</span>
-              </button>
             </div>
           )}
         </div>
-      </div>
 
-      {/* ─── Lightbox Modal for Image Preview ───────────────────────────────── */}
-      {previewLightboxUrl && (
-        <div
-          onClick={() => setPreviewLightboxUrl(null)}
-          className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in cursor-zoom-out"
-        >
-          <div className="relative max-w-4xl max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            <img
-              src={previewLightboxUrl}
-              alt="Full Preview"
-              className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl"
-            />
-            <button
-              type="button"
-              onClick={() => setPreviewLightboxUrl(null)}
-              className="absolute top-3 right-3 p-2 bg-black/60 hover:bg-black/80 text-white rounded-full transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* ─── 3.11.1 Create Conversation Modal ─────────────────────────────────── */}
-      {showNewConvModal && (
-        <div id="modal-create-conversation" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 max-w-lg w-full p-6 space-y-4 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-[#0076D1] dark:text-blue-400">
-                  <MessageSquare className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">{t("Start New Conversation")}</h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">{t("Bắt đầu nhắn tin trực tiếp với bạn học hoặc mentor")}</p>
-                </div>
+        {/* Right Column: Shared Media & Documents Drawer */}
+        {showMediaPanel && activeConv && (
+          <div className="w-80 border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col h-full shrink-0 z-20 animate-in slide-in-from-right duration-200">
+            <div className="p-3.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-2 font-bold text-xs text-slate-800 dark:text-slate-100">
+                <FolderArchive className="w-4 h-4 text-[#0076D1]" />
+                <span>{t('Tài liệu & Ảnh đã gửi')}</span>
               </div>
               <button
                 type="button"
-                onClick={() => setShowNewConvModal(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg cursor-pointer"
+                onClick={() => setShowMediaPanel(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Recipient Search & List */}
-            <div className="space-y-3">
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
-                {t("Select Peer / Student")}
-              </label>
+            {/* Tabs: Ảnh & GIF vs Tài liệu */}
+            <div className="flex border-b border-slate-100 dark:border-slate-800 p-2 gap-1 bg-slate-50/50 dark:bg-slate-800/40">
+              <button
+                type="button"
+                onClick={() => setMediaTab('images')}
+                className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
+                  mediaTab === 'images'
+                    ? 'bg-white dark:bg-slate-800 text-[#0076D1] shadow-2xs'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                {t('Ảnh & GIF')} ({sharedImages.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setMediaTab('files')}
+                className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
+                  mediaTab === 'files'
+                    ? 'bg-white dark:bg-slate-800 text-[#0076D1] shadow-2xs'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                {t('Tài liệu')} ({sharedFiles.length})
+              </button>
+            </div>
 
-              <div className="relative">
-                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder={t("Tìm theo tên, MSSV (CE18..., SE14...)...")}
-                  value={newRecipientSearch}
-                  onChange={(e) => setNewRecipientSearch(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl pl-8 pr-3 py-2 text-xs focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-[#0076D1] text-slate-800 dark:text-slate-100"
-                />
-              </div>
-
-              <div className="max-h-48 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl">
-                {availablePeers
-                  .filter(p =>
-                    p.name.toLowerCase().includes(newRecipientSearch.toLowerCase()) ||
-                    p.code.toLowerCase().includes(newRecipientSearch.toLowerCase())
-                  )
-                  .map(peer => {
-                    const isSelected = selectedRecipient?.id === peer.id;
-                    return (
+            {/* Media list */}
+            <div className="flex-1 overflow-y-auto p-3">
+              {mediaTab === 'images' ? (
+                sharedImages.length === 0 ? (
+                  <div className="py-12 text-center text-xs text-slate-400">
+                    {t('Chưa có ảnh nào được chia sẻ trong cuộc trò chuyện.')}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    {sharedImages.map((img) => (
                       <div
-                        key={peer.id}
-                        onClick={() => setSelectedRecipient(peer)}
-                        className={`p-3 flex items-center justify-between cursor-pointer transition-colors ${
-                          isSelected ? 'bg-blue-50 dark:bg-blue-950/60' : 'hover:bg-slate-50 dark:hover:bg-slate-800/60'
-                        }`}
+                        key={img.id}
+                        className="group relative aspect-square rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 cursor-pointer"
+                        onClick={() => setPreviewLightboxUrl(normalizeMediaUrl(img.attachmentUrl))}
                       >
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/60 text-[#0076D1] dark:text-blue-300 flex items-center justify-center font-bold text-xs">
-                            {peer.avatar}
+                        <img
+                          src={normalizeMediaUrl(img.attachmentUrl)}
+                          alt="shared media"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1.5">
+                          <span className="p-1 text-white bg-black/50 rounded-lg">
+                            <Maximize2 className="w-3.5 h-3.5" />
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
+              ) : (
+                sharedFiles.length === 0 ? (
+                  <div className="py-12 text-center text-xs text-slate-400">
+                    {t('Chưa có tệp tin hoặc tài liệu nào được gửi.')}
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {sharedFiles.map((file) => (
+                      <div key={file.id} className="py-2.5 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-[#0076D1] shrink-0">
+                            <FileText className="w-4 h-4" />
                           </div>
-                          <div>
-                            <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{peer.name}</p>
-                            <p className="text-[10px] text-slate-400 font-mono">{peer.code} • {peer.role}</p>
+                          <div className="min-w-0">
+                            <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
+                              {file.text || 'Tài liệu chia sẻ'}
+                            </p>
+                            <span className="text-[10px] text-slate-400 font-mono">
+                              {formatTime(file.time)}
+                            </span>
                           </div>
                         </div>
-                        {isSelected && (
-                          <span className="w-5 h-5 rounded-full bg-[#0076D1] text-white flex items-center justify-center text-xs">
-                            <Check className="w-3 h-3" />
-                          </span>
+                        {file.attachmentUrl && (
+                          <a
+                            href={normalizeMediaUrl(file.attachmentUrl)}
+                            download
+                            target="_blank"
+                            rel="noreferrer"
+                            className="p-1.5 text-slate-400 hover:text-[#0076D1] hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg shrink-0"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                          </a>
                         )}
                       </div>
-                    );
-                  })}
-              </div>
+                    ))}
+                  </div>
+                )
+              )}
             </div>
+          </div>
+        )}
+      </div>
 
-            {/* Initial Message Input */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
-                {t("Tin nhắn mở đầu (Tùy chọn)")}
-              </label>
-              <textarea
-                rows={2}
-                value={initialMsgText}
-                onChange={(e) => setInitialMsgText(e.target.value)}
-                placeholder={t("Nhập lời chào hoặc nội dung câu hỏi...")}
-                className="w-full p-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-1 focus:ring-[#0076D1] text-slate-800 dark:text-slate-100 resize-none"
-              />
-            </div>
-
-            {/* Modal Actions */}
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-              <button
-                type="button"
-                onClick={() => setShowNewConvModal(false)}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+      {/* Lightbox Image Preview Modal */}
+      {previewLightboxUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-in fade-in"
+          onClick={() => setPreviewLightboxUrl(null)}
+        >
+          <div className="relative max-w-4xl max-h-[90vh] flex flex-col items-center">
+            <button
+              type="button"
+              onClick={() => setPreviewLightboxUrl(null)}
+              className="absolute -top-10 right-0 p-1.5 text-white/80 hover:text-white rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <img
+              src={previewLightboxUrl}
+              alt="Preview"
+              className="max-h-[82vh] w-auto max-w-full rounded-2xl object-contain shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <div className="mt-3 flex items-center gap-2">
+              <a
+                href={previewLightboxUrl}
+                download
+                target="_blank"
+                rel="noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="px-4 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-bold flex items-center gap-1.5 backdrop-blur-xs transition-colors"
               >
-                {t("common.cancel", "Hủy")}
-              </button>
-              <button
-                type="button"
-                onClick={handleStartNewConversation}
-                disabled={!selectedRecipient}
-                className="px-4 py-2 text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700 disabled:opacity-50 rounded-xl transition-colors shadow-xs cursor-pointer"
-              >
-                {t("Start Direct Message")}
-              </button>
+                <Download className="w-3.5 h-3.5" />
+                <span>{t('Tải về')}</span>
+              </a>
             </div>
           </div>
         </div>
       )}
 
-      {/* ─── 3.11.7 Blocked Users Modal ────────────────────────────────────────── */}
+      {/* Blocked Users Modal */}
       {showBlockedModal && (
         <div id="modal-blocked-users" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 max-w-lg w-full p-6 space-y-4 animate-in fade-in zoom-in-95">
