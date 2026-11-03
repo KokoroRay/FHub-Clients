@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useRealtime } from '../context/RealtimeContext';
 import { Dropdown } from '../components/common/Dropdown';
 import { ErrorBoundary } from '../components/common/ErrorBoundary';
 import { ThemeToggle } from '../components/common/ThemeToggle';
@@ -45,6 +46,7 @@ import {
 export const AdminSubdomainLayout: React.FC = () => {
   const { currentUser, currentCampus, setCurrentCampus, logout } = useAuth();
   const { t } = useLanguage();
+  const { status: realtimeStatus } = useRealtime();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPartition, setSelectedPartition] = useState<string>('ALL');
   const navigate = useNavigate();
@@ -277,6 +279,11 @@ export const AdminSubdomainLayout: React.FC = () => {
               <ArrowUpRight className="w-3.5 h-3.5" />
             </button>
 
+                        {/* Realtime Live Engine Status Indicator */}
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-full text-[11px] font-medium bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200/80 dark:border-emerald-800" title="Real-time Engine Active">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span className="hidden md:inline">Live</span>
+            </div>
             {/* Notification Bell */}
             <Link
               to="/tickets"

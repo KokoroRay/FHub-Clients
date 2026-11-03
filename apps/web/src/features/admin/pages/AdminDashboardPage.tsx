@@ -36,11 +36,13 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { useLanguage } from '../../../context/LanguageContext';
+import { useRealtime } from '../../../context/RealtimeContext';
 import { fetchAdminDashboardStats, AdminDashboardData } from '../../../services/adminDashboardService';
 
 export const AdminDashboardPage: React.FC = () => {
   const { currentUser } = useAuth();
   const { formatTime, locale, t, language } = useLanguage();
+  const { on, onlineCount, status: realtimeStatus } = useRealtime();
   const [activityTimeframe, setActivityTimeframe] = useState<'Today' | '7 Days' | '30 Days'>('Today');
   const [showQuickActions, setShowQuickActions] = useState(false);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
@@ -68,6 +70,25 @@ export const AdminDashboardPage: React.FC = () => {
       isMounted = false;
     };
   }, [activityTimeframe]);
+
+  // Real-time telemetry synchronization for Admin Dashboard
+  useEffect(() => {
+    const unsubPulse = on('ADMIN_DASHBOARD_PULSE', () => {
+      fetchAdminDashboardStats(activityTimeframe).then((data) => setDashboardData(data));
+    });
+    const unsubTicket = on('TICKET_UPDATED', () => {
+      fetchAdminDashboardStats(activityTimeframe).then((data) => setDashboardData(data));
+    });
+    const unsubReport = on('MODERATION_NEW_REPORT', () => {
+      fetchAdminDashboardStats(activityTimeframe).then((data) => setDashboardData(data));
+    });
+
+    return () => {
+      unsubPulse();
+      unsubTicket();
+      unsubReport();
+    };
+  }, [on, activityTimeframe]);
 
   const handleExportReport = () => {
     setActionNotice(t("Report generated and downloaded: FHub_Admin_Executive_Summary_2026.pdf"));
@@ -160,6 +181,11 @@ export const AdminDashboardPage: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
+          {/* Live Telemetry Pill */}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold text-emerald-700 dark:text-emerald-400 shadow-2xs">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>Real-time: {onlineCount} online</span>
+          </div>
           {/* Date pill */}
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-medium text-slate-600 shadow-2xs">
             <Calendar className="w-3.5 h-3.5 text-slate-400" />

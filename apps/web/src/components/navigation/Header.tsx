@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useRealtime } from '../../context/RealtimeContext';
 import { campusesApi } from '../../services/api/adminApi';
 import { notificationApi, NotificationItem } from '../../services/api/studentApi';
 import { normalizeMediaUrl } from '../../utils/mediaUtils';
@@ -25,6 +26,7 @@ import { UserAvatarDropdown } from './UserAvatarDropdown';
 export const Header: React.FC = () => {
   const { currentUser, currentCampus, setCurrentCampus } = useAuth();
   const { locale, t, language } = useLanguage();
+  const { on } = useRealtime();
   const [searchQuery, setSearchQuery] = useState('');
   const [showNotifDrawer, setShowNotifDrawer] = useState(false);
   const [campuses, setCampuses] = useState<Array<{ code: string; name: string }>>([]);
@@ -49,6 +51,29 @@ export const Header: React.FC = () => {
       fetchNotifications();
     }
   }, [currentUser]);
+
+  // Real-time synchronization for personal notifications
+  React.useEffect(() => {
+    const unsubNew = on('NOTIFICATION_NEW', () => {
+      fetchNotifications();
+    });
+    const unsubRead = on('NOTIFICATION_READ', () => {
+      fetchNotifications();
+    });
+    const unsubAllRead = on('NOTIFICATION_ALL_READ', () => {
+      fetchNotifications();
+    });
+    const unsubDel = on('NOTIFICATION_DELETED', () => {
+      fetchNotifications();
+    });
+
+    return () => {
+      unsubNew();
+      unsubRead();
+      unsubAllRead();
+      unsubDel();
+    };
+  }, [on]);
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
 

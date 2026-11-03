@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { notificationApi, NotificationItem as ApiNotificationItem } from '../../services/api/studentApi';
 import { useLanguage } from '../../context/LanguageContext';
+import { useRealtime } from '../../context/RealtimeContext';
 
 interface NotificationItem {
   id: string;
@@ -36,6 +37,7 @@ interface NotificationItem {
 export const NotificationsPage: React.FC = () => {
   const navigate = useNavigate();
   const { formatDate, formatTime, locale, t } = useLanguage();
+  const { on } = useRealtime();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [activeTab, setActiveTab] = useState<'all' | 'unread' | 'read'>('all');
   const [loading, setLoading] = useState(false);
@@ -99,6 +101,32 @@ export const NotificationsPage: React.FC = () => {
   useEffect(() => {
     fetchLiveNotifications();
   }, []);
+
+  // Real-time synchronization for notifications
+  useEffect(() => {
+    const unsubNew = on('NOTIFICATION_NEW', () => {
+      fetchLiveNotifications();
+    });
+    const unsubRead = on('NOTIFICATION_READ', (evt) => {
+      const notifId = String(evt.payload?.notificationId || '');
+      setNotifications((prev) => prev.map((n) => n.id === notifId ? { ...n, isRead: true } : n));
+    });
+    const unsubAllRead = on('NOTIFICATION_ALL_READ', () => {
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    });
+    const unsubDel = on('NOTIFICATION_DELETED', (evt) => {
+      const notifId = String(evt.payload?.notificationId || '');
+      setNotifications((prev) => prev.filter((n) => n.id !== notifId));
+    });
+
+    return () => {
+      unsubNew();
+      unsubRead();
+      unsubAllRead();
+      unsubDel();
+    };
+  }, [on]);
+
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
   const readCount = notifications.filter(n => n.isRead).length;

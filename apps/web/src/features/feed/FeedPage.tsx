@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { useRealtime } from '../../context/RealtimeContext';
 import { questionApi } from '../../services/api/contentApi';
 import { profileApi, voteApi } from '../../services/api/studentApi';
 import { AskQuestionModal } from '../discussions/AskQuestionModal';
@@ -47,6 +48,7 @@ const parseBodyMedia = (rawBody: string = '') => {
 export const FeedPage: React.FC = () => {
   const { currentUser, currentCampus } = useAuth();
   const { t, locale } = useLanguage();
+  const { on } = useRealtime();
   const navigate = useNavigate();
 
   // State

@@ -33,10 +33,12 @@ import {
 } from '../../services/api/adminApi';
 import { seriesApi } from '../../services/api/contentApi';
 import { useLanguage } from '../../context/LanguageContext';
+import { useRealtime } from '../../context/RealtimeContext';
 import { RecordDialog } from '../../components/common/RecordDialog';
 
 export const ModeratorToolsPage: React.FC = () => {
   const { locale, t } = useLanguage();
+  const { on } = useRealtime();
   const [activeTab, setActiveTab] = useState<'reports' | 'moderation' | 'warnings' | 'series' | 'tags'>('reports');
 
   // Reports Queue State

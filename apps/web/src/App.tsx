@@ -5,6 +5,7 @@ import { router } from './routes';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { LanguageProvider } from './context/LanguageContext';
+import { RealtimeProvider } from './context/RealtimeContext';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 const queryClient = new QueryClient({
@@ -23,7 +24,9 @@ function App() {
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
             <ThemeProvider>
-              <RouterProvider router={router} />
+              <RealtimeProvider>
+                <RouterProvider router={router} />
+              </RealtimeProvider>
             </ThemeProvider>
           </AuthProvider>
         </QueryClientProvider>

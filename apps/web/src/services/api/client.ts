@@ -170,16 +170,16 @@ apiClient.interceptors.response.use(
         const newRefreshToken = refreshResponse.data?.data?.refreshToken;
 
         if (newAccessToken) {
-          localStorage.setItem('fhub_token', newAccessToken);
+          const isSessionOnly = !localStorage.getItem('fhub_token') && !!sessionStorage.getItem('fhub_token');
+          const primaryStorage = isSessionOnly ? sessionStorage : localStorage;
+          const otherStorage = isSessionOnly ? localStorage : sessionStorage;
+
+          primaryStorage.setItem('fhub_token', newAccessToken);
           if (newRefreshToken) {
-            localStorage.setItem('fhub_refresh_token', newRefreshToken);
+            primaryStorage.setItem('fhub_refresh_token', newRefreshToken);
           }
-          if (sessionStorage.getItem('fhub_token')) {
-            sessionStorage.setItem('fhub_token', newAccessToken);
-            if (newRefreshToken) {
-              sessionStorage.setItem('fhub_refresh_token', newRefreshToken);
-            }
-          }
+          otherStorage.removeItem('fhub_token');
+          otherStorage.removeItem('fhub_refresh_token');
 
           if (originalRequest.headers) {
             originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;

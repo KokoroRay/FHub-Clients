@@ -5,6 +5,7 @@ import { Badge } from '../../components/common/Badge';
 import { Table, Column } from '../../components/common/Table';
 import { Modal } from '../../components/common/Modal';
 import { useLanguage } from '../../context/LanguageContext';
+import { useRealtime } from '../../context/RealtimeContext';
 
 import { userManagementApi } from '../../services/api/adminApi';
 
@@ -21,6 +22,7 @@ interface VerificationRequest {
 
 export const VerificationQueuePage: React.FC = () => {
   const { t } = useLanguage();
+  const { on } = useRealtime();
   const [requests, setRequests] = useState<VerificationRequest[]>([
     {
       id: 'req-1',
@@ -45,6 +47,31 @@ export const VerificationQueuePage: React.FC = () => {
   ]);
 
   const [selectedReq, setSelectedReq] = useState<VerificationRequest | null>(null);
+
+  // Real-time synchronization for verification queue
+  React.useEffect(() => {
+    const unsub = on('VERIFICATION_NEW_REQUEST', (evt) => {
+      const payload = evt.payload;
+      if (payload) {
+        const newReq: VerificationRequest = {
+          id: String(payload.id || Date.now()),
+          fullName: payload.fullName || 'Sinh viên mới',
+          email: payload.email || '',
+          studentId: payload.studentId || 'SE-NEW',
+          campus: payload.campus || 'HL',
+          studentCardImageUrl: payload.studentCardImageUrl || 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=600&auto=format&fit=crop&q=80',
+          submittedAt: 'Vừa xong',
+          status: 'PENDING',
+        };
+        setRequests((prev) => [newReq, ...prev]);
+      }
+    });
+
+    return () => {
+      unsub();
+    };
+  }, [on]);
+
 
   const handleApprove = async (id: string) => {
     try {
