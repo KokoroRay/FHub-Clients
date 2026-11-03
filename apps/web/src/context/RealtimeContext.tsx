@@ -55,8 +55,31 @@ const playChimeSound = () => {
     osc2.start(now + 0.15);
     osc2.stop(now + 0.35);
   } catch (err) {
-    // Ignore audio autoplay restrictions if user has not interacted with DOM yet
+    // Ignore audio autoplay restrictions
   }
+};
+
+const getWebSocketUrl = (token: string, userId: string | number, role: string): string => {
+  const rawApiUrl = (import.meta.env.VITE_API_URL || '').trim();
+  let wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  let wsHost = window.location.host;
+
+  // In production or when VITE_API_URL is configured
+  if (rawApiUrl.startsWith('http://') || rawApiUrl.startsWith('https://')) {
+    try {
+      const u = new URL(rawApiUrl);
+      wsProtocol = u.protocol === 'https:' ? 'wss:' : 'ws:';
+      wsHost = u.host;
+    } catch {
+      // fallback
+    }
+  } else if (typeof window !== 'undefined' && window.location.hostname.endsWith('fhub.com.vn')) {
+    // In production on Cloudflare Pages / fhub.com.vn domain, API is hosted on api.fhub.com.vn
+    wsProtocol = 'wss:';
+    wsHost = 'api.fhub.com.vn';
+  }
+
+  return `${wsProtocol}//${wsHost}/api/communication/ws?token=${encodeURIComponent(token)}&userId=${userId}&role=${encodeURIComponent(role)}`;
 };
 
 export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -226,16 +249,19 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return;
     }
 
+    const token = localStorage.getItem('fhub_token') || sessionStorage.getItem('fhub_token') || '';
+    if (!token) {
+      setStatus('disconnected');
+      return;
+    }
+
     if (socketRef.current && (socketRef.current.readyState === WebSocket.OPEN || socketRef.current.readyState === WebSocket.CONNECTING)) {
       return;
     }
 
     setStatus('connecting');
 
-    const token = localStorage.getItem('fhub_token') || sessionStorage.getItem('fhub_token') || '';
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.host;
-    const wsUrl = `${protocol}//${host}/api/communication/ws?token=${encodeURIComponent(token)}&userId=${currentUser.id}&role=${encodeURIComponent(currentUser.role || 'Student')}`;
+    const wsUrl = getWebSocketUrl(token, currentUser.id, currentUser.role || 'Student');
 
     try {
       const ws = new WebSocket(wsUrl);
@@ -263,7 +289,7 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             handleEventDispatched(parsed);
           }
         } catch (err) {
-          console.warn('Failed to parse WebSocket packet:', err);
+          // ignore malformed frame
         }
       };
 
@@ -271,24 +297,26 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         setStatus('disconnected');
         if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
 
-        // Exponential backoff reconnect
-        const attempts = reconnectAttemptsRef.current;
-        const delay = Math.min(1000 * Math.pow(1.5, attempts), 10000);
-        reconnectAttemptsRef.current += 1;
+        // Exponential backoff reconnect (capped at 5 attempts to prevent console flooding)
+        if (reconnectAttemptsRef.current < 5) {
+          const attempts = reconnectAttemptsRef.current;
+          const delay = Math.min(2000 * Math.pow(1.6, attempts), 25000);
+          reconnectAttemptsRef.current += 1;
 
-        if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
-        reconnectTimeoutRef.current = window.setTimeout(() => {
-          connect();
-        }, delay);
+          if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+          reconnectTimeoutRef.current = window.setTimeout(() => {
+            connect();
+          }, delay);
+        } else {
+          // Fallback polling mode
+          setStatus('disconnected');
+        }
       };
 
-      ws.onerror = (err) => {
-        console.warn('WebSocket connection error:', err);
+      ws.onerror = () => {
         setStatus('error');
-        ws.close();
       };
     } catch (err) {
-      console.warn('WebSocket initialization failed:', err);
       setStatus('error');
     }
   }, [isAuthenticated, currentUser, handleEventDispatched]);
@@ -296,7 +324,20 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useEffect(() => {
     connect();
 
+    // Auto-reconnect when user refocuses tab or device comes online
+    const handleReactivate = () => {
+      if (socketRef.current?.readyState !== WebSocket.OPEN) {
+        reconnectAttemptsRef.current = 0;
+        connect();
+      }
+    };
+
+    window.addEventListener('online', handleReactivate);
+    window.addEventListener('focus', handleReactivate);
+
     return () => {
+      window.removeEventListener('online', handleReactivate);
+      window.removeEventListener('focus', handleReactivate);
       if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
       if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
       if (socketRef.current) {
