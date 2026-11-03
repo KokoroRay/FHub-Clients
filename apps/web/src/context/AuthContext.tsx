@@ -138,7 +138,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .then((profile: any) => {
         if (!profile) return;
         const avatar = profile.avatarUrl || profile.avatar_url || profile.avatar || '';
-        const fullName = profile.fullName || profile.full_name || profile.displayName || '';
+        const fullName = profile.displayName || profile.fullName || profile.full_name || '';
         const campus = profile.campusCode || profile.campus || '';
 
         const updates: Partial<User> = {};

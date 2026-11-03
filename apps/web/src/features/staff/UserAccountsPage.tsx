@@ -7,60 +7,36 @@ import { Badge } from '../../components/common/Badge';
 import { Table, Column } from '../../components/common/Table';
 import { Modal } from '../../components/common/Modal';
 
+import { userManagementApi } from '../../services/api/adminApi';
+import { extractStudentIdFromEmail } from '../../utils/fptEmailValidator';
+
 export const UserAccountsPage: React.FC = () => {
   const { t } = useLanguage();
-  const [users, setUsers] = useState<User[]>([
-    {
-      id: 'u-1',
-      fullName: 'Nguyễn Văn A',
-      email: 'nguyenvana.se@fpt.edu.vn',
-      studentId: 'HE163421',
-      campus: 'HL',
-      major: 'Software Engineering',
-      role: 'Student',
-      karma: 1250,
-      status: 'ACTIVE',
-      verifiedAt: '2025-09-01',
-      badges: [],
-    },
-    {
-      id: 'u-2',
-      fullName: 'Trần Thị B',
-      email: 'tranb.he172109@fpt.edu.vn',
-      studentId: 'HE172109',
-      campus: 'HL',
-      major: 'Software Engineering',
-      role: 'Student',
-      karma: 890,
-      status: 'ACTIVE',
-      verifiedAt: '2025-10-12',
-      badges: [],
-    },
-    {
-      id: 'u-3',
-      fullName: 'Lê Văn Spam',
-      email: 'spammer.acc@gmail.com',
-      studentId: 'HE180000',
-      campus: 'HCM',
-      major: 'Business Administration',
-      role: 'Student',
-      karma: -50,
-      status: 'MUTED',
-      badges: [],
-    },
-    {
-      id: 'u-4',
-      fullName: 'Hoàng Vi Phạm',
-      email: 'violation.user@fpt.edu.vn',
-      studentId: 'HE169999',
-      campus: 'DN',
-      major: 'Information Assurance',
-      role: 'Student',
-      karma: -200,
-      status: 'SUSPENDED',
-      badges: [],
-    },
-  ]);
+  const [users, setUsers] = useState<User[]>([]);
+
+  React.useEffect(() => {
+    userManagementApi.getAccounts({ pageNumber: 1, pageSize: 50 }).then((res: any) => {
+      if (res?.items && res.items.length > 0) {
+        setUsers(res.items.map((u: any) => ({
+          id: String(u.userId),
+          fullName: u.fullName || u.email?.split('@')[0] || `User #${u.userId}`,
+          email: u.email,
+          studentId: u.studentCode || (u.email ? extractStudentIdFromEmail(u.email) : '') || 'N/A',
+          campus: u.campus || 'HL',
+          major: u.major || 'Software Engineering',
+          role: u.roles?.[0] || 'Student',
+          karma: u.karma || 0,
+          status: (u.status || 'ACTIVE').toUpperCase() as any,
+          verifiedAt: u.createdAt ? u.createdAt.slice(0, 10) : '2026-01-01',
+          badges: [],
+        })));
+      } else {
+        setUsers([]);
+      }
+    }).catch(() => {
+      setUsers([]);
+    });
+  }, []);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);

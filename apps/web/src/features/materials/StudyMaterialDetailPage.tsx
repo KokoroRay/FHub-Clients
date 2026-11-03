@@ -20,10 +20,10 @@ import { StudyMaterial } from '../../types';
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 
 export const StudyMaterialDetailPage: React.FC = () => {
+  const { currentUser } = useAuth();
   const { locale, t } = useLanguage();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { currentUser } = useAuth();
 
   const [material, setMaterial] = useState<StudyMaterial | null>(null);
   const [rawFileName, setRawFileName] = useState<string>('');
@@ -66,8 +66,8 @@ export const StudyMaterialDetailPage: React.FC = () => {
             downloadUrl: data.externalUrl || `/api/content/study-materials/${data.studyMaterialId}/download`,
             downloadsCount: data.downloadCount || 48,
             author: {
-              id: String(data.uploaderUserId || 4),
-              fullName: data.uploaderUserId === 4 ? 'Nguyen Minh Tam (CE181522)' : 'Nguyen Minh Tam (CE181522)',
+              id: String(data.uploaderUserId || currentUser?.id || 4),
+              fullName: (data.uploaderUserId && currentUser?.id && String(data.uploaderUserId) === String(currentUser.id) ? (currentUser.fullName || null) : null) || (data as any).uploaderDisplayName || (data as any).uploaderName || (data.uploaderUserId ? `Sinh viên FPT (#${data.uploaderUserId})` : 'Thành viên FHub'),
             },
             semesterUploaded: 'Fall 2026',
             createdAt: data.createdAt,

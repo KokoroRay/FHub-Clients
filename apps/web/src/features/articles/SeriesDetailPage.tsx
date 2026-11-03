@@ -5,9 +5,11 @@ import { Layers, ArrowLeft, ArrowRight, Edit3, Trash2, Plus, BookOpen, CheckCirc
 import { SeriesModal } from './SeriesModal';
 import { Series } from '../../types';
 import { seriesApi } from '../../services/api/contentApi';
+import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 
 export const SeriesDetailPage: React.FC = () => {
+  const { currentUser } = useAuth();
   const { confirm, confirmationDialog } = useConfirmDialog();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -49,7 +51,7 @@ export const SeriesDetailPage: React.FC = () => {
           const authorNames: Record<number, string> = {
             2: 'Tran Minh Hoang (K14 Alumni)',
             3: 'Huynh Le Cong Bien (CE181207)',
-            4: 'Nguyen Minh Tam (CE181522)',
+            4: 'Pham Duc Anh',
             5: 'Nguyen Quoc Bao (CE180121)',
           };
           const itemTitles: Record<string, string> = {
@@ -66,7 +68,7 @@ export const SeriesDetailPage: React.FC = () => {
             description: data.description || '',
             author: {
               id: String(data.authorUserId),
-              fullName: authorNames[data.authorUserId] || 'Nguyen Minh Tam (CE181522)',
+              fullName: (data.authorUserId && currentUser?.id && String(data.authorUserId) === String(currentUser.id) ? (currentUser.fullName || null) : null) || (data as any).authorDisplayName || (data as any).authorName || authorNames[data.authorUserId] || (data.authorUserId ? `Sinh viên FPT (#${data.authorUserId})` : 'Thành viên FHub'),
               avatarUrl: '',
             },
             itemCount: data.items ? data.items.length : 0,

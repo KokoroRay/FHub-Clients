@@ -19,9 +19,11 @@ import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 import { Card, CardBody } from '../../components/common/Card';
 import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
+import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 
 export const WorkflowDetailPage: React.FC = () => {
+  const { currentUser } = useAuth();
   const { t } = useLanguage();
   const { id } = useParams<{ id: string }>();
 
@@ -74,7 +76,7 @@ export const WorkflowDetailPage: React.FC = () => {
             technology,
             version: (data as any).version || 1,
             author: {
-              fullName: data.authorUserId === 4 ? 'Nguyen Minh Tam (CE181522)' : 'Nguyen Minh Tam (CE181522)',
+              fullName: (data.authorUserId && currentUser?.id && String(data.authorUserId) === String(currentUser.id) ? (currentUser.fullName || null) : null) || (data as any).authorDisplayName || (data as any).authorName || (data.authorUserId ? `Sinh viên FPT (#${data.authorUserId})` : 'Thành viên FHub'),
               role: 'Student',
               avatarUrl: '',
             },

@@ -102,7 +102,7 @@ export const ReputationRulesPage: React.FC = () => {
       cooldownSeconds: 0,
       isActive: true,
       lastUpdated: new Date().toISOString().replace('T', ' ').substring(0, 19),
-      updatedBy: 'Nguyen Admin',
+      updatedBy: 'Admin Quản trị viên',
     };
 
     setRules((prev) => [...prev, created]);

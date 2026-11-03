@@ -304,11 +304,23 @@ export const FeedPage: React.FC = () => {
     if (authorId && currentUser?.id && String(authorId) === String(currentUser.id)) {
       return currentUser.fullName || (currentUser as any)?.displayName || currentUser.email?.split('@')[0] || t('common.you', 'Bạn');
     }
-    // 1. Check loaded profile from profile-service
+    // 1. Check author fields if not a placeholder
+    const rawName = q.authorDisplayName || q.author?.fullName || q.author?.name;
+    if (rawName && typeof rawName === 'string' && rawName.trim()) {
+      const trimmed = rawName.trim();
+      const isPlaceholder =
+        trimmed.startsWith('Sinh viên') ||
+        trimmed.startsWith('User #') ||
+        trimmed === 'Thành viên FHub' ||
+        trimmed === 'FHub Member' ||
+        trimmed === 'Anonymous Student';
+      if (!isPlaceholder) return trimmed;
+    }
+    // 2. Check loaded profile from profile-service
     if (authorId && authorProfiles[authorId]?.fullName) {
       return authorProfiles[authorId].fullName;
     }
-    // 2. Check known seed users in FPT system
+    // 3. Check known seed users in FPT system as fallback
     const knownUsers: Record<number, string> = {
       1: 'Nguyễn Văn An',
       2: 'Trần Minh Hoàng',
@@ -323,18 +335,6 @@ export const FeedPage: React.FC = () => {
     };
     if (authorId && knownUsers[authorId]) {
       return knownUsers[authorId];
-    }
-    // 3. Check author fields if not a placeholder
-    const rawName = q.authorDisplayName || q.author?.fullName || q.author?.name;
-    if (rawName && typeof rawName === 'string' && rawName.trim()) {
-      const trimmed = rawName.trim();
-      const isPlaceholder =
-        trimmed.startsWith('Sinh viên') ||
-        trimmed.startsWith('User #') ||
-        trimmed === 'Thành viên FHub' ||
-        trimmed === 'FHub Member' ||
-        trimmed === 'Anonymous Student';
-      if (!isPlaceholder) return trimmed;
     }
     return t('common.fhubMember', 'Thành viên FHub');
   };
@@ -413,15 +413,15 @@ export const FeedPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 3.B Quick Navigation Shortcuts (8 Core Modules from Figma - Restored) */}
-      <div className="bg-white dark:bg-[#272727] rounded-2xl p-4 sm:p-5 border border-slate-200/90 dark:border-transparent dark:hover:border-[#444444] shadow-2xs transition-colors">
-        <div className="flex items-center justify-between mb-3.5">
-          <h2 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+      {/* 3.B Quick Navigation Shortcuts (8 Core Modules from Figma #86:137 - Restored Compact Style) */}
+      <div className="space-y-2.5">
+        <div className="flex items-center justify-between px-0.5">
+          <h2 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
             {t('feed.quickShortcuts', 'Phím tắt truy cập nhanh')}
           </h2>
           <span className="text-[11px] text-slate-400">{t('feed.eightModules', '8 phân hệ học tập')}</span>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 sm:gap-2.5">
+        <div className="grid grid-cols-4 sm:grid-cols-8 gap-2 sm:gap-2.5">
           {[
             { label: t('nav.workflows', 'Quy trình'), path: '/workflows', icon: Layers, color: 'text-indigo-600 bg-indigo-50 dark:bg-indigo-950/50 dark:text-indigo-400' },
             { label: t('nav.articles', 'Bài viết'), path: '/articles', icon: FileCode, color: 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/50 dark:text-emerald-400' },
@@ -437,12 +437,12 @@ export const FeedPage: React.FC = () => {
               <Link
                 key={idx}
                 to={item.path}
-                className="flex flex-col items-center justify-center p-3 rounded-xl border border-slate-100 dark:border-slate-800 hover:border-slate-200 dark:hover:border-slate-700 hover:shadow-xs transition-all text-center group cursor-pointer bg-slate-50/50 dark:bg-slate-800/40"
+                className="h-[76px] sm:h-[84px] p-2 flex flex-col items-center justify-between bg-white dark:bg-[#272727] rounded-xl sm:rounded-2xl border border-slate-200/90 dark:border-transparent hover:border-blue-400 dark:hover:border-[#444444] dark:hover:bg-[#333333] hover:shadow-xs transition-all text-center group cursor-pointer shadow-2xs"
               >
-                <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-1.5 transition-transform group-hover:scale-110 ${item.color}`}>
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform ${item.color}`}>
                   <IconComp className="w-4 h-4" />
                 </div>
-                <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 group-hover:text-[#0076D1] dark:group-hover:text-blue-400 transition-colors">
+                <span className="text-[10px] sm:text-[11px] font-bold text-slate-700 dark:text-slate-300 group-hover:text-[#0076D1] dark:group-hover:text-blue-400 leading-tight text-center truncate w-full px-0.5">
                   {item.label}
                 </span>
               </Link>

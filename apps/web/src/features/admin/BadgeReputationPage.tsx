@@ -1,5 +1,7 @@
 import { useLanguage } from '../../context/LanguageContext';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { reputationApi } from '../../services/api/adminApi';
+import { badgeApi } from '../../services/api/studentApi';
 import { Award, Plus, Edit2, Trash2, Zap, Star, ShieldCheck } from 'lucide-react';
 import { Button } from '../../components/common/Button';
 import { Badge } from '../../components/common/Badge';
@@ -28,20 +30,47 @@ export const BadgeReputationPage: React.FC = () => {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<'badges' | 'karma'>('badges');
 
-  const [badges] = useState<BadgeRule[]>([
+  const [badges, setBadges] = useState<BadgeRule[]>([
     { id: 'b1', name: 'Code Champion', tier: 'GOLD', condition: 'Có trên 50 câu trả lời được Best Answer', karmaBonus: 500, unlockedCount: 38 },
     { id: 'b2', name: 'Knowledge Sharer', tier: 'SILVER', condition: 'Đóng góp 10+ workflows thực hành', karmaBonus: 250, unlockedCount: 65 },
     { id: 'b3', name: 'Top Reviewer', tier: 'BRONZE', condition: 'Đánh giá 5+ môn học chi tiết', karmaBonus: 100, unlockedCount: 120 },
     { id: 'b4', name: 'Alumni Mentor', tier: 'PLATINUM', condition: 'Cựu sinh viên hướng dẫn 3+ nhóm đồ án', karmaBonus: 1000, unlockedCount: 15 },
   ]);
 
-  const [reputationRules] = useState<ReputationRule[]>([
+  const [reputationRules, setReputationRules] = useState<ReputationRule[]>([
     { id: 'r1', action: 'POST_UPVOTED', points: 10, type: 'ADD', description: 'Bài viết hoặc câu hỏi nhận được 1 Upvote' },
     { id: 'r2', action: 'BEST_ANSWER_ACCEPTED', points: 50, type: 'ADD', description: 'Câu trả lời được tác giả chọn làm Best Answer' },
     { id: 'r3', action: 'MOD_VERIFIED_BADGE', points: 30, type: 'ADD', description: 'Câu trả lời được Moderator xác thực chuẩn xác' },
     { id: 'r4', action: 'POST_DOWNVOTED', points: 5, type: 'DEDUCT', description: 'Bài viết nhận được 1 Downvote' },
     { id: 'r5', action: 'CONTENT_FLAGGED_VIOLATION', points: 100, type: 'DEDUCT', description: 'Nội dung bị xóa do vi phạm tiêu chuẩn cộng đồng' },
   ]);
+
+  useEffect(() => {
+    reputationApi.getRules().then((res) => {
+      if (res && res.length > 0) {
+        setReputationRules(res.map((r: any) => ({
+          id: String(r.id || r.rule_id),
+          action: r.actionCode || r.rule_code || r.code || r.actionName,
+          points: Math.abs(r.pointDelta ?? r.points_delta ?? 0),
+          type: (r.pointDelta ?? r.points_delta ?? 0) < 0 ? 'DEDUCT' : 'ADD',
+          description: r.description || r.actionName || '',
+        })));
+      }
+    }).catch(() => {});
+
+    badgeApi.getAllBadges().then((res: any) => {
+      if (res && res.length > 0) {
+        setBadges(res.map((b: any, idx: number) => ({
+          id: String(b.badge_id || b.id || idx),
+          name: b.name || b.badge_name || 'Badge',
+          tier: (b.tier || 'BRONZE').toUpperCase() as any,
+          condition: b.description || 'Đạt tiêu chí đóng góp học thuật trên hệ thống',
+          karmaBonus: b.threshold_value || 100,
+          unlockedCount: 25,
+        })));
+      }
+    }).catch(() => {});
+  }, []);
 
   const badgeColumns: Column<BadgeRule>[] = [
     {

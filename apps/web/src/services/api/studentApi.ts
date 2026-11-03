@@ -469,6 +469,8 @@ export const voteApi = {
 // ─── 6. Reputation & Rules API (Go Interaction Service) ───────────────────────
 export interface ReputationRuleDto {
   rule_id: number;
+  rule_name?: string;
+  rule_code?: string;
   action_type: string;
   karma_delta: number;
   daily_cap: number;
@@ -481,12 +483,14 @@ export const studentReputationApi = {
     const res = await apiClient.get('/api/reputation/rules');
     const data = (res.data as any).data || res.data;
     return Array.isArray(data) ? data.map(r => ({
-      rule_id: r.rule_id,
-      action_type: r.action_type || r.rule_code || r.event_type || '',
-      karma_delta: r.karma_delta ?? r.points_delta ?? 0,
-      daily_cap: r.daily_cap ?? r.daily_limit ?? 0,
-      description: r.description || '',
-      is_active: r.is_active ?? true,
+      rule_id: r.rule_id || r.id || r.ReputationRuleId,
+      rule_name: r.rule_name || r.RuleName || r.name || r.action_name || r.actionName,
+      rule_code: r.rule_code || r.RuleCode || r.code || r.actionCode,
+      action_type: r.action_type || r.rule_code || r.RuleCode || r.event_type || r.EventType || '',
+      karma_delta: r.karma_delta ?? r.points_delta ?? r.PointsDelta ?? r.pointDelta ?? 0,
+      daily_cap: r.daily_cap ?? r.daily_limit ?? r.DailyLimit ?? r.dailyCap ?? 0,
+      description: r.description || r.Description || '',
+      is_active: r.is_active ?? r.IsActive ?? r.isActive ?? true,
     })) : [];
   },
 

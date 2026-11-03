@@ -86,10 +86,14 @@ export const CourseEvaluationDetailPage: React.FC = () => {
             courseCode: data.courseId === 1 ? 'PRF192' : data.courseId === 2 ? 'PRO192' : 'PRN231',
             courseTitle: data.courseId === 1 ? 'Programming Fundamentals' : data.courseId === 2 ? 'Object-Oriented Programming' : 'Building Cross-Platform Back-End Application With .NET',
             reviewer: {
-              id: data.isAnonymous ? 'anon' : String(data.authorUserId || '4'),
-              fullName: data.isAnonymous ? 'Anonymous Student' : 'Nguyen Minh Tam (CE181522)',
+              id: data.isAnonymous ? 'anon' : String(data.authorUserId || currentUser?.id || ''),
+              fullName: data.isAnonymous
+                ? 'Anonymous Student'
+                : (data.authorUserId && currentUser?.id && String(data.authorUserId) === String(currentUser.id) ? currentUser.fullName : null) || (data as any).authorDisplayName || (data as any).authorName || (data.authorUserId ? `Sinh viên FPT (#${data.authorUserId})` : 'Sinh viên FPT'),
               avatarUrl: '',
-              studentId: data.isAnonymous ? 'ANONYMOUS' : 'CE181522',
+              studentId: data.isAnonymous
+                ? 'ANONYMOUS'
+                : ((data as any).authorStudentId || (data.authorUserId && currentUser?.id && String(data.authorUserId) === String(currentUser.id) ? currentUser.studentId : null) || ''),
             },
             rating: data.overallRating || 5,
             workloadRating: data.workloadRating || 4,

@@ -22,6 +22,7 @@ import {
   X,
 } from 'lucide-react';
 import { Card, CardBody, CardHeader } from '../../components/common/Card';
+import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
@@ -39,6 +40,7 @@ import {
 } from '../../utils/tagUtils';
 
 export const ArticleDetailPage: React.FC = () => {
+  const { currentUser } = useAuth();
   const { formatDate, locale, t } = useLanguage();
   const { id } = useParams<{ id: string }>();
   const [article, setArticle] = useState<any | null>(null);
@@ -74,9 +76,11 @@ export const ArticleDetailPage: React.FC = () => {
             category,
             tags,
             author: {
-              fullName: data.authorStaffId ? 'FPT Faculty Staff' : 'Nguyen Minh Tam (CE181522)',
+              fullName: data.authorStaffId
+                ? 'FPT Faculty Staff'
+                : (data.authorUserId && currentUser?.id && String(data.authorUserId) === String(currentUser.id) ? (currentUser.fullName || null) : null) || (data as any).authorDisplayName || (data as any).authorName || (data.authorUserId ? `Sinh viên FPT (#${data.authorUserId})` : 'Thành viên FHub'),
               role: data.authorStaffId ? 'Staff' : 'Student',
-              campus: 'FPT University - Can Tho',
+              campus: 'FPT University',
               avatarUrl: '',
             },
           });
