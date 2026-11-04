@@ -20,6 +20,7 @@ import { QuestionPost } from '../../types';
 import { AskQuestionModal } from './AskQuestionModal';
 import { questionApi } from '../../services/api/contentApi';
 import { voteApi, bookmarkApi } from '../../services/api/studentApi';
+import { apiClient } from '../../services/api/client';
 import { courseNodesApi, semanticTagsApi } from '../../services/api/adminApi';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -34,7 +35,7 @@ import {
 } from '../../utils/tagUtils';
 
 export const QuestionListPage: React.FC = () => {
-  const { currentCampus } = useAuth();
+  const { currentCampus, currentUser } = useAuth();
   const { locale, t } = useLanguage();
   const [searchParams] = useSearchParams();
   const initialTag = searchParams.get('tag');
@@ -177,7 +178,31 @@ export const QuestionListPage: React.FC = () => {
           });
           setVotesState(initialVotesState);
 
-          // Initial votes and userVote are already populated above via myVotesMap and upvote/downvote delta
+          // Fetch accurate live vote stats for loaded questions
+          Promise.allSettled(
+            items.map(async (item: any) => {
+              const numId = Number(String(item.questionId || item.id).replace(/\D/g, ''));
+              if (numId > 0) {
+                const stats = await voteApi.getStats('QUESTION', numId);
+                return { qId: String(item.questionId || item.id), numId, stats };
+              }
+              return null;
+            })
+          ).then((results: any[]) => {
+            setVotesState((prev) => {
+              const updated = { ...prev };
+              results.forEach((r) => {
+                if (r.status === 'fulfilled' && r.value) {
+                  const { qId, numId, stats } = r.value;
+                  const prevVote = updated[qId]?.userVote ?? (stats.myVoteValue === 1 ? 'UP' : stats.myVoteValue === -1 ? 'DOWN' : null);
+                  const entry = { score: stats.score, userVote: prevVote };
+                  updated[qId] = entry;
+                  updated[String(numId)] = entry;
+                }
+              });
+              return updated;
+            });
+          }).catch(() => {});
         }
       } catch (err) {
         if (isMounted) setQuestions([]);
@@ -242,9 +267,12 @@ export const QuestionListPage: React.FC = () => {
     const numId = Number(id.replace(/\D/g, ''));
     if (!numId) return;
 
-    const current = votesState[id] || {
-      score: questions.find((q) => q.id === id)?.upvotes || 0,
-      userVote: questions.find((q) => q.id === id)?.userVote || null,
+    const current = votesState[id] || (numId > 0 ? votesState[String(numId)] : undefined) || {
+      score: (() => {
+        const q = questions.find((x) => x.id === id || String(x.id).replace(/\D/g, '') === String(numId));
+        return (q?.upvotes || 0) - (q?.downvotes || 0);
+      })(),
+      userVote: questions.find((x) => x.id === id || String(x.id).replace(/\D/g, '') === String(numId))?.userVote || null,
     };
 
     let newVote: 'UP' | 'DOWN' | null = dir;
@@ -261,9 +289,11 @@ export const QuestionListPage: React.FC = () => {
       newScore += dir === 'UP' ? 2 : -2;
     }
 
+    const optimistic = { score: newScore, userVote: newVote };
     setVotesState((prev) => ({
       ...prev,
-      [id]: { score: newScore, userVote: newVote },
+      [id]: optimistic,
+      ...(numId > 0 ? { [String(numId)]: optimistic } : {}),
     }));
 
     try {
@@ -273,17 +303,33 @@ export const QuestionListPage: React.FC = () => {
         vote_value: dir === 'UP' ? 1 : -1,
       });
       const stats = await voteApi.getStats('QUESTION', numId);
+      const finalEntry = {
+        score: stats.score,
+        userVote: stats.myVoteValue === 1 ? 'UP' as const : stats.myVoteValue === -1 ? 'DOWN' as const : null,
+      };
       setVotesState((prev) => ({
         ...prev,
-        [id]: {
-          score: stats.score,
-          userVote: stats.myVoteValue === 1 ? 'UP' : stats.myVoteValue === -1 ? 'DOWN' : null,
-        },
+        [id]: finalEntry,
+        ...(numId > 0 ? { [String(numId)]: finalEntry } : {}),
       }));
+
+      if (dir === 'UP') {
+        const targetQ = questions.find((x) => x.id === id || String(x.id).replace(/\D/g, '') === String(numId));
+        const authorId = targetQ?.author?.id;
+        if (authorId && String(authorId) !== String(currentUser?.id)) {
+          apiClient.post('/api/reputation/events', {
+            user_id: Number(authorId),
+            rule_code: 'QUESTION_UPVOTED',
+            source_type: 'Question',
+            source_id: numId,
+          }).catch(() => {});
+        }
+      }
     } catch (err) {
       setVotesState((prev) => ({
         ...prev,
         [id]: current,
+        ...(numId > 0 ? { [String(numId)]: current } : {}),
       }));
     }
   };
@@ -509,8 +555,9 @@ export const QuestionListPage: React.FC = () => {
           </div>
         ) : (
           paginatedQuestions.map((q) => {
-            const currentScore = votesState[q.id]?.score ?? q.upvotes;
-            const currentUserVote = votesState[q.id]?.userVote ?? q.userVote;
+            const numId = Number(String(q.id).replace(/\D/g, ''));
+            const currentScore = votesState[q.id]?.score ?? (numId > 0 ? votesState[String(numId)]?.score : undefined) ?? ((q.upvotes || 0) - (q.downvotes || 0));
+            const currentUserVote = votesState[q.id]?.userVote ?? (numId > 0 ? votesState[String(numId)]?.userVote : undefined) ?? q.userVote;
 
             return (
               <div

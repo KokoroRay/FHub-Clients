@@ -5,6 +5,7 @@ import { Card, CardBody, CardHeader } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Input, Textarea, Select } from '../../components/common/Input';
 import { articleApi, alumniApi, contentMediaApi } from '../../services/api/contentApi';
+import { apiClient } from '../../services/api/client';
 import { IMAGE_ACCEPT, validateImage } from '../../utils/mediaUtils';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -14,7 +15,7 @@ const ArticleEditor = lazy(() => import('../../components/common/ArticleEditor')
 
 export const CreateArticlePage: React.FC = () => {
   const navigate = useNavigate();
-  const { currentUser } = useAuth();
+  const { currentUser, updateUser } = useAuth();
   const { t } = useLanguage();
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('Học thuật & Trải nghiệm sinh viên');

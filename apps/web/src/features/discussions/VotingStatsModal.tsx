@@ -30,10 +30,11 @@ export const VotingStatsModal: React.FC<VotingStatsModalProps> = ({
   if (!isOpen) return null;
   const { locale, t } = useLanguage();
 
-  const effectiveUpvotes = Math.max(upvotesCount, 18);
-  const totalVotes = Math.max(1, effectiveUpvotes + downvotesCount);
-  const upvotePercent = Math.round((effectiveUpvotes / totalVotes) * 100);
-  const downvotePercent = 100 - upvotePercent;
+  const effectiveUpvotes = Math.max(0, upvotesCount);
+  const effectiveDownvotes = Math.max(0, downvotesCount);
+  const totalVotes = effectiveUpvotes + effectiveDownvotes;
+  const upvotePercent = totalVotes > 0 ? Math.round((effectiveUpvotes / totalVotes) * 100) : 0;
+  const downvotePercent = totalVotes > 0 ? 100 - upvotePercent : 0;
 
   const votersHistory: Array<{
     id: string;

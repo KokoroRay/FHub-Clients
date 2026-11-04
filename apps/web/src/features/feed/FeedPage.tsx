@@ -20,6 +20,7 @@ import {
   LifeBuoy
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { apiClient } from '../../services/api/client';
 import { useLanguage } from '../../context/LanguageContext';
 import { useRealtime } from '../../context/RealtimeContext';
 import { questionApi } from '../../services/api/contentApi';
@@ -159,6 +160,32 @@ export const FeedPage: React.FC = () => {
       });
       setVotes(prev => ({ ...prev, ...newVotes }));
 
+      // Fetch accurate vote stats for loaded questions
+      Promise.allSettled(
+        items.map(async (q: any) => {
+          const numId = Number(String(q.questionId || q.id).replace(/\D/g, ''));
+          if (numId > 0) {
+            const stats = await voteApi.getStats('QUESTION', numId);
+            return { qId: String(q.questionId || q.id), numId, stats };
+          }
+          return null;
+        })
+      ).then((results: any[]) => {
+        setVotes(prev => {
+          const updated = { ...prev };
+          results.forEach(r => {
+            if (r.status === 'fulfilled' && r.value) {
+              const { qId, numId, stats } = r.value;
+              const prevVote = updated[qId]?.userVote ?? (stats.myVoteValue === 1 ? 'UP' : stats.myVoteValue === -1 ? 'DOWN' : null);
+              const entry = { count: stats.score, userVote: prevVote };
+              updated[qId] = entry;
+              updated[String(numId)] = entry;
+            }
+          });
+          return updated;
+        });
+      }).catch(() => {});
+
       // Synchronize user votes efficiently using 1 single getMyVotes call (reduces 10 parallel HTTP requests)
       if (currentUser && items.length > 0) {
         voteApi.getMyVotes()
@@ -279,6 +306,12 @@ export const FeedPage: React.FC = () => {
           const targetQ = questions.find((q: any) => String(q.questionId || q.id) === String(questionId) || String(q.id || '').replace(/\D/g, '') === String(numericId));
           const authorId = targetQ?.authorUserId || targetQ?.author?.id || targetQ?.author_user_id;
           if (authorId && String(authorId) !== String(currentUser?.id)) {
+            apiClient.post('/api/reputation/events', {
+              user_id: Number(authorId),
+              rule_code: 'QUESTION_UPVOTED',
+              source_type: 'Question',
+              source_id: numericId,
+            }).catch(() => {});
             const senderName = currentUser?.fullName || (currentUser as any)?.displayName || t('common.peerStudent', 'Một bạn học');
             notificationApi.createNotification({
               recipientUserId: Number(authorId),
@@ -616,9 +649,10 @@ export const FeedPage: React.FC = () => {
           <div className="divide-y divide-slate-100 dark:divide-slate-800">
             {questions.map((q, idx) => {
               const qId = String(q.questionId || q.id || idx);
+              const numId = Number(String(q.questionId || q.id).replace(/\D/g, ''));
               const authorName = getAuthorName(q);
               const authorId = Number(q.authorUserId || q.author?.id);
-              const voteInfo = votes[qId] || {
+              const voteInfo = votes[qId] || (numId > 0 ? votes[String(numId)] : undefined) || {
                 count: (q.upvoteCount || 0) - (q.downvoteCount || 0),
                 userVote: null,
               };

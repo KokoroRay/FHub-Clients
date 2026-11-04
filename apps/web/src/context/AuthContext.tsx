@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserRole, CampusCode } from '../types';
 import { authApi } from '../services/api/adminApi';
-import { profileApi } from '../services/api/studentApi';
+import { profileApi, studentReputationApi } from '../services/api/studentApi';
 import { resolveUserMajorName } from '../utils/taxonomyUtils';
 import { extractStudentIdFromEmail } from '../utils/fptEmailValidator';
 
@@ -157,6 +157,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (Object.keys(updates).length > 0) {
           updateUser(updates);
+        }
+      })
+      .catch(() => {});
+
+    studentReputationApi.getAccount(cleanId)
+      .then((acc: any) => {
+        if (!acc) return;
+        const karma = acc.reputation_score ?? acc.reputationScore ?? acc.ReputationScore;
+        if (typeof karma === 'number' && karma !== currentUser.karma) {
+          updateUser({ karma });
         }
       })
       .catch(() => {});

@@ -28,7 +28,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { EditProfileModal } from './EditProfileModal';
-import { profileApi, badgeApi, voteApi, followApi, directMessageApi, FollowStats, FollowUserItem } from '../../services/api/studentApi';
+import { profileApi, badgeApi, voteApi, followApi, directMessageApi, studentReputationApi, FollowStats, FollowUserItem } from '../../services/api/studentApi';
 import { questionApi, contentMediaApi } from '../../services/api/contentApi';
 import { apiClient } from '../../services/api/client';
 import { normalizeMediaUrl, validateImage, IMAGE_ACCEPT } from '../../utils/mediaUtils';
@@ -419,7 +419,23 @@ export const ProfilePage: React.FC = () => {
     let isMounted = true;
     const fetchInteractions = async () => {
       try {
-        const apiBadges = isOwnProfile ? await badgeApi.getMyBadges() : await badgeApi.getUserBadges(targetUserId);
+        const [apiBadges, repAcc] = await Promise.all([
+          isOwnProfile ? badgeApi.getMyBadges() : badgeApi.getUserBadges(targetUserId),
+          studentReputationApi.getAccount(targetUserId).catch(() => null),
+        ]);
+        if (isMounted && repAcc) {
+          const liveKarma = repAcc.reputation_score ?? repAcc.reputationScore ?? repAcc.ReputationScore ?? 0;
+          setProfileData(prev => ({
+            ...prev,
+            stats: {
+              ...prev.stats,
+              helpfulVotes: liveKarma,
+            }
+          }));
+          if (isOwnProfile && currentUser && liveKarma !== currentUser.karma) {
+            updateUser({ karma: liveKarma });
+          }
+        }
         if (isMounted) {
           if (apiBadges && apiBadges.length > 0) {
             const badgeIcons = ['🏅', '🚀', '📚', '⭐', '🏆', '💡', '🎓'];

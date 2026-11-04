@@ -30,6 +30,7 @@ import {
   X,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { apiClient } from '../../services/api/client';
 import { useLanguage } from '../../context/LanguageContext';
 import { questionApi, alumniApi } from '../../services/api/contentApi';
 import { voteApi, bookmarkApi, profileApi, notificationApi } from '../../services/api/studentApi';
@@ -49,10 +50,11 @@ export const QuestionDetailPage: React.FC = () => {
   const { formatDate, locale, t, language } = useLanguage();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { currentUser, currentRole } = useAuth();
+  const { currentUser, currentRole, updateUser } = useAuth();
 
   const [question, setQuestion] = useState<QuestionPost | null>(null);
   const [upvotes, setUpvotes] = useState(0);
+  const [voteDetails, setVoteDetails] = useState<{ upvotes: number; downvotes: number }>({ upvotes: 0, downvotes: 0 });
   const [userVote, setUserVote] = useState<'UP' | 'DOWN' | null>(null);
   const [isLocked, setIsLocked] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
@@ -199,6 +201,7 @@ export const QuestionDetailPage: React.FC = () => {
           if (isMounted) {
             setUpvotes(qStats.score);
             setUserVote(qStats.myVoteValue === 1 ? 'UP' : qStats.myVoteValue === -1 ? 'DOWN' : null);
+            setVoteDetails({ upvotes: qStats.upvotes, downvotes: qStats.downvotes });
           }
         } catch {
           if (isMounted && data) {
@@ -407,6 +410,7 @@ export const QuestionDetailPage: React.FC = () => {
       const stats = await voteApi.getStats('QUESTION', numId);
       setUpvotes(stats.score);
       setUserVote(stats.myVoteValue === 1 ? 'UP' : stats.myVoteValue === -1 ? 'DOWN' : null);
+      setVoteDetails({ upvotes: stats.upvotes, downvotes: stats.downvotes });
 
       if (type === 'UP' && question?.author?.id && String(question.author.id) !== String(currentUser?.id)) {
         const senderName = currentUser?.fullName || (currentUser as any)?.displayName || t('common.peerStudent', 'Một bạn học');
@@ -592,6 +596,15 @@ export const QuestionDetailPage: React.FC = () => {
           }
         } else {
           const res = await questionApi.createAnswer(numQId, { body: newAnswerContent.trim() });
+          try {
+            await apiClient.post('/api/reputation/events', {
+              user_id: Number(currentUser?.id),
+              rule_code: 'ANSWER_CREATED',
+              source_type: 'Answer',
+              source_id: Number(res.answerId || (res as any).id),
+            });
+            updateUser?.({ karma: ((currentUser as any)?.karma || 0) + 2 });
+          } catch {}
           createdAnsId = String(res.answerId);
         }
       } catch (err) {
@@ -1271,7 +1284,8 @@ export const QuestionDetailPage: React.FC = () => {
         isOpen={isVotingStatsOpen}
         onClose={() => setIsVotingStatsOpen(false)}
         question={question}
-        upvotesCount={upvotes}
+        upvotesCount={voteDetails.upvotes}
+        downvotesCount={voteDetails.downvotes}
       />
 
       {/* ─── 3.4.4 Edit Question Post Modal ────────────────────────────────────── */}
