@@ -223,6 +223,24 @@ export const ProfilePage: React.FC = () => {
           }
         } catch (_) {}
 
+        // Fallback for legacy generated student IDs (e.g. CE1801215 -> userId 15, or trailing numeric ID)
+        const legacyMatch = cleanQuery.match(/(?:CE18012|CE|SE)(\d+)$/i);
+        if (legacyMatch) {
+          const candId = Number(legacyMatch[1]);
+          if (candId > 0 && candId < 1000000) {
+            try {
+              const uRes = await apiClient.get<any>(`/api/users/${candId}`);
+              const u = uRes.data?.data || uRes.data;
+              if (u && (u.userId || u.id)) {
+                setTargetUserId(candId);
+                const code = u.studentCode || extractStudentIdFromEmail(u.email);
+                if (code) navigate(`/profile/${code}`, { replace: true });
+                return;
+              }
+            } catch (_) {}
+          }
+        }
+
         if (isMounted) {
           setProfileData(prev => ({
             ...prev,

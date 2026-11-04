@@ -1129,7 +1129,7 @@ export const DirectMessagesPage: React.FC = () => {
 
                   {/* Clickable Avatar to View Profile with MSSV */}
                   <Link
-                    to={activeConv.studentId && !activeConv.studentId.startsWith('SE-') ? `/profile/${activeConv.studentId}` : `/profile/${activeConv.participantId}`}
+                    to={`/profile/${activeConv.participantId}`}
                     title={t('Xem trang cá nhân của {p0}', undefined, { p0: activeConv.name })}
                     className="relative shrink-0 group"
                   >
@@ -1152,7 +1152,7 @@ export const DirectMessagesPage: React.FC = () => {
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <Link
-                        to={activeConv.studentId && !activeConv.studentId.startsWith('SE-') ? `/profile/${activeConv.studentId}` : `/profile/${activeConv.participantId}`}
+                        to={`/profile/${activeConv.participantId}`}
                         title={t('Xem trang cá nhân')}
                         className="text-sm font-bold text-slate-800 dark:text-slate-100 hover:text-[#0076D1] dark:hover:text-blue-400 transition-colors truncate flex items-center gap-1 group"
                       >
@@ -1198,7 +1198,7 @@ export const DirectMessagesPage: React.FC = () => {
                     <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 py-1.5 z-30 animate-in fade-in zoom-in-95">
                       {/* View Profile */}
                       <Link
-                        to={activeConv.studentId && !activeConv.studentId.startsWith('SE-') ? `/profile/${activeConv.studentId}` : `/profile/${activeConv.participantId}`}
+                        to={`/profile/${activeConv.participantId}`}
                         onClick={() => setIsOptionsOpen(false)}
                         className="w-full text-left px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2"
                       >

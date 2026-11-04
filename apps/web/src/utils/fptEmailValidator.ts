@@ -142,15 +142,15 @@ export function extractStudentIdFromEmail(email: string = ''): string | null {
   const username = trimmed.slice(0, atIdx);
 
   // 1. Dạng chấm: TanLT.CE190370@gmail.com
-  const dotMatch = username.match(/\.([A-Za-z]{2}\d{5,6})$/i);
+  const dotMatch = username.match(/\.([A-Za-z]{2}\d{5,8})$/i);
   if (dotMatch) return dotMatch[1].toUpperCase();
 
   // 2. Dạng liền đuôi: TamNMCE181522@fpt.edu.vn hoặc SE170123
-  const endMatch = username.match(/([A-Za-z]{2}\d{5,6})$/i);
+  const endMatch = username.match(/([A-Za-z]{2}\d{5,8})$/i);
   if (endMatch) return endMatch[1].toUpperCase();
 
   // 3. Quét mọi vị trí trong username
-  const anyMatch = username.match(/([A-Za-z]{2}\d{5,6})/i);
+  const anyMatch = username.match(/([A-Za-z]{2}\d{5,8})/i);
   if (anyMatch) return anyMatch[1].toUpperCase();
 
   return null;
