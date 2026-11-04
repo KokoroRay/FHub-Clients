@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserRole, CampusCode } from '../types';
 import { authApi } from '../services/api/adminApi';
-import { profileApi } from '../services/api/studentApi';
+import { profileApi, studentReputationApi } from '../services/api/studentApi';
 import { resolveUserMajorName } from '../utils/taxonomyUtils';
 import { extractStudentIdFromEmail } from '../utils/fptEmailValidator';
 
@@ -63,9 +63,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.removeItem('fhub_token');
       localStorage.removeItem('fhub_refresh_token');
       localStorage.removeItem('fhub_user');
+      localStorage.removeItem('fhub_chat_suggestions_dismissed');
       sessionStorage.removeItem('fhub_token');
       sessionStorage.removeItem('fhub_refresh_token');
       sessionStorage.removeItem('fhub_user');
+      sessionStorage.removeItem('fhub_chat_suggestions_dismissed');
       setCurrentUser(null);
     }
   };
@@ -95,6 +97,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const oppositeStorage = rememberMe ? sessionStorage : localStorage;
 
     // Purge opposite storage to eliminate persistence conflicts (R04)
+    // Reset dismissed state of chat suggestions on every fresh login
+    localStorage.removeItem('fhub_chat_suggestions_dismissed');
+    sessionStorage.removeItem('fhub_chat_suggestions_dismissed');
     oppositeStorage.removeItem('fhub_token');
     oppositeStorage.removeItem('fhub_refresh_token');
     oppositeStorage.removeItem('fhub_user');
@@ -152,6 +157,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (Object.keys(updates).length > 0) {
           updateUser(updates);
+        }
+      })
+      .catch(() => {});
+
+    studentReputationApi.getAccount(cleanId)
+      .then((acc: any) => {
+        if (!acc) return;
+        const karma = acc.reputation_score ?? acc.reputationScore ?? acc.ReputationScore;
+        if (typeof karma === 'number' && karma !== currentUser.karma) {
+          updateUser({ karma });
         }
       })
       .catch(() => {});

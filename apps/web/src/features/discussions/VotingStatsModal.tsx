@@ -30,10 +30,11 @@ export const VotingStatsModal: React.FC<VotingStatsModalProps> = ({
   if (!isOpen) return null;
   const { locale, t } = useLanguage();
 
-  const effectiveUpvotes = Math.max(upvotesCount, 18);
-  const totalVotes = Math.max(1, effectiveUpvotes + downvotesCount);
-  const upvotePercent = Math.round((effectiveUpvotes / totalVotes) * 100);
-  const downvotePercent = 100 - upvotePercent;
+  const effectiveUpvotes = Math.max(0, upvotesCount);
+  const effectiveDownvotes = Math.max(0, downvotesCount);
+  const totalVotes = effectiveUpvotes + effectiveDownvotes;
+  const upvotePercent = totalVotes > 0 ? Math.round((effectiveUpvotes / totalVotes) * 100) : 0;
+  const downvotePercent = totalVotes > 0 ? 100 - upvotePercent : 0;
 
   const votersHistory: Array<{
     id: string;
@@ -137,7 +138,7 @@ export const VotingStatsModal: React.FC<VotingStatsModalProps> = ({
                 </div>
               </div>
               <div className="text-2xl font-black text-rose-700 mt-2">
-                {downvotesCount}
+                {effectiveDownvotes}
               </div>
             </div>
 
@@ -183,7 +184,7 @@ export const VotingStatsModal: React.FC<VotingStatsModalProps> = ({
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="w-2.5 h-2.5 rounded-full bg-rose-400" />
-                <span>{t("Downvotes:")} <strong>{downvotePercent}%</strong> ({downvotesCount})</span>
+                <span>{t("Downvotes:")} <strong>{downvotePercent}%</strong> ({effectiveDownvotes})</span>
               </span>
             </div>
           </div>

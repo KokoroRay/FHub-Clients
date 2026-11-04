@@ -501,8 +501,8 @@ export const voteApi = {
     return items.map((d: any) => ({
       voteId: d.vote_id ?? d.voteId,
       userId: d.user_id ?? d.userId,
-      targetType: d.target_type ?? d.targetType ?? d.engagement_target?.target_type,
-      targetId: d.target_id ?? d.targetId ?? d.engagement_target?.external_target_id,
+      targetType: (d.target_type ?? d.targetType ?? d.engagement_target?.target_type ?? d.engagement_target?.TargetType ?? '').toUpperCase(),
+      targetId: Number(d.target_id ?? d.targetId ?? d.engagement_target?.external_target_id ?? d.engagement_target?.ExternalTargetId ?? 0),
       voteValue: d.vote_value ?? d.voteValue,
       scoreDelta: d.score_delta ?? d.scoreDelta ?? 0,
       revokedAt: d.revoked_at ?? d.revokedAt,

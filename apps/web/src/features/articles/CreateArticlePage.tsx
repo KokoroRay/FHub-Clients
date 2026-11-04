@@ -5,6 +5,7 @@ import { Card, CardBody, CardHeader } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Input, Textarea, Select } from '../../components/common/Input';
 import { articleApi, alumniApi, contentMediaApi } from '../../services/api/contentApi';
+import { apiClient } from '../../services/api/client';
 import { IMAGE_ACCEPT, validateImage } from '../../utils/mediaUtils';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -14,7 +15,7 @@ const ArticleEditor = lazy(() => import('../../components/common/ArticleEditor')
 
 export const CreateArticlePage: React.FC = () => {
   const navigate = useNavigate();
-  const { currentUser } = useAuth();
+  const { currentUser, updateUser } = useAuth();
   const { t } = useLanguage();
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('Học thuật & Trải nghiệm sinh viên');
@@ -85,8 +86,9 @@ export const CreateArticlePage: React.FC = () => {
       // Fallback tag if empty (12: EduNext & Học tập hoặc 7: Survival Tips)
       if (matchedTagIds.length === 0) matchedTagIds.push(7);
 
+      let createdResult: any = null;
       if (isAlumniArticle || currentUser?.role === 'Alumni') {
-        await alumniApi.createCareerArticle({
+        createdResult = await alumniApi.createCareerArticle({
           title: title.trim(),
           content: content.trim(),
           summary: summary.trim(),
@@ -94,7 +96,7 @@ export const CreateArticlePage: React.FC = () => {
           status: 'PUBLISHED',
         });
       } else {
-        await articleApi.createArticle({
+        createdResult = await articleApi.createArticle({
           title: title.trim(),
           content: content.trim(),
           summary: summary.trim(),
@@ -102,6 +104,22 @@ export const CreateArticlePage: React.FC = () => {
           status: 'PUBLISHED',
           semanticTagIds: matchedTagIds,
         });
+      }
+
+      // Award +10 Karma points for publishing an academic article
+      try {
+        const articleId = createdResult?.articleId || createdResult?.id;
+        if (currentUser?.id) {
+          await apiClient.post('/api/reputation/events', {
+            user_id: Number(currentUser.id),
+            rule_code: 'ARTICLE_PUBLISHED',
+            source_type: 'Article',
+            source_id: articleId ? Number(articleId) : undefined,
+          });
+          updateUser?.({ karma: ((currentUser as any)?.karma || 0) + 10 });
+        }
+      } catch (repErr) {
+        console.warn('Could not award article publication karma:', repErr);
       }
       navigate('/articles');
     } catch (err: any) {

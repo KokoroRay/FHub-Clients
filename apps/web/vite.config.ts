@@ -44,6 +44,8 @@ export default defineConfig({
       '/api/workflows': { target: 'http://localhost:5121', rewrite: (p) => p.replace(/^\/api\/workflows/, '/api/content/workflows'), changeOrigin: true },
       '/api/study-materials': { target: 'http://localhost:5121', rewrite: (p) => p.replace(/^\/api\/study-materials/, '/api/content/study-materials'), changeOrigin: true },
       '/api/news': { target: 'http://localhost:5121', rewrite: (p) => p.replace(/^\/api\/news/, '/api/content/news'), changeOrigin: true },
+      '/api/ai': { target: 'http://localhost:8000', changeOrigin: true },
+      '/api/health/ai': { target: 'http://localhost:8000', rewrite: () => '/api/ai/health', changeOrigin: true },
       '/api/reputation': { target: 'http://localhost:8081', changeOrigin: true },
       '/api/admin/reputation': { target: 'http://localhost:8081', changeOrigin: true },
       '/api/badges': { target: 'http://localhost:8081', changeOrigin: true },

@@ -29,6 +29,7 @@ import {
   FileCode,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { apiClient } from '../../services/api/client';
 import { useLanguage } from '../../context/LanguageContext';
 import { courseNodesApi, semanticTagsApi } from '../../services/api/adminApi';
 import { filterCompactCourses } from '../../utils/courseFilter';
@@ -46,6 +47,7 @@ export interface AskQuestionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCreated: (question: QuestionPost) => void;
+  initialTitle?: string;
 }
 
 interface TagItem {
@@ -97,10 +99,11 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
   isOpen,
   onClose,
   onCreated,
+  initialTitle = '',
 }) => {
-  const { currentUser } = useAuth();
+  const { currentUser, updateUser } = useAuth();
   const { t } = useLanguage();
-  const [title, setTitle] = useState('');
+  const [title, setTitle] = useState(initialTitle || '');
   const [content, setContent] = useState('');
   const [courseCode, setCourseCode] = useState('');
   const [selectedTags, setSelectedTags] = useState<TagItem[]>([]);
@@ -534,6 +537,16 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
         isSolved: false,
         createdAt: res.createdAt || new Date().toISOString(),
       };
+
+      try {
+        await apiClient.post('/api/reputation/events', {
+          user_id: Number(currentUser?.id),
+          rule_code: 'QUESTION_CREATED',
+          source_type: 'Question',
+          source_id: Number(res.questionId),
+        });
+        updateUser?.({ karma: ((currentUser as any)?.karma || 0) + 2 });
+      } catch (e) {}
 
       onCreated(newQuestion);
       resetForm();

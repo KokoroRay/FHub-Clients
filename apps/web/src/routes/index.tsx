@@ -17,6 +17,7 @@ const lazyNamed = <T extends Record<string, any>, K extends keyof T>(
 
 // Feed & Academic Pages
 const FeedPage = lazyNamed(() => import('../features/feed/FeedPage'), 'FeedPage');
+const SearchResultsPage = lazyNamed(() => import('../features/search/SearchResultsPage'), 'SearchResultsPage');
 const CourseListPage = lazyNamed(() => import('../features/courses/CourseListPage'), 'CourseListPage');
 const CourseDetailPage = lazyNamed(() => import('../features/courses/CourseDetailPage'), 'CourseDetailPage');
 const QuestionListPage = lazyNamed(() => import('../features/discussions/QuestionListPage'), 'QuestionListPage');
@@ -193,6 +194,7 @@ const getMainPortalRoutes = () => [
       { path: 'news', element: <NewsManagementPage /> },
       { path: 'alumni', element: <AlumniKarmaPage /> },
       { path: 'reputation-rules', element: <StudentReputationRulesPage /> },
+      { path: 'search', element: <SearchResultsPage /> },
       { path: 'course-ratings', element: <Navigate to="/course-evaluations" replace /> },
       { path: 'tech-blog', element: <Navigate to="/articles" replace /> },
     ],

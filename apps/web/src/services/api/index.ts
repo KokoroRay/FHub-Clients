@@ -4,3 +4,4 @@ export * from './adminHooks';
 export * from './contentApi';
 export * from './studentApi';
 
+export * from './searchApi';
