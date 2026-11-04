@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import {
   MessageSquare,
@@ -118,6 +118,7 @@ export const DirectMessagesPage: React.FC = () => {
   });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [messages, setMessages] = useState<Record<string, Message[]>>({});
@@ -136,8 +137,21 @@ export const DirectMessagesPage: React.FC = () => {
   const [isLoadingGifs, setIsLoadingGifs] = useState(false);
   const [previewLightboxUrl, setPreviewLightboxUrl] = useState<string | null>(null);
 
-  // Suggestions bar visibility
-  const [showSuggestions, setShowSuggestions] = useState(true);
+  // Suggestions bar visibility (persisted until next login)
+  const [showSuggestions, setShowSuggestions] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('fhub_chat_suggestions_dismissed') !== 'true';
+    } catch {
+      return true;
+    }
+  });
+
+  const handleDismissSuggestions = () => {
+    setShowSuggestions(false);
+    try {
+      localStorage.setItem('fhub_chat_suggestions_dismissed', 'true');
+    } catch {}
+  };
 
   // Modals & Panels
   const [showBlockedModal, setShowBlockedModal] = useState(false);
@@ -409,10 +423,40 @@ export const DirectMessagesPage: React.FC = () => {
     };
   }, [gifSearchQuery, showGifPicker]);
 
-  // Auto-scroll to latest message
+  const scrollToBottom = useCallback((smooth = false) => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior: smooth ? 'smooth' : 'auto',
+      });
+    }
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'end' });
+    }
+  }, []);
+
+  // Auto-scroll to latest message when switching conversations, returning back, or loading new messages
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages[activeConvId]?.length, activeConvId]);
+    if (!activeConvId) return;
+
+    // Immediate scroll
+    scrollToBottom(false);
+
+    // After DOM paint & layout
+    const rAF = requestAnimationFrame(() => {
+      scrollToBottom(false);
+    });
+
+    // Small timeouts to account for layout shifts / rendering
+    const t1 = setTimeout(() => scrollToBottom(false), 50);
+    const t2 = setTimeout(() => scrollToBottom(false), 150);
+
+    return () => {
+      cancelAnimationFrame(rAF);
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [activeConvId, messages[activeConvId]?.length, scrollToBottom]);
 
   // Real-time listener for direct messages, recall events and typing status
   useEffect(() => {
@@ -1223,7 +1267,10 @@ export const DirectMessagesPage: React.FC = () => {
               </div>
 
               {/* Messages Scroll Area */}
-              <div className="flex-1 p-4 sm:p-5 overflow-y-auto space-y-3 bg-slate-50/20 dark:bg-slate-900/20">
+              <div
+                ref={messagesContainerRef}
+                className="flex-1 p-4 sm:p-5 overflow-y-auto space-y-3 bg-slate-50/20 dark:bg-slate-900/20"
+              >
                 {activeMessages.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-center text-slate-400 p-8">
                     <MessageSquare className="w-10 h-10 mb-2 opacity-20 text-[#0076D1]" />
@@ -1405,7 +1452,7 @@ export const DirectMessagesPage: React.FC = () => {
                   </div>
                   <button
                     type="button"
-                    onClick={() => setShowSuggestions(false)}
+                    onClick={handleDismissSuggestions}
                     className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-md cursor-pointer shrink-0"
                     title={t("Tắt gợi ý")}
                   >
