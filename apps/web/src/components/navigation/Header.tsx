@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Search,
@@ -23,7 +23,7 @@ import { Button } from '../common/Button';
 import { ThemeToggle } from '../common/ThemeToggle';
 import { LanguageSwitcher } from '../common/LanguageSwitcher';
 import { UserAvatarDropdown } from './UserAvatarDropdown';
-import { GlobalSearchModal } from '../common/GlobalSearchModal';
+import { GlobalSearchDropdown } from '../common/GlobalSearchDropdown';
 
 export const Header: React.FC = () => {
   const { currentUser, currentCampus, setCurrentCampus } = useAuth();
@@ -34,7 +34,9 @@ export const Header: React.FC = () => {
   const [campuses, setCampuses] = useState<Array<{ code: string; name: string }>>([]);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [hasUnreadMessages, setHasUnreadMessages] = useState<boolean>(false);
-  const [isSearchModalOpen, setIsSearchModalOpen] = useState<boolean>(false);
+  const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState<boolean>(false);
+  const searchContainerRef = useRef<HTMLFormElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [notifLoading, setNotifLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -138,19 +140,32 @@ export const Header: React.FC = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
-        setIsSearchModalOpen((prev) => !prev);
+        searchInputRef.current?.focus();
+        setIsSearchDropdownOpen(true);
+      } else if (e.key === 'Escape') {
+        setIsSearchDropdownOpen(false);
+      }
+    };
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+        setIsSearchDropdownOpen(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
+      setIsSearchDropdownOpen(false);
       navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
     } else {
-      setIsSearchModalOpen(true);
+      setIsSearchDropdownOpen(true);
     }
   };
 
@@ -248,30 +263,47 @@ export const Header: React.FC = () => {
           </div>
         </div>
 
-        {/* Global Search Bar */}
-        <form onSubmit={handleSearch} className="flex-1 max-w-[420px] hidden md:block">
-          <div
-            onClick={() => setIsSearchModalOpen(true)}
-            className="relative cursor-pointer group"
-          >
-            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-[#0076D1] transition-colors" />
+        {/* Global Search Bar with Attached Dropdown */}
+        <form
+          ref={searchContainerRef}
+          onSubmit={handleSearch}
+          className="flex-1 max-w-[420px] hidden md:block relative"
+        >
+          <div className="relative group">
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#0076D1] transition-colors pointer-events-none" />
             <input
+              ref={searchInputRef}
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => setIsSearchDropdownOpen(true)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                if (!isSearchDropdownOpen) setIsSearchDropdownOpen(true);
+              }}
               placeholder={t('header.searchPlaceholder', 'Search questions, courses, articles, materials...')}
-              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 rounded-xl pl-9 pr-14 py-2 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#0076D1] transition-all cursor-pointer"
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 rounded-xl pl-9 pr-14 py-2 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#0076D1] transition-all"
             />
             <span
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsSearchModalOpen(true);
+              onClick={() => {
+                searchInputRef.current?.focus();
+                setIsSearchDropdownOpen(true);
               }}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-400 bg-white dark:bg-slate-700 px-1.5 py-0.5 rounded-md border border-slate-200 dark:border-slate-600 shadow-2xs cursor-pointer hover:bg-slate-100 hover:text-slate-700 transition-colors"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-400 bg-white dark:bg-slate-700 px-1.5 py-0.5 rounded-md border border-slate-200 dark:border-slate-600 shadow-2xs cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors"
             >
               {t('header.ctrlK', 'Ctrl K')}
             </span>
           </div>
+
+          {/* Search Dropdown directly below search input */}
+          <GlobalSearchDropdown
+            isOpen={isSearchDropdownOpen}
+            onClose={() => setIsSearchDropdownOpen(false)}
+            query={searchQuery}
+            onSelectQuery={(q) => {
+              setSearchQuery(q);
+              searchInputRef.current?.focus();
+            }}
+          />
         </form>
 
         {/* Action Controls: User Actions */}
@@ -395,11 +427,7 @@ export const Header: React.FC = () => {
         </div>
       </div>
 
-      <GlobalSearchModal
-        isOpen={isSearchModalOpen}
-        onClose={() => setIsSearchModalOpen(false)}
-        initialQuery={searchQuery}
-      />
+
     </header>
   );
 };
