@@ -195,17 +195,22 @@ export const ProfilePage: React.FC = () => {
     // If id is a string studentCode like CE181522, resolve numeric ID
     const resolveByStudentCode = async () => {
       try {
-        const res = await apiClient.get<any>('/api/users', { params: { search: id } });
+        const cleanQuery = String(id).trim().toUpperCase();
+        const res = await apiClient.get<any>('/api/users', { params: { search: cleanQuery } });
         const items = res.data?.items || res.data?.data?.items || (Array.isArray(res.data?.data) ? res.data.data : []);
         if (isMounted && items && items.length > 0) {
-          const matched = items.find((u: any) => 
-            String(u.studentCode || u.student_code || '').toUpperCase() === String(id).toUpperCase() ||
-            String(u.email || '').toUpperCase().includes(String(id).toUpperCase())
-          ) || items[0];
-          const foundId = Number(matched.userId || matched.id);
-          if (foundId > 0) {
-            setTargetUserId(foundId);
-            return;
+          const matched = items.find((u: any) => {
+            const uCode = String(u.studentCode || u.student_code || '').toUpperCase();
+            const uEmail = String(u.email || '').toUpperCase();
+            const uPrefix = uEmail.split('@')[0];
+            return uCode === cleanQuery || uPrefix === cleanQuery || uEmail.includes(cleanQuery);
+          });
+          if (matched) {
+            const foundId = Number(matched.userId || matched.id);
+            if (foundId > 0) {
+              setTargetUserId(foundId);
+              return;
+            }
           }
         }
 
@@ -217,24 +222,6 @@ export const ProfilePage: React.FC = () => {
             return;
           }
         } catch (_) {}
-
-        // Fallback: Check if the string has a trailing numeric user ID (e.g., legacy CE1801215 -> 15)
-        const trailingNumMatch = String(id).match(/(?:12|CE|SE)(\d+)$/i);
-        if (trailingNumMatch) {
-          const candId = Number(trailingNumMatch[1]);
-          if (candId > 0) {
-            try {
-              const uRes = await apiClient.get<any>(`/api/users/${candId}`);
-              const u = uRes.data?.data || uRes.data;
-              if (u) {
-                setTargetUserId(candId);
-                const sCode = u.studentCode || extractStudentIdFromEmail(u.email);
-                if (sCode) navigate(`/profile/${sCode}`, { replace: true });
-                return;
-              }
-            } catch (_) {}
-          }
-        }
 
         if (isMounted) {
           setProfileData(prev => ({
@@ -361,21 +348,21 @@ export const ProfilePage: React.FC = () => {
         const profileDataLive = live.status === 'fulfilled' ? live.value : null;
         const identityUser = identityRes.status === 'fulfilled' && identityRes.value ? (identityRes.value.data?.data || identityRes.value.data) : null;
 
-        if (isMounted && profileDataLive) {
-          const resolvedMajor = resolveUserMajorName(profileDataLive);
-          const resolvedCampus = profileDataLive.campusCode 
+        if (isMounted && (profileDataLive || identityUser)) {
+          const resolvedMajor = profileDataLive ? resolveUserMajorName(profileDataLive) : (identityUser?.major || 'Kỹ thuật phần mềm (SE)');
+          const resolvedCampus = profileDataLive?.campusCode 
             ? (FPT_CAMPUSES[profileDataLive.campusCode] || `FPT University - ${profileDataLive.campusCode}`)
-            : (profileDataLive.campusId ? (FPT_CAMPUSES[profileDataLive.campusId] || 'FPT University') : 'FPT University');
+            : (profileDataLive?.campusId ? (FPT_CAMPUSES[profileDataLive.campusId] || 'FPT University') : (identityUser?.campus || 'FPT University'));
 
           let cover = '';
-          if (profileDataLive.coverUrl) {
+          if (profileDataLive?.coverUrl) {
             cover = profileDataLive.coverUrl;
-          } else if (profileDataLive.links && Array.isArray(profileDataLive.links)) {
+          } else if (profileDataLive?.links && Array.isArray(profileDataLive.links)) {
             const cLink = profileDataLive.links.find((l: any) => (l.platformName || l.PlatformName) === 'COVER_IMAGE');
             if (cLink) cover = cLink.url || cLink.Url || '';
           }
 
-          const studentCode = identityUser?.studentCode || profileDataLive.studentCode || profileDataLive.studentId || extractStudentIdFromEmail(identityUser?.email || profileDataLive.email) || (typeof id === 'string' && isNaN(Number(id)) ? id.toUpperCase() : '');
+          const studentCode = identityUser?.studentCode || profileDataLive?.studentCode || profileDataLive?.studentId || extractStudentIdFromEmail(identityUser?.email || profileDataLive?.email) || (typeof id === 'string' && isNaN(Number(id)) ? id.toUpperCase() : '');
 
           if (!isOwnProfile && studentCode && id && !isNaN(Number(id))) {
             navigate(`/profile/${studentCode}`, { replace: true });
@@ -383,25 +370,31 @@ export const ProfilePage: React.FC = () => {
 
           setProfileData(prev => ({
             ...prev,
-            fullName: profileDataLive.displayName || profileDataLive.fullName || identityUser?.fullName || (isOwnProfile ? currentUser?.fullName : 'Sinh viên FHub') || 'Sinh viên FHub',
-            email: isOwnProfile ? (currentUser?.email || profileDataLive.email || '') : (identityUser?.email || profileDataLive.email || ''),
-            bio: (profileDataLive.bio && profileDataLive.bio !== 'Chưa có thông tin giới thiệu.') ? profileDataLive.bio : 'Chưa có thông tin giới thiệu.',
-            avatarUrl: profileDataLive.avatarUrl || identityUser?.avatarUrl || (isOwnProfile ? currentUser?.avatarUrl || '' : ''),
+            fullName: profileDataLive?.displayName || profileDataLive?.fullName || identityUser?.fullName || (isOwnProfile ? currentUser?.fullName : 'Sinh viên FHub') || 'Sinh viên FHub',
+            email: isOwnProfile ? (currentUser?.email || profileDataLive?.email || identityUser?.email || '') : (identityUser?.email || profileDataLive?.email || ''),
+            bio: (profileDataLive?.bio && profileDataLive.bio !== 'Chưa có thông tin giới thiệu.') ? profileDataLive.bio : 'Chưa có thông tin giới thiệu.',
+            avatarUrl: profileDataLive?.avatarUrl || identityUser?.avatarUrl || (isOwnProfile ? currentUser?.avatarUrl || '' : ''),
             coverUrl: cover,
             studentId: studentCode || (isOwnProfile ? myStudentCode : ''),
             major: resolvedMajor || identityUser?.major,
             campus: resolvedCampus || identityUser?.campus,
-            campusId: profileDataLive.campusId,
-            campusCode: profileDataLive.campusCode,
-            majorId: profileDataLive.majorId,
-            majorCode: profileDataLive.majorCode,
-            specialization: profileDataLive.specializationName || profileDataLive.specialization,
-            specializationId: profileDataLive.specializationId,
-            specializationCode: profileDataLive.specializationCode,
+            campusId: profileDataLive?.campusId,
+            campusCode: profileDataLive?.campusCode,
+            majorId: profileDataLive?.majorId,
+            majorCode: profileDataLive?.majorCode,
+            specialization: profileDataLive?.specializationName || profileDataLive?.specialization,
+            specializationId: profileDataLive?.specializationId,
+            specializationCode: profileDataLive?.specializationCode,
             stats: {
               ...prev.stats,
-              helpfulVotes: profileDataLive.karma || identityUser?.karma || 0,
+              helpfulVotes: prev.stats.helpfulVotes || (isOwnProfile ? (currentUser?.karma || 0) : 0),
             }
+          }));
+        } else if (isMounted && !profileDataLive && !identityUser) {
+          setProfileData(prev => ({
+            ...prev,
+            fullName: t('Không tìm thấy người dùng'),
+            bio: t('Người dùng không tồn tại hoặc đã bị gỡ bỏ khỏi hệ thống.'),
           }));
         }
       } catch (err) {
@@ -677,12 +670,12 @@ export const ProfilePage: React.FC = () => {
                 ) : followStats.is_following ? (
                   <>
                     <UserCheck className="w-4 h-4 text-emerald-600" />
-                    <span>Đang theo dõi</span>
+                    <span>{t('Đang theo dõi')}</span>
                   </>
                 ) : (
                   <>
                     <UserPlus className="w-4 h-4" />
-                    <span>Theo dõi</span>
+                    <span>{t('Theo dõi')}</span>
                   </>
                 )}
               </button>

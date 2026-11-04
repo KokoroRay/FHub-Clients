@@ -199,13 +199,22 @@ export const QuestionDetailPage: React.FC = () => {
         try {
           const qStats = await voteApi.getStats('QUESTION', numId);
           if (isMounted) {
-            setUpvotes(qStats.score);
+            const baseUp = data?.upvoteCount || 0;
+            const baseDown = data?.downvoteCount || 0;
+            const hasLiveVotes = qStats.upvotes > 0 || qStats.downvotes > 0 || qStats.myVoteValue !== null;
+            const effectiveUp = hasLiveVotes ? qStats.upvotes : baseUp;
+            const effectiveDown = hasLiveVotes ? qStats.downvotes : baseDown;
+            const effectiveScore = hasLiveVotes ? qStats.score : (baseUp - baseDown);
+            setUpvotes(effectiveScore);
             setUserVote(qStats.myVoteValue === 1 ? 'UP' : qStats.myVoteValue === -1 ? 'DOWN' : null);
-            setVoteDetails({ upvotes: qStats.upvotes, downvotes: qStats.downvotes });
+            setVoteDetails({ upvotes: effectiveUp, downvotes: effectiveDown });
           }
         } catch {
           if (isMounted && data) {
-            setUpvotes((data.upvoteCount || 0) - (data.downvoteCount || 0));
+            const baseUp = data.upvoteCount || 0;
+            const baseDown = data.downvoteCount || 0;
+            setUpvotes(baseUp - baseDown);
+            setVoteDetails({ upvotes: baseUp, downvotes: baseDown });
           }
         }
 

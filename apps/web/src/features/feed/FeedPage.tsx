@@ -177,7 +177,11 @@ export const FeedPage: React.FC = () => {
             if (r.status === 'fulfilled' && r.value) {
               const { qId, numId, stats } = r.value;
               const prevVote = updated[qId]?.userVote ?? (stats.myVoteValue === 1 ? 'UP' : stats.myVoteValue === -1 ? 'DOWN' : null);
-              const entry = { count: stats.score, userVote: prevVote };
+              const targetQ = items.find((item: any) => String(item.questionId || item.id) === String(qId) || String(item.questionId || item.id).replace(/\D/g, '') === String(numId));
+              const baseCount = targetQ ? ((targetQ.upvoteCount || 0) - (targetQ.downvoteCount || 0)) : 0;
+              const hasLiveVotes = stats.upvotes > 0 || stats.downvotes > 0 || stats.myVoteValue !== null;
+              const finalCount = hasLiveVotes ? stats.score : (updated[qId]?.count ?? baseCount);
+              const entry = { count: finalCount, userVote: prevVote };
               updated[qId] = entry;
               updated[String(numId)] = entry;
             }

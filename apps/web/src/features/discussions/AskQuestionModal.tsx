@@ -47,6 +47,7 @@ export interface AskQuestionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCreated: (question: QuestionPost) => void;
+  initialTitle?: string;
 }
 
 interface TagItem {
@@ -98,10 +99,11 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
   isOpen,
   onClose,
   onCreated,
+  initialTitle = '',
 }) => {
   const { currentUser, updateUser } = useAuth();
   const { t } = useLanguage();
-  const [title, setTitle] = useState('');
+  const [title, setTitle] = useState(initialTitle || '');
   const [content, setContent] = useState('');
   const [courseCode, setCourseCode] = useState('');
   const [selectedTags, setSelectedTags] = useState<TagItem[]>([]);
