@@ -30,28 +30,43 @@ export const AuditLogsPage: React.FC = () => {
 
   useEffect(() => {
     if (logsData?.items) {
-      const mapped: DetailedAuditLog[] = logsData.items.map((l: any) => ({
-        id: String(l.auditLogId),
-        eventId: `EVT-${l.auditLogId.toString().padStart(8, '0')}`,
-        timestamp: l.createdAt ? l.createdAt.replace('T', ' ').substring(0, 19) : new Date().toISOString().replace('T', ' ').substring(0, 19),
-        service: l.entityType || 'Governance',
-        action: l.actionType || 'MUTATION',
-        actorId: String(l.actorAccountId || '1'),
-        actorEmail: l.actorRole ? `${l.actorRole.toLowerCase()}@fhub.com.vn` : (l.actorAccountId ? `admin.${l.actorAccountId}@fpt.edu.vn` : 'system.daemon@fhub.com.vn'),
-        actorRole: (['Admin', 'Staff', 'System Daemon', 'Moderator'].includes(l.actorRole) ? l.actorRole : 'Admin') as any,
-        ipAddress: l.ipAddress || '127.0.0.1',
-        status: 'SUCCESS',
-        details: `${l.actionType || 'Operation'} on ${l.entityType || 'Record'} #${l.entityId || l.auditLogId}`,
-        immutableHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-        previousHash: 'a71b26f55f284a7e9e8f498c56e301293a7e584282c1619623e5a5a1f28b4931',
-        merkleRoot: '9d3a778e9b62c11451f28bc41b80e86a4f21b7454231b2345091ef748b9401a2',
-        isoStandardStamp: 'ISO/IEC 27001:2022 §A.12.4.1 (Event Logging)',
-        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/122.0',
-        location: 'Hà Nội, Vietnam',
-        signatureVerified: true,
-        beforeStatePayload: { status: 'ACTIVE' },
-        afterStatePayload: { status: l.actionType || 'UPDATED' },
-      }));
+      const mapped: DetailedAuditLog[] = logsData.items.map((l: any) => {
+        const action = l.actionType || 'MUTATION';
+        const isFail = action.includes('FAIL');
+        let detailsText = `${action} on ${l.entityType || 'Record'} #${l.entityId || l.auditLogId}`;
+        if (action === 'AUTH_LOGIN_SUCCESS') {
+          detailsText = `User authentication successful (${l.entityType || 'Identity'})`;
+        } else if (action === 'AUTH_LOGIN_FAILED') {
+          detailsText = `Failed authentication attempt (Invalid credentials)`;
+        } else if (action === 'AUTH_SESSION_REVOKED') {
+          detailsText = `User session revoked / terminated`;
+        } else if (action === 'AUTH_SESSION_ACTIVE') {
+          detailsText = `Active user session established`;
+        }
+
+        return {
+          id: String(l.auditLogId),
+          eventId: `EVT-${l.auditLogId.toString().padStart(8, '0')}`,
+          timestamp: l.createdAt ? l.createdAt.replace('T', ' ').substring(0, 19) : new Date().toISOString().replace('T', ' ').substring(0, 19),
+          service: l.entityType || 'Governance',
+          action: action,
+          actorId: String(l.actorAccountId || l.actorUserId || '1'),
+          actorEmail: l.actorRole ? `${l.actorRole.toLowerCase()}@fhub.com.vn` : (l.actorAccountId ? `staff.${l.actorAccountId}@fhub.com.vn` : (l.actorUserId ? `user.${l.actorUserId}@fpt.edu.vn` : 'system.daemon@fhub.com.vn')),
+          actorRole: (['Admin', 'Staff', 'System Daemon', 'Moderator', 'Student'].includes(l.actorRole) ? l.actorRole : 'Admin') as any,
+          ipAddress: l.ipAddress || '127.0.0.1',
+          status: isFail ? 'FAILED' : 'SUCCESS',
+          details: detailsText,
+          immutableHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+          previousHash: 'a71b26f55f284a7e9e8f498c56e301293a7e584282c1619623e5a5a1f28b4931',
+          merkleRoot: '9d3a778e9b62c11451f28bc41b80e86a4f21b7454231b2345091ef748b9401a2',
+          isoStandardStamp: 'ISO/IEC 27001:2022 §A.12.4.1 (Event Logging)',
+          userAgent: l.userAgent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/122.0',
+          location: 'Hà Nội, Vietnam',
+          signatureVerified: true,
+          beforeStatePayload: { status: 'ACTIVE' },
+          afterStatePayload: { status: action },
+        };
+      });
       setLogs(mapped);
     }
   }, [logsData]);
