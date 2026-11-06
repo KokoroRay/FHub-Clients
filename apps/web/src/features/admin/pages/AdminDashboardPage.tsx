@@ -77,7 +77,7 @@ export const AdminDashboardPage: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [activityTimeframe]);
+  }, [activityTimeframe, dashboardData?.userActivity]);
 
   // Real-time telemetry synchronization for Admin Dashboard
   useEffect(() => {
@@ -148,7 +148,10 @@ export const AdminDashboardPage: React.FC = () => {
     } else {
       labels = ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Current'];
     }
-    values = labels.map(() => 0);
+    const incomingPoints = (dashboardData?.userActivity as any)?.chartPoints;
+    values = Array.isArray(incomingPoints) && incomingPoints.length === labels.length
+      ? incomingPoints
+      : labels.map(() => 0);
     const maxValue = Math.max(...values, 1);
     const n = labels.length;
     const isZero = values.every((v) => v === 0);
@@ -169,7 +172,7 @@ export const AdminDashboardPage: React.FC = () => {
     const areaPath = `${strokePath} L ${points[points.length - 1].x} 120 L ${points[0].x} 120 Z`;
 
     return { labels, values, points, strokePath, areaPath, isZero };
-  }, [activityTimeframe]);
+  }, [activityTimeframe, dashboardData?.userActivity]);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
