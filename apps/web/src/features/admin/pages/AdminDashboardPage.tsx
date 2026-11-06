@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Users,
@@ -45,6 +45,7 @@ export const AdminDashboardPage: React.FC = () => {
   const { on, onlineCount, status: realtimeStatus } = useRealtime();
   const [activityTimeframe, setActivityTimeframe] = useState<'Today' | '7 Days' | '30 Days'>('Today');
   const [showQuickActions, setShowQuickActions] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [actionNotice, setActionNotice] = useState<string | null>(null);
   const [dashboardData, setDashboardData] = useState<AdminDashboardData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -63,6 +64,13 @@ export const AdminDashboardPage: React.FC = () => {
     fetchAdminDashboardStats(activityTimeframe).then((data) => {
       if (isMounted) {
         setDashboardData(data);
+        setLoadError(null);
+        setIsLoading(false);
+      }
+    }).catch((err) => {
+      if (isMounted) {
+        setDashboardData(null);
+        setLoadError(err?.message || 'Failed to load dashboard data from the server.');
         setIsLoading(false);
       }
     });
@@ -74,13 +82,13 @@ export const AdminDashboardPage: React.FC = () => {
   // Real-time telemetry synchronization for Admin Dashboard
   useEffect(() => {
     const unsubPulse = on('ADMIN_DASHBOARD_PULSE', () => {
-      fetchAdminDashboardStats(activityTimeframe).then((data) => setDashboardData(data));
+      fetchAdminDashboardStats(activityTimeframe).then((data) => setDashboardData(data)).catch(() => {});
     });
     const unsubTicket = on('TICKET_UPDATED', () => {
-      fetchAdminDashboardStats(activityTimeframe).then((data) => setDashboardData(data));
+      fetchAdminDashboardStats(activityTimeframe).then((data) => setDashboardData(data)).catch(() => {});
     });
     const unsubReport = on('MODERATION_NEW_REPORT', () => {
-      fetchAdminDashboardStats(activityTimeframe).then((data) => setDashboardData(data));
+      fetchAdminDashboardStats(activityTimeframe).then((data) => setDashboardData(data)).catch(() => {});
     });
 
     return () => {
@@ -91,7 +99,30 @@ export const AdminDashboardPage: React.FC = () => {
   }, [on, activityTimeframe]);
 
   const handleExportReport = () => {
-    setActionNotice(t("Report generated and downloaded: FHub_Admin_Executive_Summary_2026.pdf"));
+    if (!dashboardData) return;
+    const d = dashboardData;
+    const rows: Array<[string, string | number]> = [
+      ['Total users', d.topStats.totalUsers],
+      ['Support tickets', d.topStats.supportTickets],
+      ['Open tickets', d.ticketsQueue.openCount],
+      ['In-progress tickets', d.ticketsQueue.inProgressCount],
+      ['Resolved tickets', d.ticketsQueue.resolvedCount],
+      ['Campuses', d.academicOverview.campusesCount],
+      ['Majors', d.academicOverview.majorsCount],
+      ['Courses', d.academicOverview.courseNodesCount],
+      ['Materials', d.academicOverview.materialsCount],
+      ['Discussions', d.academicOverview.discussionsCount],
+      ['Workflows', d.academicOverview.workflowsCount],
+    ];
+    const csv = ['Metric,Value', ...rows.map(([k, v]) => `${k},${v}`)].join('\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const fileName = `FHub_Admin_Summary_${new Date().toISOString().slice(0, 10)}.csv`;
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
+    setActionNotice(t("Report generated and downloaded: {p0}", undefined, { p0: fileName }));
     setTimeout(() => setActionNotice(null), 3500);
   };
 
@@ -103,22 +134,10 @@ export const AdminDashboardPage: React.FC = () => {
     let labels: string[] = [];
     let values: number[] = [];
 
+    // No time-series endpoint exists yet: never fabricate a curve from totals.
+    // The chart shows its empty state until GET /api/admin/dashboard/activity is available.
     if (activityTimeframe === 'Today') {
       labels = ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', 'Now'];
-      if (activeCount === 0 && recentLogs.length === 0) {
-        values = [0, 0, 0, 0, 0, 0, 0];
-      } else {
-        const logBonus = recentLogs.length;
-        values = [
-          Math.max(0, Math.round(activeCount * 0.05)),
-          Math.max(0, Math.round(activeCount * 0.12)),
-          Math.max(0, Math.round(activeCount * 0.45)),
-          Math.max(0, Math.round(activeCount * 0.85 + logBonus)),
-          Math.max(0, Math.round(activeCount * 0.7)),
-          Math.max(0, Math.round(activeCount * 0.5)),
-          activeCount + logBonus,
-        ];
-      }
     } else if (activityTimeframe === '7 Days') {
       const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
       const todayIdx = new Date().getDay();
@@ -126,22 +145,10 @@ export const AdminDashboardPage: React.FC = () => {
         const d = (todayIdx - 6 + i + 7) % 7;
         return days[d === 0 ? 6 : d - 1];
       });
-      if (activeCount === 0) {
-        values = [0, 0, 0, 0, 0, 0, 0];
-      } else {
-        const weights = [0.4, 0.6, 0.8, 0.75, 0.9, 0.55, 1.0];
-        values = weights.map((w) => Math.round(activeCount * w + discussionsAvg * 0.2));
-      }
     } else {
       labels = ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Current'];
-      if (activeCount === 0) {
-        values = [0, 0, 0, 0, 0];
-      } else {
-        const weights = [0.5, 0.7, 0.65, 0.85, 1.0];
-        values = weights.map((w) => Math.round(activeCount * w + discussionsAvg * 0.5));
-      }
     }
-
+    values = labels.map(() => 0);
     const maxValue = Math.max(...values, 1);
     const n = labels.length;
     const isZero = values.every((v) => v === 0);
@@ -162,10 +169,15 @@ export const AdminDashboardPage: React.FC = () => {
     const areaPath = `${strokePath} L ${points[points.length - 1].x} 120 L ${points[0].x} 120 Z`;
 
     return { labels, values, points, strokePath, areaPath, isZero };
-  }, [activityTimeframe, activeCount, discussionsAvg, recentLogs.length]);
+  }, [activityTimeframe]);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
+      {loadError && (
+        <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800">
+          {loadError}
+        </div>
+      )}
       {/* Top Greeting & Action Header (Figma 55:2) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -264,7 +276,7 @@ export const AdminDashboardPage: React.FC = () => {
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t("TOTAL USERS")}</span>
             <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
-              {dashboardData?.topStats.usersDelta ?? '0%'}
+              {dashboardData?.topStats.usersDelta || '—'}
             </span>
           </div>
           <h3 className="text-2xl font-bold text-slate-900 tracking-tight">
@@ -313,16 +325,15 @@ export const AdminDashboardPage: React.FC = () => {
         >
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t("ACTIVE CAMPUSES")}</span>
-            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
-              {t("100% operational")}</span>
+            
           </div>
           <h3 className="text-2xl font-bold text-slate-900 tracking-tight">
             {dashboardData?.topStats.activeCampuses ?? 0}
           </h3>
           <p className="text-[11px] text-slate-400 mt-1">
             {dashboardData?.campusDistribution && dashboardData.campusDistribution.length > 0
-              ? dashboardData.campusDistribution.map((c) => c.campusCode).join(' • ')
-              : t("HL • HCM • DN • CT • QN")}
+              ? dashboardData.campusDistribution.map((c) => c.campusCode).join(' · ')
+              : '—'}
           </p>
         </Link>
 
@@ -385,7 +396,7 @@ export const AdminDashboardPage: React.FC = () => {
                     {dashboardData?.userActivity.activeUsers.toLocaleString(locale) ?? '0'}
                   </span>
                   <span className="text-[10px] font-bold text-emerald-600">
-                    {dashboardData?.userActivity.activeUsersDelta ?? '+0%'}
+                {dashboardData?.userActivity.activeUsersDelta || '—'}
                   </span>
                 </div>
               </div>
@@ -396,7 +407,7 @@ export const AdminDashboardPage: React.FC = () => {
                     {dashboardData?.userActivity.newSignups.toLocaleString(locale) ?? '0'}
                   </span>
                   <span className="text-[10px] font-bold text-emerald-600">
-                    {dashboardData?.userActivity.newSignupsDelta ?? '+0%'}
+                    {dashboardData?.userActivity.newSignupsDelta || '—'}
                   </span>
                 </div>
               </div>
@@ -591,7 +602,7 @@ export const AdminDashboardPage: React.FC = () => {
               <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 text-center">
                 <div className="text-lg font-bold text-slate-900">{dashboardData?.academicOverview.campusesCount ?? 0}</div>
                 <div className="text-[10px] font-bold text-slate-500 uppercase mt-0.5">{t("CAMPUSES")}</div>
-                <div className="text-[9px] text-slate-400">{t("All nodes synced")}</div>
+                <div className="text-[9px] text-slate-400">{`${dashboardData?.topStats.activeCampuses ?? 0} active`}</div>
               </div>
 
               <div className="p-3 bg-slate-50 rounded-lg border border-slate-100 text-center">
@@ -687,8 +698,17 @@ export const AdminDashboardPage: React.FC = () => {
           <div className="p-5 bg-white rounded-xl border border-slate-200/90 shadow-2xs space-y-3.5">
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-xs text-slate-900 uppercase tracking-wider">{t("System Status")}</h3>
-              <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />  {t("99.9% HEALTHY")}</span>
+              {(() => {
+                const ok = dashboardData?.systemStatus.isHealthy;
+                const known = !!dashboardData && dashboardData.systemStatus.searchServiceStatus !== 'UNKNOWN';
+                const label = ok ? 'HEALTHY' : known ? 'DEGRADED' : 'UNKNOWN';
+                const tone = ok ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : known ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-slate-50 text-slate-600 border-slate-200';
+                return (
+                  <span className={`flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${tone}`}>
+                    {t(label)}
+                  </span>
+                );
+              })()}
             </div>
 
             <div className="space-y-2.5 text-xs divide-y divide-slate-100">
@@ -699,7 +719,7 @@ export const AdminDashboardPage: React.FC = () => {
                 </div>
                 <div className="text-right">
                   <span className="font-mono text-emerald-600 font-bold">
-                    {dashboardData?.systemStatus.databaseUptime ?? '99.98%'}
+                {dashboardData?.systemStatus.databaseUptime ?? '—'}
                   </span>
                   <span className="text-[10px] text-slate-400 block">{t("Master + 2 replicas")}</span>
                 </div>
@@ -712,7 +732,7 @@ export const AdminDashboardPage: React.FC = () => {
                 </div>
                 <div className="text-right">
                   <span className="font-mono text-slate-800 font-bold">
-                    {t(dashboardData?.systemStatus.apiClusterLatency ?? '42ms Latency')}
+                    {t(dashboardData?.systemStatus.apiClusterLatency ?? '—')}
                   </span>
                   <span className="text-[10px] text-slate-400 block">{t("7/7 nodes active")}</span>
                 </div>
@@ -725,7 +745,7 @@ export const AdminDashboardPage: React.FC = () => {
                 </div>
                 <div className="text-right">
                   <span className="font-mono text-emerald-600 font-bold">
-                    {t(dashboardData?.systemStatus.searchServiceStatus ?? 'Optimal')}
+                    {t(dashboardData?.systemStatus.searchServiceStatus ?? 'UNKNOWN')}
                   </span>
                   <span className="text-[10px] text-slate-400 block">{t("Redis Cluster")}</span>
                 </div>
@@ -738,7 +758,7 @@ export const AdminDashboardPage: React.FC = () => {
                 </div>
                 <div className="text-right">
                   <span className="font-mono text-emerald-600 font-bold">
-                    {t(dashboardData?.systemStatus.cdnDeliveryUptime ?? '99.9% Uptime')}
+                {t(dashboardData?.systemStatus.cdnDeliveryUptime ?? '—')}
                   </span>
                   <span className="text-[10px] text-slate-400 block">{t("Automated health checks")}</span>
                 </div>

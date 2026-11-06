@@ -37,7 +37,6 @@ export const AdminLayout: React.FC = () => {
     { 
       title: t('nav.rolesPolicies', 'Identity & Staff'), 
       items: [
-        { name: t('nav.rolesPolicies', 'Roles & Policies'), path: '/admin/roles-policies', icon: KeyRound },
         { name: t('nav.staffManagement', 'Quản lý Staff Accounts'), path: '/staff', icon: UserCheck },
       ]
     },
@@ -46,7 +45,6 @@ export const AdminLayout: React.FC = () => {
       items: [
         { name: t('nav.achievementBadges', 'Quản lý Badges'), path: '/badges', icon: Award },
         { name: t('nav.auditLogs', 'System Audit Logs'), path: '/audit-logs', icon: FileSpreadsheet },
-        { name: t('nav.aiModeration', 'AI Moderation & Scan'), path: '/admin/ai-moderation', icon: Cpu },
       ]
     },
     { 

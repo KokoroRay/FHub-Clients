@@ -72,8 +72,6 @@ const SemanticTagsPage = lazyNamed(() => import('../features/admin/pages/Semanti
 const StaffAccountsAdminPage = lazyNamed(() => import('../features/admin/pages/StaffAccountsAdminPage'), 'StaffAccountsAdminPage');
 
 // Admin & Staff Governance Pages
-const RolePolicyManagementPage = lazyNamed(() => import('../features/admin/RolePolicyManagementPage'), 'RolePolicyManagementPage');
-const AIModerationPage = lazyNamed(() => import('../features/admin/AIModerationPage'), 'AIModerationPage');
 const VerificationQueuePage = lazyNamed(() => import('../features/staff/VerificationQueuePage'), 'VerificationQueuePage');
 
 // Auth Pages
@@ -246,11 +244,9 @@ const getMainPortalRoutes = () => [
       { path: 'admin/courses', element: <Navigate to="/courses" replace /> },
       { path: 'admin/course-nodes', element: <Navigate to="/courses" replace /> },
       { path: 'admin/topics', element: <Navigate to="/tags" replace /> },
-      { path: 'admin/roles-policies', element: <RolePolicyManagementPage /> },
       { path: 'admin/staff-accounts', element: <Navigate to="/staff" replace /> },
       { path: 'admin/badges', element: <Navigate to="/badges" replace /> },
       { path: 'admin/audit-logs', element: <Navigate to="/audit-logs" replace /> },
-      { path: 'admin/ai-moderation', element: <AIModerationPage /> },
       { path: 'staff/accounts', element: <Navigate to="/users" replace /> },
       { path: 'staff/verification', element: <Navigate to="/verifications" replace /> },
       { path: 'staff/health', element: <Navigate to="/health" replace /> },

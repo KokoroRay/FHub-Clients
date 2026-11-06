@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
+﻿import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from './AuthContext';
 
@@ -465,8 +465,15 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
       if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
       if (socketRef.current) {
-        socketRef.current.close();
+        const s = socketRef.current;
         socketRef.current = null;
+        if (s.readyState === WebSocket.OPEN) {
+          s.close(1000, 'Unmount');
+        } else if (s.readyState === WebSocket.CONNECTING) {
+          s.onopen = () => s.close(1000, 'Unmount');
+          s.onerror = () => {};
+          s.onclose = () => {};
+        }
       }
     };
   }, [connect]);
