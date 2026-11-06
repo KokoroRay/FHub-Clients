@@ -1,3 +1,5 @@
+export const TELEMETRY_BUILD_TAG = 'telemetry_20261106_v3';
+// Telemetry cache-bust: 2026-11-06-v2
 ﻿import { apiClient } from './client';
 import {
   AdminUser,
@@ -978,7 +980,7 @@ export const auditLogsApi = {
 export const healthApi = {
   checkAllServices: async () => {
     const services = [
-      { name: 'Identity Service', port: 5111, path: '/api/health/identity' },
+      { name: 'Identity Service', port: 5111, path: '/api/health/identity', v: '20261106_b2' },
       { name: 'Taxonomy Service', port: 5255, path: '/api/health/taxonomy' },
       { name: 'Governance Service', port: 5249, path: '/api/health/governance' },
       { name: 'Interaction Service', port: 8081, path: '/api/health/interaction' },
