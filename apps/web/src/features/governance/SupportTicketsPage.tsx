@@ -219,7 +219,7 @@ export const SupportTicketsPage: React.FC = () => {
       });
 
       const newId = String((createdRes as any)?.supportTicketId || (createdRes as any)?.ticketId || Date.now());
-      const newTicketNumber = (createdRes as any)?.ticketNumber || `#TK-${Math.floor(1000 + Math.random() * 9000)}`;
+      const newTicketNumber = (createdRes as any)?.ticketNumber || `#${newId}`;
 
       const newTicket: SupportTicketItem = {
         id: newId,
@@ -244,29 +244,7 @@ export const SupportTicketsPage: React.FC = () => {
       setNewDescription('');
       setSelectedTicketId(newTicket.id);
     } catch (err: any) {
-      console.warn('API ticket creation failed, falling back to local state:', err);
-      const newTicket: SupportTicketItem = {
-        id: `t-${Date.now()}`,
-        ticketId: `#TK-${Math.floor(1000 + Math.random() * 9000)}`,
-        title: newTitle.trim(),
-        category: newCategory,
-        priority: newPriority,
-        status: 'Open',
-        courseCode: newCourseCode.trim() || undefined,
-        createdDate: 'Just now',
-        updatedDate: 'Just now',
-        reporterName: (currentUser as any)?.fullName || (currentUser as any)?.name || t("Sinh viên FHub"),
-        reporterId: currentUser?.studentId || 'SE172481',
-        reporterInitials: ((currentUser as any)?.fullName || 'SV').split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase(),
-        description: newDescription.trim(),
-        replies: [],
-      };
-
-      setTickets([newTicket, ...tickets]);
-      setIsCreateModalOpen(false);
-      setNewTitle('');
-      setNewDescription('');
-      setSelectedTicketId(newTicket.id);
+      alert(err?.response?.data?.message || err?.message || 'Failed to create ticket');
     } finally {
       setIsSubmitting(false);
     }

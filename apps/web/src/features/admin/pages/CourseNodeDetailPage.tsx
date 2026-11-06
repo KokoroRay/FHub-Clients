@@ -84,24 +84,6 @@ export const CourseNodeDetailPage: React.FC = () => {
 
   const course = courses.find((c) => (c?.code || '').toLowerCase() === (code || '').toLowerCase()) || null;
 
-  const handleTriggerAISummary = () => {
-    setIsAiProcessing(true);
-    setTimeout(() => {
-      setIsAiProcessing(false);
-      setSuccessMessage(t("AI Summarizer has re-synthesized the complete course syllabus according to ABET criteria."));
-      setTimeout(() => setSuccessMessage(null), 3500);
-    }, 800);
-  };
-
-  const handleTriggerTagSuggestion = () => {
-    setIsAiProcessing(true);
-    setTimeout(() => {
-      setIsAiProcessing(false);
-      setSuccessMessage(t("AI Tag Engine scanned active Q&A threads and refreshed course taxonomy tags."));
-      setTimeout(() => setSuccessMessage(null), 3500);
-    }, 700);
-  };
-
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-slate-500">
@@ -180,24 +162,6 @@ export const CourseNodeDetailPage: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={handleTriggerAISummary}
-              disabled={isAiProcessing}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition-colors shadow-xs cursor-pointer"
-            >
-              <Sparkles className={`w-3.5 h-3.5 text-amber-300 ${isAiProcessing ? 'animate-spin' : ''}`} />
-              <span>{t("AI Re-Summarize")}</span>
-            </button>
-            <button
-              onClick={handleTriggerTagSuggestion}
-              disabled={isAiProcessing}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors cursor-pointer"
-            >
-              <Tag className="w-3.5 h-3.5 text-blue-600" />
-              <span>{t("Suggest Tags")}</span>
-            </button>
-          </div>
         </div>
 
         {/* Prerequisites & Overview */}

@@ -21,25 +21,23 @@ export const SystemHealthAdminPage: React.FC = () => {
 
   const healthList = (healthData || []).map((h: any) => ({
     serviceName: h.name,
-    status: h.status as 'HEALTHY' | 'DEGRADED' | 'DOWN' | 'OFFLINE',
-    latencyMs: h.latencyMs ?? 0,
-    uptimePercentage: parseFloat(String(h.uptime || '0').replace('%', '')) || 0,
-    lastChecked: 'Live Telemetry (Polling)',
+    status: h.status as 'HEALTHY' | 'DEGRADED' | 'DOWN' | 'UNKNOWN',
+    latencyMs: (h.latencyMs ?? null) as number | null,
+    uptimePercentage: h.uptime != null ? parseFloat(String(h.uptime).replace('%', '')) : null,
+    lastChecked: h.checkedAt ? new Date(h.checkedAt).toLocaleTimeString() : '—',
   }));
 
   const healthyCount = healthList.filter((s) => s.status === 'HEALTHY').length;
-  const avgLatency = healthList.length > 0
-    ? Math.round(healthList.reduce((acc, s) => acc + s.latencyMs, 0) / healthList.length)
-    : 0;
-  const avgUptime = healthList.length > 0
-    ? (healthList.reduce((acc, s) => acc + s.uptimePercentage, 0) / healthList.length).toFixed(2)
-    : '0.00';
+  const latencies = healthList.map((s) => s.latencyMs).filter((v): v is number => v != null);
+  const avgLatency = latencies.length > 0 ? Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length) : null;
+  const uptimes = healthList.map((s) => s.uptimePercentage).filter((v): v is number => v != null && !Number.isNaN(v));
+  const avgUptime = uptimes.length > 0 ? (uptimes.reduce((a, b) => a + b, 0) / uptimes.length).toFixed(2) : null;
 
   const handleRefreshHealth = async () => {
     setIsRefreshing(true);
     await refetch();
     setIsRefreshing(false);
-    setSaveNotice('Updated SLA telemetry across all 7 microservices.');
+    setSaveNotice('Re-checked all services.');
     setTimeout(() => setSaveNotice(null), 3000);
   };
 
@@ -56,7 +54,7 @@ export const SystemHealthAdminPage: React.FC = () => {
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
             {t("Microservices SLA & System Health")}</h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            {t("Realtime SLA monitoring, p95 latencies, and cluster telemetry across all 7 core microservices.")}</p>
+            {t("Realtime SLA monitoring, p95 latencies, and cluster telemetry across all core microservices.")}</p>
         </div>
 
         <button
@@ -79,20 +77,20 @@ export const SystemHealthAdminPage: React.FC = () => {
       {/* Cluster Overview Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t("OVERALL UPTIME SLA")}</span>
-          <p className="text-2xl font-bold text-emerald-600 mt-1">{avgUptime}%</p>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t("OVERALL UPTIME SLA (needs monitoring backend)")}</span>
+          <p className="text-2xl font-bold text-emerald-600 mt-1">{avgUptime != null ? `${avgUptime}%` : '—'}</p>
         </div>
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t("AVG P95 LATENCY")}</span>
-          <p className="text-2xl font-bold text-slate-900 mt-1">{avgLatency}  {t("ms")}</p>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t("AVG RESPONSE TIME (MEASURED)")}</span>
+          <p className="text-2xl font-bold text-slate-900 mt-1">{avgLatency != null ? `${avgLatency} ms` : '—'}</p>
         </div>
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t("REDIS CACHE HIT")}</span>
-          <p className="text-2xl font-bold text-blue-600 mt-1">98.4%</p>
+          <p className="text-2xl font-bold text-blue-600 mt-1">—</p>
         </div>
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t("POSTGRES HEALTH")}</span>
-          <p className="text-2xl font-bold text-slate-900 mt-1">{t("ONLINE")}</p>
+          <p className="text-2xl font-bold text-slate-900 mt-1">{t("No data")}</p>
         </div>
       </div>
 
@@ -137,12 +135,12 @@ export const SystemHealthAdminPage: React.FC = () => {
                     <div className="text-right">
                       <span className="text-[10px] text-slate-400 block">{t("Uptime:")}</span>
                       <span className={`font-mono font-bold ${isHealthy ? 'text-emerald-600' : 'text-amber-600'}`}>
-                        {srv.uptimePercentage}%
+                        {srv.uptimePercentage != null ? `${srv.uptimePercentage}%` : '—'}
                       </span>
                     </div>
                     <div className="text-right">
                       <span className="text-[10px] text-slate-400 block">{t("Latency:")}</span>
-                      <span className="font-mono font-bold text-slate-800">{srv.latencyMs}  {t("ms")}</span>
+                      <span className="font-mono font-bold text-slate-800">{srv.latencyMs != null ? `${srv.latencyMs} ms` : '—'}</span>
                     </div>
                     <span className={`px-2 py-0.2 rounded-full text-[10px] font-bold border ${
                       isHealthy

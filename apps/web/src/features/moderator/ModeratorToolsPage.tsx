@@ -71,10 +71,6 @@ export const ModeratorToolsPage: React.FC = () => {
   const [warnFeedback, setWarnFeedback] = useState<string | null>(null);
 
   // Series & Tags State
-  const [seriesList, setSeriesList] = useState([
-    { id: 's1', title: 'ASP.NET Core Master Series', author: 'Lê Hoàng Long (Alumni)', postCount: 5, views: '12.4k' },
-    { id: 's2', title: 'Data Structures & Algorithms in Java', author: 'Phạm Minh Đức (Mod)', postCount: 8, views: '28.1k' },
-  ]);
 
   // Content Moderation List
   const [contentList, setContentList] = useState<ModerationContentItem[]>([]);
@@ -132,11 +128,6 @@ export const ModeratorToolsPage: React.FC = () => {
     if (activeTab === 'tags') fetchLiveTags();
   }, [activeTab]);
 
-  const [semanticTags, setSemanticTags] = useState([
-    { id: 't1', name: 'dotnet-8', aliasOf: 'dotnet', count: 420 },
-    { id: 't2', name: 'ef-core', aliasOf: 'efcore', count: 310 },
-    { id: 't3', name: 'clean-arch', aliasOf: 'clean-architecture', count: 280 },
-  ]);
 
   const [isSeriesModalOpen, setIsSeriesModalOpen] = useState(false);
   const [seriesTitle, setSeriesTitle] = useState('');
@@ -296,29 +287,24 @@ export const ModeratorToolsPage: React.FC = () => {
       setWarnRelatedId('');
     } catch (err: any) {
       console.warn('Issue warning API error:', err);
-      alert(t("Đã gửi cảnh cáo chính thức tới sinh viên #{p0}!", undefined, { p0: warnUserId.trim() }));
-      setWarnUserId('');
-      setWarnMessage('');
-      setWarnRelatedId('');
+      setWarnFeedback(err?.response?.data?.message || err?.message || 'Failed to issue warning');
     } finally {
       setWarnLoading(false);
     }
   };
 
-  const handleCreateSeries = (e: React.FormEvent) => {
+  const handleCreateSeries = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!seriesTitle.trim()) return;
-
-    setSeriesList([
-      ...seriesList,
-      { id: `s-${Date.now()}`, title: seriesTitle, author: 'Community Moderator', postCount: 1, views: '100' },
-    ]);
-    setIsSeriesModalOpen(false);
-    setSeriesTitle('');
-  };
-
-  const handleMergeTag = (tagId: string) => {
-    alert(t("Đã hợp nhất Semantic Tag ID {p0} theo cây từ khóa chuẩn.", undefined, { p0: tagId }));
+    try {
+      await seriesApi.createSeries({ title: seriesTitle.trim() });
+      setIsSeriesModalOpen(false);
+      setSeriesTitle('');
+      const res = await seriesApi.getSeriesList({ pageSize: 30 });
+      setLiveSeries(res?.items || []);
+    } catch (err: any) {
+      alert(err?.response?.data?.message || err?.message || 'Failed to create series');
+    }
   };
 
   return (
@@ -349,8 +335,8 @@ export const ModeratorToolsPage: React.FC = () => {
           { id: 'reports', label: t("Báo cáo vi phạm (Queue)"), count: reports.filter(r => r.status === 'PENDING').length, icon: <FileText className="w-4 h-4" /> },
           { id: 'moderation', label: t("Kiểm duyệt nội dung trực tiếp"), icon: <Lock className="w-4 h-4" /> },
           { id: 'warnings', label: t("Phát lệnh cảnh cáo"), icon: <AlertTriangle className="w-4 h-4" /> },
-          { id: 'series', label: t("Quản trị Series bài viết"), count: seriesList.length, icon: <Layers className="w-4 h-4" /> },
-          { id: 'tags', label: t("Hợp nhất Semantic Tags"), count: semanticTags.length, icon: <Tag className="w-4 h-4" /> },
+          { id: 'series', label: t("Quản trị Series bài viết"), count: liveSeries.length, icon: <Layers className="w-4 h-4" /> },
+          { id: 'tags', label: t("Hợp nhất Semantic Tags"), count: liveTags.length, icon: <Tag className="w-4 h-4" /> },
         ]}
         activeTab={activeTab}
         onChange={(t) => setActiveTab(t as any)}
@@ -722,15 +708,18 @@ export const ModeratorToolsPage: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {seriesList.map((s) => (
-              <Card key={s.id}>
+            {liveSeries.length === 0 && (
+              <p className="text-xs text-slate-400 col-span-full">No series yet.</p>
+            )}
+            {liveSeries.map((s: any) => (
+              <Card key={s.seriesId}>
                 <CardBody className="p-5 space-y-2">
                   <div className="flex items-center justify-between">
-                    <Badge variant="purple" size="sm">{s.postCount}  {t("Bài viết")}</Badge>
-                    <span className="text-xs text-slate-400 font-mono">{s.views}  {t("views")}</span>
+                    <Badge variant="purple" size="sm">{s.itemCount ?? 0} items</Badge>
+                    <span className="text-xs text-slate-400 font-mono">{s.status}</span>
                   </div>
                   <h4 className="font-bold text-sm text-slate-900 dark:text-slate-100">{s.title}</h4>
-                  <p className="text-xs text-slate-400">{t("Tác giả:")} {s.author}</p>
+                  <p className="text-xs text-slate-400">Author #{s.authorUserId}</p>
                 </CardBody>
               </Card>
             ))}
@@ -743,16 +732,16 @@ export const ModeratorToolsPage: React.FC = () => {
         <div className="space-y-3">
           <p className="text-xs text-slate-500">
             {t("Hợp nhất các Semantic Tag từ đồng nghĩa thành một chuẩn duy nhất để tối ưu hóa tìm kiếm.")}</p>
-          {semanticTags.map((tag) => (
-            <Card key={tag.id}>
+          {isTagsLoading && <p className="text-xs text-slate-400">Loading...</p>}
+          {!isTagsLoading && liveTags.length === 0 && <p className="text-xs text-slate-400">No semantic tags.</p>}
+          {liveTags.map((tag) => (
+            <Card key={tag.semanticTagId}>
               <CardBody className="p-4 flex items-center justify-between">
                 <div>
-                  <span className="font-bold text-xs font-mono text-slate-800 dark:text-slate-200">#{tag.name}</span>
-                  <span className="text-xs text-blue-600 font-mono ml-2">{t("→ Hợp nhất vào: #")}{tag.aliasOf}</span>
-                  <span className="text-[11px] text-slate-400 block mt-0.5">{t("Áp dụng cho")} {tag.count}  {t("bài viết")}</span>
+                  <span className="font-bold text-xs font-mono text-slate-800 dark:text-slate-200">#{tag.tagName}</span>
+                  <span className="text-xs text-slate-400 font-mono ml-2">{tag.status}</span>
+                  <span className="text-[11px] text-slate-400 block mt-0.5">{tag.usageCount}</span>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => handleMergeTag(tag.id)}>
-                  {t("Thực hiện gộp Tag")}</Button>
               </CardBody>
             </Card>
           ))}

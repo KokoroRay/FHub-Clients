@@ -1,4 +1,4 @@
-import { apiClient } from './client';
+﻿import { apiClient } from './client';
 import {
   AdminUser,
   DetailedCampus,
@@ -794,7 +794,7 @@ export const reputationApi = {
     const res = await apiClient.get<ReputationRule[] | { data: any[] }>('/api/reputation/rules');
     const rawList = Array.isArray(res.data) ? res.data : (res.data.data || []);
     return rawList.map((r: any) => ({
-      id: String(r.id || r.rule_id || `rep-${Math.random()}`),
+      id: String(r.id ?? r.rule_id ?? r.rule_code ?? r.code ?? ""),
       actionCode: r.actionCode || r.rule_code || r.code || '',
       actionName: r.actionName || r.rule_name || r.name || 'Unnamed Rule',
       category: (r.category || (r.event_type?.includes('QUESTION') ? 'DISCUSSION' : r.event_type?.includes('REPORT') ? 'COMMUNITY' : (r.points_delta ?? r.pointDelta ?? 0) < 0 ? 'PENALTY' : 'CONTENT')) as any,
@@ -853,7 +853,7 @@ export const badgesApi = {
     const res = await apiClient.get<DetailedBadge[] | { data: any[] }>('/api/badges');
     const rawList = Array.isArray(res.data) ? res.data : (res.data.data || []);
     return rawList.map((b: any) => ({
-      id: String(b.id || b.badge_id || `badge-${Math.random()}`),
+      id: String(b.id ?? b.badge_id ?? b.badge_code ?? b.code ?? ""),
       code: b.code || b.badge_code || '',
       name: b.name || b.badge_name || 'Unnamed Badge',
       description: b.description || '',
@@ -984,26 +984,30 @@ export const healthApi = {
       { name: 'Interaction Service', port: 8081, path: '/api/health/interaction' },
       { name: 'Communication Service', port: 8082, path: '/api/health/communication' },
       { name: 'Content Service', port: 5121, path: '/api/health/content' },
-      { name: 'Profile Service', port: 5267, path: '/api/health/profile' }
+      { name: 'Profile Service', port: 5267, path: '/api/health/profile' },
+      { name: 'AI Service', port: 8000, path: '/api/ai/health' }
     ];
 
     const results = await Promise.allSettled(
       services.map(async (s) => {
         const start = performance.now();
         try {
-          await apiClient.get(s.path, { timeout: 3500 });
+          const res = await fetch(s.path, { signal: AbortSignal.timeout(3500) });
           const latency = Math.round(performance.now() - start);
-          return { name: s.name, status: 'HEALTHY' as const, latencyMs: latency || 18, uptime: '99.98%' };
+          if (res.ok) {
+            return { name: s.name, status: 'HEALTHY' as const, latencyMs: latency as number | null, uptime: null as string | null, checkedAt: new Date().toISOString() };
+          }
+          return { name: s.name, status: 'DOWN' as const, latencyMs: latency as number | null, uptime: null as string | null, checkedAt: new Date().toISOString() };
         } catch {
           const latency = Math.round(performance.now() - start);
-          return { name: s.name, status: 'DEGRADED' as const, latencyMs: latency || 120, uptime: '98.5%' };
+          return { name: s.name, status: 'DOWN' as const, latencyMs: latency as number | null, uptime: null as string | null, checkedAt: new Date().toISOString() };
         }
       })
     );
 
     return results.map((r, i) => {
       if (r.status === 'fulfilled') return r.value;
-      return { name: services[i].name, status: 'OFFLINE' as const, latencyMs: 999, uptime: '0%' };
+      return { name: services[i].name, status: 'UNKNOWN' as const, latencyMs: null as number | null, uptime: null as string | null, checkedAt: new Date().toISOString() };
     });
   }
 };

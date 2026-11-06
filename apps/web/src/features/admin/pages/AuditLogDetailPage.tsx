@@ -157,8 +157,7 @@ export const AuditLogDetailPage: React.FC = () => {
             <h3 className="font-bold text-xs text-slate-200 font-sans uppercase tracking-wider">
               {t("Cryptographic Immutability Chain (SHA-256 Proof)")}</h3>
           </div>
-          <span className="text-[10px] px-2 py-0.2 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30">
-            {t("MERKLE PROOF 100% MATCH")}</span>
+          
         </div>
 
         <div className="space-y-2.5 bg-black/40 p-3.5 rounded-lg border border-slate-800 text-[11px]">

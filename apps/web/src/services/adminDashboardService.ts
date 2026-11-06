@@ -1,3 +1,4 @@
+﻿import { healthApi } from './api/adminApi';
 /**
  * Admin Dashboard & Multi-service Aggregator Client Service.
  * Connects Frontend Admin pages to Backend Aggregator and microservices:
@@ -106,6 +107,12 @@ export async function fetchAdminDashboardStats(timeframe: 'Today' | '7 Days' | '
   try {
     const [
       ticketsRes,
+      openRes,
+      progRes,
+      resolvedRes,
+      urgentRes,
+      highRes,
+      healthRes,
       usersRes,
       logsRes,
       campusesRes,
@@ -116,6 +123,12 @@ export async function fetchAdminDashboardStats(timeframe: 'Today' | '7 Days' | '
       workflowsRes
     ] = await Promise.allSettled([
       fetch(`${API_BASE_URL}/api/support-tickets?pageSize=20`, { headers }),
+      fetch(`${API_BASE_URL}/api/support-tickets?pageSize=1&status=OPEN`, { headers }),
+      fetch(`${API_BASE_URL}/api/support-tickets?pageSize=1&status=IN_PROGRESS`, { headers }),
+      fetch(`${API_BASE_URL}/api/support-tickets?pageSize=1&status=RESOLVED`, { headers }),
+      fetch(`${API_BASE_URL}/api/support-tickets?pageSize=1&priority=URGENT`, { headers }),
+      fetch(`${API_BASE_URL}/api/support-tickets?pageSize=1&priority=HIGH`, { headers }),
+      healthApi.checkAllServices(),
       fetch(`${API_BASE_URL}/api/users?pageSize=100`, { headers }),
       fetch(`${API_BASE_URL}/api/audit-logs?pageSize=10`, { headers }),
       fetch(`${API_BASE_URL}/api/campuses?pageSize=50`, { headers }),
@@ -151,19 +164,24 @@ export async function fetchAdminDashboardStats(timeframe: 'Today' | '7 Days' | '
         campus: t.campusCode || 'ALL',
         timeAgo: t.createdAt || 'Recently',
       }));
-      openCount = items.filter((t: any) => t.status === 'OPEN').length;
-      inProgressCount = items.filter((t: any) => t.status === 'IN_PROGRESS').length;
-      resolvedCount = items.filter((t: any) => t.status === 'RESOLVED' || t.status === 'CLOSED').length;
-      urgentTicketsCount = items.filter((t: any) => t.priority === 'URGENT' || t.priority === 'HIGH').length;
     }
+    const countOf = async (r: PromiseSettledResult<Response>): Promise<number> => {
+      if (r.status !== 'fulfilled' || !r.value.ok) return 0;
+      const d = await r.value.json();
+      return d?.data?.totalCount ?? 0;
+    };
+    openCount = await countOf(openRes);
+    inProgressCount = await countOf(progRes);
+    resolvedCount = await countOf(resolvedRes);
+    urgentTicketsCount = (await countOf(urgentRes)) + (await countOf(highRes));
 
     let campusesList: any[] = [];
     let totalCampuses = 0;
     if (campusesRes.status === 'fulfilled' && campusesRes.value.ok) {
       const data = await campusesRes.value.json();
-      const list = data?.data?.items || (Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []));
+      const list = data?.items || data?.data?.items || (Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []));
       campusesList = list;
-      totalCampuses = data?.data?.totalCount ?? list.length;
+      totalCampuses = data?.totalCount ?? data?.data?.totalCount ?? list.length;
     }
 
     let totalMajors = 0;
@@ -220,6 +238,15 @@ export async function fetchAdminDashboardStats(timeframe: 'Today' | '7 Days' | '
       }
     });
 
+    const serviceStatuses: any[] = healthRes.status === 'fulfilled' ? (healthRes.value as any[]) : [];
+    const measured = serviceStatuses.map((s: any) => s.latencyMs).filter((v: any) => typeof v === 'number');
+    const avgMeasuredLatency = measured.length ? Math.round(measured.reduce((a: number, b: number) => a + b, 0) / measured.length) : null;
+    const aiSvc = serviceStatuses.find((s: any) => s.name === 'AI Service');
+    const windowDays = timeframe === 'Today' ? 1 : timeframe === '7 Days' ? 7 : 30;
+    const since = Date.now() - windowDays * 86400000;
+    const newSignupsCount = usersList.filter((u: any) => u.createdAt && new Date(u.createdAt).getTime() >= since).length;
+    const activeUsersCount = usersList.filter((u: any) => u.lastLoginAt && new Date(u.lastLoginAt).getTime() >= since).length;
+
     const campusDistribution = campusesList.map((c: any) => {
       const code = (c.campusCode || '').trim().toUpperCase();
       const name = c.campusName || code;
@@ -262,20 +289,20 @@ export async function fetchAdminDashboardStats(timeframe: 'Today' | '7 Days' | '
     return {
       topStats: {
         totalUsers,
-        usersDelta: '+0% vs last mo',
+        usersDelta: '',
         supportTickets: totalTickets,
         ticketsQueueNote: `${openCount} in queue`,
         urgentTicketsCount,
         courseNodes: totalCourses,
         activeCampuses: totalCampuses,
-        systemAlerts: 0,
+        systemAlerts: serviceStatuses.filter((s: any) => s.status !== 'HEALTHY').length,
       },
       userActivity: {
-        activeUsers: totalUsers,
-        activeUsersDelta: '+0%',
-        newSignups: totalUsers,
-        newSignupsDelta: '+0%',
-        discussionsDailyAvg: totalDiscussions,
+        activeUsers: activeUsersCount,
+        activeUsersDelta: '',
+        newSignups: newSignupsCount,
+        newSignupsDelta: '',
+        discussionsDailyAvg: Math.round(totalDiscussions / windowDays),
         timeframe,
       },
       ticketsQueue: {
@@ -295,18 +322,18 @@ export async function fetchAdminDashboardStats(timeframe: 'Today' | '7 Days' | '
       },
       recentAuditLogs,
       systemStatus: {
-        databaseUptime: '100%',
-        apiClusterLatency: '0ms Latency',
-        searchServiceStatus: 'Optimal',
-        cdnDeliveryUptime: '100% Uptime',
-        isHealthy: true,
+        databaseUptime: '—',
+        apiClusterLatency: avgMeasuredLatency != null ? `${avgMeasuredLatency}ms Latency` : '—',
+        searchServiceStatus: aiSvc ? aiSvc.status : 'UNKNOWN',
+        cdnDeliveryUptime: '—',
+        isHealthy: serviceStatuses.length > 0 && serviceStatuses.every((s: any) => s.status === 'HEALTHY'),
       },
       campusDistribution,
       pendingTasks,
     };
   } catch (err) {
     console.error('Failed to aggregate dashboard stats:', err);
-    return getBaselineDashboardData(timeframe);
+    throw err;
   }
 }
 
@@ -477,53 +504,3 @@ export async function deleteStaff(staffId: number | string, reason = 'Deleted by
   return res.ok ? await res.json() : null;
 }
 
-/**
- * Baseline executive dashboard metrics fallback
- */
-function getBaselineDashboardData(timeframe: 'Today' | '7 Days' | '30 Days', users = 0, tickets = 0): AdminDashboardData {
-  return {
-    topStats: {
-      totalUsers: users,
-      usersDelta: '0%',
-      supportTickets: tickets,
-      ticketsQueueNote: '0 in queue',
-      urgentTicketsCount: 0,
-      courseNodes: 0,
-      activeCampuses: 0,
-      systemAlerts: 0,
-    },
-    userActivity: {
-      activeUsers: 0,
-      activeUsersDelta: '0%',
-      newSignups: 0,
-      newSignupsDelta: '0%',
-      discussionsDailyAvg: 0,
-      timeframe,
-    },
-    ticketsQueue: {
-      openCount: 0,
-      inProgressCount: 0,
-      waitingCount: 0,
-      resolvedCount: 0,
-      recentTickets: [],
-    },
-    academicOverview: {
-      campusesCount: 0,
-      majorsCount: 0,
-      courseNodesCount: 0,
-      materialsCount: 0,
-      discussionsCount: 0,
-      workflowsCount: 0,
-    },
-    recentAuditLogs: [],
-    systemStatus: {
-      databaseUptime: '100%',
-      apiClusterLatency: '0ms Latency',
-      searchServiceStatus: 'Optimal',
-      cdnDeliveryUptime: '100% Uptime',
-      isHealthy: true,
-    },
-    campusDistribution: [],
-    pendingTasks: [],
-  };
-}
