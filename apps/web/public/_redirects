@@ -1,2 +1,3 @@
-/api/* https://api.fhub.com.vn/api/:splat 200
-/*     /index.html                           200
+/api/*     https://api.fhub.com.vn/api/:splat  200
+/assets/*  /assets/:splat                      404
+/*         /index.html                         200
