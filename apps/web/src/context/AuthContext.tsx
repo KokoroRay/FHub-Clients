@@ -54,16 +54,13 @@ const getInitialUser = (): User | null => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(getInitialUser);
-  const [currentCampus, setCurrentCampus] = useState<CampusCode>(currentUser?.campus || 'HL');
+  const [currentCampus, setCurrentCampus] = useState<CampusCode>('ALL');
 
   // Synchronize across browser tabs/storage events
   useEffect(() => {
     const handleStorageChange = () => {
       const user = getInitialUser();
       setCurrentUser(user);
-      if (user?.campus) {
-        setCurrentCampus(user.campus);
-      }
     };
     window.addEventListener('storage', handleStorageChange);
 
@@ -199,9 +196,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     recordLoginSession(user, token, effectiveRememberMe);
 
     setCurrentUser(user);
-    if (user.campus) {
-      setCurrentCampus(user.campus);
-    }
+    setCurrentCampus('ALL');
   };
 
   const updateUser = (fields: Partial<User>) => {
@@ -214,9 +209,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       sessionStorage.setItem('fhub_user', JSON.stringify(updated));
     }
     setCurrentUser(updated);
-    if (fields.campus) {
-      setCurrentCampus(fields.campus);
-    }
   };
 
   // Auto-fetch fresh profile (avatarUrl, fullName, campus) from profile-service when user is authenticated

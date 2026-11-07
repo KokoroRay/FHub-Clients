@@ -314,7 +314,10 @@ export const AdminSubdomainLayout: React.FC = () => {
                 </button>
               }
               items={[
-                { id: 'ALL', label: t("{p0} ({p1} Phân hiệu)", undefined, { p0: t('header.allCampuses', 'All Campuses'), p1: campusOptions.length }), onClick: () => setSelectedPartition('ALL') },
+                { id: 'ALL', label: t("{p0} ({p1} Phân hiệu)", undefined, { p0: t('header.allCampuses', 'All Campuses'), p1: campusOptions.length }), onClick: () => {
+                  setSelectedPartition('ALL');
+                  setCurrentCampus('ALL');
+                } },
                 ...campusOptions.map((c: any) => ({
                   id: c.code,
                   label: `${c.code} - ${c.name}`,

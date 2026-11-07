@@ -76,6 +76,8 @@ export const FeedPage: React.FC = () => {
 
   // Campus info
   const campusMap: Record<string, { shortName: string; fullName: string; address?: string }> = {
+    ALL: { shortName: 'Global', fullName: 'FPT University - Toàn hệ thống (Global)', address: 'Tất cả các phân hiệu FPT trên toàn quốc' },
+    GLOBAL: { shortName: 'Global', fullName: 'FPT University - Toàn hệ thống (Global)', address: 'Tất cả các phân hiệu FPT trên toàn quốc' },
     HL: { shortName: 'Hòa Lạc', fullName: 'FPT University - Hòa Lạc (Hà Nội)', address: 'Khu CNC Hòa Lạc, Km 29 Đại lộ Thăng Long, H. Thạch Thất, Hà Nội' },
     HN: { shortName: 'Hòa Lạc', fullName: 'FPT University - Hòa Lạc (Hà Nội)', address: 'Khu CNC Hòa Lạc, Km 29 Đại lộ Thăng Long, H. Thạch Thất, Hà Nội' },
     HCM: { shortName: 'TP. Hồ Chí Minh', fullName: 'FPT University - TP. Hồ Chí Minh', address: 'Lô E2a-7, Đường D1 Khu Công nghệ cao, P. Long Thạnh Mỹ, TP. Thủ Đức, TP. HCM' },
@@ -84,7 +86,7 @@ export const FeedPage: React.FC = () => {
     QN: { shortName: 'Quy Nhơn', fullName: 'FPT University - Quy Nhơn', address: 'Khu đô thị An Phú Thịnh, P. Nhơn Bình & Đống Đa, TP. Quy Nhơn, Tỉnh Bình Định' },
   };
 
-  const campusInfo = campusMap[currentCampus || 'HL'] || campusMap.HL;
+  const campusInfo = campusMap[currentCampus || 'ALL'] || campusMap.ALL;
   const studentName = currentUser?.fullName || t('common.student', 'Sinh viên FHub');
   const studentInitials = studentName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || 'SV';
   const currentUserMajor = resolveUserMajorName(currentUser);
