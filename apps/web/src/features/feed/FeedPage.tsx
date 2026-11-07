@@ -17,7 +17,9 @@ import {
   BookOpen,
   Award,
   Layers,
-  LifeBuoy
+  LifeBuoy,
+  Share2,
+  Check
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { apiClient } from '../../services/api/client';
@@ -64,6 +66,29 @@ export const FeedPage: React.FC = () => {
   const [feedFilter, setFeedFilter] = useState<'newest' | 'votes' | 'unanswered'>('newest');
   const [page, setPage] = useState<number>(1);
   const [hasMore, setHasMore] = useState<boolean>(true);
+  const [copiedShareId, setCopiedShareId] = useState<string | null>(null);
+
+  const handleShare = (qId: string | number, _title?: string) => {
+    const numericId = Number(String(qId).replace(/\D/g, '')) || qId;
+    const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/discussions/${numericId}`;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url);
+      setCopiedShareId(String(qId));
+      setTimeout(() => setCopiedShareId(null), 2000);
+    }
+  };
+
+  const handleDeleteQuestion = async (qId: string | number) => {
+    const numericId = Number(String(qId).replace(/\D/g, ''));
+    if (numericId > 0) {
+      try {
+        await questionApi.deleteQuestion(numericId);
+      } catch (err) {
+        console.warn('Failed to delete question:', err);
+      }
+    }
+    setQuestions((prev) => prev.filter((q: any) => String(q.questionId || q.id) !== String(qId) && Number(String(q.questionId || q.id).replace(/\D/g, '')) !== numericId));
+  };
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
 
   // Author profiles cache (id -> { fullName, avatarUrl })
@@ -114,6 +139,8 @@ export const FeedPage: React.FC = () => {
 
       const res = await questionApi.getQuestions(params);
       let items = res?.items || [];
+      // Defensive filter: only display public posts (OPEN, RESOLVED, CLOSED)
+      items = items.filter((q: any) => !q.status || q.status === 'OPEN' || q.status === 'RESOLVED' || q.status === 'CLOSED');
 
       // Filter for unanswered if requested
       if (feedFilter === 'unanswered') {
@@ -292,11 +319,15 @@ export const FeedPage: React.FC = () => {
 
     if (!isNaN(numericId) && numericId > 0) {
       try {
-        await voteApi.vote({
-          target_type: 'QUESTION',
-          target_id: numericId,
-          vote_value: voteValue,
-        });
+        if (current.userVote === direction) {
+          await voteApi.removeVote('QUESTION', numericId);
+        } else {
+          await voteApi.vote({
+            target_type: 'QUESTION',
+            target_id: numericId,
+            vote_value: voteValue,
+          });
+        }
         const stats = await voteApi.getStats('QUESTION', numericId);
         const finalEntry = {
           count: stats.score,
@@ -748,6 +779,13 @@ export const FeedPage: React.FC = () => {
                           targetId={qId}
                           targetTitle={q.title}
                           shareUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/discussions/${qId}`}
+                          isOwner={Boolean(
+                            (q.authorUserId && currentUser?.id && String(q.authorUserId) === String(currentUser.id)) ||
+                            (q.author?.id && currentUser?.id && String(q.author.id) === String(currentUser.id)) ||
+                            currentUser?.role === 'Admin'
+                          )}
+                          onDelete={() => handleDeleteQuestion(qId)}
+                          deleteLabel={t('questions.deleteQuestion', 'Xóa câu hỏi')}
                         />
                       </div>
                     </div>
@@ -845,6 +883,25 @@ export const FeedPage: React.FC = () => {
                         >
                           <Bookmark className={`w-3.5 h-3.5 ${bookmarkedIds.has(qId) ? 'fill-current' : ''}`} />
                           <span>{bookmarkedIds.has(qId) ? t('common.saved', 'Đã lưu') : t('common.bookmark', 'Lưu')}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleShare(qId, q.title)}
+                          className="flex items-center gap-1.5 cursor-pointer text-slate-500 hover:text-[#0076D1] dark:hover:text-blue-400 transition-colors"
+                          title={t('common.share', 'Chia sẻ')}
+                        >
+                          {copiedShareId === String(qId) ? (
+                            <>
+                              <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                              <span className="text-emerald-600 dark:text-emerald-400 font-semibold">{t('common.copied', 'Đã chép link!')}</span>
+                            </>
+                          ) : (
+                            <>
+                              <Share2 className="w-3.5 h-3.5" />
+                              <span>{t('common.share', 'Chia sẻ')}</span>
+                            </>
+                          )}
                         </button>
                       </div>
 

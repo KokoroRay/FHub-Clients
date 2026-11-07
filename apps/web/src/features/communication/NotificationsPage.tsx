@@ -19,6 +19,7 @@ import {
   X
 } from 'lucide-react';
 import { notificationApi, NotificationItem as ApiNotificationItem } from '../../services/api/studentApi';
+import { NotificationDetailModal } from '../../components/common/NotificationDetailModal';
 import { useLanguage } from '../../context/LanguageContext';
 import { useRealtime } from '../../context/RealtimeContext';
 
@@ -43,6 +44,7 @@ export const NotificationsPage: React.FC = () => {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [activeTab, setActiveTab] = useState<'all' | 'unread' | 'read'>('all');
   const [loading, setLoading] = useState(false);
+  const [selectedNotifForDetail, setSelectedNotifForDetail] = useState<NotificationItem | null>(null);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [detailNotif, setDetailNotif] = useState<NotificationItem | null>(null);
 
@@ -140,8 +142,8 @@ export const NotificationsPage: React.FC = () => {
     return true;
   });
 
-  const handleMarkAsRead = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleMarkAsRead = async (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     try {
       await notificationApi.markAsRead(id);
     } catch (err) {
@@ -332,7 +334,7 @@ export const NotificationsPage: React.FC = () => {
             {filteredNotifications.map((notif) => (
               <div
                 key={notif.id}
-                onClick={() => navigate(notif.actionUrl)}
+                onClick={() => { handleMarkAsRead(notif.id); setSelectedNotifForDetail(notif); }}
                 className={`flex items-start gap-4 p-5 transition-colors cursor-pointer group hover:bg-slate-50/80 ${
                   !notif.isRead ? 'bg-blue-50/30' : 'bg-white'
                 }`}
@@ -366,7 +368,7 @@ export const NotificationsPage: React.FC = () => {
                     {notif.description}
                   </p>
 
-                  <div className="mt-2.5 flex items-center gap-2">
+                  <div className="mt-2.5 flex items-center gap-2" onClick={(e) => { e.stopPropagation(); handleMarkAsRead(notif.id); setSelectedNotifForDetail(notif); }}>
                     <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#0076D1] group-hover:underline">
                       <span>{t(notif.actionText)}</span>
                       <ExternalLink className="w-3 h-3" />

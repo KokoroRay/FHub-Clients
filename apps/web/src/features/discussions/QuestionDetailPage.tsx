@@ -63,6 +63,16 @@ export const QuestionDetailPage: React.FC = () => {
   const [copiedCode, setCopiedCode] = useState(false);
   const [composerTab, setComposerTab] = useState<'write' | 'preview'>('write');
   const [isVotingStatsOpen, setIsVotingStatsOpen] = useState(false);
+  const [isCopiedShare, setIsCopiedShare] = useState(false);
+
+  const handleShareQuestion = () => {
+    const url = typeof window !== 'undefined' ? window.location.href : '';
+    if (navigator.clipboard && url) {
+      navigator.clipboard.writeText(url);
+      setIsCopiedShare(true);
+      setTimeout(() => setIsCopiedShare(false), 2000);
+    }
+  };
   const [isLoading, setIsLoading] = useState(true);
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [showEditQuestionModal, setShowEditQuestionModal] = useState(false);
@@ -74,7 +84,7 @@ export const QuestionDetailPage: React.FC = () => {
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
   const [editQuestionTitle, setEditQuestionTitle] = useState('');
   const [editQuestionBody, setEditQuestionBody] = useState('');
-  const [authorProfiles, setAuthorProfiles] = useState<Record<number, { fullName: string; avatarUrl?: string }>>({});
+  const [authorProfiles, setAuthorProfiles] = useState<Record<number, { fullName: string; avatarUrl?: string; campus?: string }>>({});
 
   const KNOWN_SEED_USERS: Record<number, string> = {
     1: 'Nguyễn Văn An',
@@ -129,6 +139,21 @@ export const QuestionDetailPage: React.FC = () => {
     return '';
   };
 
+  const getAuthorCampus = (
+    authorId?: string | number,
+    authorCampus?: string | null,
+    isAnon?: boolean
+  ) => {
+    if (isAnon) return '';
+    const numId = Number(authorId);
+    if (numId && currentUser?.id && String(numId) === String(currentUser.id)) {
+      return currentUser.campus || '';
+    }
+    if (numId && authorProfiles[numId]?.campus) return authorProfiles[numId].campus;
+    if (authorCampus && authorCampus.trim()) return authorCampus.trim();
+    return '';
+  };
+
   useEffect(() => {
     if (!id) return;
     const numId = Number(id.replace(/\D/g, ''));
@@ -178,7 +203,7 @@ export const QuestionDetailPage: React.FC = () => {
               fullName: getAuthorDisplayName(data.authorUserId, data.authorDisplayName, data.isAnonymous),
               role: 'Student',
               karma: data.upvoteCount || 0,
-              campus: '',
+              campus: (data.authorUserId && currentUser?.id && String(data.authorUserId) === String(currentUser.id) ? (currentUser.campus || '') : (data.campusCode || data.campus || (data as any).authorCampus || '')),
               isAnonymous: data.isAnonymous,
             },
             tags: mappedTags,
@@ -264,7 +289,7 @@ export const QuestionDetailPage: React.FC = () => {
                 avatarUrl: '',
                 role: ans.isModeratorVerified ? 'Alumni' : 'Student',
                 karma: 0,
-                campus: '',
+                campus: (ans.authorUserId && currentUser?.id && String(ans.authorUserId) === String(currentUser.id) ? (currentUser.campus || '') : (ans.campusCode || ans.campus || (ans as any).authorCampus || '')),
                 isAnonymous: ans.isAnonymous,
               },
               content: ans.body,
@@ -309,6 +334,7 @@ export const QuestionDetailPage: React.FC = () => {
                       mapped[uid] = {
                         fullName: name,
                         avatarUrl: p.avatarUrl || '',
+                        campus: p.campusCode || p.campus || '',
                       };
                     }
                   }
@@ -411,11 +437,15 @@ export const QuestionDetailPage: React.FC = () => {
     setUpvotes(nextScore);
 
     try {
-      await voteApi.vote({
-        target_type: 'QUESTION',
-        target_id: numId,
-        vote_value: type === 'UP' ? 1 : -1,
-      });
+      if (prevVote === type) {
+        await voteApi.removeVote('QUESTION', numId);
+      } else {
+        await voteApi.vote({
+          target_type: 'QUESTION',
+          target_id: numId,
+          vote_value: type === 'UP' ? 1 : -1,
+        });
+      }
       const stats = await voteApi.getStats('QUESTION', numId);
       setUpvotes(stats.score);
       setUserVote(stats.myVoteValue === 1 ? 'UP' : stats.myVoteValue === -1 ? 'DOWN' : null);
@@ -489,11 +519,15 @@ export const QuestionDetailPage: React.FC = () => {
     );
 
     try {
-      await voteApi.vote({
-        target_type: 'ANSWER',
-        target_id: numAnsId,
-        vote_value: type === 'UP' ? 1 : -1,
-      });
+      if (prevVote === type) {
+        await voteApi.removeVote('ANSWER', numAnsId);
+      } else {
+        await voteApi.vote({
+          target_type: 'ANSWER',
+          target_id: numAnsId,
+          vote_value: type === 'UP' ? 1 : -1,
+        });
+      }
       const stats = await voteApi.getStats('ANSWER', numAnsId);
       setAnswers((prev) =>
         prev.map((a) =>
@@ -813,7 +847,9 @@ export const QuestionDetailPage: React.FC = () => {
                           <span className="font-bold text-slate-800 dark:text-slate-200 group-hover:text-[#0076D1] dark:group-hover:text-blue-400 group-hover:underline transition-colors">
                             {getAuthorDisplayName(question.author.id, question.author.fullName, question.author.isAnonymous)}
                           </span>
-                          <Badge variant="neutral" size="sm">{question.author.campus || 'FU-HL'}</Badge>
+                          {getAuthorCampus(question.author.id, question.author.campus, question.author.isAnonymous) ? (
+                            <Badge variant="neutral" size="sm">{getAuthorCampus(question.author.id, question.author.campus, question.author.isAnonymous)}</Badge>
+                          ) : null}
                         </div>
                         <span className="text-[10px] text-slate-400">
                           {t('questions.askedAt', 'Đã hỏi:')} {new Date(question.createdAt).toLocaleDateString(locale)} • {t('questions.views', 'Xem:')} {question.viewsCount} {t('questions.viewsSuffix', 'lượt')}
@@ -859,6 +895,14 @@ export const QuestionDetailPage: React.FC = () => {
                   leftIcon={<Bookmark className={`w-3.5 h-3.5 ${isBookmarked ? 'fill-blue-600' : ''}`} />}
                 >
                   {isBookmarked ? t('common.saved', 'Đã lưu') : t('common.bookmark', 'Lưu')}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleShareQuestion}
+                  leftIcon={isCopiedShare ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Share2 className="w-3.5 h-3.5" />}
+                >
+                  {isCopiedShare ? t('common.copied', 'Đã sao chép') : t('common.share', 'Chia sẻ')}
                 </Button>
                 <ContentActionMenu
                   targetType="QUESTION"
@@ -1000,7 +1044,9 @@ export const QuestionDetailPage: React.FC = () => {
                               {getAuthorDisplayName(ans.author.id, ans.author.fullName, ans.author.isAnonymous)}
                             </span>
                             <Badge variant="purple" size="sm">{t(ans.author.role)}</Badge>
-                            <Badge variant="neutral" size="sm">{ans.author.campus || 'FU-HL'}</Badge>
+                            {getAuthorCampus(ans.author.id, ans.author.campus, ans.author.isAnonymous) ? (
+                              <Badge variant="neutral" size="sm">{getAuthorCampus(ans.author.id, ans.author.campus, ans.author.isAnonymous)}</Badge>
+                            ) : null}
                           </div>
                           <span className="text-[10px] text-slate-400 font-medium">
                             {t("Karma: {p0} pts • {p1} {p2}", undefined, { p0: ans.author.karma.toLocaleString(locale), p1: t('questions.answeredAt', 'Trả lời:'), p2: new Date(ans.createdAt).toLocaleDateString(locale) })}
