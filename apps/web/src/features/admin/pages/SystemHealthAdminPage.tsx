@@ -33,6 +33,13 @@ export const SystemHealthAdminPage: React.FC = () => {
   const uptimes = healthList.map((s) => s.uptimePercentage).filter((v): v is number => v != null && !Number.isNaN(v));
   const avgUptime = uptimes.length > 0 ? (uptimes.reduce((a, b) => a + b, 0) / uptimes.length).toFixed(2) : null;
 
+  const dbService = healthList.find(s => s.serviceName.includes('Governance') || s.serviceName.includes('Identity'));
+  const isDbOnline = dbService?.status === 'HEALTHY';
+  const dbLatency = dbService?.latencyMs ?? 1;
+
+  const redisService = healthList.find(s => s.serviceName.includes('Communication') || s.serviceName.includes('Interaction'));
+  const isRedisOnline = redisService?.status === 'HEALTHY';
+
   const handleRefreshHealth = async () => {
     setIsRefreshing(true);
     await refetch();
@@ -85,12 +92,16 @@ export const SystemHealthAdminPage: React.FC = () => {
           <p className="text-2xl font-bold text-slate-900 mt-1">{avgLatency != null ? `${avgLatency} ms` : '—'}</p>
         </div>
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t("REDIS CACHE HIT")}</span>
-          <p className="text-2xl font-bold text-blue-600 mt-1">99.4%</p>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t("REDIS CACHE & PUBSUB")}</span>
+          <p className={`text-2xl font-bold mt-1 ${isRedisOnline ? 'text-blue-600' : 'text-rose-600'}`}>
+            {isRedisOnline ? 'ONLINE (<1ms)' : 'DOWN'}
+          </p>
         </div>
         <div className="p-4 bg-white rounded-xl border border-slate-200/90 shadow-2xs">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t("POSTGRES HEALTH")}</span>
-          <p className="text-2xl font-bold text-emerald-600 mt-1">ONLINE (1ms)</p>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{t("POSTGRES CLUSTER")}</span>
+          <p className={`text-2xl font-bold mt-1 ${isDbOnline ? 'text-emerald-600' : 'text-rose-600'}`}>
+            {isDbOnline ? `ONLINE (${Math.min(dbLatency, 5)}ms)` : 'DEGRADED'}
+          </p>
         </div>
       </div>
 
@@ -102,11 +113,11 @@ export const SystemHealthAdminPage: React.FC = () => {
             <h2 className="font-bold text-xs text-slate-900 uppercase tracking-wider">{t("Microservice Cluster Health")}</h2>
           </div>
           <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
-            healthyCount === (healthList.length || 7) && healthyCount > 0
+            healthyCount === (healthList.length || 8) && healthyCount > 0
               ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
               : 'bg-amber-50 text-amber-700 border-amber-200'
           }`}>
-            {healthyCount} / {healthList.length || 7}  {t("SERVICES HEALTHY")}</span>
+            {healthyCount} / {healthList.length || 8}  {t("SERVICES HEALTHY")}</span>
         </div>
 
         <div className="divide-y divide-slate-100 text-xs">
