@@ -28,6 +28,7 @@ import {
   Loader2,
   FileCode,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { apiClient } from '../../services/api/client';
 import { useLanguage } from '../../context/LanguageContext';
@@ -101,6 +102,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
   onCreated,
   initialTitle = '',
 }) => {
+  const navigate = useNavigate();
   const { currentUser, updateUser } = useAuth();
   const { t } = useLanguage();
   const [title, setTitle] = useState(initialTitle || '');
@@ -419,7 +421,8 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
       setAttachedMedia((prev) => [...prev, newMediaItem]);
     } catch (err: any) {
       console.error('Failed to upload image/gif to R2:', err);
-      setErrorMessage(t('askModal.errorMediaUploadFailed', 'Tải ảnh/GIF lên Cloudflare R2 thất bại. Vui lòng kiểm tra lại.'));
+      const serverMsg = err?.response?.data?.message || err?.message;
+      setErrorMessage(serverMsg || t('askModal.errorMediaUploadFailed', 'Tải ảnh/GIF lên thất bại. Vui lòng kiểm tra lại.'));
     } finally {
       setIsUploadingMedia(false);
       if (fileInputRef.current) {
@@ -512,6 +515,22 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
         semanticTagIds: semanticTagIds.length > 0 ? semanticTagIds : undefined,
       });
 
+      if (res.status === 'PENDING_REVIEW') {
+        alert(t("Bài viết của bạn đã được gửi và đang chờ Ban quản trị duyệt trước khi xuất bản. Bạn có thể theo dõi tại mục Tạm giữ & Kháng cáo trên trang cá nhân."));
+        resetForm();
+        onClose();
+        navigate('/profile?tab=quarantine');
+        return;
+      }
+
+      if (res.status === 'REJECTED' || res.status === 'REJECTED_QUARANTINED') {
+        alert(t("Bài viết vi phạm Tiêu chuẩn cộng đồng và đã được đưa vào danh sách tạm giữ. Bạn có 3 ngày để kháng cáo tại trang cá nhân."));
+        resetForm();
+        onClose();
+        navigate('/profile?tab=quarantine');
+        return;
+      }
+
       const newQuestion: QuestionPost = {
         id: String(res.questionId),
         title: res.title,
@@ -552,6 +571,20 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
       resetForm();
       onClose();
     } catch (err: any) {
+      const serverMessage = err?.response?.data?.message || err?.message;
+      const isModerationRejection =
+        err?.response?.data?.code === 'CONTENT_MODERATION_REJECTED' ||
+        err?.response?.data?.code === 'CONTENT_VIOLATION_SEVERE' ||
+        serverMessage?.includes('tiêu chuẩn cộng đồng') ||
+        serverMessage?.includes('tạm giữ') ||
+        serverMessage?.includes('vi phạm');
+
+      if (isModerationRejection) {
+        setErrorMessage(serverMessage || t('askModal.errorModeration', 'Nội dung bài viết vi phạm Tiêu chuẩn cộng đồng và đã bị từ chối.'));
+        setIsSubmitting(false);
+        return;
+      }
+
       console.warn('Failed to create question via API, falling back locally:', err);
       const fallbackQuestion: QuestionPost = {
         id: `q-${Date.now()}`,
