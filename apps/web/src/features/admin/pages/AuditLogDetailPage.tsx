@@ -57,17 +57,37 @@ export const AuditLogDetailPage: React.FC = () => {
     );
   }
 
-  let beforePayload = { status: 'ACTIVE' };
-  let afterPayload = { status: logDetailData.actionType || 'RECORDED' };
+  let beforePayload: any = { status: 'ACTIVE' };
+  let afterPayload: any = { status: logDetailData.actionType || 'RECORDED' };
+  let realEmail = '';
+
   try {
     if (logDetailData.oldValues) {
-      beforePayload = typeof logDetailData.oldValues === 'string' ? JSON.parse(logDetailData.oldValues) : logDetailData.oldValues;
+      if (typeof logDetailData.oldValues === 'string' && logDetailData.oldValues.trim().startsWith('{')) {
+        beforePayload = JSON.parse(logDetailData.oldValues);
+      } else {
+        beforePayload = { email: logDetailData.oldValues, status: 'RECORDED' };
+        if (logDetailData.oldValues.includes('@')) realEmail = logDetailData.oldValues.trim();
+      }
     }
     if (logDetailData.newValues) {
-      afterPayload = typeof logDetailData.newValues === 'string' ? JSON.parse(logDetailData.newValues) : logDetailData.newValues;
+      if (typeof logDetailData.newValues === 'string' && logDetailData.newValues.trim().startsWith('{')) {
+        afterPayload = JSON.parse(logDetailData.newValues);
+        if (afterPayload.email) realEmail = afterPayload.email;
+      } else {
+        afterPayload = { email: logDetailData.newValues, status: logDetailData.actionType };
+        if (logDetailData.newValues.includes('@')) realEmail = logDetailData.newValues.trim();
+      }
     }
   } catch {
     // ignore parse error
+  }
+
+  if (!realEmail && logDetailData.actorAccountId === 1) {
+    realEmail = 'admin@fhub.com.vn';
+  }
+  if (!realEmail) {
+    realEmail = logDetailData.actorRole ? `${logDetailData.actorRole.toLowerCase()}@fhub.com.vn` : 'admin@fhub.com.vn';
   }
 
   const log: DetailedAuditLog = {
@@ -76,14 +96,14 @@ export const AuditLogDetailPage: React.FC = () => {
     timestamp: logDetailData.createdAt ? logDetailData.createdAt.replace('T', ' ').substring(0, 19) : new Date().toISOString().replace('T', ' ').substring(0, 19),
     service: logDetailData.entityType || 'Governance Ledger',
     action: logDetailData.actionType || 'MUTATION',
-    actorEmail: logDetailData.actorRole ? `${logDetailData.actorRole.toLowerCase()}@fhub.com.vn` : (logDetailData.actorAccountId ? `admin.${logDetailData.actorAccountId}@fpt.edu.vn` : 'system.daemon@fhub.com.vn'),
-    actorRole: (logDetailData.actorRole || 'Admin') as any,
+    actorEmail: realEmail,
+    actorRole: (logDetailData.actorAccountId === 1 ? 'Admin' : (logDetailData.actorRole || 'Admin')) as any,
     actorId: String(logDetailData.actorAccountId || '1'),
     ipAddress: logDetailData.ipAddress || '127.0.0.1',
     location: 'Hà Nội, Vietnam',
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/122.0',
-    status: 'SUCCESS',
-    details: `${logDetailData.actionType || 'Operation'} on ${logDetailData.entityType || 'Entity'} #${logDetailData.entityId || logDetailData.auditLogId || id}`,
+    userAgent: logDetailData.userAgent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/122.0',
+    status: (logDetailData.actionType || '').includes('FAIL') ? 'FAILED' : 'SUCCESS',
+    details: `${logDetailData.actionType || 'Operation'} (${realEmail}) on ${logDetailData.entityType || 'Entity'} #${logDetailData.entityId || logDetailData.auditLogId || id}`,
     isoStandardStamp: 'ISO/IEC 27001:2022 §A.12.4.1 (Event Logging)',
     immutableHash: '0x9a8f2730cd90b1e4fa8319f072948bbca184a83857e4e1160a2b8519fcab3901',
     previousHash: '0x3c71a91e56b441f9d224b8e21975e53b6fa0c4270b284e937d11acba12f86231',

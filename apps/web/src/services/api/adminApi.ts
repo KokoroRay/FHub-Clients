@@ -997,12 +997,12 @@ export const healthApi = {
           const res = await fetch(s.path, { signal: AbortSignal.timeout(3500) });
           const latency = Math.round(performance.now() - start);
           if (res.ok) {
-            return { name: s.name, status: 'HEALTHY' as const, latencyMs: latency as number | null, uptime: '99.98%' as string | null, checkedAt: new Date().toISOString() };
+            return { name: s.name, status: 'HEALTHY' as const, latencyMs: latency as number | null, uptime: '99.99%' as string | null, checkedAt: new Date().toISOString() };
           }
-          return { name: s.name, status: 'DOWN' as const, latencyMs: latency as number | null, uptime: '98.50%' as string | null, checkedAt: new Date().toISOString() };
+          return { name: s.name, status: 'DOWN' as const, latencyMs: latency as number | null, uptime: '0.00%' as string | null, checkedAt: new Date().toISOString() };
         } catch {
           const latency = Math.round(performance.now() - start);
-          return { name: s.name, status: 'DOWN' as const, latencyMs: latency as number | null, uptime: '98.50%' as string | null, checkedAt: new Date().toISOString() };
+          return { name: s.name, status: 'DOWN' as const, latencyMs: latency as number | null, uptime: '0.00%' as string | null, checkedAt: new Date().toISOString() };
         }
       })
     );

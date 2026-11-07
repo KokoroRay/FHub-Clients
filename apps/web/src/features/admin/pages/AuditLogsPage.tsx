@@ -17,12 +17,19 @@ import {
   Loader2,
 } from 'lucide-react';
 import { DetailedAuditLog } from '../../../types';
-import { useAuditLogs } from '../../../services/api';
-import { auditLogsApi } from '../../../services/api/adminApi';
+import { useQuery } from '@tanstack/react-query';
+import { useAuditLogs, useGovernanceAccounts } from '../../../services/api';
+import { auditLogsApi, staffApi } from '../../../services/api/adminApi';
 
 export const AuditLogsPage: React.FC = () => {
   const { t } = useLanguage();
-  const { data: logsData, isLoading, refetch } = useAuditLogs();
+  const { data: logsData, isLoading, refetch } = useAuditLogs({ pageSize: 100 });
+  const { data: accountsData } = useGovernanceAccounts({ pageSize: 100 });
+  const { data: staffData } = useQuery({
+    queryKey: ['admin', 'staff-lookup'],
+    queryFn: () => staffApi.getStaffList({ pageSize: 100 }),
+    staleTime: 60000,
+  });
   const [logs, setLogs] = useState<DetailedAuditLog[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedService, setSelectedService] = useState('ALL');
@@ -30,18 +37,79 @@ export const AuditLogsPage: React.FC = () => {
 
   useEffect(() => {
     if (logsData?.items) {
+      const accountMap = new Map<string, { email: string; name?: string; role?: string }>();
+      accountMap.set('staff_1', { email: 'admin@fhub.com.vn', name: 'System Administrator', role: 'Admin' });
+      accountMap.set('user_1', { email: 'admin@fhub.com.vn', name: 'System Administrator', role: 'Admin' });
+      accountMap.set('account_1', { email: 'admin@fhub.com.vn', name: 'System Administrator', role: 'Admin' });
+
+      if (staffData?.items) {
+        staffData.items.forEach((s: any) => {
+          const info = { email: s.email, name: s.fullName, role: s.role || 'Staff' };
+          accountMap.set(`staff_${s.staffId}`, info);
+          accountMap.set(`account_${s.staffId}`, info);
+          if (s.email) accountMap.set(`email_${s.email.toLowerCase()}`, info);
+        });
+      }
+
+      if (accountsData?.items) {
+        accountsData.items.forEach((u: any) => {
+          const info = { email: u.email, name: u.fullName, role: u.role || 'Student' };
+          accountMap.set(`user_${u.userId || u.id}`, info);
+          accountMap.set(`account_${u.userId || u.id}`, info);
+          if (u.email) accountMap.set(`email_${u.email.toLowerCase()}`, info);
+        });
+      }
+
       const mapped: DetailedAuditLog[] = logsData.items.map((l: any) => {
         const action = l.actionType || 'MUTATION';
         const isFail = action.includes('FAIL');
+
+        // Resolve real email from payload, account mapping, or admin account
+        let realEmail = '';
+        if (l.oldValues && l.oldValues.includes('@')) {
+          realEmail = l.oldValues.trim();
+        } else if (l.newValues && l.newValues.includes('@')) {
+          try {
+            const parsed = JSON.parse(l.newValues);
+            if (parsed.email) realEmail = parsed.email;
+          } catch {}
+        }
+
+        if (!realEmail) {
+          const mappedInfo = accountMap.get(`staff_${l.actorAccountId}`) || accountMap.get(`user_${l.actorUserId}`) || accountMap.get(`account_${l.actorAccountId}`);
+          if (mappedInfo?.email) realEmail = mappedInfo.email;
+        }
+
+        if (!realEmail && l.actorAccountId === 1) {
+          realEmail = 'admin@fhub.com.vn';
+        }
+
+        if (!realEmail) {
+          realEmail = l.actorRole ? `${l.actorRole.toLowerCase()}@fhub.com.vn` : (l.actorAccountId ? `staff.${l.actorAccountId}@fhub.com.vn` : (l.actorUserId ? `user.${l.actorUserId}@fpt.edu.vn` : 'system.daemon@fhub.com.vn'));
+        }
+
+        // Resolve role
+        let role = l.actorRole || 'Admin';
+        if (l.actorAccountId === 1) {
+          role = 'Admin';
+        } else if (accountMap.get(`staff_${l.actorAccountId}`)?.role) {
+          role = accountMap.get(`staff_${l.actorAccountId}`)!.role!;
+        } else if (accountMap.get(`user_${l.actorUserId}`)?.role) {
+          role = accountMap.get(`user_${l.actorUserId}`)!.role!;
+        }
+
+        // Human-readable action description
         let detailsText = `${action} on ${l.entityType || 'Record'} #${l.entityId || l.auditLogId}`;
         if (action === 'AUTH_LOGIN_SUCCESS') {
-          detailsText = `User authentication successful (${l.entityType || 'Identity'})`;
+          detailsText = `Xác thực đăng nhập thành công (${realEmail})`;
         } else if (action === 'AUTH_LOGIN_FAILED') {
-          detailsText = `Failed authentication attempt (Invalid credentials)`;
+          detailsText = `Đăng nhập không thành công cho (${realEmail || 'Ẩn danh'})`;
         } else if (action === 'AUTH_SESSION_REVOKED') {
-          detailsText = `User session revoked / terminated`;
+          detailsText = `Phiên làm việc đã thu hồi / đăng xuất (${realEmail})`;
         } else if (action === 'AUTH_SESSION_ACTIVE') {
-          detailsText = `Active user session established`;
+          detailsText = `Phiên đăng nhập đang hoạt động (${realEmail})`;
+        } else if (action === 'USER_CREATE') {
+          detailsText = `Khởi tạo tài khoản người dùng (${realEmail})`;
         }
 
         return {
@@ -51,8 +119,8 @@ export const AuditLogsPage: React.FC = () => {
           service: l.entityType || 'Governance',
           action: action,
           actorId: String(l.actorAccountId || l.actorUserId || '1'),
-          actorEmail: l.actorRole ? `${l.actorRole.toLowerCase()}@fhub.com.vn` : (l.actorAccountId ? `staff.${l.actorAccountId}@fhub.com.vn` : (l.actorUserId ? `user.${l.actorUserId}@fpt.edu.vn` : 'system.daemon@fhub.com.vn')),
-          actorRole: (['Admin', 'Staff', 'System Daemon', 'Moderator', 'Student'].includes(l.actorRole) ? l.actorRole : 'Admin') as any,
+          actorEmail: realEmail,
+          actorRole: (['Admin', 'Staff', 'System Daemon', 'Moderator', 'Student'].includes(role) ? role : 'Admin') as any,
           ipAddress: l.ipAddress || '127.0.0.1',
           status: isFail ? 'FAILED' : 'SUCCESS',
           details: detailsText,
@@ -69,7 +137,7 @@ export const AuditLogsPage: React.FC = () => {
       });
       setLogs(mapped);
     }
-  }, [logsData]);
+  }, [logsData, accountsData, staffData]);
 
   const filteredLogs = logs.filter((log) => {
     const q = searchQuery.toLowerCase();
