@@ -806,6 +806,10 @@ export interface ModerationQueueItemDto {
   appealedAt?: string;
   canAppealUntil?: string;
   createdAt: string;
+  reviewedAt?: string;
+  reviewedByStaffId?: number;
+  reviewerDecision?: string;
+  reviewerNote?: string;
 }
 
 export const contentModerationApi = {

@@ -144,6 +144,8 @@ export interface TechArticle {
   coverImage?: string;
   category: string;
   tags: string[];
+  authorUserId?: number;
+  authorStaffId?: number;
   author: {
     id: string;
     fullName: string;

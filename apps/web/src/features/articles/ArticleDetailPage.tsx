@@ -32,7 +32,9 @@ import { articleApi } from '../../services/api/contentApi';
 import { voteApi, bookmarkApi, notificationApi, profileApi } from '../../services/api/studentApi';
 import { normalizeMediaUrl } from '../../utils/mediaUtils';
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
+import { SocialShareModal } from '../../components/common/SocialShareModal';
 import { UserHoverCard } from '../../components/common/UserHoverCard';
+import { resolveUserCampus } from '../../utils/taxonomyUtils';
 import {
   loadAllSemanticTags,
   getSemanticTagMap,
@@ -82,7 +84,7 @@ export const ArticleDetailPage: React.FC = () => {
                 ? 'FPT Faculty Staff'
                 : (data.authorUserId && currentUser?.id && String(data.authorUserId) === String(currentUser.id) ? (currentUser.fullName || null) : null) || (data as any).authorDisplayName || (data as any).authorName || (data.authorUserId ? `Sinh viên FPT (#${data.authorUserId})` : 'Thành viên FHub'),
               role: data.authorStaffId ? 'Staff' : 'Student',
-              campus: (data.authorUserId && currentUser?.id && String(data.authorUserId) === String(currentUser.id) ? (currentUser.campus || '') : ((data as any).campusCode || (data as any).campus || '')),
+              campus: (data.authorUserId && currentUser?.id && String(data.authorUserId) === String(currentUser.id) ? resolveUserCampus(currentUser) : resolveUserCampus(data)),
               major: (data.authorUserId && currentUser?.id && String(data.authorUserId) === String(currentUser.id) ? (currentUser.major || '') : ''),
               avatarUrl: '',
             },
@@ -98,7 +100,7 @@ export const ArticleDetailPage: React.FC = () => {
                   ...prev.author,
                   fullName: prev.author.fullName || p.fullName || p.displayName,
                   avatarUrl: p.avatarUrl || prev.author.avatarUrl,
-                  campus: p.campusCode || p.campus || prev.author.campus || '',
+                  campus: resolveUserCampus(p) || prev.author.campus || '',
                   major: p.majorCode || p.major || prev.author.major || '',
                 }
               } : prev);
@@ -141,6 +143,7 @@ export const ArticleDetailPage: React.FC = () => {
   const [bookmarkId, setBookmarkId] = useState<number | string | null>(null);
   const [isFollowingAuthor, setIsFollowingAuthor] = useState(false);
   const [isCopiedShare, setIsCopiedShare] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   const handleShareArticle = () => {
     const url = typeof window !== 'undefined' ? window.location.href : '';
@@ -379,10 +382,10 @@ export const ArticleDetailPage: React.FC = () => {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={handleShareArticle}
-                      leftIcon={isCopiedShare ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Share2 className="w-3.5 h-3.5 text-slate-500" />}
+                      onClick={() => setIsShareModalOpen(true)}
+                      leftIcon={<Share2 className="w-3.5 h-3.5 text-slate-500" />}
                     >
-                      {isCopiedShare ? t("common.copied", "Đã chép link") : t("common.share", "Chia sẻ")}
+                      {t("common.share", "Chia sẻ")}
                     </Button>
                     <Button
                       id="btn-edit-article"
@@ -672,6 +675,13 @@ export const ArticleDetailPage: React.FC = () => {
           </div>
         </div>
       )}
+      <SocialShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        title={article?.title || ''}
+        url={typeof window !== 'undefined' ? window.location.href : `/articles/${id}`}
+        description={article?.summary || ''}
+      />
     </div>
   );
 };
