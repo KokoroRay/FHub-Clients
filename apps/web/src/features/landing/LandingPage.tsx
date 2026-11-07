@@ -3,7 +3,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { ThemeToggle } from '../../components/common/ThemeToggle';
 import { LanguageSwitcher } from '../../components/common/LanguageSwitcher';
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import {
   Mail,
   Lock,
@@ -14,6 +14,7 @@ import {
   AlertCircle,
   Building2,
   LifeBuoy,
+  Clock,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { authApi } from '../../services/api/adminApi';
@@ -23,7 +24,13 @@ import { User } from '../../types';
 export const LandingPage: React.FC = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { login } = useAuth();
+
+  const reasonParam = searchParams.get('reason');
+  const sessionExpiredNotice = reasonParam === 'session_expired'
+    ? t("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.")
+    : null;
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -210,6 +217,14 @@ export const LandingPage: React.FC = () => {
                 <span className="relative px-3 bg-white text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">
                   {t("OR SIGN IN WITH EMAIL")}</span>
               </div>
+
+              {/* Session Expiration Notice */}
+              {sessionExpiredNotice && !errorMessage && (
+                <div className="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-2 text-xs text-amber-800 leading-snug">
+                  <Clock className="w-4 h-4 shrink-0 mt-0.5 text-amber-600" />
+                  <span>{sessionExpiredNotice}</span>
+                </div>
+              )}
 
               {/* Error Alert */}
               {errorMessage && (

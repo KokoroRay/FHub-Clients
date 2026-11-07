@@ -1,4 +1,5 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import { isOperatorSessionExpired, triggerAutoLogout } from '../../utils/tokenManager';
 
 // Base API URL: uses Vite proxy in development or relative path / custom env URL
 const rawBaseUrl = (import.meta.env.VITE_API_URL || '').trim().replace(/\/+$/, '');
@@ -15,6 +16,12 @@ export const apiClient = axios.create({
 // Request interceptor for attaching auth token and admin governance headers
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    // Strictly enforce 1-day maximum lifespan for operational/staff/admin accounts
+    if (isOperatorSessionExpired()) {
+      triggerAutoLogout('OPERATOR_EXPIRED_1_DAY');
+      return Promise.reject(new Error('Phiên làm việc của tài khoản vận hành đã hết hạn sau 1 ngày.'));
+    }
+
     const token = localStorage.getItem('fhub_token') || sessionStorage.getItem('fhub_token');
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -68,21 +75,8 @@ const processQueue = (error: any, token: string | null = null) => {
   failedQueue = [];
 };
 
-const clearAuthAndRedirect = () => {
-  localStorage.removeItem('fhub_token');
-  localStorage.removeItem('fhub_refresh_token');
-  localStorage.removeItem('fhub_user');
-  sessionStorage.removeItem('fhub_token');
-  sessionStorage.removeItem('fhub_refresh_token');
-  sessionStorage.removeItem('fhub_user');
-
-  const currentPath = window.location.pathname;
-  const isSubdomain = window.location.hostname.startsWith('ops.') || window.location.hostname.startsWith('admin.');
-  if ((isSubdomain || currentPath.startsWith('/admin') || currentPath.startsWith('/ops')) && !currentPath.includes('/login')) {
-    const redirectParam = encodeURIComponent(currentPath + window.location.search);
-    const loginUrl = isSubdomain ? `/login?redirect=${redirectParam}` : `/admin/login?redirect=${redirectParam}`;
-    window.location.href = loginUrl;
-  }
+const clearAuthAndRedirect = (reason: 'TOKEN_EXPIRED' | 'OPERATOR_EXPIRED_1_DAY' | 'UNAUTHORIZED' = 'TOKEN_EXPIRED') => {
+  triggerAutoLogout(reason);
 };
 
 function extractErrorMessage(error: AxiosError<{ message?: string; detail?: string; title?: string; errors?: Record<string, string[]> }>): Error {
@@ -118,6 +112,10 @@ apiClient.interceptors.response.use(
 
     // Check if error is 401 Unauthorized
     if (error.response?.status === 401 && originalRequest) {
+      if (isOperatorSessionExpired()) {
+        clearAuthAndRedirect('OPERATOR_EXPIRED_1_DAY');
+        return Promise.reject(new Error('Phiên làm việc của tài khoản vận hành đã hết hạn sau 1 ngày.'));
+      }
       const requestUrl = originalRequest.url || '';
       const isAuthEndpoint =
         requestUrl.includes('/api/auth/login') ||
@@ -128,7 +126,7 @@ apiClient.interceptors.response.use(
 
       // If already retried or this was an authentication endpoint, clear & redirect
       if (isAuthEndpoint || originalRequest._retry) {
-        clearAuthAndRedirect();
+        clearAuthAndRedirect('UNAUTHORIZED');
         return Promise.reject(extractErrorMessage(error));
       }
 
@@ -136,7 +134,7 @@ apiClient.interceptors.response.use(
         localStorage.getItem('fhub_refresh_token') || sessionStorage.getItem('fhub_refresh_token');
 
       if (!refreshToken) {
-        clearAuthAndRedirect();
+        clearAuthAndRedirect('TOKEN_EXPIRED');
         return Promise.reject(extractErrorMessage(error));
       }
 
@@ -191,7 +189,7 @@ apiClient.interceptors.response.use(
         }
       } catch (refreshErr) {
         processQueue(refreshErr, null);
-        clearAuthAndRedirect();
+        clearAuthAndRedirect('TOKEN_EXPIRED');
         return Promise.reject(refreshErr);
       } finally {
         isRefreshing = false;

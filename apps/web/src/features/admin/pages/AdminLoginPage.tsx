@@ -12,6 +12,7 @@ import {
   RefreshCw,
   Shield,
   Sparkles,
+  Clock,
 } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
 import { useLanguage } from '../../../context/LanguageContext';
@@ -26,6 +27,13 @@ export const AdminLoginPage: React.FC = () => {
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
+  const reasonParam = searchParams.get('reason');
+  const sessionExpiredNotice = reasonParam === 'operator_expired'
+    ? t("Phiên làm việc của tài khoản vận hành đã tự động kết thúc sau 1 ngày theo tiêu chuẩn an ninh ISO 27001. Vui lòng đăng nhập lại.")
+    : reasonParam === 'session_expired'
+    ? t("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.")
+    : null;
 
   const [email, setEmail] = useState('admin@fhub.com.vn');
   const [password, setPassword] = useState('Admin@123456');
@@ -197,6 +205,14 @@ export const AdminLoginPage: React.FC = () => {
             <p className="text-xs text-slate-500">
               {t("Dành riêng cho Quản trị viên (Admin) & Kiểm duyệt viên (Moderator)")}</p>
           </div>
+
+          {/* Session Expiration Notice */}
+          {sessionExpiredNotice && !errorMessage && (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-start gap-2.5 animate-fadeIn">
+              <Clock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <span>{sessionExpiredNotice}</span>
+            </div>
+          )}
 
           {/* Error Message */}
           {errorMessage && (
