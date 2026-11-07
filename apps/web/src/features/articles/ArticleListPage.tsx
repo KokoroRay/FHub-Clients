@@ -10,7 +10,10 @@ import {
   BookOpen,
   ChevronDown,
   Layers,
+  Share2,
+  Check,
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 import { SeriesModal } from './SeriesModal';
 import { normalizeMediaUrl } from '../../utils/mediaUtils';
 import { Article, Series } from '../../types';
@@ -29,7 +32,33 @@ import {
 } from '../../utils/tagUtils';
 
 export const ArticleListPage: React.FC = () => {
+  const { currentUser } = useAuth();
   const { locale, t } = useLanguage();
+  const [copiedShareId, setCopiedShareId] = useState<string | null>(null);
+
+  const handleShare = (id: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const numId = Number(id.replace(/\D/g, '')) || id;
+    const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/articles/${numId}`;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url);
+      setCopiedShareId(id);
+      setTimeout(() => setCopiedShareId(null), 2000);
+    }
+  };
+
+  const handleDeleteArticle = async (id: string | number) => {
+    const numId = Number(String(id).replace(/\D/g, ''));
+    if (numId) {
+      try {
+        await articleApi.deleteArticle(numId);
+      } catch (err) {
+        console.warn('Failed to delete article:', err);
+      }
+    }
+    setApiArticles((prev) => prev.filter((a) => String(a.id) !== String(id) && Number(String(a.id).replace(/\D/g, '')) !== numId));
+  };
   const [activeTab, setActiveTab] = useState<'articles' | 'series'>('articles');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -238,13 +267,17 @@ export const ArticleListPage: React.FC = () => {
     }));
 
     try {
-      await voteApi.vote({
-        target_type: 'ARTICLE',
-        target_id: numId,
-        vote_value: isLiked ? -1 : 1,
-      });
+      if (isLiked) {
+        await voteApi.removeVote('ARTICLE', numId);
+      } else {
+        await voteApi.vote({
+          target_type: 'ARTICLE',
+          target_id: numId,
+          vote_value: 1,
+        });
+      }
       const stats = await voteApi.getStats('ARTICLE', numId);
-      setLikeScores((prev) => ({ ...prev, [id]: stats.score }));
+      setLikeScores((prev) => ({ ...prev, [id]: Math.max(0, stats.upvotes ?? stats.score) }));
       setLikedIds((prev) => {
         const next = new Set(prev);
         if (stats.myVoteValue === 1) next.add(id);
@@ -520,11 +553,26 @@ export const ArticleListPage: React.FC = () => {
                             }`}
                           />
                         </button>
+                        <button
+                          type="button"
+                          onClick={(e) => handleShare(art.id, e)}
+                          title={t('common.share', 'Chia sẻ')}
+                          className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
+                        >
+                          {copiedShareId === art.id ? (
+                            <Check className="w-4 h-4 text-emerald-600" />
+                          ) : (
+                            <Share2 className="w-4 h-4" />
+                          )}
+                        </button>
                         <ContentActionMenu
                           targetType="ARTICLE"
                           targetId={art.id}
                           targetTitle={art.title}
                           shareUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/articles/${art.id}`}
+                          isOwner={Boolean(((art as any).authorUserId && currentUser?.id && String((art as any).authorUserId) === String(currentUser.id)) || currentUser?.role === 'Admin')}
+                          onDelete={() => handleDeleteArticle(art.id)}
+                          deleteLabel={t('articles.deleteArticle', 'Xóa bài viết')}
                         />
                       </div>
                     </div>

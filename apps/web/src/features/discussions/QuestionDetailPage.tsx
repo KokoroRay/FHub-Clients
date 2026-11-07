@@ -203,7 +203,7 @@ export const QuestionDetailPage: React.FC = () => {
               fullName: getAuthorDisplayName(data.authorUserId, data.authorDisplayName, data.isAnonymous),
               role: 'Student',
               karma: data.upvoteCount || 0,
-              campus: (data.authorUserId && currentUser?.id && String(data.authorUserId) === String(currentUser.id) ? (currentUser.campus || '') : (data.campusCode || data.campus || (data as any).authorCampus || '')),
+              campus: (data.authorUserId && currentUser?.id && String(data.authorUserId) === String(currentUser.id) ? (currentUser.campus || '') : ((data as any).campusCode || (data as any).campus || (data as any).authorCampus || '')),
               isAnonymous: data.isAnonymous,
             },
             tags: mappedTags,
@@ -289,7 +289,7 @@ export const QuestionDetailPage: React.FC = () => {
                 avatarUrl: '',
                 role: ans.isModeratorVerified ? 'Alumni' : 'Student',
                 karma: 0,
-                campus: (ans.authorUserId && currentUser?.id && String(ans.authorUserId) === String(currentUser.id) ? (currentUser.campus || '') : (ans.campusCode || ans.campus || (ans as any).authorCampus || '')),
+                campus: (ans.authorUserId && currentUser?.id && String(ans.authorUserId) === String(currentUser.id) ? (currentUser.campus || '') : ((ans as any).campusCode || (ans as any).campus || (ans as any).authorCampus || '')),
                 isAnonymous: ans.isAnonymous,
               },
               content: ans.body,
@@ -324,7 +324,7 @@ export const QuestionDetailPage: React.FC = () => {
             Promise.allSettled(authorIdsToFetch.map(uid => profileApi.getProfile(uid)))
               .then(results => {
                 if (!isMounted) return;
-                const mapped: Record<number, { fullName: string; avatarUrl?: string }> = {};
+                const mapped: Record<number, { fullName: string; avatarUrl?: string; campus?: string }> = {};
                 results.forEach((r, idx) => {
                   if (r.status === 'fulfilled' && r.value) {
                     const p = r.value;

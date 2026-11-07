@@ -29,7 +29,7 @@ import { Button } from '../../components/common/Button';
 import { Textarea } from '../../components/common/Input';
 import { MarkdownPreview } from '../../components/common/MarkdownPreview';
 import { articleApi } from '../../services/api/contentApi';
-import { voteApi, bookmarkApi, notificationApi } from '../../services/api/studentApi';
+import { voteApi, bookmarkApi, notificationApi, profileApi } from '../../services/api/studentApi';
 import { normalizeMediaUrl } from '../../utils/mediaUtils';
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 import { UserHoverCard } from '../../components/common/UserHoverCard';
@@ -82,18 +82,35 @@ export const ArticleDetailPage: React.FC = () => {
                 ? 'FPT Faculty Staff'
                 : (data.authorUserId && currentUser?.id && String(data.authorUserId) === String(currentUser.id) ? (currentUser.fullName || null) : null) || (data as any).authorDisplayName || (data as any).authorName || (data.authorUserId ? `Sinh viên FPT (#${data.authorUserId})` : 'Thành viên FHub'),
               role: data.authorStaffId ? 'Staff' : 'Student',
-              campus: 'FPT University',
+              campus: (data.authorUserId && currentUser?.id && String(data.authorUserId) === String(currentUser.id) ? (currentUser.campus || '') : ((data as any).campusCode || (data as any).campus || '')),
+              major: (data.authorUserId && currentUser?.id && String(data.authorUserId) === String(currentUser.id) ? (currentUser.major || '') : ''),
               avatarUrl: '',
             },
           });
           setLikesCount(0);
+
+          if (data.authorUserId && (!currentUser?.id || String(data.authorUserId) !== String(currentUser.id))) {
+            profileApi.getProfile(data.authorUserId).then((p: any) => {
+              if (!isMounted || !p) return;
+              setArticle((prev: any) => prev ? {
+                ...prev,
+                author: {
+                  ...prev.author,
+                  fullName: prev.author.fullName || p.fullName || p.displayName,
+                  avatarUrl: p.avatarUrl || prev.author.avatarUrl,
+                  campus: p.campusCode || p.campus || prev.author.campus || '',
+                  major: p.majorCode || p.major || prev.author.major || '',
+                }
+              } : prev);
+            }).catch(() => {});
+          }
 
           const numId = Number(id.replace(/\D/g, ''));
           if (numId) {
             try {
               const stats = await voteApi.getStats('ARTICLE', numId);
               if (isMounted) {
-                setLikesCount(stats.score);
+                setLikesCount(Math.max(0, stats.upvotes ?? stats.score));
                 setIsLiked(stats.myVoteValue === 1);
               }
             } catch {}
@@ -123,6 +140,16 @@ export const ArticleDetailPage: React.FC = () => {
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [bookmarkId, setBookmarkId] = useState<number | string | null>(null);
   const [isFollowingAuthor, setIsFollowingAuthor] = useState(false);
+  const [isCopiedShare, setIsCopiedShare] = useState(false);
+
+  const handleShareArticle = () => {
+    const url = typeof window !== 'undefined' ? window.location.href : '';
+    if (navigator.clipboard && url) {
+      navigator.clipboard.writeText(url);
+      setIsCopiedShare(true);
+      setTimeout(() => setIsCopiedShare(false), 2000);
+    }
+  };
   const [copiedCode, setCopiedCode] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [showEditArticleModal, setShowEditArticleModal] = useState(false);
@@ -143,13 +170,17 @@ export const ArticleDetailPage: React.FC = () => {
     setLikesCount(prevLiked ? prevCount - 1 : prevCount + 1);
 
     try {
-      await voteApi.vote({
-        target_type: 'ARTICLE',
-        target_id: numId,
-        vote_value: prevLiked ? -1 : 1,
-      });
+      if (prevLiked) {
+        await voteApi.removeVote('ARTICLE', numId);
+      } else {
+        await voteApi.vote({
+          target_type: 'ARTICLE',
+          target_id: numId,
+          vote_value: 1,
+        });
+      }
       const stats = await voteApi.getStats('ARTICLE', numId);
-      setLikesCount(stats.score);
+      setLikesCount(Math.max(0, stats.upvotes ?? stats.score));
       setIsLiked(stats.myVoteValue === 1);
 
       if (!prevLiked && article?.authorUserId && String(article.authorUserId) !== String(currentUser?.id)) {
@@ -315,7 +346,7 @@ export const ArticleDetailPage: React.FC = () => {
                           <Badge variant="neutral" size="sm">{t(article.author.role)}</Badge>
                         </div>
                         <div className="text-xs text-slate-400">
-                          {article.author.campus || 'FU-HL'}  {t("• Kỹ thuật phần mềm (SE)")}</div>
+                          {article.author.campus ? <span>{article.author.campus}</span> : null}{article.author.major ? <span> • {article.author.major}</span> : null}</div>
                       </div>
                     </div>
                   </UserHoverCard>
@@ -344,6 +375,14 @@ export const ArticleDetailPage: React.FC = () => {
                       leftIcon={<Bookmark className={`w-4 h-4 ${isBookmarked ? 'fill-blue-600 text-blue-600' : ''}`} />}
                     >
                       {isBookmarked ? t("Đã lưu") : t("Lưu")}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleShareArticle}
+                      leftIcon={isCopiedShare ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Share2 className="w-3.5 h-3.5 text-slate-500" />}
+                    >
+                      {isCopiedShare ? t("common.copied", "Đã chép link") : t("common.share", "Chia sẻ")}
                     </Button>
                     <Button
                       id="btn-edit-article"
@@ -496,7 +535,7 @@ export const ArticleDetailPage: React.FC = () => {
               />
               <div>
                 <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">{article.author.fullName}</h4>
-                <p className="text-xs text-slate-400 font-medium">{t(article.author.role)} • {article.author.campus || 'FU-HL'}</p>
+                <p className="text-xs text-slate-400 font-medium">{t(article.author.role)}{article.author.campus ? ` • ${article.author.campus}` : ""}</p>
               </div>
               <p className="text-xs text-slate-500 leading-relaxed">
                 {t("Đam mê xây dựng hệ thống backend hiệu năng cao và chia sẻ kiến trúc phần mềm cho cộng đồng sinh viên FPT.")}</p>
