@@ -19,7 +19,8 @@ import {
   Layers,
   LifeBuoy,
   Share2,
-  Check
+  Check,
+  Trash2
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { apiClient } from '../../services/api/client';
@@ -29,6 +30,7 @@ import { questionApi } from '../../services/api/contentApi';
 import { profileApi, voteApi, bookmarkApi, notificationApi } from '../../services/api/studentApi';
 import { AskQuestionModal } from '../discussions/AskQuestionModal';
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
+import { SocialShareModal } from '../../components/common/SocialShareModal';
 import { UserHoverCard } from '../../components/common/UserHoverCard';
 import { normalizeMediaUrl } from '../../utils/mediaUtils';
 import { resolveUserMajorName, FPT_CAMPUSES } from '../../utils/taxonomyUtils';
@@ -67,6 +69,8 @@ export const FeedPage: React.FC = () => {
   const [page, setPage] = useState<number>(1);
   const [hasMore, setHasMore] = useState<boolean>(true);
   const [copiedShareId, setCopiedShareId] = useState<string | null>(null);
+  const [shareModalData, setShareModalData] = useState<{ isOpen: boolean; title: string; url: string; description?: string } | null>(null);
+  const [deletingQuestion, setDeletingQuestion] = useState<{ id: string; title: string } | null>(null);
 
   const handleShare = (qId: string | number, _title?: string) => {
     const numericId = Number(String(qId).replace(/\D/g, '')) || qId;
@@ -207,10 +211,7 @@ export const FeedPage: React.FC = () => {
               const { qId, numId, stats } = r.value;
               const prevVote = updated[qId]?.userVote ?? (stats.myVoteValue === 1 ? 'UP' : stats.myVoteValue === -1 ? 'DOWN' : null);
               const targetQ = items.find((item: any) => String(item.questionId || item.id) === String(qId) || String(item.questionId || item.id).replace(/\D/g, '') === String(numId));
-              const baseCount = targetQ ? ((targetQ.upvoteCount || 0) - (targetQ.downvoteCount || 0)) : 0;
-              const hasLiveVotes = stats.upvotes > 0 || stats.downvotes > 0 || stats.myVoteValue !== null;
-              const finalCount = hasLiveVotes ? stats.score : (updated[qId]?.count ?? baseCount);
-              const entry = { count: finalCount, userVote: prevVote };
+              const entry = { count: stats.score, userVote: prevVote };
               updated[qId] = entry;
               updated[String(numId)] = entry;
             }
@@ -774,14 +775,34 @@ export const FeedPage: React.FC = () => {
                             #{q.courseCode || `Môn ${q.courseId}`}
                           </span>
                         )}
+                        {Boolean(
+                          (q.authorUserId && currentUser?.id && (String(q.authorUserId) === String(currentUser.id) || String(q.authorUserId).replace(/\D/g, '') === String(currentUser.id).replace(/\D/g, ''))) ||
+                          (q.author?.id && currentUser?.id && (String(q.author.id) === String(currentUser.id) || String(q.author.id).replace(/\D/g, '') === String(currentUser.id).replace(/\D/g, ''))) ||
+                          (q.authorDisplayName && currentUser?.fullName && q.authorDisplayName.trim().toLowerCase() === currentUser.fullName.trim().toLowerCase()) ||
+                          currentUser?.role === 'Admin'
+                        ) && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setDeletingQuestion({ id: qId, title: q.title });
+                            }}
+                            title={t('questions.deleteQuestion', 'Xóa câu hỏi')}
+                            className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                         <ContentActionMenu
                           targetType="QUESTION"
                           targetId={qId}
                           targetTitle={q.title}
                           shareUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/discussions/${qId}`}
                           isOwner={Boolean(
-                            (q.authorUserId && currentUser?.id && String(q.authorUserId) === String(currentUser.id)) ||
-                            (q.author?.id && currentUser?.id && String(q.author.id) === String(currentUser.id)) ||
+                            (q.authorUserId && currentUser?.id && (String(q.authorUserId) === String(currentUser.id) || String(q.authorUserId).replace(/\D/g, '') === String(currentUser.id).replace(/\D/g, ''))) ||
+                            (q.author?.id && currentUser?.id && (String(q.author.id) === String(currentUser.id) || String(q.author.id).replace(/\D/g, '') === String(currentUser.id).replace(/\D/g, ''))) ||
+                            (q.authorDisplayName && currentUser?.fullName && q.authorDisplayName.trim().toLowerCase() === currentUser.fullName.trim().toLowerCase()) ||
                             currentUser?.role === 'Admin'
                           )}
                           onDelete={() => handleDeleteQuestion(qId)}
@@ -887,21 +908,19 @@ export const FeedPage: React.FC = () => {
 
                         <button
                           type="button"
-                          onClick={() => handleShare(qId, q.title)}
+                          onClick={() => {
+                            setShareModalData({
+                              isOpen: true,
+                              title: q.title,
+                              url: `/discussions/${qId}`,
+                              description: q.body,
+                            });
+                          }}
                           className="flex items-center gap-1.5 cursor-pointer text-slate-500 hover:text-[#0076D1] dark:hover:text-blue-400 transition-colors"
                           title={t('common.share', 'Chia sẻ')}
                         >
-                          {copiedShareId === String(qId) ? (
-                            <>
-                              <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                              <span className="text-emerald-600 dark:text-emerald-400 font-semibold">{t('common.copied', 'Đã chép link!')}</span>
-                            </>
-                          ) : (
-                            <>
-                              <Share2 className="w-3.5 h-3.5" />
-                              <span>{t('common.share', 'Chia sẻ')}</span>
-                            </>
-                          )}
+                          <Share2 className="w-3.5 h-3.5" />
+                          <span>{t('common.share', 'Chia sẻ')}</span>
                         </button>
                       </div>
 
@@ -945,6 +964,49 @@ export const FeedPage: React.FC = () => {
           </Link>
         </div>
       </div>
+
+            {shareModalData && (
+        <SocialShareModal
+          isOpen={shareModalData.isOpen}
+          onClose={() => setShareModalData(null)}
+          title={shareModalData.title}
+          url={shareModalData.url}
+          description={shareModalData.description}
+        />
+      )}
+
+      {deletingQuestion && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in">
+          <div className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+            <h3 className="font-bold text-base text-slate-900 dark:text-slate-100">
+              {t('questions.confirmDeleteTitle', 'Xác nhận xóa câu hỏi?')}
+            </h3>
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+              {t('questions.confirmDeleteDesc', 'Bạn có chắc chắn muốn xóa câu hỏi "{title}"? Toàn bộ câu trả lời và bình luận sẽ bị xóa vĩnh viễn.', { title: deletingQuestion.title })}
+            </p>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeletingQuestion(null)}
+                className="px-3.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+              >
+                {t('common.cancel', 'Hủy')}
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const toDel = deletingQuestion;
+                  setDeletingQuestion(null);
+                  if (toDel) await handleDeleteQuestion(toDel.id);
+                }}
+                className="px-4 py-1.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-lg transition-colors cursor-pointer shadow-xs"
+              >
+                {t('common.delete', 'Xác nhận xóa')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Ask Question Modal */}
       <AskQuestionModal

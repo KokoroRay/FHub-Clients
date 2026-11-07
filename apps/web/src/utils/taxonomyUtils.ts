@@ -101,6 +101,39 @@ export const FPT_CAMPUSES: Record<number | string, string> = {
   QN: 'FPT University - Quy Nhơn',
 };
 
+export const CAMPUS_ID_TO_CODE: Record<number | string, string> = {
+  1: 'FU-HL',
+  2: 'FU-HCM',
+  3: 'FU-DN',
+  4: 'FU-CT',
+  5: 'FU-QN',
+  HL: 'FU-HL',
+  HN: 'FU-HL',
+  HCM: 'FU-HCM',
+  DN: 'FU-DN',
+  CT: 'FU-CT',
+  QN: 'FU-QN',
+  'FU-HL': 'FU-HL',
+  'FU-HCM': 'FU-HCM',
+  'FU-DN': 'FU-DN',
+  'FU-CT': 'FU-CT',
+  'FU-QN': 'FU-QN',
+};
+
+/**
+ * Resolves user/profile campus code accurately (e.g. FU-HL, FU-HCM, FU-DN, FU-CT, FU-QN)
+ */
+export function resolveUserCampus(data: any): string {
+  if (!data) return '';
+  const raw = data.campusCode || data.campus_code || data.campus || data.campusId || data.CampusId || data.campus_id;
+  if (!raw) return '';
+  if (CAMPUS_ID_TO_CODE[raw]) return CAMPUS_ID_TO_CODE[raw];
+  const s = String(raw).trim();
+  if (!s || s === 'null' || s === 'undefined') return '';
+  if (s.startsWith('FU-')) return s;
+  return `FU-${s.toUpperCase()}`;
+}
+
 /**
  * Resolves user/profile academic major and specialization name accurately
  */

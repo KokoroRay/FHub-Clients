@@ -16,6 +16,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Share2,
+  Trash2,
 } from 'lucide-react';
 import { QuestionPost } from '../../types';
 import { AskQuestionModal } from './AskQuestionModal';
@@ -27,6 +28,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 import { UserHoverCard } from '../../components/common/UserHoverCard';
+import { SocialShareModal } from '../../components/common/SocialShareModal';
 import {
   loadAllSemanticTags,
   getSemanticTagMap,
@@ -45,6 +47,8 @@ export const QuestionListPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusTab, setStatusTab] = useState<'all' | 'answered' | 'unanswered'>('all');
   const [copiedShareId, setCopiedShareId] = useState<string | null>(null);
+  const [shareModalData, setShareModalData] = useState<{ isOpen: boolean; title: string; url: string; description?: string } | null>(null);
+  const [deletingQuestion, setDeletingQuestion] = useState<{ id: string; title: string } | null>(null);
 
   const handleShare = (id: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -751,16 +755,39 @@ export const QuestionListPage: React.FC = () => {
                       </button>
                       <button
                         type="button"
-                        onClick={(e) => handleShare(q.id, e)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setShareModalData({
+                            isOpen: true,
+                            title: q.title,
+                            url: `/discussions/${q.id}`,
+                            description: q.content,
+                          });
+                        }}
                         className="p-1 rounded-lg border border-transparent text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-[#0076D1] transition-colors cursor-pointer"
                         title={t('common.share', 'Chia sẻ')}
                       >
-                        {copiedShareId === q.id ? (
-                          <Check className="w-3.5 h-3.5 text-emerald-600" />
-                        ) : (
-                          <Share2 className="w-3.5 h-3.5" />
-                        )}
+                        <Share2 className="w-3.5 h-3.5" />
                       </button>
+
+                      {Boolean(
+                        (q.author?.id && currentUser?.id && (String(q.author.id) === String(currentUser.id) || String(q.author.id).replace(/\D/g, '') === String(currentUser.id).replace(/\D/g, ''))) ||
+                        currentUser?.role === 'Admin'
+                      ) && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setDeletingQuestion({ id: q.id, title: q.title });
+                          }}
+                          title={t('questions.deleteQuestion', 'Xóa câu hỏi')}
+                          className="p-1 rounded-lg border border-transparent text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600 transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                       <div className="flex items-center gap-1 text-slate-400">
                         <Eye className="w-3.5 h-3.5" />
                         <span>{q.viewsCount} {t('views')}</span>
@@ -770,7 +797,7 @@ export const QuestionListPage: React.FC = () => {
                         targetId={q.id}
                         targetTitle={q.title}
                         shareUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/discussions/${q.id}`}
-                        isOwner={Boolean((q.author?.id && currentUser?.id && String(q.author.id) === String(currentUser.id)) || currentUser?.role === 'Admin')}
+                        isOwner={Boolean((q.author?.id && currentUser?.id && (String(q.author.id) === String(currentUser.id) || String(q.author.id).replace(/\D/g, '') === String(currentUser.id).replace(/\D/g, ''))) || currentUser?.role === 'Admin')}
                         onDelete={() => handleDeleteQuestion(q.id)}
                         deleteLabel={t('questions.deleteQuestion', 'Xóa câu hỏi')}
                       />
@@ -824,6 +851,49 @@ export const QuestionListPage: React.FC = () => {
             >
               <ChevronRight className="w-4 h-4" />
             </button>
+          </div>
+        </div>
+      )}
+
+      {shareModalData && (
+        <SocialShareModal
+          isOpen={shareModalData.isOpen}
+          onClose={() => setShareModalData(null)}
+          title={shareModalData.title}
+          url={shareModalData.url}
+          description={shareModalData.description}
+        />
+      )}
+
+      {deletingQuestion && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in">
+          <div className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+            <h3 className="font-bold text-base text-slate-900 dark:text-slate-100">
+              {t('questions.confirmDeleteTitle', 'Xác nhận xóa câu hỏi?')}
+            </h3>
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+              {t('questions.confirmDeleteDesc', 'Bạn có chắc chắn muốn xóa câu hỏi "{title}"? Toàn bộ câu trả lời và bình luận sẽ bị xóa vĩnh viễn.', { title: deletingQuestion.title })}
+            </p>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeletingQuestion(null)}
+                className="px-3.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+              >
+                {t('common.cancel', 'Hủy')}
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const toDel = deletingQuestion;
+                  setDeletingQuestion(null);
+                  if (toDel) await handleDeleteQuestion(toDel.id);
+                }}
+                className="px-4 py-1.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-lg transition-colors cursor-pointer shadow-xs"
+              >
+                {t('common.delete', 'Xác nhận xóa')}
+              </button>
+            </div>
           </div>
         </div>
       )}

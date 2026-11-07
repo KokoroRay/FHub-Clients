@@ -108,7 +108,7 @@ export const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
         fullName: currentUser?.fullName || t("Sinh viên FHub"),
         avatarUrl: currentUser?.avatarUrl,
         role: currentUser?.role || 'Student',
-        campus: currentUser?.campus || 'FU-HL',
+        campus: currentUser?.campus || '',
       },
       viewsCount: 1,
       usageCount: 0,

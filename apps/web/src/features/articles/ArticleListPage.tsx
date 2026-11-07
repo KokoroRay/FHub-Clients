@@ -12,15 +12,17 @@ import {
   Layers,
   Share2,
   Check,
+  Trash2,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { SeriesModal } from './SeriesModal';
 import { normalizeMediaUrl } from '../../utils/mediaUtils';
-import { Article, Series } from '../../types';
+import { Article, Series, TechArticle } from '../../types';
 import { articleApi, seriesApi } from '../../services/api/contentApi';
 import { voteApi, bookmarkApi } from '../../services/api/studentApi';
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 import { UserHoverCard } from '../../components/common/UserHoverCard';
+import { SocialShareModal } from '../../components/common/SocialShareModal';
 import { useLanguage } from '../../context/LanguageContext';
 import {
   loadAllSemanticTags,
@@ -35,6 +37,8 @@ export const ArticleListPage: React.FC = () => {
   const { currentUser } = useAuth();
   const { locale, t } = useLanguage();
   const [copiedShareId, setCopiedShareId] = useState<string | null>(null);
+  const [shareModalData, setShareModalData] = useState<{ isOpen: boolean; title: string; url: string; description?: string } | null>(null);
+  const [deletingArticle, setDeletingArticle] = useState<Article | null>(null);
 
   const handleShare = (id: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -110,6 +114,8 @@ export const ArticleListPage: React.FC = () => {
               coverImage: normalizeMediaUrl(item.coverImageUrl),
               category,
               tags,
+              authorUserId: item.authorUserId,
+              authorStaffId: item.authorStaffId,
               author: {
                 id: String(item.authorUserId || item.authorStaffId || 1),
                 fullName: item.authorStaffId ? 'FPT Faculty Staff' : 'Student Author',
@@ -441,6 +447,16 @@ export const ArticleListPage: React.FC = () => {
             filteredArticles.map((art) => {
               const isBookmarked = bookmarkedIds.has(art.id) || art.isBookmarked;
               const isLiked = likedIds.has(art.id) || art.isLiked;
+              const currentUserId = currentUser?.id || (currentUser as any)?.userId;
+              const artAuthorId = art.authorUserId || art.author?.id;
+              const isOwner = Boolean(
+                (artAuthorId && currentUserId && (
+                  String(artAuthorId) === String(currentUserId) ||
+                  (String(artAuthorId).replace(/\D/g, '') !== '' && String(artAuthorId).replace(/\D/g, '') === String(currentUserId).replace(/\D/g, ''))
+                )) ||
+                currentUser?.role === 'Admin'
+              );
+
 
               return (
                 <div
@@ -543,9 +559,10 @@ export const ArticleListPage: React.FC = () => {
 
                       <div className="flex items-center gap-1">
                         <button
+                          type="button"
                           onClick={(e) => toggleBookmark(art.id, e)}
-                          title={isBookmarked ? 'Unsave article' : 'Save article'}
-                          className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
+                          title={isBookmarked ? t('common.saved', 'Đã lưu') : t('common.bookmark', 'Lưu')}
+                          className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                         >
                           <Bookmark
                             className={`w-4 h-4 ${
@@ -555,22 +572,43 @@ export const ArticleListPage: React.FC = () => {
                         </button>
                         <button
                           type="button"
-                          onClick={(e) => handleShare(art.id, e)}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setShareModalData({
+                              isOpen: true,
+                              title: art.title,
+                              url: `/articles/${art.id}`,
+                              description: art.summary,
+                            });
+                          }}
                           title={t('common.share', 'Chia sẻ')}
-                          className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
+                          className="p-1 rounded-lg text-slate-400 hover:text-[#0076D1] hover:bg-slate-100 transition-colors cursor-pointer"
                         >
-                          {copiedShareId === art.id ? (
-                            <Check className="w-4 h-4 text-emerald-600" />
-                          ) : (
-                            <Share2 className="w-4 h-4" />
-                          )}
+                          <Share2 className="w-4 h-4" />
                         </button>
+
+                        {isOwner && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setDeletingArticle(art);
+                            }}
+                            title={t('articles.deleteArticle', 'Xóa bài viết')}
+                            className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+
                         <ContentActionMenu
                           targetType="ARTICLE"
                           targetId={art.id}
                           targetTitle={art.title}
                           shareUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/articles/${art.id}`}
-                          isOwner={Boolean(((art as any).authorUserId && currentUser?.id && String((art as any).authorUserId) === String(currentUser.id)) || currentUser?.role === 'Admin')}
+                          isOwner={isOwner}
                           onDelete={() => handleDeleteArticle(art.id)}
                           deleteLabel={t('articles.deleteArticle', 'Xóa bài viết')}
                         />

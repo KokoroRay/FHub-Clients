@@ -43,6 +43,8 @@ import { UserHoverCard } from '../../components/common/UserHoverCard';
 import { Button } from '../../components/common/Button';
 import { Textarea } from '../../components/common/Input';
 import { MarkdownPreview } from '../../components/common/MarkdownPreview';
+import { SocialShareModal } from '../../components/common/SocialShareModal';
+import { resolveUserCampus } from '../../utils/taxonomyUtils';
 import { VotingStatsModal } from './VotingStatsModal';
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 
@@ -64,6 +66,7 @@ export const QuestionDetailPage: React.FC = () => {
   const [composerTab, setComposerTab] = useState<'write' | 'preview'>('write');
   const [isVotingStatsOpen, setIsVotingStatsOpen] = useState(false);
   const [isCopiedShare, setIsCopiedShare] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   const handleShareQuestion = () => {
     const url = typeof window !== 'undefined' ? window.location.href : '';
@@ -147,10 +150,14 @@ export const QuestionDetailPage: React.FC = () => {
     if (isAnon) return '';
     const numId = Number(authorId);
     if (numId && currentUser?.id && String(numId) === String(currentUser.id)) {
-      return currentUser.campus || '';
+      return resolveUserCampus(currentUser);
     }
-    if (numId && authorProfiles[numId]?.campus) return authorProfiles[numId].campus;
-    if (authorCampus && authorCampus.trim()) return authorCampus.trim();
+    if (numId && authorProfiles[numId]?.campus) {
+      return resolveUserCampus(authorProfiles[numId]);
+    }
+    if (authorCampus && authorCampus.trim()) {
+      return resolveUserCampus({ campus: authorCampus.trim() });
+    }
     return '';
   };
 
@@ -203,7 +210,7 @@ export const QuestionDetailPage: React.FC = () => {
               fullName: getAuthorDisplayName(data.authorUserId, data.authorDisplayName, data.isAnonymous),
               role: 'Student',
               karma: data.upvoteCount || 0,
-              campus: (data.authorUserId && currentUser?.id && String(data.authorUserId) === String(currentUser.id) ? (currentUser.campus || '') : ((data as any).campusCode || (data as any).campus || (data as any).authorCampus || '')),
+              campus: (data.authorUserId && currentUser?.id && String(data.authorUserId) === String(currentUser.id) ? resolveUserCampus(currentUser) : resolveUserCampus(data)),
               isAnonymous: data.isAnonymous,
             },
             tags: mappedTags,
@@ -289,7 +296,7 @@ export const QuestionDetailPage: React.FC = () => {
                 avatarUrl: '',
                 role: ans.isModeratorVerified ? 'Alumni' : 'Student',
                 karma: 0,
-                campus: (ans.authorUserId && currentUser?.id && String(ans.authorUserId) === String(currentUser.id) ? (currentUser.campus || '') : ((ans as any).campusCode || (ans as any).campus || (ans as any).authorCampus || '')),
+                campus: (ans.authorUserId && currentUser?.id && String(ans.authorUserId) === String(currentUser.id) ? resolveUserCampus(currentUser) : resolveUserCampus(ans)),
                 isAnonymous: ans.isAnonymous,
               },
               content: ans.body,
@@ -334,7 +341,7 @@ export const QuestionDetailPage: React.FC = () => {
                       mapped[uid] = {
                         fullName: name,
                         avatarUrl: p.avatarUrl || '',
-                        campus: p.campusCode || p.campus || '',
+                        campus: resolveUserCampus(p),
                       };
                     }
                   }
@@ -664,7 +671,7 @@ export const QuestionDetailPage: React.FC = () => {
         avatarUrl: currentUser?.avatarUrl,
         role: currentUser?.role || 'Student',
         karma: currentUser?.karma || 0,
-        campus: currentUser?.campus || 'FU-HL',
+        campus: resolveUserCampus(currentUser),
       },
       content: newAnswerContent,
       upvotes: 0,
@@ -899,10 +906,10 @@ export const QuestionDetailPage: React.FC = () => {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={handleShareQuestion}
-                  leftIcon={isCopiedShare ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Share2 className="w-3.5 h-3.5" />}
+                  onClick={() => setIsShareModalOpen(true)}
+                  leftIcon={<Share2 className="w-3.5 h-3.5" />}
                 >
-                  {isCopiedShare ? t('common.copied', 'Đã sao chép') : t('common.share', 'Chia sẻ')}
+                  {t('common.share', 'Chia sẻ')}
                 </Button>
                 <ContentActionMenu
                   targetType="QUESTION"
@@ -1555,6 +1562,15 @@ export const QuestionDetailPage: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+      {question && (
+        <SocialShareModal
+          isOpen={isShareModalOpen}
+          onClose={() => setIsShareModalOpen(false)}
+          title={question.title}
+          url={typeof window !== 'undefined' ? window.location.href : `/discussions/${question.id}`}
+          description={question.content?.slice(0, 160)}
+        />
       )}
     </div>
   );

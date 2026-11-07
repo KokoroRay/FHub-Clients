@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserRole, CampusCode } from '../types';
 import { authApi } from '../services/api/adminApi';
 import { profileApi, studentReputationApi } from '../services/api/studentApi';
-import { resolveUserMajorName } from '../utils/taxonomyUtils';
+import { resolveUserMajorName, resolveUserCampus } from '../utils/taxonomyUtils';
 import { extractStudentIdFromEmail } from '../utils/fptEmailValidator';
 import {
   isOperatorAccount,
@@ -222,7 +222,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (!profile) return;
         const avatar = profile.avatarUrl || profile.avatar_url || profile.avatar || '';
         const fullName = profile.displayName || profile.fullName || profile.full_name || '';
-        const campus = profile.campusCode || profile.campus || '';
+        const campus = resolveUserCampus(profile);
 
         const updates: Partial<User> = {};
         if (avatar && avatar !== currentUser.avatarUrl) updates.avatarUrl = avatar;
