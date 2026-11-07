@@ -4,6 +4,14 @@ import { authApi } from '../services/api/adminApi';
 import { profileApi, studentReputationApi } from '../services/api/studentApi';
 import { resolveUserMajorName } from '../utils/taxonomyUtils';
 import { extractStudentIdFromEmail } from '../utils/fptEmailValidator';
+import {
+  isOperatorAccount,
+  isOperatorSessionExpired,
+  isTokenExpired,
+  recordLoginSession,
+  clearAllAuthTokens,
+  triggerAutoLogout,
+} from '../utils/tokenManager';
 
 interface AuthContextType {
   currentUser: User | null;
@@ -20,9 +28,21 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const getInitialUser = (): User | null => {
+  // Check if operator session has exceeded the 1-day (24 hours) maximum lifespan
+  if (isOperatorSessionExpired()) {
+    clearAllAuthTokens();
+    return null;
+  }
+
   const token = localStorage.getItem('fhub_token') || sessionStorage.getItem('fhub_token');
   const storedUser = localStorage.getItem('fhub_user') || sessionStorage.getItem('fhub_user');
   if (token && storedUser) {
+    // If token is expired and there is no refresh token available, auto-clean
+    const refreshToken = localStorage.getItem('fhub_refresh_token') || sessionStorage.getItem('fhub_refresh_token');
+    if (!refreshToken && isTokenExpired(token, 0)) {
+      clearAllAuthTokens();
+      return null;
+    }
     try {
       return JSON.parse(storedUser);
     } catch {
@@ -46,8 +66,75 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+
+    // Listen to centralized auto-logout events
+    const handleAutoLogout = () => {
+      setCurrentUser(null);
+    };
+    window.addEventListener('fhub:auth:logout', handleAutoLogout);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('fhub:auth:logout', handleAutoLogout);
+    };
   }, []);
+
+  // Proactive Session Health & Token Expiration Monitor
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const checkSessionHealth = async () => {
+      // 1. Strictly enforce operator 1-day (24 hours) maximum lifespan
+      if (isOperatorSessionExpired()) {
+        triggerAutoLogout('OPERATOR_EXPIRED_1_DAY');
+        return;
+      }
+
+      // 2. Check tokens presence
+      const token = localStorage.getItem('fhub_token') || sessionStorage.getItem('fhub_token');
+      const refreshToken = localStorage.getItem('fhub_refresh_token') || sessionStorage.getItem('fhub_refresh_token');
+
+      if (!token && !refreshToken) {
+        triggerAutoLogout('TOKEN_EXPIRED');
+        return;
+      }
+
+      // 3. For regular users: if access token expires within 2 minutes and refresh token exists, proactively refresh
+      if (token && refreshToken && isTokenExpired(token, 120)) {
+        try {
+          const res = await authApi.refreshToken(refreshToken);
+          if (res.accessToken) {
+            const storage = localStorage.getItem('fhub_token') ? localStorage : sessionStorage;
+            storage.setItem('fhub_token', res.accessToken);
+            if (res.refreshToken) {
+              storage.setItem('fhub_refresh_token', res.refreshToken);
+            }
+          }
+        } catch (err: any) {
+          console.warn('Background proactive token refresh failed:', err);
+          if (err?.response?.status === 401 || isTokenExpired(token, 0)) {
+            triggerAutoLogout('TOKEN_EXPIRED');
+          }
+        }
+      }
+    };
+
+    // Periodic check every 30 seconds
+    const intervalId = setInterval(checkSessionHealth, 30000);
+
+    // Check when user returns to tab
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        checkSessionHealth();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [currentUser]);
 
   const currentRole: UserRole = currentUser?.role || 'Guest';
 
@@ -60,14 +147,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (err) {
       console.warn('Backend session revocation on logout failed or offline:', err);
     } finally {
-      localStorage.removeItem('fhub_token');
-      localStorage.removeItem('fhub_refresh_token');
-      localStorage.removeItem('fhub_user');
-      localStorage.removeItem('fhub_chat_suggestions_dismissed');
-      sessionStorage.removeItem('fhub_token');
-      sessionStorage.removeItem('fhub_refresh_token');
-      sessionStorage.removeItem('fhub_user');
-      sessionStorage.removeItem('fhub_chat_suggestions_dismissed');
+      clearAllAuthTokens();
       setCurrentUser(null);
     }
   };
@@ -93,11 +173,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const login = (user: User, token?: string, refreshToken?: string, rememberMe: boolean = true) => {
-    const targetStorage = rememberMe ? localStorage : sessionStorage;
-    const oppositeStorage = rememberMe ? sessionStorage : localStorage;
+    // For regular users (Student), enforce persistent localStorage so login session is unlimited
+    const isOp = isOperatorAccount(user, token);
+    const effectiveRememberMe = !isOp || rememberMe;
+
+    const targetStorage = effectiveRememberMe ? localStorage : sessionStorage;
+    const oppositeStorage = effectiveRememberMe ? sessionStorage : localStorage;
 
     // Purge opposite storage to eliminate persistence conflicts (R04)
-    // Reset dismissed state of chat suggestions on every fresh login
     localStorage.removeItem('fhub_chat_suggestions_dismissed');
     sessionStorage.removeItem('fhub_chat_suggestions_dismissed');
     oppositeStorage.removeItem('fhub_token');
@@ -111,6 +194,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       targetStorage.setItem('fhub_refresh_token', refreshToken);
     }
     targetStorage.setItem('fhub_user', JSON.stringify(user));
+
+    // Record login timestamp and operator security flag
+    recordLoginSession(user, token, effectiveRememberMe);
 
     setCurrentUser(user);
     if (user.campus) {
