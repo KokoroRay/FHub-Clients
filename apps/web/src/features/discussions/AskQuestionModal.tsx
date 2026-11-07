@@ -94,6 +94,8 @@ interface AttachedMediaItem {
   url: string;
   type: 'image' | 'gif';
   sizeBytes?: number;
+  file?: File;
+  isPendingUpload?: boolean;
 }
 
 export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
@@ -391,8 +393,8 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
     insertFormatting(`\`\`\`${lang}\n`, '\n```\n', t("// Nhập đoạn mã của bạn ở đây"));
   };
 
-  // Media upload to Cloudflare R2 (Support Images & animated GIFs) - Facebook style attached media
-  const handleMediaUpload = async (file: File) => {
+  // Media attachment: Store locally as preview, defer R2 upload until user clicks Submit!
+  const handleMediaUpload = (file: File) => {
     const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif'];
     if (!validTypes.includes(file.type.toLowerCase())) {
       setErrorMessage(t('askModal.errorInvalidMedia', 'Định dạng tệp không được hỗ trợ. Vui lòng chọn ảnh hoặc GIF (PNG, JPG, WebP, GIF).'));
@@ -403,28 +405,27 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
       return;
     }
 
-    setIsUploadingMedia(true);
     setErrorMessage(null);
     try {
-      const res = await contentMediaApi.uploadMedia(file, 'question');
       const cleanName = (file.name || 'image').replace(/[\[\]()]/g, '');
       const isGif = file.type.toLowerCase().includes('gif') || cleanName.toLowerCase().endsWith('.gif');
-      
+      const previewUrl = URL.createObjectURL(file);
+
       const newMediaItem: AttachedMediaItem = {
         id: `media-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
         name: cleanName,
-        url: res.publicUrl,
+        url: previewUrl,
         type: isGif ? 'gif' : 'image',
         sizeBytes: file.size,
+        file: file,
+        isPendingUpload: true,
       };
 
       setAttachedMedia((prev) => [...prev, newMediaItem]);
     } catch (err: any) {
-      console.error('Failed to upload image/gif to R2:', err);
-      const serverMsg = err?.response?.data?.message || err?.message;
-      setErrorMessage(serverMsg || t('askModal.errorMediaUploadFailed', 'Tải ảnh/GIF lên thất bại. Vui lòng kiểm tra lại.'));
+      console.error('Failed to attach media preview:', err);
+      setErrorMessage(t('askModal.errorMediaUploadFailed', 'Chuẩn bị ảnh/GIF thất bại. Vui lòng thử lại.'));
     } finally {
-      setIsUploadingMedia(false);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -432,7 +433,18 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
   };
 
   const removeAttachedMedia = (id: string) => {
-    setAttachedMedia((prev) => prev.filter((item) => item.id !== id));
+    setAttachedMedia((prev) => {
+      const target = prev.find((item) => item.id === id);
+      if (target) {
+        if (target.isPendingUpload && target.url.startsWith('blob:')) {
+          URL.revokeObjectURL(target.url);
+        } else if (!target.isPendingUpload) {
+          // If it was already uploaded to R2, delete from R2 directly!
+          contentMediaApi.deleteMedia(target.url);
+        }
+      }
+      return prev.filter((item) => item.id !== id);
+    });
   };
 
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
@@ -507,9 +519,37 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
     const semanticTagIds = selectedTags.filter((t) => t.id > 0).map((t) => t.id);
 
     try {
+      // Upload pending local media to R2 now upon clicking publish
+      const uploadedMediaItems: AttachedMediaItem[] = [];
+      for (const media of attachedMedia) {
+        if (media.isPendingUpload && media.file) {
+          try {
+            const uploadRes = await contentMediaApi.uploadMedia(media.file, 'question');
+            uploadedMediaItems.push({
+              ...media,
+              url: uploadRes.publicUrl,
+              isPendingUpload: false,
+              file: undefined,
+            });
+            if (media.url.startsWith('blob:')) {
+              URL.revokeObjectURL(media.url);
+            }
+          } catch (uploadErr: any) {
+            const msg = uploadErr?.response?.data?.message || uploadErr?.message;
+            setErrorMessage(msg || t('Lỗi khi tải ảnh lên lưu trữ. Vui lòng thử lại.'));
+            setIsSubmitting(false);
+            return;
+          }
+        } else {
+          uploadedMediaItems.push(media);
+        }
+      }
+
       const res = await questionApi.createQuestion({
         title: title.trim(),
-        body: attachedMedia.length > 0 ? `${content.trim()}\n\n${attachedMedia.map((m) => `![${m.name}](${m.url})`).join('\n\n')}` : content.trim(),
+        body: uploadedMediaItems.length > 0
+          ? `${content.trim()}\n\n${uploadedMediaItems.map((m) => `![${m.name}](${m.url})`).join('\n\n')}`
+          : content.trim(),
         courseId: numericCourseId,
         isAnonymous,
         semanticTagIds: semanticTagIds.length > 0 ? semanticTagIds : undefined,
@@ -618,6 +658,11 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
   };
 
   const resetForm = () => {
+    attachedMedia.forEach((m) => {
+      if (m.isPendingUpload && m.url.startsWith('blob:')) {
+        URL.revokeObjectURL(m.url);
+      }
+    });
     setTitle('');
     setContent('');
     setCourseCode('');

@@ -588,20 +588,6 @@ export const ArticleListPage: React.FC = () => {
                           <Share2 className="w-4 h-4" />
                         </button>
 
-                        {isOwner && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setDeletingArticle(art);
-                            }}
-                            title={t('articles.deleteArticle', 'Xóa bài viết')}
-                            className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
 
                         <ContentActionMenu
                           targetType="ARTICLE"

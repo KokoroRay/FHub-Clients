@@ -85,6 +85,26 @@ export const QuestionDetailPage: React.FC = () => {
   const [deletingAnswerId, setDeletingAnswerId] = useState<string | null>(null);
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
+  const [hiddenAnswerIds, setHiddenAnswerIds] = useState<Set<string>>(new Set());
+  const [hiddenCommentIds, setHiddenCommentIds] = useState<Set<string>>(new Set());
+
+  const toggleHideAnswer = (ansId: string) => {
+    setHiddenAnswerIds(prev => {
+      const next = new Set(prev);
+      if (next.has(ansId)) next.delete(ansId);
+      else next.add(ansId);
+      return next;
+    });
+  };
+
+  const toggleHideComment = (cmtId: string) => {
+    setHiddenCommentIds(prev => {
+      const next = new Set(prev);
+      if (next.has(cmtId)) next.delete(cmtId);
+      else next.add(cmtId);
+      return next;
+    });
+  };
   const [editQuestionTitle, setEditQuestionTitle] = useState('');
   const [editQuestionBody, setEditQuestionBody] = useState('');
   const [authorProfiles, setAuthorProfiles] = useState<Record<number, { fullName: string; avatarUrl?: string; campus?: string }>>({});
@@ -396,23 +416,39 @@ export const QuestionDetailPage: React.FC = () => {
 
     // Ownership & Permission Checks
   const isQuestionAuthor = Boolean(
-    currentUser &&
-    question?.author?.id &&
-    String(currentUser.id) === String(question.author.id)
+    currentUser && (
+      (question?.author?.id && (
+        String(currentUser.id) === String(question.author.id) ||
+        String(currentUser.id).replace(/\D/g, '') === String(question.author.id).replace(/\D/g, '')
+      )) ||
+      (currentUser.fullName && question?.author?.fullName && currentUser.fullName.trim().toLowerCase() === question.author.fullName.trim().toLowerCase())
+    )
   );
   const isAdminOrMod = currentUser?.role === 'Admin' || currentUser?.role === 'Community Moderator';
   const canEditQuestion = isQuestionAuthor || isAdminOrMod;
   const canDeleteQuestion = isQuestionAuthor || isAdminOrMod;
 
-  const canEditAnswer = (ans: Answer) => Boolean(
-    currentUser &&
-    ans.author?.id &&
-    (String(currentUser.id) === String(ans.author.id) || isAdminOrMod)
+  const isAnswerAuthor = (ans: Answer) => Boolean(
+    currentUser && (
+      (ans.author?.id && (
+        String(currentUser.id) === String(ans.author.id) ||
+        String(currentUser.id).replace(/\D/g, '') === String(ans.author.id).replace(/\D/g, '')
+      )) ||
+      (currentUser.fullName && ans.author?.fullName && currentUser.fullName.trim().toLowerCase() === ans.author.fullName.trim().toLowerCase())
+    )
   );
-  const canDeleteAnswer = (ans: Answer) => Boolean(
-    currentUser &&
-    ans.author?.id &&
-    (String(currentUser.id) === String(ans.author.id) || isAdminOrMod)
+
+  const canEditAnswer = (ans: Answer) => isAnswerAuthor(ans) || isAdminOrMod;
+  const canDeleteAnswer = (ans: Answer) => isQuestionAuthor || isAnswerAuthor(ans) || isAdminOrMod;
+
+  const isCommentAuthor = (cmt: CommentItem) => Boolean(
+    currentUser && (
+      (cmt.author?.id && (
+        String(currentUser.id) === String(cmt.author.id) ||
+        String(currentUser.id).replace(/\D/g, '') === String(cmt.author.id).replace(/\D/g, '')
+      )) ||
+      (currentUser.fullName && cmt.author?.fullName && currentUser.fullName.trim().toLowerCase() === cmt.author.fullName.trim().toLowerCase())
+    )
   );
 
   const canMarkBestAnswer = isQuestionAuthor || isAdminOrMod;
@@ -1077,7 +1113,23 @@ export const QuestionDetailPage: React.FC = () => {
               </div>
 
               {/* Answer Content / Inline Edit Answer (3.4.7) */}
-              {editingAnswerId === ans.id ? (
+              {hiddenAnswerIds.has(ans.id) ? (
+                <div className="p-3.5 my-2 rounded-xl bg-amber-50/70 dark:bg-amber-950/30 border border-dashed border-amber-300 dark:border-amber-800 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300">
+                    <EyeOff className="w-4 h-4 shrink-0 text-amber-600" />
+                    <span>{t('questions.answerHiddenByAuthor', 'Câu trả lời này đã bị ẩn bởi chủ bài viết')}</span>
+                  </div>
+                  {(isQuestionAuthor || isAdminOrMod) && (
+                    <button
+                      type="button"
+                      onClick={() => toggleHideAnswer(ans.id)}
+                      className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                    >
+                      {t('common.unhide', 'Bỏ ẩn')}
+                    </button>
+                  )}
+                </div>
+              ) : editingAnswerId === ans.id ? (
                 <div id={`inline-edit-answer-${ans.id}`} className="space-y-2 p-3 bg-blue-50/60 dark:bg-blue-950/40 rounded-xl border border-blue-200 dark:border-blue-800">
                   <label className="text-xs font-semibold text-blue-900 dark:text-blue-300 block">{t("Chỉnh sửa câu trả lời")}</label>
                   <textarea
@@ -1120,37 +1172,6 @@ export const QuestionDetailPage: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {canEditAnswer(ans) && (
-                    <Button
-                      id={`btn-edit-answer-${ans.id}`}
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        if (editingAnswerId === ans.id) {
-                          setEditingAnswerId(null);
-                          setEditingAnswerBody('');
-                        } else {
-                          setEditingAnswerId(ans.id);
-                          setEditingAnswerBody(ans.content);
-                        }
-                      }}
-                      leftIcon={<Edit3 className="w-3.5 h-3.5 text-slate-500" />}
-                    >
-                      {t('Edit')}
-                    </Button>
-                  )}
-                  {canDeleteAnswer(ans) && (
-                    <Button
-                      id={`btn-delete-answer-${ans.id}`}
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setDeletingAnswerId(ans.id)}
-                      className="text-red-600 hover:bg-red-50"
-                      leftIcon={<Trash2 className="w-3.5 h-3.5" />}
-                    >
-                      {t('Delete')}
-                    </Button>
-                  )}
                   {canMarkBestAnswer && String(ans.author?.id || '') !== String(currentUser?.id || '') && (
                     <Button
                       size="sm"
@@ -1165,6 +1186,25 @@ export const QuestionDetailPage: React.FC = () => {
                     targetType="ANSWER"
                     targetId={ans.id}
                     targetTitle={`${t('questions.answerOf', 'Câu trả lời của')} ${ans.author?.fullName || t('common.studentNumber', 'Sinh viên')}`}
+                    shareUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/discussions/${id}#answer-${ans.id}`}
+                    isOwner={isQuestionAuthor || canDeleteAnswer(ans)}
+                    canHide={isQuestionAuthor || isAdminOrMod}
+                    isHidden={hiddenAnswerIds.has(ans.id)}
+                    onHide={() => toggleHideAnswer(ans.id)}
+                    hideLabel={t('questions.hideAnswer', 'Ẩn câu trả lời')}
+                    onDelete={() => setDeletingAnswerId(ans.id)}
+                    deleteLabel={t('questions.deleteAnswer', 'Xóa câu trả lời')}
+                    canEdit={isAnswerAuthor(ans)}
+                    onEdit={() => {
+                      if (editingAnswerId === ans.id) {
+                        setEditingAnswerId(null);
+                        setEditingAnswerBody('');
+                      } else {
+                        setEditingAnswerId(ans.id);
+                        setEditingAnswerBody(ans.content);
+                      }
+                    }}
+                    editLabel={t('questions.editAnswer', 'Sửa câu trả lời')}
                   />
                 </div>
               </div>
@@ -1179,33 +1219,83 @@ export const QuestionDetailPage: React.FC = () => {
                           <input
                             type="text"
                             defaultValue={cmt.content}
+                            id={`input-edit-comment-${cmt.id}`}
                             className="flex-1 px-2.5 py-1 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg"
                           />
-                          <Button size="sm" variant="primary" onClick={() => setEditingCommentId(null)}>{t("Cập nhật")}</Button>
+                          <Button
+                            size="sm"
+                            variant="primary"
+                            onClick={() => {
+                              const inputEl = document.getElementById(`input-edit-comment-${cmt.id}`) as HTMLInputElement;
+                              if (inputEl && inputEl.value.trim()) {
+                                setAnswers(prev => prev.map(a => ({
+                                  ...a,
+                                  comments: a.comments.map(c => c.id === cmt.id ? { ...c, content: inputEl.value.trim() } : c)
+                                })));
+                              }
+                              setEditingCommentId(null);
+                            }}
+                          >
+                            {t("Cập nhật")}
+                          </Button>
                           <Button size="sm" variant="outline" onClick={() => setEditingCommentId(null)}>{t("Hủy")}</Button>
+                        </div>
+                      ) : hiddenCommentIds.has(cmt.id) ? (
+                        <div className="flex items-center justify-between py-1.5 px-2.5 rounded-lg bg-amber-50/70 dark:bg-amber-950/30 border border-dashed border-amber-200 dark:border-amber-900/60 text-xs text-amber-700 dark:text-amber-300">
+                          <div className="flex items-center gap-1.5">
+                            <EyeOff className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                            <span className="italic">{t('questions.commentHidden', 'Bình luận này đã bị ẩn bởi chủ bài viết')}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {(isQuestionAuthor || isAdminOrMod) && (
+                              <button
+                                type="button"
+                                onClick={() => toggleHideComment(cmt.id)}
+                                className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
+                              >
+                                {t('common.unhide', 'Bỏ ẩn')}
+                              </button>
+                            )}
+                            <ContentActionMenu
+                              targetType="OTHER"
+                              targetId={cmt.id}
+                              targetTitle={t("Bình luận của {p0}", undefined, { p0: getAuthorDisplayName(cmt.author.id, cmt.author.fullName) })}
+                              shareUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/discussions/${id}#comment-${cmt.id}`}
+                              isOwner={isQuestionAuthor || isCommentAuthor(cmt) || isAdminOrMod}
+                              canHide={isQuestionAuthor || isAdminOrMod}
+                              isHidden={true}
+                              onHide={() => toggleHideComment(cmt.id)}
+                              hideLabel={t('questions.hideComment', 'Ẩn bình luận')}
+                              onDelete={() => setDeletingCommentId(cmt.id)}
+                              deleteLabel={t('questions.deleteComment', 'Xóa bình luận')}
+                              canEdit={isCommentAuthor(cmt)}
+                              onEdit={() => setEditingCommentId(cmt.id)}
+                              editLabel={t('questions.editComment', 'Sửa bình luận')}
+                            />
+                          </div>
                         </div>
                       ) : (
                         <div className="flex items-center gap-1.5 font-bold text-slate-800 dark:text-slate-200">
-                          <CornerDownRight className="w-3 h-3 text-slate-400" />
-                          <span>{getAuthorDisplayName(cmt.author.id, cmt.author.fullName)}:</span>
-                          <span className="font-normal text-slate-600 dark:text-slate-300">{cmt.content}</span>
-                          <span className="text-[10px] text-slate-400 ml-auto">{formatDate(cmt.createdAt)}</span>
-                          <button
-                            id={`btn-edit-comment-${cmt.id}`}
-                            onClick={() => setEditingCommentId(cmt.id)}
-                            className="text-slate-400 hover:text-slate-600 ml-2"
-                            title={t("Sửa bình luận")}
-                          >
-                            <Edit3 className="w-3 h-3" />
-                          </button>
-                          <button
-                            id={`btn-delete-comment-${cmt.id}`}
-                            onClick={() => setDeletingCommentId(cmt.id)}
-                            className="text-slate-400 hover:text-red-500 ml-1"
-                            title={t("Xóa bình luận")}
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
+                          <CornerDownRight className="w-3 h-3 text-slate-400 shrink-0" />
+                          <span className="shrink-0">{getAuthorDisplayName(cmt.author.id, cmt.author.fullName)}:</span>
+                          <span className="font-normal text-slate-600 dark:text-slate-300 flex-1">{cmt.content}</span>
+                          <span className="text-[10px] text-slate-400 shrink-0 ml-auto">{formatDate(cmt.createdAt)}</span>
+                          <ContentActionMenu
+                            targetType="OTHER"
+                            targetId={cmt.id}
+                            targetTitle={t("Bình luận của {p0}", undefined, { p0: getAuthorDisplayName(cmt.author.id, cmt.author.fullName) })}
+                            shareUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/discussions/${id}#comment-${cmt.id}`}
+                            isOwner={isQuestionAuthor || isCommentAuthor(cmt) || isAdminOrMod}
+                            canHide={isQuestionAuthor || isAdminOrMod}
+                            isHidden={false}
+                            onHide={() => toggleHideComment(cmt.id)}
+                            hideLabel={t('questions.hideComment', 'Ẩn bình luận')}
+                            onDelete={() => setDeletingCommentId(cmt.id)}
+                            deleteLabel={t('questions.deleteComment', 'Xóa bình luận')}
+                            canEdit={isCommentAuthor(cmt)}
+                            onEdit={() => setEditingCommentId(cmt.id)}
+                            editLabel={t('questions.editComment', 'Sửa bình luận')}
+                          />
                         </div>
                       )}
                     </div>

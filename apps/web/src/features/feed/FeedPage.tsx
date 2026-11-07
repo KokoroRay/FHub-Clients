@@ -775,25 +775,6 @@ export const FeedPage: React.FC = () => {
                             #{q.courseCode || `Môn ${q.courseId}`}
                           </span>
                         )}
-                        {Boolean(
-                          (q.authorUserId && currentUser?.id && (String(q.authorUserId) === String(currentUser.id) || String(q.authorUserId).replace(/\D/g, '') === String(currentUser.id).replace(/\D/g, ''))) ||
-                          (q.author?.id && currentUser?.id && (String(q.author.id) === String(currentUser.id) || String(q.author.id).replace(/\D/g, '') === String(currentUser.id).replace(/\D/g, ''))) ||
-                          (q.authorDisplayName && currentUser?.fullName && q.authorDisplayName.trim().toLowerCase() === currentUser.fullName.trim().toLowerCase()) ||
-                          currentUser?.role === 'Admin'
-                        ) && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setDeletingQuestion({ id: qId, title: q.title });
-                            }}
-                            title={t('questions.deleteQuestion', 'Xóa câu hỏi')}
-                            className="p-1 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
                         <ContentActionMenu
                           targetType="QUESTION"
                           targetId={qId}
