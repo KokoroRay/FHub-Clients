@@ -11,7 +11,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { loadAllSemanticTags, FALLBACK_ALL_TAGS, SemanticTagItem } from '../../utils/tagUtils';
 
-const ArticleEditor = lazy(() => import('../../components/common/ArticleEditor').then((module) => ({ default: module.ArticleEditor })));
+import { ArticleEditor, finalizeContentImages } from '../../components/common/ArticleEditor';
 
 export const CreateArticlePage: React.FC = () => {
   const navigate = useNavigate();
@@ -28,6 +28,7 @@ export const CreateArticlePage: React.FC = () => {
   const [isUploadingContent, setIsUploadingContent] = useState(false);
   const coverInputRef = useRef<HTMLInputElement>(null);
   const coverBusyRef = useRef(false);
+  const pendingCoverFile = useRef<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [allTags, setAllTags] = useState<SemanticTagItem[]>(FALLBACK_ALL_TAGS);
@@ -38,21 +39,32 @@ export const CreateArticlePage: React.FC = () => {
     });
   }, []);
 
-  const uploadCover = async (file?: File) => {
+  const uploadCover = (file?: File) => {
     if (!file || coverBusyRef.current || isSubmitting) return;
     try {
       validateImage(file);
-      coverBusyRef.current = true;
-      setIsUploadingCover(true);
       setErrorMessage(null);
-      const result = await contentMediaApi.uploadMedia(file, 'article');
-      setCoverUrl(result.publicUrl);
+      if (coverUrl && coverUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(coverUrl);
+      }
+      pendingCoverFile.current = file;
+      const preview = URL.createObjectURL(file);
+      setCoverUrl(preview);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : t('Không tải được ảnh bìa. Vui lòng thử lại.'));
-    } finally {
-      coverBusyRef.current = false;
-      setIsUploadingCover(false);
     }
+  };
+
+  const removeCover = () => {
+    if (coverUrl) {
+      if (coverUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(coverUrl);
+      } else {
+        contentMediaApi.deleteMedia(coverUrl);
+      }
+    }
+    pendingCoverFile.current = null;
+    setCoverUrl('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -86,21 +98,44 @@ export const CreateArticlePage: React.FC = () => {
       // Fallback tag if empty (12: EduNext & Học tập hoặc 7: Survival Tips)
       if (matchedTagIds.length === 0) matchedTagIds.push(7);
 
+      // Upload cover image to R2 only when user actually submits
+      let finalCoverUrl = coverUrl;
+      if (pendingCoverFile.current) {
+        setIsUploadingCover(true);
+        try {
+          const result = await contentMediaApi.uploadMedia(pendingCoverFile.current, 'article');
+          finalCoverUrl = result.publicUrl;
+          if (coverUrl.startsWith('blob:')) {
+            URL.revokeObjectURL(coverUrl);
+          }
+        } catch (err: any) {
+          setIsUploadingCover(false);
+          setIsSubmitting(false);
+          setErrorMessage(err.message || t('Không tải được ảnh bìa lên hệ thống.'));
+          return;
+        } finally {
+          setIsUploadingCover(false);
+        }
+      }
+
+      // Finalize all deferred images inside the article content
+      const finalContent = await finalizeContentImages(content.trim(), 'article');
+
       let createdResult: any = null;
       if (isAlumniArticle || currentUser?.role === 'Alumni') {
         createdResult = await alumniApi.createCareerArticle({
           title: title.trim(),
-          content: content.trim(),
+          content: finalContent,
           summary: summary.trim(),
-          coverImageUrl: coverUrl.trim() || undefined,
+          coverImageUrl: finalCoverUrl.trim() || undefined,
           status: 'PUBLISHED',
         });
       } else {
         createdResult = await articleApi.createArticle({
           title: title.trim(),
-          content: content.trim(),
+          content: finalContent,
           summary: summary.trim(),
-          coverImageUrl: coverUrl.trim() || undefined,
+          coverImageUrl: finalCoverUrl.trim() || undefined,
           status: 'PUBLISHED',
           semanticTagIds: matchedTagIds,
         });
@@ -213,7 +248,7 @@ export const CreateArticlePage: React.FC = () => {
                     <img src={coverUrl} alt={t('Ảnh bìa bài viết')} className="max-h-72 w-full object-cover" />
                     <div className="absolute right-3 top-3 flex gap-2">
                       <button type="button" disabled={isUploadingCover || isSubmitting} onClick={() => coverInputRef.current?.click()} className="rounded-lg bg-white px-3 py-2 text-xs font-semibold shadow">{t('Thay ảnh')}</button>
-                      <button type="button" aria-label={t('Xóa ảnh bìa')} disabled={isUploadingCover || isSubmitting} onClick={() => setCoverUrl('')} className="rounded-lg bg-white p-2 text-rose-600 shadow"><X className="h-4 w-4" /></button>
+                      <button type="button" aria-label={t('Xóa ảnh bìa')} disabled={isUploadingCover || isSubmitting} onClick={removeCover} className="rounded-lg bg-white p-2 text-rose-600 shadow"><X className="h-4 w-4" /></button>
                     </div>
                   </>
                 ) : (

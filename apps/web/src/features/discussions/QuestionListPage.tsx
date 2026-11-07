@@ -771,23 +771,6 @@ export const QuestionListPage: React.FC = () => {
                         <Share2 className="w-3.5 h-3.5" />
                       </button>
 
-                      {Boolean(
-                        (q.author?.id && currentUser?.id && (String(q.author.id) === String(currentUser.id) || String(q.author.id).replace(/\D/g, '') === String(currentUser.id).replace(/\D/g, ''))) ||
-                        currentUser?.role === 'Admin'
-                      ) && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setDeletingQuestion({ id: q.id, title: q.title });
-                          }}
-                          title={t('questions.deleteQuestion', 'Xóa câu hỏi')}
-                          className="p-1 rounded-lg border border-transparent text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600 transition-colors cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
                       <div className="flex items-center gap-1 text-slate-400">
                         <Eye className="w-3.5 h-3.5" />
                         <span>{q.viewsCount} {t('views')}</span>

@@ -67,28 +67,21 @@ export function ArticleEditor({ onChange, onUploadingChange, disabled = false }:
       setError(reason instanceof Error ? reason.message : t('Ảnh không hợp lệ.'));
       return;
     }
-    busyRef.current = true;
-    setUploading(true);
-    onUploadingChange(true);
     setError('');
     if (position !== undefined) editor.commands.setTextSelection(position);
     try {
       for (const file of files) {
-        const result = await contentMediaApi.uploadMedia(file, 'article');
         if (!mountedRef.current || editor.isDestroyed) return;
+        // Keep locally as preview blob without uploading immediately to R2
+        const blobUrl = URL.createObjectURL(file);
+        pendingEditorImages.set(blobUrl, file);
         editor.chain().focus().insertContent([
-          { type: 'image', attrs: { src: result.publicUrl, alt: file.name.replace(/\.[^.]+$/, '') } },
+          { type: 'image', attrs: { src: blobUrl, alt: file.name.replace(/\.[^.]+$/, '') } },
           { type: 'paragraph' },
         ]).run();
       }
     } catch (reason) {
-      if (mountedRef.current) setError(reason instanceof Error ? reason.message : t('Không tải được ảnh. Vui lòng thử lại.'));
-    } finally {
-      busyRef.current = false;
-      if (mountedRef.current) {
-        setUploading(false);
-        onUploadingChange(false);
-      }
+      if (mountedRef.current) setError(reason instanceof Error ? reason.message : t('Không thể chèn ảnh xem trước.'));
     }
   }
 
@@ -143,4 +136,25 @@ export function ArticleEditor({ onChange, onUploadingChange, disabled = false }:
       {error && <p role="alert" className="text-sm text-rose-600">{t(error)}</p>}
     </div>
   );
+}
+
+export const pendingEditorImages = new Map<string, File>();
+
+export async function finalizeContentImages(content: string, resourceType: string = 'article'): Promise<string> {
+  let finalized = content;
+  for (const [blobUrl, file] of Array.from(pendingEditorImages.entries())) {
+    if (finalized.includes(blobUrl)) {
+      try {
+        const res = await contentMediaApi.uploadMedia(file, resourceType);
+        finalized = finalized.split(blobUrl).join(res.publicUrl);
+        URL.revokeObjectURL(blobUrl);
+      } catch (err) {
+        console.error('Failed to upload editor image to R2:', err);
+      }
+    } else {
+      URL.revokeObjectURL(blobUrl);
+    }
+  }
+  pendingEditorImages.clear();
+  return finalized;
 }

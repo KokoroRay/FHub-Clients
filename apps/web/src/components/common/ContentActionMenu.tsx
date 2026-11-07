@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MoreVertical, Flag, Link2, Check, Trash2 } from 'lucide-react';
+import { MoreVertical, Flag, Link2, Check, Trash2, Eye, EyeOff, Edit3 } from 'lucide-react';
 import { ReportContentModal, ReportTargetType } from './ReportContentModal';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -12,6 +12,13 @@ export interface ContentActionMenuProps {
   isOwner?: boolean;
   onDelete?: () => void | Promise<void>;
   deleteLabel?: string;
+  canHide?: boolean;
+  isHidden?: boolean;
+  onHide?: () => void | Promise<void>;
+  hideLabel?: string;
+  canEdit?: boolean;
+  onEdit?: () => void;
+  editLabel?: string;
 }
 
 export const ContentActionMenu: React.FC<ContentActionMenuProps> = ({
@@ -23,6 +30,13 @@ export const ContentActionMenu: React.FC<ContentActionMenuProps> = ({
   isOwner = false,
   onDelete,
   deleteLabel,
+  canHide = false,
+  isHidden = false,
+  onHide,
+  hideLabel,
+  canEdit = false,
+  onEdit,
+  editLabel,
 }) => {
   const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
@@ -117,9 +131,51 @@ export const ContentActionMenu: React.FC<ContentActionMenuProps> = ({
             )}
           </button>
 
-          <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
+          {/* Edit Option (only for author) */}
+          {canEdit && onEdit && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsOpen(false);
+                onEdit();
+              }}
+              className="w-full px-3.5 py-2 text-left text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60 flex items-center gap-2 cursor-pointer transition-colors"
+            >
+              <Edit3 className="w-3.5 h-3.5 text-blue-500" />
+              <span>{editLabel || t('common.edit', 'Chỉnh sửa')}</span>
+            </button>
+          )}
 
-          {isOwner && onDelete ? (
+          {/* Hide / Unhide Option (for post owner or mod) */}
+          {canHide && onHide && (
+            <button
+              type="button"
+              onClick={async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsOpen(false);
+                await onHide();
+              }}
+              className="w-full px-3.5 py-2 text-left text-xs font-medium text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40 flex items-center gap-2 cursor-pointer transition-colors"
+            >
+              {isHidden ? (
+                <>
+                  <Eye className="w-3.5 h-3.5 text-amber-500" />
+                  <span>{t('common.unhide', 'Hiện nội dung')}</span>
+                </>
+              ) : (
+                <>
+                  <EyeOff className="w-3.5 h-3.5 text-amber-500" />
+                  <span>{hideLabel || t('common.hide', 'Ẩn nội dung')}</span>
+                </>
+              )}
+            </button>
+          )}
+
+          {/* Delete Option (for post owner or author) */}
+          {isOwner && onDelete && (
             showDeleteConfirm ? (
               <div className="px-3 py-2 space-y-1.5 bg-rose-50/70 dark:bg-rose-950/40 rounded-lg mx-1 border border-rose-200 dark:border-rose-900/60">
                 <p className="text-[11px] font-medium text-rose-700 dark:text-rose-300">
@@ -153,19 +209,22 @@ export const ContentActionMenu: React.FC<ContentActionMenuProps> = ({
                 className="w-full px-3.5 py-2 text-left text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center gap-2 cursor-pointer transition-colors"
               >
                 <Trash2 className="w-3.5 h-3.5 text-rose-500" />
-                <span>{deleteLabel || t('common.delete', 'Xóa bài viết')}</span>
+                <span>{deleteLabel || t('common.delete', 'Xóa')}</span>
               </button>
             )
-          ) : (
-            <button
-              type="button"
-              onClick={handleOpenReport}
-              className="w-full px-3.5 py-2 text-left text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center gap-2 cursor-pointer transition-colors"
-            >
-              <Flag className="w-3.5 h-3.5 text-rose-500" />
-              <span>{t('Report Content', 'Báo cáo vi phạm')}</span>
-            </button>
           )}
+
+          <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
+
+          {/* Report Option (always available) */}
+          <button
+            type="button"
+            onClick={handleOpenReport}
+            className="w-full px-3.5 py-2 text-left text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center gap-2 cursor-pointer transition-colors"
+          >
+            <Flag className="w-3.5 h-3.5 text-rose-500" />
+            <span>{t('Report Content', 'Báo cáo vi phạm')}</span>
+          </button>
         </div>
       )}
 

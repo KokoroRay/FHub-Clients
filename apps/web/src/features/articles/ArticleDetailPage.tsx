@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   FileText,
   Heart,
@@ -46,6 +46,7 @@ export const ArticleDetailPage: React.FC = () => {
   const { currentUser } = useAuth();
   const { formatDate, locale, t } = useLanguage();
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [article, setArticle] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -161,6 +162,27 @@ export const ArticleDetailPage: React.FC = () => {
   const [editArticleSummary, setEditArticleSummary] = useState('');
   const [editArticleContent, setEditArticleContent] = useState('');
   const [comments, setComments] = useState<any[]>([]);
+  const [hiddenCommentIds, setHiddenCommentIds] = useState<Set<string>>(new Set());
+
+  const toggleHideComment = (cmtId: string) => {
+    setHiddenCommentIds(prev => {
+      const next = new Set(prev);
+      if (next.has(cmtId)) next.delete(cmtId);
+      else next.add(cmtId);
+      return next;
+    });
+  };
+
+  const isArticleOwner = Boolean(
+    currentUser && (
+      (article?.authorUserId && (
+        String(currentUser.id) === String(article.authorUserId) ||
+        String(currentUser.id).replace(/\D/g, '') === String(article.authorUserId).replace(/\D/g, '')
+      )) ||
+      (currentUser.fullName && article?.author?.fullName && currentUser.fullName.trim().toLowerCase() === article.author.fullName.trim().toLowerCase()) ||
+      currentUser.role === 'Admin'
+    )
+  );
 
   const toggleLike = async () => {
     if (!id) return;
@@ -478,28 +500,54 @@ export const ArticleDetailPage: React.FC = () => {
 
               {/* Comments List */}
               <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
-                {comments.map((cmt) => (
-                  <div key={cmt.id} className="flex items-start gap-3 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
-                    <img src={cmt.author.avatarUrl} alt={cmt.author.fullName} className="w-8 h-8 rounded-full object-cover shrink-0" />
-                    <div className="flex-1 space-y-1">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-xs text-slate-900 dark:text-slate-100">{cmt.author.fullName}</span>
-                          <Badge variant="neutral" size="sm">{cmt.author.campus}</Badge>
+                {comments.map((cmt) => {
+                  const isCmtAuthor = Boolean(
+                    currentUser && (
+                      (cmt.author?.id && (
+                        String(currentUser.id) === String(cmt.author.id) ||
+                        String(currentUser.id).replace(/\D/g, '') === String(cmt.author.id).replace(/\D/g, '')
+                      )) ||
+                      (currentUser.fullName && cmt.author?.fullName && currentUser.fullName.trim().toLowerCase() === cmt.author.fullName.trim().toLowerCase())
+                    )
+                  );
+                  return (
+                    <div key={cmt.id} className="flex items-start gap-3 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
+                      <img src={cmt.author.avatarUrl} alt={cmt.author.fullName} className="w-8 h-8 rounded-full object-cover shrink-0" />
+                      <div className="flex-1 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-xs text-slate-900 dark:text-slate-100">{cmt.author.fullName}</span>
+                            <Badge variant="neutral" size="sm">{cmt.author.campus}</Badge>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-[10px] text-slate-400">{formatDate(cmt.createdAt)}</span>
+                            <ContentActionMenu
+                              targetType="OTHER"
+                              targetId={cmt.id}
+                              targetTitle={t("Bình luận của {p0}", undefined, { p0: cmt.author?.fullName || 'Sinh viên' })}
+                              shareUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/articles/${id}#comment-${cmt.id}`}
+                              isOwner={isArticleOwner || isCmtAuthor}
+                              canHide={isArticleOwner}
+                              isHidden={hiddenCommentIds.has(cmt.id)}
+                              onHide={() => toggleHideComment(cmt.id)}
+                              hideLabel={t('articles.hideComment', 'Ẩn bình luận')}
+                              onDelete={() => setComments(prev => prev.filter(c => c.id !== cmt.id))}
+                              deleteLabel={t('articles.deleteComment', 'Xóa bình luận')}
+                              canEdit={isCmtAuthor}
+                            />
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <span className="text-[10px] text-slate-400">{formatDate(cmt.createdAt)}</span>
-                          <ContentActionMenu
-                            targetType="OTHER"
-                            targetId={cmt.id}
-                            targetTitle={t("Bình luận của {p0}", undefined, { p0: cmt.author?.fullName || 'Sinh viên' })}
-                          />
-                        </div>
+                        {hiddenCommentIds.has(cmt.id) ? (
+                          <p className="text-xs text-amber-600 dark:text-amber-400 italic bg-amber-50/60 dark:bg-amber-950/30 p-2 rounded-lg border border-dashed border-amber-200 dark:border-amber-900/60">
+                            {t('articles.commentHidden', 'Bình luận này đã bị ẩn bởi chủ bài viết')}
+                          </p>
+                        ) : (
+                          <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">{cmt.content}</p>
+                        )}
                       </div>
-                      <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">{cmt.content}</p>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </CardBody>
           </Card>
@@ -665,8 +713,18 @@ export const ArticleDetailPage: React.FC = () => {
               <button
                 id="btn-confirm-delete-article"
                 type="button"
-                onClick={() => {
-                  setShowDeleteArticleModal(false);
+                onClick={async () => {
+                  try {
+                    const numId = Number((id || '').replace(/\D/g, ''));
+                    if (numId) {
+                      await articleApi.deleteArticle(numId);
+                    }
+                    setShowDeleteArticleModal(false);
+                    navigate('/articles');
+                  } catch (err) {
+                    console.error('Failed to delete article:', err);
+                    setShowDeleteArticleModal(false);
+                  }
                 }}
                 className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors shadow-xs"
               >

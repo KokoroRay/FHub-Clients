@@ -766,6 +766,19 @@ export const contentMediaApi = {
       publicUrl: new URL(cleanPublicUrl, window.location.origin).href,
     };
   },
+
+  deleteMedia: async (urlOrKey: string): Promise<boolean> => {
+    if (!urlOrKey) return false;
+    try {
+      const res = await apiClient.delete<ApiResponse<boolean>>('/api/content/media', {
+        params: { mediaUrl: urlOrKey }
+      });
+      return Boolean(res.data?.data);
+    } catch (err) {
+      console.warn('Failed to delete media from storage:', err);
+      return false;
+    }
+  },
 };
 
 
