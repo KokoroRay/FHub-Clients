@@ -31,7 +31,7 @@ import {
   ModerationContentItem,
   SemanticTagItemDto
 } from '../../services/api/adminApi';
-import { seriesApi } from '../../services/api/contentApi';
+import { seriesApi, contentModerationApi, ModerationQueueItemDto } from '../../services/api/contentApi';
 import { useLanguage } from '../../context/LanguageContext';
 import { useRealtime } from '../../context/RealtimeContext';
 import { RecordDialog } from '../../components/common/RecordDialog';
@@ -39,7 +39,45 @@ import { RecordDialog } from '../../components/common/RecordDialog';
 export const ModeratorToolsPage: React.FC = () => {
   const { locale, t } = useLanguage();
   const { on } = useRealtime();
-  const [activeTab, setActiveTab] = useState<'reports' | 'moderation' | 'warnings' | 'series' | 'tags'>('reports');
+  const [activeTab, setActiveTab] = useState<'ai-moderation' | 'reports' | 'moderation' | 'warnings' | 'series' | 'tags'>('ai-moderation');
+
+  // AI Moderation & Appeals Queue State
+  const [aiQueue, setAiQueue] = useState<ModerationQueueItemDto[]>([]);
+  const [aiQueueLoading, setAiQueueLoading] = useState(false);
+  const [aiFilterStatus, setAiFilterStatus] = useState<string>('ALL');
+  const [selectedAiItem, setSelectedAiItem] = useState<ModerationQueueItemDto | null>(null);
+  const [isDecisionModalOpen, setIsDecisionModalOpen] = useState(false);
+  const [decisionType, setDecisionType] = useState<'APPROVE' | 'REJECT'>('APPROVE');
+  const [decisionNote, setDecisionNote] = useState('');
+  const [isDeciding, setIsDeciding] = useState(false);
+
+  const fetchAiQueue = async () => {
+    setAiQueueLoading(true);
+    try {
+      const statusParam = aiFilterStatus === 'ALL' ? undefined : aiFilterStatus;
+      const items = await contentModerationApi.getModerationQueue(statusParam);
+      setAiQueue(items || []);
+    } catch (err) {
+      console.warn('Could not fetch AI moderation queue:', err);
+    } finally {
+      setAiQueueLoading(false);
+    }
+  };
+
+  const handleDecisionSubmit = async () => {
+    if (!selectedAiItem) return;
+    setIsDeciding(true);
+    try {
+      await contentModerationApi.processDecision(selectedAiItem.contentModerationId, decisionType, decisionNote);
+      alert(decisionType === 'APPROVE' ? t('Đã phê duyệt và khôi phục nội dung!') : t('Đã từ chối nội dung.'));
+      setIsDecisionModalOpen(false);
+      fetchAiQueue();
+    } catch (err: any) {
+      alert(err.response?.data?.message || err.message || t('Lỗi xử lý quyết định.'));
+    } finally {
+      setIsDeciding(false);
+    }
+  };
 
   // Reports Queue State
   const [reports, setReports] = useState<ContentReportItem[]>([]);
@@ -123,6 +161,7 @@ export const ModeratorToolsPage: React.FC = () => {
   };
 
   useEffect(() => {
+    if (activeTab === 'ai-moderation') fetchAiQueue();
     if (activeTab === 'moderation') fetchContentList();
     if (activeTab === 'series') fetchLiveSeries();
     if (activeTab === 'tags') fetchLiveTags();
@@ -341,6 +380,178 @@ export const ModeratorToolsPage: React.FC = () => {
         activeTab={activeTab}
         onChange={(t) => setActiveTab(t as any)}
       />
+
+      {/* 0. AI MODERATION & APPEALS TAB */}
+      {activeTab === 'ai-moderation' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2 text-xs">
+              <span className="font-bold text-slate-500">{t("Lọc theo trạng thái:")}</span>
+              {[
+                { id: 'ALL', label: 'Tất cả' },
+                { id: 'PENDING_REVIEW', label: 'Nghi vấn AI' },
+                { id: 'APPEAL_PENDING', label: 'Kháng cáo chờ duyệt' },
+                { id: 'REJECTED_QUARANTINED', label: 'Tạm giữ 3 ngày' },
+              ].map((st) => (
+                <button
+                  key={st.id}
+                  onClick={() => setAiFilterStatus(st.id)}
+                  className={`px-3 py-1.5 rounded-lg font-bold text-xs cursor-pointer transition-colors ${
+                    aiFilterStatus === st.id
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {t(st.label)}
+                </button>
+              ))}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchAiQueue}
+              isLoading={aiQueueLoading}
+              leftIcon={<RefreshCw className="w-3.5 h-3.5" />}
+            >
+              {t("Làm mới")}
+            </Button>
+          </div>
+
+          {aiQueue.length === 0 ? (
+            <Card>
+              <CardBody className="p-8 text-center space-y-2">
+                <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto" />
+                <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200">{t("Hàng đợi kiểm duyệt sạch")}</h4>
+                <p className="text-xs text-slate-400">{t("Không có bài viết nào bị nghi ngờ hoặc đang chờ xử lý kháng cáo.")}</p>
+              </CardBody>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {aiQueue.map((item) => {
+                const now = new Date();
+                const appealUntil = item.canAppealUntil ? new Date(item.canAppealUntil) : null;
+                const hoursLeft = appealUntil ? Math.max(0, Math.round((appealUntil.getTime() - now.getTime()) / (1000 * 3600))) : 0;
+
+                return (
+                  <Card key={item.contentModerationId} className="hover:border-emerald-300 dark:hover:border-emerald-700 transition-colors">
+                    <CardBody className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div className="space-y-2 text-xs flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge
+                            variant={item.status === 'APPEAL_PENDING' ? 'info' : item.status === 'PENDING_REVIEW' ? 'warning' : 'danger'}
+                            size="sm"
+                          >
+                            {item.status === 'APPEAL_PENDING' ? 'KHÁNG CÁO CHỜ DUYỆT' : item.status === 'PENDING_REVIEW' ? 'AI NGHI VẤN' : 'TẠM GIỮ (QUARANTINE)'}
+                          </Badge>
+                          <Badge variant={item.severity === 'SEVERE' ? 'danger' : 'warning'} size="sm">
+                            {item.severity} ({Math.round((item.confidence || 0.9) * 100)}%)
+                          </Badge>
+                          <Badge variant="neutral" size="sm">
+                            {item.targetType} #{item.targetId}
+                          </Badge>
+                          <span className="text-rose-600 font-bold font-mono">
+                            Từ chối: {item.rejectCount}/3 {item.rejectCount >= 2 ? '(Nguy cơ xóa vĩnh viễn!)' : ''}
+                          </span>
+                          {hoursLeft > 0 && (
+                            <span className="text-amber-600 font-semibold flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5" /> Còn {hoursLeft}h trong hạn 3 ngày
+                            </span>
+                          )}
+                        </div>
+
+                        <h4 className="font-bold text-sm text-slate-900 dark:text-slate-100">{item.targetTitle}</h4>
+                        {item.targetContentExcerpt && (
+                          <p className="text-slate-600 dark:text-slate-300 line-clamp-2 bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-lg border border-slate-100 dark:border-slate-800 font-mono text-[11px]">
+                            {item.targetContentExcerpt}
+                          </p>
+                        )}
+
+                        <div className="p-2.5 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/40 rounded-lg text-rose-700 dark:text-rose-300">
+                          <span className="font-bold">Lý do cảnh báo từ AI (DeepSeek):</span> {item.violationReason || 'Nội dung chứa yếu tố nhạy cảm.'}
+                        </div>
+
+                        {item.appealReason && (
+                          <div className="p-2.5 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/40 rounded-lg text-blue-700 dark:text-blue-300">
+                            <span className="font-bold">Lý do kháng cáo của tác giả:</span> "{item.appealReason}"
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex sm:flex-col gap-2 shrink-0">
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          className="!bg-emerald-600 hover:!bg-emerald-700 text-white"
+                          onClick={() => {
+                            setSelectedAiItem(item);
+                            setDecisionType('APPROVE');
+                            setDecisionNote('Đã xem xét và chấp thuận.');
+                            setIsDecisionModalOpen(true);
+                          }}
+                        >
+                          Phê duyệt (Duyệt)
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedAiItem(item);
+                            setDecisionType('REJECT');
+                            setDecisionNote(item.rejectCount >= 2 ? 'Từ chối lần 3 - Xóa vĩnh viễn.' : 'Từ chối kháng cáo do nội dung không đạt.');
+                            setIsDecisionModalOpen(true);
+                          }}
+                        >
+                          Từ chối ({item.rejectCount + 1}/3)
+                        </Button>
+                      </div>
+                    </CardBody>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Decision Confirmation Modal */}
+      <Modal
+        isOpen={isDecisionModalOpen}
+        onClose={() => setIsDecisionModalOpen(false)}
+        title={decisionType === 'APPROVE' ? t('Xác nhận Phê duyệt nội dung') : t('Xác nhận Từ chối nội dung')}
+        size="md"
+      >
+        <div className="space-y-4 text-xs">
+          <p className="text-slate-600 dark:text-slate-300">
+            {decisionType === 'APPROVE'
+              ? 'Nội dung này sẽ được khôi phục trạng thái PUBLISHED và hiển thị công khai trên diễn đàn FHub.'
+              : selectedAiItem && selectedAiItem.rejectCount >= 2
+              ? 'CẢNH BÁO: Đây là lần từ chối thứ 3. Bài viết này sẽ bị XÓA VĨNH VIỄN khỏi hệ thống!'
+              : 'Nội dung sẽ tiếp tục bị tạm giữ trong danh sách cách ly 3 ngày cho đợt kháng cáo tiếp theo.'}
+          </p>
+
+          <Textarea
+            label={t("Ghi chú quyết định / Phản hồi cho người dùng")}
+            value={decisionNote}
+            onChange={(e) => setDecisionNote(e.target.value)}
+            rows={3}
+            required
+          />
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" size="sm" onClick={() => setIsDecisionModalOpen(false)}>
+              {t("Hủy")}
+            </Button>
+            <Button
+              variant={decisionType === 'APPROVE' ? 'primary' : 'danger'}
+              size="sm"
+              isLoading={isDeciding}
+              onClick={handleDecisionSubmit}
+            >
+              {decisionType === 'APPROVE' ? t("Xác nhận Phê duyệt") : t("Xác nhận Từ chối")}
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* 1. REPORTS QUEUE TAB */}
       {activeTab === 'reports' && (

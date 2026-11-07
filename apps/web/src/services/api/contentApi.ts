@@ -769,3 +769,73 @@ export const contentMediaApi = {
 };
 
 
+
+export interface QuarantinedItemDto {
+  contentModerationId: number;
+  targetType: string;
+  targetId: number;
+  authorUserId: number;
+  targetTitle: string;
+  targetContentExcerpt?: string;
+  status: string;
+  severity: string;
+  violationReason?: string;
+  rejectCount: number;
+  quarantinedAt?: string;
+  canAppealUntil?: string;
+  remainingHours: number;
+  appealReason?: string;
+  appealedAt?: string;
+  createdAt: string;
+}
+
+export interface ModerationQueueItemDto {
+  contentModerationId: number;
+  targetType: string;
+  targetId: number;
+  authorUserId: number;
+  targetTitle: string;
+  targetContentExcerpt?: string;
+  status: string;
+  severity: string;
+  confidence: number;
+  violationReason?: string;
+  categories?: string;
+  rejectCount: number;
+  appealReason?: string;
+  appealedAt?: string;
+  canAppealUntil?: string;
+  createdAt: string;
+}
+
+export const contentModerationApi = {
+  getMyQuarantinedItems: async (): Promise<QuarantinedItemDto[]> => {
+    const res = await apiClient.get<ApiResponse<QuarantinedItemDto[]>>('/api/content/moderation/my-quarantine');
+    return res.data.data;
+  },
+
+  submitAppeal: async (targetType: string, targetId: number, appealReason: string): Promise<boolean> => {
+    const res = await apiClient.post<ApiResponse<boolean>>('/api/content/moderation/appeal', {
+      targetType,
+      targetId,
+      appealReason,
+    });
+    return res.data.data;
+  },
+
+  getModerationQueue: async (status?: string): Promise<ModerationQueueItemDto[]> => {
+    const res = await apiClient.get<ApiResponse<ModerationQueueItemDto[]>>('/api/content/moderation/queue', {
+      params: { status },
+    });
+    return res.data.data;
+  },
+
+  processDecision: async (contentModerationId: number, decision: 'APPROVE' | 'REJECT', reviewerNote?: string): Promise<boolean> => {
+    const res = await apiClient.post<ApiResponse<boolean>>('/api/content/moderation/decision', {
+      contentModerationId,
+      decision,
+      reviewerNote,
+    });
+    return res.data.data;
+  },
+};

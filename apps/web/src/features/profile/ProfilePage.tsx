@@ -29,7 +29,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { EditProfileModal } from './EditProfileModal';
 import { profileApi, badgeApi, voteApi, followApi, directMessageApi, studentReputationApi, FollowStats, FollowUserItem } from '../../services/api/studentApi';
-import { questionApi, contentMediaApi } from '../../services/api/contentApi';
+import { questionApi, contentMediaApi, contentModerationApi, QuarantinedItemDto } from '../../services/api/contentApi';
 import { apiClient } from '../../services/api/client';
 import { normalizeMediaUrl, validateImage, IMAGE_ACCEPT } from '../../utils/mediaUtils';
 import { resolveUserMajorName, FPT_CAMPUSES } from '../../utils/taxonomyUtils';
@@ -149,7 +149,42 @@ export const ProfilePage: React.FC = () => {
 
   // Quick cover upload state
   const [isUploadingQuickCover, setIsUploadingQuickCover] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'questions' | 'answers' | 'badges' | 'votes'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'questions' | 'answers' | 'badges' | 'votes' | 'quarantine'>('overview');
+
+  // Quarantine & Appeals State
+  const [quarantinedItems, setQuarantinedItems] = useState<QuarantinedItemDto[]>([]);
+  const [quarantineLoading, setQuarantineLoading] = useState(false);
+  const [appealModalItem, setAppealModalItem] = useState<QuarantinedItemDto | null>(null);
+  const [appealReason, setAppealReason] = useState('');
+  const [isSubmittingAppeal, setIsSubmittingAppeal] = useState(false);
+
+  const fetchQuarantine = async () => {
+    setQuarantineLoading(true);
+    try {
+      const items = await contentModerationApi.getMyQuarantinedItems();
+      setQuarantinedItems(items || []);
+    } catch (err) {
+      console.warn('Could not fetch quarantined items:', err);
+    } finally {
+      setQuarantineLoading(false);
+    }
+  };
+
+  const handleAppealSubmit = async () => {
+    if (!appealModalItem || !appealReason.trim()) return;
+    setIsSubmittingAppeal(true);
+    try {
+      await contentModerationApi.submitAppeal(appealModalItem.targetType, appealModalItem.targetId, appealReason.trim());
+      alert(t('Yêu cầu kháng cáo của bạn đã được gửi tới Ban quản trị (Mod và Admin)!'));
+      setAppealModalItem(null);
+      setAppealReason('');
+      fetchQuarantine();
+    } catch (err: any) {
+      alert(err.response?.data?.message || err.message || t('Lỗi khi gửi kháng cáo.'));
+    } finally {
+      setIsSubmittingAppeal(false);
+    }
+  };
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   // 1. Resolve Target User ID and normalize URL to MSSV
@@ -890,7 +925,10 @@ export const ProfilePage: React.FC = () => {
             { id: 'questions', label: `${t('Câu hỏi')} (${questions.length})` },
             { id: 'answers', label: `${t('Câu trả lời')} (${answers.length})` },
             { id: 'badges', label: `${t('Huy hiệu')} (${userBadges.length})` },
-            ...(isOwnProfile ? [{ id: 'votes', label: t('Lịch sử bình chọn') }] : []),
+            ...(isOwnProfile ? [
+              { id: 'votes', label: t('Lịch sử bình chọn') },
+              { id: 'quarantine', label: `${t('Nội dung tạm giữ & Kháng cáo')} (${quarantinedItems.length})` },
+            ] : []),
           ].map((tab: any) => (
             <button
               key={tab.id}
@@ -1110,6 +1148,159 @@ export const ProfilePage: React.FC = () => {
                 </div>
               ))
             )}
+          </div>
+        )}
+
+        {/* Tab 6: Quarantine & Appeals (Own Profile Only) */}
+        {activeTab === 'quarantine' && isOwnProfile && (
+          <div className="pt-5 space-y-4">
+            <div className="flex items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                  {t('Danh sách bài viết bị tạm giữ (Quarantine / Blacklist)')}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {t('Các bài viết vi phạm tiêu chuẩn cộng đồng được lưu trữ tạm thời trong 3 ngày để bạn gửi kháng cáo.')}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={fetchQuarantine}
+                disabled={quarantineLoading}
+                className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-xs font-bold rounded-lg cursor-pointer"
+              >
+                {t('Làm mới')}
+              </button>
+            </div>
+
+            {quarantinedItems.length === 0 ? (
+              <div className="text-center py-12 text-slate-400 text-xs">
+                {t('Không có nội dung nào bị tạm giữ hoặc cần kháng cáo. Tài khoản của bạn tuân thủ tốt tiêu chuẩn cộng đồng!')}
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {quarantinedItems.map((item) => (
+                  <div
+                    key={item.contentModerationId}
+                    className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 space-y-2.5 text-xs"
+                  >
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          item.status === 'APPEAL_PENDING'
+                            ? 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+                            : item.status === 'PENDING_REVIEW'
+                            ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
+                            : 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
+                        }`}>
+                          {item.status === 'APPEAL_PENDING'
+                            ? 'KHÁNG CÁO ĐANG CHỜ DUYỆT'
+                            : item.status === 'PENDING_REVIEW'
+                            ? 'BQT ĐANG XEM XÉT'
+                            : 'BỊ TẠM GIỮ (QUARANTINED)'}
+                        </span>
+                        <span className="font-mono text-slate-400">{item.targetType} #{item.targetId}</span>
+                        <span className="font-bold text-rose-600">Từ chối: {item.rejectCount}/3 (Xóa vĩnh viễn ở lần 3)</span>
+                      </div>
+
+                      {item.remainingHours > 0 ? (
+                        <span className="text-amber-600 font-bold bg-amber-50 dark:bg-amber-950/60 px-2 py-0.5 rounded">
+                          Còn {item.remainingHours} giờ để kháng cáo
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 font-bold">Đã hết hạn 3 ngày</span>
+                      )}
+                    </div>
+
+                    <h4 className="font-bold text-sm text-slate-900 dark:text-slate-100">{item.targetTitle}</h4>
+                    {item.targetContentExcerpt && (
+                      <p className="text-slate-600 dark:text-slate-400 line-clamp-2 font-mono text-[11px] bg-white dark:bg-slate-800 p-2 rounded border border-slate-200/60 dark:border-slate-700">
+                        {item.targetContentExcerpt}
+                      </p>
+                    )}
+
+                    <div className="p-2 bg-rose-50 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 rounded border border-rose-200 dark:border-rose-900/40">
+                      <span className="font-bold">Lý do vi phạm:</span> {item.violationReason || 'Nội dung chứa từ ngữ hoặc hình ảnh không phù hợp.'}
+                    </div>
+
+                    {item.appealReason && (
+                      <div className="p-2 bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 rounded border border-blue-200 dark:border-blue-900/40">
+                        <span className="font-bold">Lý do kháng cáo bạn đã gửi:</span> "{item.appealReason}"
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-end pt-1">
+                      {item.status === 'REJECTED_QUARANTINED' && item.remainingHours > 0 && item.rejectCount < 3 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAppealModalItem(item);
+                            setAppealReason('');
+                          }}
+                          className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold cursor-pointer transition-colors shadow-xs"
+                        >
+                          {t('Gửi kháng cáo (Appeal)')}
+                        </button>
+                      )}
+                      {item.status === 'APPEAL_PENDING' && (
+                        <span className="text-blue-600 font-semibold italic">
+                          Ban quản trị (Mod và Admin) đang xem xét kháng cáo của bạn...
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Appeal Submission Modal */}
+        {appealModalItem && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-xl border border-slate-200 dark:border-slate-800 text-xs">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                  {t('Gửi kháng cáo bài viết')}
+                </h3>
+                <p className="text-slate-500 mt-1">
+                  Bài viết: <span className="font-bold text-slate-800 dark:text-slate-200">{appealModalItem.targetTitle}</span>
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="font-bold text-slate-700 dark:text-slate-300">
+                  {t('Lý do kháng cáo / Giải trình (Bắt buộc)')}
+                </label>
+                <textarea
+                  value={appealReason}
+                  onChange={(e) => setAppealReason(e.target.value)}
+                  placeholder={t('Vui lòng giải thích rõ ràng lý do bạn cho rằng bài viết không vi phạm tiêu chuẩn cộng đồng...')}
+                  rows={4}
+                  className="w-full p-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 outline-hidden"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  disabled={isSubmittingAppeal}
+                  onClick={() => setAppealModalItem(null)}
+                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold cursor-pointer"
+                >
+                  {t('Hủy')}
+                </button>
+                <button
+                  type="button"
+                  disabled={isSubmittingAppeal || !appealReason.trim()}
+                  onClick={handleAppealSubmit}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold cursor-pointer transition-colors disabled:opacity-50"
+                >
+                  {isSubmittingAppeal ? t('Đang gửi...') : t('Xác nhận gửi')}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
