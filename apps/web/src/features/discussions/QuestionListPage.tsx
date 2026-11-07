@@ -15,6 +15,7 @@ import {
   EyeOff,
   ChevronLeft,
   ChevronRight,
+  Share2,
 } from 'lucide-react';
 import { QuestionPost } from '../../types';
 import { AskQuestionModal } from './AskQuestionModal';
@@ -43,6 +44,31 @@ export const QuestionListPage: React.FC = () => {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusTab, setStatusTab] = useState<'all' | 'answered' | 'unanswered'>('all');
+  const [copiedShareId, setCopiedShareId] = useState<string | null>(null);
+
+  const handleShare = (id: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const numId = Number(id.replace(/\D/g, '')) || id;
+    const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/discussions/${numId}`;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url);
+      setCopiedShareId(id);
+      setTimeout(() => setCopiedShareId(null), 2000);
+    }
+  };
+
+  const handleDeleteQuestion = async (id: string | number) => {
+    const numId = Number(String(id).replace(/\D/g, ''));
+    if (numId) {
+      try {
+        await questionApi.deleteQuestion(numId);
+      } catch (err) {
+        console.warn('Failed to delete question:', err);
+      }
+    }
+    setQuestions((prev) => prev.filter((q) => String(q.id) !== String(id) && Number(String(q.id).replace(/\D/g, '')) !== numId));
+  };
   const [selectedCourse, setSelectedCourse] = useState<string>('ALL');
   const [selectedTopic, setSelectedTopic] = useState<string>(initialTag || 'ALL');
   const [sortBy, setSortBy] = useState<'recent' | 'upvoted' | 'answers'>('recent');
@@ -301,11 +327,15 @@ export const QuestionListPage: React.FC = () => {
     }));
 
     try {
-      await voteApi.vote({
-        target_type: 'QUESTION',
-        target_id: numId,
-        vote_value: dir === 'UP' ? 1 : -1,
-      });
+      if (current.userVote === dir) {
+        await voteApi.removeVote('QUESTION', numId);
+      } else {
+        await voteApi.vote({
+          target_type: 'QUESTION',
+          target_id: numId,
+          vote_value: dir === 'UP' ? 1 : -1,
+        });
+      }
       const stats = await voteApi.getStats('QUESTION', numId);
       const finalEntry = {
         score: stats.score,
@@ -719,6 +749,18 @@ export const QuestionListPage: React.FC = () => {
                       >
                         <Bookmark className={`w-3.5 h-3.5 ${bookmarkedIds.has(q.id) ? 'fill-current' : ''}`} />
                       </button>
+                      <button
+                        type="button"
+                        onClick={(e) => handleShare(q.id, e)}
+                        className="p-1 rounded-lg border border-transparent text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-[#0076D1] transition-colors cursor-pointer"
+                        title={t('common.share', 'Chia sẻ')}
+                      >
+                        {copiedShareId === q.id ? (
+                          <Check className="w-3.5 h-3.5 text-emerald-600" />
+                        ) : (
+                          <Share2 className="w-3.5 h-3.5" />
+                        )}
+                      </button>
                       <div className="flex items-center gap-1 text-slate-400">
                         <Eye className="w-3.5 h-3.5" />
                         <span>{q.viewsCount} {t('views')}</span>
@@ -728,6 +770,9 @@ export const QuestionListPage: React.FC = () => {
                         targetId={q.id}
                         targetTitle={q.title}
                         shareUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/discussions/${q.id}`}
+                        isOwner={Boolean((q.author?.id && currentUser?.id && String(q.author.id) === String(currentUser.id)) || currentUser?.role === 'Admin')}
+                        onDelete={() => handleDeleteQuestion(q.id)}
+                        deleteLabel={t('questions.deleteQuestion', 'Xóa câu hỏi')}
                       />
                     </div>
                   </div>
