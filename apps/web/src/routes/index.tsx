@@ -195,6 +195,7 @@ const getMainPortalRoutes = () => [
       { path: 'search', element: <SearchResultsPage /> },
       { path: 'course-ratings', element: <Navigate to="/course-evaluations" replace /> },
       { path: 'tech-blog', element: <Navigate to="/articles" replace /> },
+      { path: 'my-appeals', element: <Navigate to="/profile?tab=quarantine" replace /> },
     ],
   },
 
