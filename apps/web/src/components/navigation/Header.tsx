@@ -1,3 +1,4 @@
+import { NotificationDetailModal } from "../common/NotificationDetailModal";
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -33,6 +34,7 @@ export const Header: React.FC = () => {
   const [showNotifDrawer, setShowNotifDrawer] = useState(false);
   const [campuses, setCampuses] = useState<Array<{ code: string; name: string }>>([]);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [selectedNotifForDetail, setSelectedNotifForDetail] = useState<NotificationItem | null>(null);
   const [hasUnreadMessages, setHasUnreadMessages] = useState<boolean>(false);
   const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState<boolean>(false);
   const searchContainerRef = useRef<HTMLFormElement>(null);
@@ -428,6 +430,21 @@ export const Header: React.FC = () => {
       </div>
 
 
+          <NotificationDetailModal
+        notification={selectedNotifForDetail ? {
+          id: selectedNotifForDetail.id,
+          title: selectedNotifForDetail.title,
+          message: selectedNotifForDetail.message,
+          type: selectedNotifForDetail.type,
+          createdAt: selectedNotifForDetail.createdAt,
+          actionUrl: selectedNotifForDetail.actionUrl,
+        } : null}
+        onClose={() => setSelectedNotifForDetail(null)}
+        onNavigate={(url: string) => {
+          setShowNotifDrawer(false);
+          navigate(url);
+        }}
+      />
     </header>
   );
 };

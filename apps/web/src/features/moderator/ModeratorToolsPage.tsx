@@ -371,6 +371,7 @@ export const ModeratorToolsPage: React.FC = () => {
 
       <Tabs
         tabs={[
+          { id: 'ai-moderation', label: t('Kiểm duyệt AI & Kháng cáo'), count: aiQueue.length, icon: <ShieldCheck className="w-4 h-4" /> },
           { id: 'reports', label: t("Báo cáo vi phạm (Queue)"), count: reports.filter(r => r.status === 'PENDING').length, icon: <FileText className="w-4 h-4" /> },
           { id: 'moderation', label: t("Kiểm duyệt nội dung trực tiếp"), icon: <Lock className="w-4 h-4" /> },
           { id: 'warnings', label: t("Phát lệnh cảnh cáo"), icon: <AlertTriangle className="w-4 h-4" /> },
