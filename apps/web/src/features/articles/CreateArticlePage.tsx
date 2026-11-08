@@ -22,11 +22,7 @@ import { useLanguage } from '../../context/LanguageContext';
 
 import { loadAllSemanticTags, FALLBACK_ALL_TAGS, SemanticTagItem } from '../../utils/tagUtils';
 
-
-
 import { ArticleEditor, finalizeContentImages } from '../../components/common/ArticleEditor';
-
-
 
 export const CreateArticlePage: React.FC = () => {
 
@@ -66,8 +62,6 @@ export const CreateArticlePage: React.FC = () => {
 
   const [allTags, setAllTags] = useState<SemanticTagItem[]>(FALLBACK_ALL_TAGS);
 
-
-
   useEffect(() => {
 
     loadAllSemanticTags().then((loaded) => {
@@ -77,8 +71,6 @@ export const CreateArticlePage: React.FC = () => {
     });
 
   }, []);
-
-
 
   const uploadCover = (file?: File) => {
 
@@ -110,8 +102,6 @@ export const CreateArticlePage: React.FC = () => {
 
   };
 
-
-
   const removeCover = () => {
 
     if (coverUrl) {
@@ -133,8 +123,6 @@ export const CreateArticlePage: React.FC = () => {
     setCoverUrl('');
 
   };
-
-
 
   const handleSubmit = async (e: React.FormEvent) => {
 
@@ -166,8 +154,6 @@ export const CreateArticlePage: React.FC = () => {
 
     }
 
-
-
     setErrorMessage(null);
 
     setIsSubmitting(true);
@@ -197,10 +183,7 @@ export const CreateArticlePage: React.FC = () => {
 
       if (matchedTagIds.length === 0) matchedTagIds.push(7);
 
-
-
       // Upload cover image to R2 only when user actually submits
-
 
       if (pendingCoverFile.current) {
 
@@ -219,15 +202,28 @@ export const CreateArticlePage: React.FC = () => {
           }
 
         } catch (err: any) {
-
           setIsUploadingCover(false);
-
           setIsSubmitting(false);
+          if (coverUrl.startsWith('blob:')) {
+            URL.revokeObjectURL(coverUrl);
+          }
+          pendingCoverFile.current = null;
+          setCoverUrl('');
+          const serverCode = err?.response?.data?.code;
+          const msg = err?.response?.data?.message || err?.message;
+          const isSevere =
+            serverCode === 'CONTENT_VIOLATION_SEVERE' ||
+            serverCode === 'CONTENT_MODERATION_REJECTED' ||
+            msg?.includes('18+') ||
+            msg?.includes('nhạy cảm') ||
+            msg?.includes('tiêu chuẩn');
 
-          setErrorMessage(err.message || t('Không tải được ảnh bìa lên hệ thống.'));
-
+          setErrorMessage(
+            isSevere
+              ? t('articleCreate.errorCoverViolation', 'Ảnh bìa có dấu hiệu vi phạm Tiêu chuẩn cộng đồng (18+ / nhạy cảm). Ảnh đã bị gỡ bỏ, bạn hãy chọn ảnh bìa khác hợp lệ.')
+              : (msg || t('Không tải được ảnh bìa lên hệ thống.'))
+          );
           return;
-
         } finally {
 
           setIsUploadingCover(false);
@@ -236,13 +232,9 @@ export const CreateArticlePage: React.FC = () => {
 
       }
 
-
-
       // Finalize all deferred images inside the article content
 
       const finalContent = await finalizeContentImages(content.trim(), 'article');
-
-
 
       let createdResult: any = null;
 
@@ -282,8 +274,6 @@ export const CreateArticlePage: React.FC = () => {
 
       }
 
-
-
       if (createdResult?.status === 'PENDING_REVIEW') {
 
         alert(t("Đăng bài thành công! Bài viết của bạn đang được Ban quản trị duyệt trước khi xuất bản. Bạn có thể theo dõi tại mục Tạm giữ & Kháng cáo trên trang cá nhân."));
@@ -293,8 +283,6 @@ export const CreateArticlePage: React.FC = () => {
         return;
 
       }
-
-
 
       // Award +10 Karma points for publishing an academic article
 
@@ -356,8 +344,6 @@ export const CreateArticlePage: React.FC = () => {
 
   };
 
-
-
   return (
 
     <div className="space-y-6 w-full">
@@ -367,8 +353,6 @@ export const CreateArticlePage: React.FC = () => {
         <ArrowLeft className="w-4 h-4" /> {t('articleCreate.backToList', 'Quay lại danh sách bài viết')}
 
       </Link>
-
-
 
       <Card>
 
@@ -424,8 +408,6 @@ export const CreateArticlePage: React.FC = () => {
 
             </div>
 
-
-
             <Input
 
               label={t('articleCreate.titleLabel', 'Tiêu đề bài viết')}
@@ -439,8 +421,6 @@ export const CreateArticlePage: React.FC = () => {
               required
 
             />
-
-
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
@@ -482,8 +462,6 @@ export const CreateArticlePage: React.FC = () => {
 
               />
 
-
-
               <Input
 
                 label={t('articleCreate.tagsLabel', 'Tags (Cách nhau bằng dấu phẩy)')}
@@ -497,8 +475,6 @@ export const CreateArticlePage: React.FC = () => {
               />
 
             </div>
-
-
 
             <div className="space-y-2">
 
@@ -548,8 +524,6 @@ export const CreateArticlePage: React.FC = () => {
 
             </div>
 
-
-
             <Textarea
 
               label={t('articleCreate.summaryLabel', 'Tóm tắt ngắn (1-2 câu)')}
@@ -566,15 +540,11 @@ export const CreateArticlePage: React.FC = () => {
 
             />
 
-
-
             <Suspense fallback={<p role="status" className="py-8 text-center text-sm text-slate-400">{t('Đang tải trình soạn thảo…')}</p>}>
 
               <ArticleEditor onChange={setContent} onUploadingChange={setIsUploadingContent} disabled={isSubmitting} />
 
             </Suspense>
-
-
 
             <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
 
