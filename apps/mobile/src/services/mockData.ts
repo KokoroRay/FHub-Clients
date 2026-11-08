@@ -14,11 +14,12 @@ import {
 } from '../types';
 
 export const mockCampuses: Campus[] = [
-  { id: '1', code: 'HL', name: 'FPT University Hà Nội (Hòa Lạc)', location: 'Khu CNC Hòa Lạc, Km29 Đại lộ Thăng Long, Hà Nội', isActive: true, studentCount: 14500 },
-  { id: '2', code: 'HCM', name: 'FPT University TP. Hồ Chí Minh', location: 'Lô E2a-7, Đường D1, Khu CNC, TP. Thủ Đức', isActive: true, studentCount: 16200 },
-  { id: '3', code: 'DN', name: 'FPT University Đà Nẵng', location: 'Khu đô thị FPT City, Hòa Hải, Ngũ Hành Sơn, Đà Nẵng', isActive: true, studentCount: 6800 },
-  { id: '4', code: 'CT', name: 'FPT University Cần Thơ', location: 'Số 600 đường Nguyễn Văn Cừ nối dài, An Bình, Ninh Kiều, Cần Thơ', isActive: true, studentCount: 5200 },
-  { id: '5', code: 'QN', name: 'FPT University Quy Nhơn', location: 'Khu đô thị An Phú Thịnh, Nhơn Bình, TP. Quy Nhơn, Bình Định', isActive: true, studentCount: 3100 },
+  { id: '0', code: 'ALL', name: 'FPT University - Toàn hệ thống (Global)', location: 'Tất cả các phân hiệu FPT trên toàn quốc', isActive: true, studentCount: 45800 },
+  { id: '1', code: 'HL', name: 'FPT University - Hòa Lạc (Hà Nội)', location: 'Khu CNC Hòa Lạc, Km 29 Đại lộ Thăng Long, Hà Nội', isActive: true, studentCount: 14500 },
+  { id: '2', code: 'HCM', name: 'FPT University - TP. Hồ Chí Minh', location: 'Lô E2a-7, Đường D1 Khu Công nghệ cao, TP. Thủ Đức, TP. HCM', isActive: true, studentCount: 16200 },
+  { id: '3', code: 'DN', name: 'FPT University - Đà Nẵng', location: 'Khu đô thị công nghệ FPT Đà Nẵng, Hòa Hải, Ngũ Hành Sơn, Đà Nẵng', isActive: true, studentCount: 6800 },
+  { id: '4', code: 'CT', name: 'FPT University - Cần Thơ', location: 'Số 600 đường Nguyễn Văn Cừ nối dài, An Bình, Ninh Kiều, Cần Thơ', isActive: true, studentCount: 5200 },
+  { id: '5', code: 'QN', name: 'FPT University - Quy Nhơn', location: 'Khu đô thị An Phú Thịnh, Nhơn Bình, TP. Quy Nhơn, Bình Định', isActive: true, studentCount: 3100 },
 ];
 
 export const mockMajors: Major[] = [
@@ -430,6 +431,40 @@ export const mockCourseReviews: CourseReview[] = [
     semesterTaken: 'Fall 2024',
     createdAt: '2 tuần trước',
     helpfulCount: 24,
+  },
+  {
+    id: 'rev-2',
+    courseCode: 'SWP391',
+    author: {
+      id: 'usr-2',
+      fullName: 'Trần Minh Quân',
+      studentId: 'SE171120',
+    },
+    rating: 5,
+    workload: 5,
+    practicality: 5,
+    comment: 'Môn đồ án cực kỳ thử thách nhưng mang lại kinh nghiệm làm việc nhóm, quản lý Git branch, Jira sprint và CI/CD giống hệt môi trường doanh nghiệp.',
+    tips: 'Nên họp nhóm hàng ngày (daily standup 10 phút) để giải quyết blocker kịp thời.',
+    semesterTaken: 'Spring 2025',
+    createdAt: '5 ngày trước',
+    helpfulCount: 38,
+  },
+  {
+    id: 'rev-3',
+    courseCode: 'CSD201',
+    author: {
+      id: 'usr-3',
+      fullName: 'Lê Hoàng Nam',
+      studentId: 'SE170891',
+    },
+    rating: 4,
+    workload: 4,
+    practicality: 4,
+    comment: 'Môn DSA kinh điển. Cần hiểu sâu thuật toán cây nhị phân BST, AVL và đồ thị BFS/DFS để làm tốt bài PE.',
+    tips: 'Vẽ sơ đồ luồng dữ liệu trước khi viết code đệ quy sẽ đỡ bị bug tràn bộ nhớ stack.',
+    semesterTaken: 'Fall 2024',
+    createdAt: '3 tuần trước',
+    helpfulCount: 19,
   },
 ];
 

@@ -8,6 +8,7 @@ import {
   Image,
   RefreshControl,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -19,21 +20,26 @@ import { Badge } from '../../components/common/Badge';
 import { PeekableCard } from '../../components/common/PeekableCard';
 import { useQuickPeek, QuickPeekItem } from '../../context/QuickPeekContext';
 import { Colors } from '../../constants/colors';
-import { BorderRadius, FontSize, Spacing } from '../../constants/theme';
+import { BorderRadius, FontSize, Spacing, CommonStyles } from '../../constants/theme';
 import { contentApi } from '../../services/api/contentApi';
-import { Article, SharedWorkflow, StudyMaterial } from '../../types';
+import { mockCourseReviews } from '../../services/mockData';
+import { Article, SharedWorkflow, StudyMaterial, CourseReview } from '../../types';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
+type ResourceSegment = 'articles' | 'workflows' | 'materials' | 'reviews';
 
 export const ResourcesHubScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
   const { isPeeking } = useQuickPeek();
-  const [activeSegment, setActiveSegment] = useState<'articles' | 'workflows' | 'materials'>('articles');
+  const [activeSegment, setActiveSegment] = useState<ResourceSegment>('articles');
   const [articles, setArticles] = useState<Article[]>([]);
   const [workflows, setWorkflows] = useState<SharedWorkflow[]>([]);
   const [materials, setMaterials] = useState<StudyMaterial[]>([]);
+  const [reviews, setReviews] = useState<CourseReview[]>(mockCourseReviews);
   const [isLoading, setIsLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [helpfulMap, setHelpfulMap] = useState<Record<string, boolean>>({});
 
   const getArticlePeekItem = (art: Article): QuickPeekItem => ({
     id: art.id,
@@ -70,9 +76,11 @@ export const ResourcesHubScreen: React.FC = () => {
       } else if (activeSegment === 'workflows') {
         const res = await contentApi.getWorkflows();
         setWorkflows(res);
-      } else {
+      } else if (activeSegment === 'materials') {
         const res = await contentApi.getMaterials();
         setMaterials(res);
+      } else {
+        setReviews(mockCourseReviews);
       }
     } catch (e) {
       console.warn(e);
@@ -91,6 +99,36 @@ export const ResourcesHubScreen: React.FC = () => {
     loadData();
   };
 
+  const toggleHelpfulReview = (revId: string) => {
+    setHelpfulMap((prev) => {
+      const isCurrently = !!prev[revId];
+      const updated = { ...prev, [revId]: !isCurrently };
+      setReviews((rList) =>
+        rList.map((r) =>
+          r.id === revId
+            ? { ...r, helpfulCount: r.helpfulCount + (isCurrently ? -1 : 1) }
+            : r
+        )
+      );
+      return updated;
+    });
+  };
+
+  const renderStars = (rating: number) => {
+    return (
+      <View style={styles.starsRow}>
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Ionicons
+            key={star}
+            name={star <= rating ? 'star' : 'star-outline'}
+            size={14}
+            color={star <= rating ? '#F59E0B' : '#CBD5E1'}
+          />
+        ))}
+      </View>
+    );
+  };
+
   return (
     <View style={styles.container}>
       <HeaderBar
@@ -98,34 +136,49 @@ export const ResourcesHubScreen: React.FC = () => {
         onNotificationsPress={() => navigation.navigate('Notifications')}
       />
 
-      {/* Segment Switcher */}
+      {/* 4-in-1 Segment Switcher (Web FE Aligned) */}
       <View style={styles.segmentContainer}>
-        <TouchableOpacity
-          onPress={() => setActiveSegment('articles')}
-          style={[styles.segmentBtn, activeSegment === 'articles' && styles.segmentBtnActive]}
-        >
-          <Text style={[styles.segmentText, activeSegment === 'articles' && styles.segmentTextActive]}>
-            Bài viết ({articles.length})
-          </Text>
-        </TouchableOpacity>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.segmentScroll}>
+          <TouchableOpacity
+            onPress={() => setActiveSegment('articles')}
+            style={[styles.segmentBtn, activeSegment === 'articles' && styles.segmentBtnActive]}
+          >
+            <View style={[styles.segmentDot, { backgroundColor: Colors.moduleArticles }]} />
+            <Text style={[styles.segmentText, activeSegment === 'articles' && styles.segmentTextActive]}>
+              Bài viết ({articles.length})
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={() => setActiveSegment('workflows')}
-          style={[styles.segmentBtn, activeSegment === 'workflows' && styles.segmentBtnActive]}
-        >
-          <Text style={[styles.segmentText, activeSegment === 'workflows' && styles.segmentTextActive]}>
-            Workflows ({workflows.length})
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setActiveSegment('workflows')}
+            style={[styles.segmentBtn, activeSegment === 'workflows' && styles.segmentBtnActive]}
+          >
+            <View style={[styles.segmentDot, { backgroundColor: Colors.moduleWorkflows }]} />
+            <Text style={[styles.segmentText, activeSegment === 'workflows' && styles.segmentTextActive]}>
+              Workflows ({workflows.length})
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={() => setActiveSegment('materials')}
-          style={[styles.segmentBtn, activeSegment === 'materials' && styles.segmentBtnActive]}
-        >
-          <Text style={[styles.segmentText, activeSegment === 'materials' && styles.segmentTextActive]}>
-            Tài liệu ({materials.length})
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setActiveSegment('materials')}
+            style={[styles.segmentBtn, activeSegment === 'materials' && styles.segmentBtnActive]}
+          >
+            <View style={[styles.segmentDot, { backgroundColor: Colors.moduleMaterials }]} />
+            <Text style={[styles.segmentText, activeSegment === 'materials' && styles.segmentTextActive]}>
+              Tài liệu ({materials.length})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => setActiveSegment('reviews')}
+            style={[styles.segmentBtn, activeSegment === 'reviews' && styles.segmentBtnActive]}
+          >
+            <View style={[styles.segmentDot, { backgroundColor: Colors.moduleRatings }]} />
+            <Text style={[styles.segmentText, activeSegment === 'reviews' && styles.segmentTextActive]}>
+              Đánh giá ({reviews.length})
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
       </View>
 
       {isLoading && !refreshing ? (
@@ -246,6 +299,87 @@ export const ResourcesHubScreen: React.FC = () => {
               )}
             />
           )}
+
+          {activeSegment === 'reviews' && (
+            <FlatList
+              data={reviews}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.listContent}
+              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+              renderItem={({ item }) => {
+                const isHelpful = !!helpfulMap[item.id];
+                return (
+                  <Card style={styles.reviewCard}>
+                    <View style={styles.reviewHeader}>
+                      <View style={styles.reviewCourseRow}>
+                        <View style={styles.reviewCourseTag}>
+                          <Text style={styles.reviewCourseText}>{item.courseCode}</Text>
+                        </View>
+                        {renderStars(item.rating)}
+                        <Text style={styles.reviewScoreText}>({item.rating}/5)</Text>
+                      </View>
+                      <Text style={styles.reviewDateText}>{item.createdAt}</Text>
+                    </View>
+
+                    {/* Author & Semester */}
+                    <View style={styles.reviewAuthorRow}>
+                      <Text style={styles.reviewAuthorName}>{item.author.fullName}</Text>
+                      <Text style={styles.bulletSep}>•</Text>
+                      <Text style={styles.reviewSemesterText}>Đã học: {item.semesterTaken}</Text>
+                    </View>
+
+                    {/* Workload & Practicality Badges */}
+                    <View style={styles.reviewMetricsRow}>
+                      <View style={styles.metricBadge}>
+                        <Text style={styles.metricLabel}>Khối lượng:</Text>
+                        <Text style={styles.metricVal}>
+                          {item.workload >= 4 ? 'Nặng 🔥' : item.workload === 3 ? 'Vừa phải' : 'Nhẹ nhàng'}
+                        </Text>
+                      </View>
+                      <View style={styles.metricBadge}>
+                        <Text style={styles.metricLabel}>Tính thực tiễn:</Text>
+                        <Text style={styles.metricVal}>
+                          {item.practicality >= 4 ? 'Cao ⭐' : 'Trung bình'}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Comment */}
+                    <Text style={styles.reviewComment}>{item.comment}</Text>
+
+                    {/* Tips Box */}
+                    {item.tips && (
+                      <View style={styles.tipsBox}>
+                        <Feather name="zap" size={13} color="#D97706" />
+                        <Text style={styles.tipsText}>
+                          <Text style={{ fontWeight: '800' }}>Tips qua môn: </Text>
+                          {item.tips}
+                        </Text>
+                      </View>
+                    )}
+
+                    {/* Helpful Button */}
+                    <View style={styles.reviewFooter}>
+                      <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={() => toggleHelpfulReview(item.id)}
+                        style={[styles.helpfulBtn, isHelpful && styles.helpfulBtnActive]}
+                      >
+                        <Feather
+                          name="thumbs-up"
+                          size={13}
+                          color={isHelpful ? Colors.primary : Colors.textSecondary}
+                        />
+                        <Text style={[styles.helpfulBtnText, isHelpful && styles.helpfulBtnTextActive]}>
+                          Hữu ích ({item.helpfulCount})
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </Card>
+                );
+              }}
+            />
+          )}
         </View>
       )}
     </View>
@@ -258,30 +392,38 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   segmentContainer: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(226, 232, 240, 0.7)',
-    borderRadius: BorderRadius.pill,
-    margin: Spacing.md,
-    padding: 3,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    paddingVertical: Spacing.xs,
+  },
+  segmentScroll: {
+    paddingHorizontal: Spacing.md,
+    gap: 8,
   },
   segmentBtn: {
-    flex: 1,
-    paddingVertical: 9,
+    flexDirection: 'row',
     alignItems: 'center',
+    paddingVertical: 7,
+    paddingHorizontal: 12,
     borderRadius: BorderRadius.pill,
+    backgroundColor: '#F1F5F9',
+    gap: 6,
   },
   segmentBtnActive: {
-    backgroundColor: '#FFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
-    elevation: 2,
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  segmentDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   segmentText: {
-    fontSize: FontSize.bodySm,
+    fontSize: FontSize.caption,
     fontWeight: '700',
-    color: Colors.textSecondary,
+    color: '#64748B',
   },
   segmentTextActive: {
     color: Colors.primary,
@@ -297,51 +439,52 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.xs,
-    paddingBottom: 90,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.xxl * 2,
+    gap: Spacing.md,
   },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: BorderRadius.xxl,
+    gap: Spacing.xs,
     padding: Spacing.md,
-    marginBottom: Spacing.sm,
+    borderRadius: BorderRadius.xl,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: 'rgba(226, 232, 240, 0.85)',
+    borderColor: '#E2E8F0',
+    ...CommonStyles.cardShadow,
   },
   articleRow: {
     flexDirection: 'row',
     gap: Spacing.md,
   },
   articleImage: {
-    width: 88,
-    height: 88,
+    width: 80,
+    height: 80,
     borderRadius: BorderRadius.lg,
-    backgroundColor: '#E2E8F0',
   },
   articleBody: {
     flex: 1,
     justifyContent: 'space-between',
   },
   itemTitle: {
-    fontSize: FontSize.bodyLg,
+    fontSize: FontSize.body,
     fontWeight: '800',
-    color: Colors.text,
-    marginVertical: 4,
+    color: '#0F172A',
+    marginTop: 2,
   },
   itemSnippet: {
-    fontSize: FontSize.bodySm,
-    color: Colors.textSecondary,
-    lineHeight: 18,
-    marginBottom: 6,
+    fontSize: FontSize.caption,
+    color: '#64748B',
+    lineHeight: 17,
   },
   articleFooter: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 4,
   },
   metaText: {
     fontSize: FontSize.caption,
-    color: Colors.textMuted,
+    color: '#94A3B8',
   },
   likesRow: {
     flexDirection: 'row',
@@ -356,27 +499,26 @@ const styles = StyleSheet.create({
   wfHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginBottom: 6,
+    gap: Spacing.xs,
   },
   stepsBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
+    gap: 4,
     marginLeft: 'auto',
   },
   stepsText: {
     fontSize: FontSize.caption,
-    fontWeight: '700',
     color: Colors.purple,
+    fontWeight: '700',
   },
   cardFooter: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: Spacing.xs,
     borderTopWidth: 1,
-    borderTopColor: Colors.borderLight,
-    paddingTop: 8,
+    borderTopColor: '#F1F5F9',
     marginTop: 4,
   },
   usageChip: {
@@ -391,26 +533,173 @@ const styles = StyleSheet.create({
   },
   matHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
+    justifyContent: 'space-between',
   },
   matSize: {
     fontSize: FontSize.caption,
-    color: Colors.textMuted,
+    color: '#94A3B8',
+    fontWeight: '600',
   },
   downloadBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.primaryLight,
-    paddingHorizontal: 10,
+    backgroundColor: '#EFF6FF',
     paddingVertical: 5,
-    borderRadius: BorderRadius.round,
+    paddingHorizontal: 10,
+    borderRadius: BorderRadius.pill,
     gap: 4,
   },
   downloadBtnText: {
     fontSize: FontSize.caption,
+    color: Colors.primary,
+    fontWeight: '800',
+  },
+
+  // Course Review Card Styles
+  reviewCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: Spacing.xs,
+    ...CommonStyles.cardShadow,
+  },
+  reviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  reviewCourseRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  reviewCourseTag: {
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  reviewCourseText: {
+    fontSize: FontSize.caption,
+    fontWeight: '800',
+    color: Colors.primary,
+  },
+  starsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  reviewScoreText: {
+    fontSize: 11,
     fontWeight: '700',
+    color: '#64748B',
+  },
+  reviewDateText: {
+    fontSize: 11,
+    color: '#94A3B8',
+  },
+  reviewAuthorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  reviewAuthorName: {
+    fontSize: FontSize.caption,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  bulletSep: {
+    fontSize: 10,
+    color: '#CBD5E1',
+  },
+  reviewSemesterText: {
+    fontSize: 11,
+    color: '#64748B',
+  },
+  reviewMetricsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginTop: 2,
+  },
+  metricBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    gap: 4,
+  },
+  metricLabel: {
+    fontSize: 10,
+    color: '#64748B',
+  },
+  metricVal: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  reviewComment: {
+    fontSize: FontSize.bodySm,
+    color: '#334155',
+    lineHeight: 19,
+    marginTop: 2,
+  },
+  tipsBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#FFFBEB',
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    gap: 6,
+    marginTop: 2,
+  },
+  tipsText: {
+    flex: 1,
+    fontSize: 11,
+    color: '#92400E',
+    lineHeight: 16,
+  },
+  reviewFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginTop: 4,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: '#F8FAFC',
+  },
+  helpfulBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: BorderRadius.pill,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    gap: 6,
+  },
+  helpfulBtnActive: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#BFDBFE',
+  },
+  helpfulBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  helpfulBtnTextActive: {
     color: Colors.primary,
   },
 });

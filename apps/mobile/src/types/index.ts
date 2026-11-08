@@ -7,7 +7,7 @@ export type UserRole =
   | 'Alumni'
   | 'Guest';
 
-export type CampusCode = 'HL' | 'HCM' | 'DN' | 'CT' | 'QN';
+export type CampusCode = 'ALL' | 'HL' | 'HCM' | 'DN' | 'CT' | 'QN';
 
 export interface Campus {
   id: string;
