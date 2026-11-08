@@ -152,7 +152,7 @@ export const QuestionListPage: React.FC = () => {
           pageSize: 50,
         });
         if (isMounted) {
-          const items = res?.items || [];
+          const items = (res?.items || []).filter((item: any) => item.status === 'OPEN' || item.status === 'RESOLVED' || item.status === 'CLOSED');
           const tagMap = getSemanticTagMap(allTags);
           const mapped: QuestionPost[] = items.map((item) => {
             const matchedCourse = availableCourses.find((c) => c.id === item.courseId);

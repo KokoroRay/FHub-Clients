@@ -1384,7 +1384,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
 
           value={title}
 
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={(e) => { setTitle(e.target.value); if (errorMessage) setErrorMessage(null); }}
 
           required
 
@@ -2146,7 +2146,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
 
                 value={content}
 
-                onChange={(e) => setContent(e.target.value)}
+                onChange={(e) => { setContent(e.target.value); if (errorMessage) setErrorMessage(null); }}
 
                 onPaste={handlePaste}
 
@@ -2172,7 +2172,7 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
 
                   value={content}
 
-                  onChange={(e) => setContent(e.target.value)}
+                  onChange={(e) => { setContent(e.target.value); if (errorMessage) setErrorMessage(null); }}
 
                   onPaste={handlePaste}
 

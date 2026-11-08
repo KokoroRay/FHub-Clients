@@ -144,7 +144,7 @@ export const FeedPage: React.FC = () => {
       const res = await questionApi.getQuestions(params);
       let items = res?.items || [];
       // Defensive filter: only display public posts (OPEN, RESOLVED, CLOSED)
-      items = items.filter((q: any) => !q.status || q.status === 'OPEN' || q.status === 'RESOLVED' || q.status === 'CLOSED');
+      items = items.filter((q: any) => q.status === 'OPEN' || q.status === 'RESOLVED' || q.status === 'CLOSED');
 
       // Filter for unanswered if requested
       if (feedFilter === 'unanswered') {
