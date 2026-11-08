@@ -10,6 +10,8 @@ import {
   Tag,
   EyeOff,
   Eye,
+  ExternalLink,
+  Image as ImageIcon,
   Plus,
   RefreshCw,
   FileText,
@@ -36,6 +38,32 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useRealtime } from '../../context/RealtimeContext';
 import { RecordDialog } from '../../components/common/RecordDialog';
 
+
+function extractMediaUrlsFromMarkdown(markdown?: string): { cleanText: string; imageUrls: string[] } {
+  if (!markdown) return { cleanText: '', imageUrls: [] };
+  const imageUrls: string[] = [];
+
+  // Match ![alt](url)
+  let cleanText = markdown.replace(/!\[.*?\]\((https?:\/\/[^\s\)]+)\)/g, (_, url) => {
+    if (!imageUrls.includes(url)) imageUrls.push(url);
+    return '';
+  });
+
+  // Match [image.png](url) or similar media links
+  cleanText = cleanText.replace(/\[([^\]]+?\.(?:png|jpg|jpeg|webp|gif))\]\((https?:\/\/[^\s\)]+)\)/gi, (_, _fn, url) => {
+    if (!imageUrls.includes(url)) imageUrls.push(url);
+    return '';
+  });
+
+  // Match bare image URLs
+  cleanText = cleanText.replace(/(https?:\/\/[^\s\)]+?\.(?:png|jpg|jpeg|webp|gif))/gi, (match) => {
+    if (!imageUrls.includes(match)) imageUrls.push(match);
+    return '';
+  });
+
+  return { cleanText: cleanText.trim(), imageUrls };
+}
+
 export const ModeratorToolsPage: React.FC = () => {
   const { locale, t } = useLanguage();
   const { on } = useRealtime();
@@ -44,7 +72,8 @@ export const ModeratorToolsPage: React.FC = () => {
   // AI Moderation & Appeals Queue State
   const [aiQueue, setAiQueue] = useState<ModerationQueueItemDto[]>([]);
   const [aiQueueLoading, setAiQueueLoading] = useState(false);
-  const [aiFilterStatus, setAiFilterStatus] = useState<string>('ALL');
+  const [aiFilterStatus, setAiFilterStatus] = useState<string>('APPEAL_PENDING');
+  const [viewingDetailItem, setViewingDetailItem] = useState<ModerationQueueItemDto | null>(null);
   const [selectedAiItem, setSelectedAiItem] = useState<ModerationQueueItemDto | null>(null);
   const [isDecisionModalOpen, setIsDecisionModalOpen] = useState(false);
   const [decisionType, setDecisionType] = useState<'APPROVE' | 'REJECT'>('APPROVE');
@@ -514,6 +543,14 @@ export const ModeratorToolsPage: React.FC = () => {
                       </div>
 
                       <div className="flex sm:flex-col gap-2 shrink-0">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    leftIcon={<Eye className="w-3.5 h-3.5" />}
+                    onClick={() => setViewingDetailItem(item)}
+                  >
+                    Xem chi tiết
+                  </Button>
                         {isProcessed ? (
                           <div className="flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-500 font-bold text-xs select-none">
                             <CheckCircle2 className="w-4 h-4 text-slate-400" />
