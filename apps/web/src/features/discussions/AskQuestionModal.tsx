@@ -87,6 +87,7 @@ import { MarkdownPreview } from '../../components/common/MarkdownPreview';
 import { normalizeMediaUrl } from '../../utils/mediaUtils';
 
 import { FALLBACK_ALL_TAGS } from '../../utils/tagUtils';
+import { scanImageSkinTone } from '../../utils/imageModeration';
 
 export interface AskQuestionModalProps {
 
@@ -716,7 +717,24 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
 
   // Media attachment: Store locally as preview, defer R2 upload until user clicks Submit!
 
-  const handleMediaUpload = (file: File) => {
+  const handleMediaUpload = async (file: File) => {
+    // Fast Client-side Pre-Scan (< 5ms) BEFORE touching R2 or adding to draft!
+    try {
+      const scan = await scanImageSkinTone(file);
+      if (scan.action === 'AUTO_REJECT') {
+        setErrorMessage(scan.reason || 'Hình ảnh vi phạm nghiêm trọng Tiêu chuẩn cộng đồng (chứa nội dung mang tính chất 18+, khiêu dâm hoặc khỏa thân). Tệp bị từ chối.');
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        return;
+      }
+      if (scan.action === 'QUARANTINE_SUSPICIOUS') {
+        setErrorMessage(scan.reason || 'Hình ảnh chứa nội dung nhạy cảm hoặc hở hang, không phù hợp với Tiêu chuẩn cộng đồng. Khi đăng, bài viết sẽ được tạm giữ 3 ngày và ẩn khỏi trang web để bạn giải trình kháng cáo.');
+      } else {
+        setErrorMessage(null);
+      }
+    } catch {
+      // Ignore scan error
+    }
+
 
     const sensitiveFileWords = ['nude', 'sex', 'porn', 'anh-nong', 'anh_nong', 'clip-nong', '18plus', '18+', 'xxx', 'hentai', 'fuck', 'dick', 'pussy', 'boobs'];
     if (sensitiveFileWords.some((w) => file.name.toLowerCase().includes(w))) {
