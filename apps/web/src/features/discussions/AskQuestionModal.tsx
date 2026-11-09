@@ -722,12 +722,12 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
     try {
       const scan = await scanImageSkinTone(file);
       if (scan.action === 'AUTO_REJECT') {
-        setErrorMessage(scan.reason || 'Hình ảnh vi phạm nghiêm trọng Tiêu chuẩn cộng đồng (tỉ lệ diện tích da nhạy cảm >= 70%). Tệp bị từ chối.');
+        setErrorMessage(scan.reason || 'Hình ảnh vi phạm nghiêm trọng Tiêu chuẩn cộng đồng (chứa nội dung mang tính chất 18+, khiêu dâm hoặc khỏa thân). Tệp bị từ chối.');
         if (fileInputRef.current) fileInputRef.current.value = '';
         return;
       }
       if (scan.action === 'QUARANTINE_SUSPICIOUS') {
-        setErrorMessage(scan.reason || 'Hình ảnh có dấu hiệu nhạy cảm (20% - 70% diện tích da). Khi đăng, bài viết sẽ được tạm giữ 3 ngày và ẩn khỏi trang web để chờ giải trình.');
+        setErrorMessage(scan.reason || 'Hình ảnh chứa nội dung nhạy cảm hoặc hở hang, không phù hợp với Tiêu chuẩn cộng đồng. Khi đăng, bài viết sẽ được tạm giữ 3 ngày và ẩn khỏi trang web để bạn giải trình kháng cáo.');
       } else {
         setErrorMessage(null);
       }
