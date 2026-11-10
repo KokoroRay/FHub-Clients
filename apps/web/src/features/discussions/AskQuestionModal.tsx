@@ -716,124 +716,62 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
   };
 
   // Media attachment: Store locally as preview, defer R2 upload until user clicks Submit!
-
-  const handleMediaUpload = async (file: File) => {
-    // Fast Client-side Pre-Scan (< 5ms) BEFORE touching R2 or adding to draft!
-    try {
-      const scan = await scanImageSkinTone(file);
-      if (scan.action === 'AUTO_REJECT') {
-        setErrorMessage(scan.reason || 'Hình ảnh vi phạm nghiêm trọng Tiêu chuẩn cộng đồng (chứa nội dung mang tính chất 18+, khiêu dâm hoặc khỏa thân). Tệp bị từ chối.');
-        if (fileInputRef.current) fileInputRef.current.value = '';
-        return;
-      }
-      if (scan.action === 'QUARANTINE_SUSPICIOUS') {
-        setErrorMessage(scan.reason || 'Hình ảnh chứa nội dung nhạy cảm hoặc hở hang, không phù hợp với Tiêu chuẩn cộng đồng. Khi đăng, bài viết sẽ được tạm giữ 3 ngày và ẩn khỏi trang web để bạn giải trình kháng cáo.');
-      } else {
-        setErrorMessage(null);
-      }
-    } catch {
-      // Ignore scan error
-    }
-
-
-    const sensitiveFileWords = ['nude', 'sex', 'porn', 'anh-nong', 'anh_nong', 'clip-nong', '18plus', '18+', 'xxx', 'hentai', 'fuck', 'dick', 'pussy', 'boobs'];
-    if (sensitiveFileWords.some((w) => file.name.toLowerCase().includes(w))) {
-      setErrorMessage(t('askModal.errorSensitiveFile', 'Tên tệp hình ảnh vi phạm Tiêu chuẩn cộng đồng (chứa từ khóa nhạy cảm / 18+). Vui lòng chọn hình ảnh khác.'));
-      return;
-    }
-
+  const handleMediaUpload = (file: File) => {
     const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif'];
-
     if (!validTypes.includes(file.type.toLowerCase())) {
-
       setErrorMessage(t('askModal.errorInvalidMedia', 'Định dạng tệp không được hỗ trợ. Vui lòng chọn ảnh hoặc GIF (PNG, JPG, WebP, GIF).'));
-
+      if (fileInputRef.current) fileInputRef.current.value = '';
       return;
-
     }
 
     if (file.size > 15 * 1024 * 1024) {
-
       setErrorMessage(t('askModal.errorMediaSize', 'Dung lượng ảnh/GIF không được vượt quá 15MB.'));
-
+      if (fileInputRef.current) fileInputRef.current.value = '';
       return;
-
     }
 
+    // Always clear error message when user attaches or replaces an image
     setErrorMessage(null);
 
     try {
-
       const cleanName = (file.name || 'image').replace(/[\[\]()]/g, '');
-
       const isGif = file.type.toLowerCase().includes('gif') || cleanName.toLowerCase().endsWith('.gif');
-
       const previewUrl = URL.createObjectURL(file);
-
       const newMediaItem: AttachedMediaItem = {
-
         id: `media-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-
         name: cleanName,
-
         url: previewUrl,
-
         type: isGif ? 'gif' : 'image',
-
         sizeBytes: file.size,
-
         file: file,
-
         isPendingUpload: true,
-
       };
-
       setAttachedMedia((prev) => [...prev, newMediaItem]);
-
     } catch (err: any) {
-
       console.error('Failed to attach media preview:', err);
-
       setErrorMessage(t('askModal.errorMediaUploadFailed', 'Chuẩn bị ảnh/GIF thất bại. Vui lòng thử lại.'));
-
     } finally {
-
       if (fileInputRef.current) {
-
         fileInputRef.current.value = '';
-
       }
-
     }
-
   };
 
   const removeAttachedMedia = (id: string) => {
-
     setAttachedMedia((prev) => {
-
       const target = prev.find((item) => item.id === id);
-
       if (target) {
-
         if (target.isPendingUpload && target.url.startsWith('blob:')) {
-
           URL.revokeObjectURL(target.url);
-
         } else if (!target.isPendingUpload) {
-
           // If it was already uploaded to R2, delete from R2 directly!
-
           contentMediaApi.deleteMedia(target.url);
-
         }
-
       }
-
       return prev.filter((item) => item.id !== id);
-
     });
-
+    // Clear moderation warning when user removes an attached image
+    setErrorMessage(null);
   };
 
   const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
@@ -962,12 +900,46 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
 
     const semanticTagIds = selectedTags.filter((t) => t.id > 0).map((t) => t.id);
 
+    // 1. Scan image in local temporary environment (in-memory/blob) BEFORE uploading to R2!
+    for (const media of attachedMedia) {
+      if (media.isPendingUpload && media.file) {
+        // Check filename for sensitive keywords
+        const sensitiveFileWords = ['nude', 'sex', 'porn', 'anh-nong', 'anh_nong', 'clip-nong', '18plus', '18+', 'xxx', 'hentai', 'fuck', 'dick', 'pussy', 'boobs'];
+        if (sensitiveFileWords.some((w) => media.file!.name.toLowerCase().includes(w))) {
+          setAttachedMedia((prev) => prev.filter((m) => m.id !== media.id));
+          if (media.url && media.url.startsWith('blob:')) {
+            URL.revokeObjectURL(media.url);
+          }
+          setErrorMessage(t('askModal.errorSensitiveFile', 'Tên tệp hình ảnh vi phạm Tiêu chuẩn cộng đồng (chứa từ khóa nhạy cảm / 18+). Hình ảnh vi phạm đã bị gỡ bỏ, vui lòng chọn hình ảnh khác hợp lệ hoặc chỉnh sửa nội dung để tiếp tục đăng bài.'));
+          setIsSubmitting(false);
+          return;
+        }
+
+        try {
+          const scan = await scanImageSkinTone(media.file);
+          if (scan.action === 'AUTO_REJECT') {
+            // Auto-reject: Do NOT upload to R2! Keep image in temporary memory and reject here!
+            setAttachedMedia((prev) => prev.filter((m) => m.id !== media.id));
+            if (media.url && media.url.startsWith('blob:')) {
+              URL.revokeObjectURL(media.url);
+            }
+            setErrorMessage(
+              scan.reason ||
+              t('askModal.errorModeration', 'Hình ảnh hoặc nội dung vi phạm Tiêu chuẩn cộng đồng (Hình ảnh vi phạm nghiêm trọng chứa nội dung mang tính chất 18+, khiêu dâm hoặc khỏa thân). Hình ảnh vi phạm đã bị gỡ bỏ, bạn hãy chọn hình ảnh khác hợp lệ hoặc chỉnh sửa nội dung để tiếp tục đăng bài.')
+            );
+            setIsSubmitting(false);
+            return; // Stay in modal!
+          }
+        } catch (e) {
+          console.warn('Error during local image pre-scan:', e);
+        }
+      }
+    }
+
+    const uploadedMediaItems: AttachedMediaItem[] = [];
+
     try {
-
       // Upload pending local media to R2 now upon clicking publish
-
-      const uploadedMediaItems: AttachedMediaItem[] = [];
-
       for (const media of attachedMedia) {
 
         if (media.isPendingUpload && media.file) {
@@ -1173,21 +1145,16 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
         serverMessage?.includes('vi phạm');
 
       // Purge uploaded media from R2 and clear modal state so user isn't stuck with old violating image
-
-      for (const item of attachedMedia) {
-
+      for (const item of uploadedMediaItems) {
         if (item.url && !item.url.startsWith('blob:')) {
-
           contentMediaApi.deleteMedia(item.url).catch(() => {});
-
-        } else if (item.url && item.url.startsWith('blob:')) {
-
-          URL.revokeObjectURL(item.url);
-
         }
-
       }
-
+      for (const item of attachedMedia) {
+        if (item.url && item.url.startsWith('blob:')) {
+          URL.revokeObjectURL(item.url);
+        }
+      }
       setAttachedMedia([]);
 
       if (isModerationRejection) {
