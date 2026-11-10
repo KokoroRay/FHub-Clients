@@ -98,7 +98,7 @@ export const scanImageSkinTone = (file: File): Promise<ImageSkinScanResult> => {
         const skinRatio = skinPixels / totalPixels;
         const skinPercent = Math.round(skinRatio * 100);
 
-        if (skinRatio >= 0.70) {
+        if (skinRatio >= 0.60) {
           return resolve({
             isNsfw: true,
             skinRatio,
@@ -108,7 +108,7 @@ export const scanImageSkinTone = (file: File): Promise<ImageSkinScanResult> => {
           });
         }
 
-        if (skinRatio >= 0.20) {
+        if (skinRatio >= 0.12) {
           return resolve({
             isNsfw: true,
             skinRatio,
