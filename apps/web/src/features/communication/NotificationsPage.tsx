@@ -21,6 +21,7 @@ import {
   AlertCircle,
   X
 } from 'lucide-react';
+import { normalizeMediaUrl } from '../../utils/mediaUtils';
 import { notificationApi, NotificationItem as ApiNotificationItem } from '../../services/api/studentApi';
 import { contentModerationApi, QuarantinedItemDto } from '../../services/api/contentApi';
 import { NotificationDetailModal } from '../../components/common/NotificationDetailModal';
@@ -560,25 +561,28 @@ export const NotificationsPage: React.FC = () => {
                       <span>Hình ảnh đính kèm ({extractedMedia.imageUrls.length}):</span>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {extractedMedia.imageUrls.map((imgUrl, i) => (
-                        <a
-                          key={i}
-                          href={imgUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block relative group rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-900/5 aspect-video"
-                        >
-                          <img
-                            src={imgUrl}
-                            alt={`Hình ảnh ${i + 1}`}
-                            className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                          />
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1">
-                            <span>Xem ảnh gốc</span>
-                            <ExternalLink className="w-3 h-3" />
-                          </div>
-                        </a>
-                      ))}
+                      {extractedMedia.imageUrls.map((imgUrl, i) => {
+                        const finalUrl = normalizeMediaUrl(imgUrl);
+                        return (
+                          <a
+                            key={i}
+                            href={finalUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block relative group rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-900/5 aspect-video"
+                          >
+                            <img
+                              src={finalUrl}
+                              alt={`Hình ảnh ${i + 1}`}
+                              className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                            />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-semibold gap-1">
+                              <span>Xem ảnh gốc</span>
+                              <ExternalLink className="w-3 h-3" />
+                            </div>
+                          </a>
+                        );
+                      })}
                     </div>
                   </div>
                 )}

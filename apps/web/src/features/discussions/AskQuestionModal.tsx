@@ -1043,15 +1043,11 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
       }
 
       if (res.status === 'REJECTED' || res.status === 'REJECTED_QUARANTINED') {
-        for (const item of uploadedMediaItems) {
-          if (item.url && !item.url.startsWith('blob:')) {
-            contentMediaApi.deleteMedia(item.url).catch(() => {});
-          }
-        }
-        setAttachedMedia([]);
-        setErrorMessage(t('askModal.errorModeration', 'Hình ảnh hoặc nội dung vi phạm Tiêu chuẩn cộng đồng. Hình ảnh vi phạm đã bị gỡ bỏ, bạn hãy chọn hình ảnh khác hợp lệ hoặc chỉnh sửa nội dung để tiếp tục đăng bài.'));
-        setIsSubmitting(false);
-        return; // Stay in modal!
+        // Question is quarantined & hidden from public site: keep uploaded media intact in R2 so user and admin can review in appeal details!
+        alert(t('askModal.quarantineSuccess', 'Đăng câu hỏi thành công! Bài viết của bạn đã được đưa vào danh sách tạm giữ do nghi vấn hình ảnh có nội dung nhạy cảm. Hệ thống đã gửi thông báo hướng dẫn giải trình kháng cáo trong vòng 3 ngày đến Trung tâm Thông báo của bạn.'));
+        resetForm();
+        onClose();
+        return;
       }
 
       const newQuestion: QuestionPost = {
