@@ -1,7 +1,7 @@
 import { useLanguage } from '../../context/LanguageContext';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, BookOpen, Compass } from 'lucide-react';
+import { ArrowLeft, BookOpen } from 'lucide-react';
 import { ArticleListPage } from '../articles/ArticleListPage';
 
 export const TechBlogPage: React.FC = () => {

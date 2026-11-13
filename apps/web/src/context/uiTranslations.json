@@ -5057,7 +5057,7 @@
   "HN • HCM • DN • CT • QN": {
     "vi": "HN • HCM • DN • CT • QN",
     "en": "HN • HCM • DN • CT • QN",
-    "ja": "ハノイ • ホーチミン市 • エンタープライズ • CT • QN"
+    "ja": "HN • HCM • DN • CT • QN"
   },
   "Xác thực 100%": {
     "vi": "Xác thực 100%",
@@ -14728,5 +14728,120 @@
     "vi": "Chuyên ngành này đang liên kết với",
     "en": "This specialization is linked to",
     "ja": "この専門分野に関連付けられている"
+  },
+  "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.": {
+    "vi": "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
+    "en": "Your login session has expired. Please sign in again.",
+    "ja": "ログインセッションの有効期限が切れました。もう一度ログインしてください。"
+  },
+  "Vui lòng nhập Họ và Tên.": {
+    "vi": "Vui lòng nhập Họ và Tên.",
+    "en": "Please enter your full name.",
+    "ja": "氏名を入力してください。"
+  },
+  "Họ và tên không hợp lệ. Vui lòng chỉ nhập chữ cái (tiếng Việt có dấu hoặc không dấu), không bao gồm số và ký tự đặc biệt.": {
+    "vi": "Họ và tên không hợp lệ. Vui lòng chỉ nhập chữ cái (tiếng Việt có dấu hoặc không dấu), không bao gồm số và ký tự đặc biệt.",
+    "en": "Invalid full name. Please use letters only (with or without accents), excluding numbers and special characters.",
+    "ja": "氏名が無効です。文字のみを入力してください。数字や特殊文字は使用できません。"
+  },
+  "Vui lòng nhập Mã số sinh viên (MSSV).": {
+    "vi": "Vui lòng nhập Mã số sinh viên (MSSV).",
+    "en": "Please enter your Student ID (MSSV).",
+    "ja": "学生番号（MSSV）を入力してください。"
+  },
+  "Mã số sinh viên (MSSV) không hợp lệ. Định dạng yêu cầu: 2 chữ cái ngành/cơ sở theo sau bởi các chữ số (ví dụ: SE180000, CE190370).": {
+    "vi": "Mã số sinh viên (MSSV) không hợp lệ. Định dạng yêu cầu: 2 chữ cái ngành/cơ sở theo sau bởi các chữ số (ví dụ: SE180000, CE190370).",
+    "en": "Invalid Student ID. Required format: 2 department/campus letters followed by digits (e.g. SE180000, CE190370).",
+    "ja": "学生番号が無効です。形式：専攻・キャンパスの英字2文字＋数字（例：SE180000、CE190370）。"
+  },
+  "Email này đã được đăng ký tài khoản trên hệ thống. Vui lòng quay lại đăng nhập hoặc dùng tính năng Quên mật khẩu.": {
+    "vi": "Email này đã được đăng ký tài khoản trên hệ thống. Vui lòng quay lại đăng nhập hoặc dùng tính năng Quên mật khẩu.",
+    "en": "This email is already registered in the system. Please sign in or use Forgot Password.",
+    "ja": "このメールアドレスは既に登録されています。ログインするか、パスワードの再設定をご利用ください。"
+  },
+  "Không thể gửi lại mã xác nhận. Vui lòng thử lại sau.": {
+    "vi": "Không thể gửi lại mã xác nhận. Vui lòng thử lại sau.",
+    "en": "Unable to resend verification code. Please try again later.",
+    "ja": "認証コードを再送信できませんでした。後でもう一度お試しください。"
+  },
+  "Mã Sinh Viên (MSSV)": {
+    "vi": "Mã Sinh Viên (MSSV)",
+    "en": "Student ID (MSSV)",
+    "ja": "学生番号 (MSSV)"
+  },
+  "Cơ Sở (Campus) *": {
+    "vi": "Cơ Sở (Campus) *",
+    "en": "Campus *",
+    "ja": "キャンパス *"
+  },
+  "HN - Hòa Lạc": {
+    "vi": "HN - Hòa Lạc",
+    "en": "HN - Hoa Lac",
+    "ja": "HN - ホアラック"
+  },
+  "Quy chế Cộng đồng": {
+    "vi": "Quy chế Cộng đồng",
+    "en": "Community Guidelines",
+    "ja": "コミュニティ規約"
+  },
+  "TIẾP TỤC & NHẬN MÃ OTP": {
+    "vi": "TIẾP TỤC & NHẬN MÃ OTP",
+    "en": "CONTINUE & GET OTP CODE",
+    "ja": "続行してOTPコードを取得"
+  },
+  "Mã OTP 6 chữ số đã gửi đến": {
+    "vi": "Mã OTP 6 chữ số đã gửi đến",
+    "en": "6-digit OTP code has been sent to",
+    "ja": "6桁のOTPコードが送信されました:"
+  },
+  "Tài khoản sinh viên đã xác minh thành công. Đang tự động chuyển hướng...": {
+    "vi": "Tài khoản sinh viên đã xác minh thành công. Đang tự động chuyển hướng...",
+    "en": "Student account successfully verified. Redirecting automatically...",
+    "ja": "学生アカウントが正常に確認されました。自動的にリダイレクトしています..."
+  },
+  "Welcome Back!": {
+    "vi": "Chào mừng bạn trở lại!",
+    "en": "Welcome Back!",
+    "ja": "おかえりなさい！"
+  },
+  "Để duy trì kết nối và đồng hành cùng cộng đồng sinh viên FPT, vui lòng đăng nhập bằng tài khoản của bạn.": {
+    "vi": "Để duy trì kết nối và đồng hành cùng cộng đồng sinh viên FPT, vui lòng đăng nhập bằng tài khoản của bạn.",
+    "en": "To keep connected with the FPT student community, please sign in with your account.",
+    "ja": "FPTの学生コミュニティとつながり続けるために、アカウントでログインしてください。"
+  },
+  "Academic First": {
+    "vi": "Học thuật tiên phong",
+    "en": "Academic First",
+    "ja": "学術最優先"
+  },
+  "Đồ án & Học liệu FPT": {
+    "vi": "Đồ án & Học liệu FPT",
+    "en": "FPT Projects & Study Materials",
+    "ja": "FPT プロジェクトと学習教材"
+  },
+  "Cổng Sinh Viên FPT": {
+    "vi": "Cổng Sinh Viên FPT",
+    "en": "FPT Student Portal",
+    "ja": "FPT 学生ポータル"
+  },
+  "K18 & K19+": {
+    "vi": "K18 & K19+",
+    "en": "Cohort K18 & K19+",
+    "ja": "K18＆K19+生"
+  },
+  "Hỗ trợ chuẩn email FPT": {
+    "vi": "Hỗ trợ chuẩn email FPT",
+    "en": "Supports standard FPT emails",
+    "ja": "FPT標準メール対応"
+  },
+  "Hệ sinh thái học tập & nghiên cứu FPT": {
+    "vi": "Hệ sinh thái học tập & nghiên cứu FPT",
+    "en": "FPT Learning & Research Ecosystem",
+    "ja": "FPT 学習・研究エコシステム"
+  },
+  "Bảo mật & Chuẩn mực học thuật": {
+    "vi": "Bảo mật & Chuẩn mực học thuật",
+    "en": "Security & Academic Standards",
+    "ja": "セキュリティと学術基準"
   }
 }

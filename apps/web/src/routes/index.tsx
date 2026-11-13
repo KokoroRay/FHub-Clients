@@ -75,22 +75,16 @@ const StaffAccountsAdminPage = lazyNamed(() => import('../features/admin/pages/S
 const VerificationQueuePage = lazyNamed(() => import('../features/staff/VerificationQueuePage'), 'VerificationQueuePage');
 
 // Auth Pages
-const LoginPage = lazyNamed(() => import('../features/auth/LoginPage'), 'LoginPage');
-const RegisterPage = lazyNamed(() => import('../features/auth/RegisterPage'), 'RegisterPage');
 const ForgotPasswordPage = lazyNamed(() => import('../features/auth/ForgotPasswordPage'), 'ForgotPasswordPage');
 const NotFoundPage = lazyNamed(() => import('../features/common/NotFoundPage'), 'NotFoundPage');
 
 // Landing & Public Pages (UC02)
 const LandingPage = lazyNamed(() => import('../features/landing/LandingPage'), 'LandingPage');
-const TechBlogPage = lazyNamed(() => import('../features/landing/TechBlogPage'), 'TechBlogPage');
-const CourseRatingsPage = lazyNamed(() => import('../features/landing/CourseRatingsPage'), 'CourseRatingsPage');
 
 // Standardized Screenflow Auth Pages (UC01)
 const CampusSelectionPage = lazyNamed(() => import('../features/auth/CampusSelectionPage'), 'CampusSelectionPage');
 const AuthOptionsPage = lazyNamed(() => import('../features/auth/AuthOptionsPage'), 'AuthOptionsPage');
 const FPTSSOPage = lazyNamed(() => import('../features/auth/FPTSSOPage'), 'FPTSSOPage');
-const EmailAuthPage = lazyNamed(() => import('../features/auth/EmailAuthPage'), 'EmailAuthPage');
-const EmailRegPage = lazyNamed(() => import('../features/auth/EmailRegPage'), 'EmailRegPage');
 const OTPVerifyPage = lazyNamed(() => import('../features/auth/OTPVerifyPage'), 'OTPVerifyPage');
 const ResetPasswordPage = lazyNamed(() => import('../features/auth/ResetPasswordPage'), 'ResetPasswordPage');
 
@@ -263,6 +257,22 @@ const getMainPortalRoutes = () => [
       </Suspense>
     ),
   },
+  {
+    path: '/register',
+    element: (
+      <Suspense fallback={<LoadingFallback />}>
+        <LandingPage />
+      </Suspense>
+    ),
+  },
+  {
+    path: '/login',
+    element: (
+      <Suspense fallback={<LoadingFallback />}>
+        <LandingPage />
+      </Suspense>
+    ),
+  },
 
   // Auth Routes
   {
@@ -278,8 +288,8 @@ const getMainPortalRoutes = () => [
       { path: 'admin/login', element: <AdminLoginPage /> },
       { path: 'ops-login', element: <AdminLoginPage /> },
       { path: 'ops/login', element: <AdminLoginPage /> },
-      { path: 'email-reg', element: <EmailRegPage /> },
-      { path: 'register', element: <EmailRegPage /> },
+      { path: 'email-reg', element: <Navigate to="/register" replace /> },
+      { path: 'register', element: <Navigate to="/register" replace /> },
       { path: 'forgot-password', element: <ForgotPasswordPage /> },
       { path: 'otp-verify', element: <OTPVerifyPage /> },
       { path: 'reset-password', element: <ResetPasswordPage /> },
