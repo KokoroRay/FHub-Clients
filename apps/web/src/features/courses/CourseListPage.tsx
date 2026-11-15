@@ -320,7 +320,7 @@ export const CourseListPage: React.FC = () => {
               return (
                 <div
                   key={c.id || courseCode}
-                  className="bg-white rounded-xl border border-slate-200/90 shadow-2xs hover:shadow-md hover:border-[#0076D1]/40 transition-all p-5 flex flex-col justify-between group"
+                  className="rainbow-glow-card bg-white rounded-xl border border-slate-200/90 shadow-2xs p-5 flex flex-col justify-between group"
                 >
                   <div className="space-y-3">
                     {/* Top row: Code Pill & Bookmark button */}

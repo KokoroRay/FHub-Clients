@@ -1127,7 +1127,7 @@ export const ModeratorToolsPage: React.FC = () => {
       <Modal
         isOpen={isSeriesModalOpen}
         onClose={() => setIsSeriesModalOpen(false)}
-        title={t("Tạo Tuyển tập Series bài viết mới")}
+        title={t("Tạo tuyển tập series bài viết mới")}
         footer={
           <>
             <Button variant="outline" onClick={() => setIsSeriesModalOpen(false)}>{t("Hủy")}</Button>
@@ -1137,7 +1137,7 @@ export const ModeratorToolsPage: React.FC = () => {
       >
         <form onSubmit={handleCreateSeries} className="space-y-4 text-xs">
           <Input
-            label={t("Tên Tuyển tập Series")}
+            label={t("Tên tuyển tập series")}
             placeholder={t("Ví dụ: Lộ trình chinh phục Đồ án Tốt nghiệp Capstone")}
             value={seriesTitle}
             onChange={(e) => setSeriesTitle(e.target.value)}

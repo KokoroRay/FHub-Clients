@@ -345,7 +345,7 @@ export const SearchResultsPage: React.FC = () => {
                   className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0076D1] hover:bg-blue-600 text-white font-bold text-xs sm:text-sm transition-all shadow-md cursor-pointer"
                 >
                   <PlusCircle className="w-4 h-4" />
-                  <span>{t('search.askCommunity', 'Đặt câu hỏi này lên Diễn đàn ngay')}</span>
+                  <span>{t('search.askCommunity', 'Đặt câu hỏi này lên diễn đàn ngay')}</span>
                 </button>
               </div>
             </div>

@@ -199,7 +199,7 @@ export const StaffAccountsAdminPage: React.FC = () => {
           className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors cursor-pointer"
         >
           <Plus className="w-4 h-4" />
-          <span>{t("Tạo Cán bộ Mới")}</span>
+          <span>{t("Tạo cán bộ mới")}</span>
         </button>
       </div>
 
@@ -493,7 +493,7 @@ export const StaffAccountsAdminPage: React.FC = () => {
                   type="submit"
                   className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-xs cursor-pointer"
                 >
-                  {t("Tạo Tài Khoản")}</button>
+                  {t("Tạo tài khoản")}</button>
               </div>
             </form>
           </div>

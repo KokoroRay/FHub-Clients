@@ -89,7 +89,7 @@ export const Login: React.FC = () => {
               />
             </div>
             <h2 className="text-3xl font-bold text-white tracking-wide">
-              {isSignUp ? t("Tạo Tài Khoản") : t("Chào Mừng Trở Lại")}
+              {isSignUp ? t("Tạo tài khoản") : t("Chào mừng trở lại")}
             </h2>
             <p className="text-sm text-gray-400 mt-2">
               {isSignUp ? t("Trải nghiệm nền tảng FHub ngay hôm nay") : t("Đăng nhập vào cổng thông tin fhub.com.vn")}
@@ -229,7 +229,7 @@ export const Login: React.FC = () => {
               type="submit"
               className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl text-sm font-semibold text-white transition duration-300 hover:from-purple-500 hover:to-indigo-500 hover:shadow-lg hover:shadow-purple-500/20 active:scale-98 cursor-pointer mt-2"
             >
-              <span>{isSignUp ? t("Đăng Ký") : t("Đăng Nhập")}</span>
+              <span>{isSignUp ? t("Đăng ký") : t("Đăng nhập")}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>

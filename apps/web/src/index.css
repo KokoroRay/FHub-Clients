@@ -280,3 +280,161 @@ html.dark ::-webkit-scrollbar-thumb {
 html.dark ::-webkit-scrollbar-thumb:hover {
   background: #4e4e4e;
 }
+
+/* ==========================================================================
+   Subtle Rainbow Gradient Glow Effect for FHub Cards
+   - Gradient sequence: Blue -> Cyan -> Green -> Yellow -> Orange -> Pink -> Purple -> Blue
+   - Sharp border via CSS masking on ::before
+   - Soft ambient halo via expanded masked blur on ::after
+   - Completely preserves pure card background (#ffffff / #272727) with zero tinting
+   - Smooth 200-300ms transition with gentle translateY(-2px)
+   ========================================================================== */
+
+.rainbow-glow-card {
+  position: relative;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease;
+}
+
+/* 1. Ambient soft rainbow glow halo */
+.rainbow-glow-card::after {
+  content: '';
+  position: absolute;
+  inset: -5px;
+  border-radius: inherit;
+  padding: 5px;
+  background: linear-gradient(
+    135deg,
+    #3b82f6 0%,
+    #06b6d4 15%,
+    #10b981 30%,
+    #eab308 48%,
+    #f97316 65%,
+    #ec4899 82%,
+    #8b5cf6 92%,
+    #3b82f6 100%
+  );
+  filter: blur(8px);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* 2. Sharp continuous rainbow gradient border */
+.rainbow-glow-card::before {
+  content: '';
+  position: absolute;
+  inset: -1.5px;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: linear-gradient(
+    135deg,
+    #3b82f6 0%,
+    #06b6d4 15%,
+    #10b981 30%,
+    #eab308 48%,
+    #f97316 65%,
+    #ec4899 82%,
+    #8b5cf6 92%,
+    #3b82f6 100%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Hover Interaction */
+.rainbow-glow-card:hover {
+  transform: translateY(-2px);
+  border-color: transparent !important;
+  box-shadow: 
+    0 10px 25px -5px rgba(59, 130, 246, 0.1),
+    0 8px 16px -6px rgba(236, 72, 153, 0.1) !important;
+}
+
+.rainbow-glow-card:hover::before {
+  opacity: 1;
+}
+
+.rainbow-glow-card:hover::after {
+  opacity: 0.65;
+}
+
+/* Dark mode adjustment */
+html.dark .rainbow-glow-card:hover {
+  border-color: transparent !important;
+  box-shadow: 
+    0 10px 25px -5px rgba(59, 130, 246, 0.15),
+    0 8px 16px -6px rgba(236, 72, 153, 0.15) !important;
+}
+
+html.dark .rainbow-glow-card:hover::after {
+  opacity: 0.5;
+  filter: blur(10px);
+}
+
+/* ==========================================================================
+   SOFT AMBIENT GLOW CARD (Right Sidebar Cards on Dashboard)
+   - Clean UI + Soft Ambient Glow style
+   - Pure crisp #FFFFFF card background with zero tinting/bleed-through
+   - Pastel blue (#60A5FA) as primary diffused ambient glow
+   - Very subtle hints of soft cyan (#67E8F9) and light purple (#A78BFA)
+   - Multi-layered soft box-shadow for natural, floating depth
+   - Hover: gentle lift (~2px), subtle glow boost, no gradient border
+   ========================================================================== */
+
+.soft-ambient-glow-card {
+  position: relative;
+  background-color: #ffffff !important;
+  border-color: #e2e8f0;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.25s ease;
+  box-shadow:
+    0 1px 3px 0 rgba(0, 0, 0, 0.03),
+    0 4px 14px -2px rgba(96, 165, 250, 0.12),
+    0 8px 20px -4px rgba(103, 232, 249, 0.08),
+    0 12px 24px -6px rgba(167, 139, 250, 0.05);
+}
+
+/* Hover Interaction: gentle 2px elevation, modest glow intensification */
+.soft-ambient-glow-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(96, 165, 250, 0.35) !important;
+  box-shadow:
+    0 2px 5px 0 rgba(0, 0, 0, 0.04),
+    0 8px 22px -2px rgba(96, 165, 250, 0.18),
+    0 12px 28px -4px rgba(103, 232, 249, 0.11),
+    0 16px 32px -6px rgba(167, 139, 250, 0.07);
+}
+
+/* Dark mode adjustments */
+html.dark .soft-ambient-glow-card {
+  background-color: #272727 !important;
+  border-color: #38393d;
+  box-shadow:
+    0 1px 3px 0 rgba(0, 0, 0, 0.4),
+    0 4px 14px -2px rgba(96, 165, 250, 0.14),
+    0 8px 20px -4px rgba(103, 232, 249, 0.08),
+    0 12px 24px -6px rgba(167, 139, 250, 0.05);
+}
+
+html.dark .soft-ambient-glow-card:hover {
+  border-color: rgba(96, 165, 250, 0.45) !important;
+  box-shadow:
+    0 2px 6px 0 rgba(0, 0, 0, 0.5),
+    0 8px 22px -2px rgba(96, 165, 250, 0.22),
+    0 12px 28px -4px rgba(103, 232, 249, 0.13),
+    0 16px 32px -6px rgba(167, 139, 250, 0.08);
+}
+
+

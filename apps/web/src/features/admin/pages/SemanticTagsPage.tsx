@@ -348,7 +348,7 @@ export const SemanticTagsPage: React.FC = () => {
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="font-bold text-sm text-slate-900 flex items-center gap-2">
                 <Tag className="w-4 h-4 text-blue-600" />
-                {t("Tạo Thẻ Ngữ Nghĩa Mới")}</h3>
+                {t("Tạo thẻ ngữ nghĩa mới")}</h3>
               <button
                 onClick={() => setIsCreateModalOpen(false)}
                 className="text-slate-400 hover:text-slate-600 text-xs font-bold"

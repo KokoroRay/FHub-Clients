@@ -664,7 +664,7 @@ export const ProfileSettingsPage: React.FC = () => {
                 value={newTagInput}
                 onChange={(e) => setNewTagInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddMutedTag())}
-                placeholder={t('settings.addTagPlaceholder', 'Nhập tên thẻ tag rồi nhấn Thêm...')}
+                placeholder={t('settings.addTagPlaceholder', 'Nhập tên thẻ rồi nhấn Thêm...')}
                 className="flex-1 px-3 py-2 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#0076D1] text-slate-800 dark:text-slate-200"
               />
               <button

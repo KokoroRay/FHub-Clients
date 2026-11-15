@@ -693,7 +693,7 @@ export const LandingPage: React.FC = () => {
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
             }`}
           >
-            {t("Đăng Nhập")}
+            {t("Đăng nhập")}
           </button>
           <button
             type="button"
@@ -704,7 +704,7 @@ export const LandingPage: React.FC = () => {
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
             }`}
           >
-            {t("Đăng Ký")}
+            {t("Đăng ký")}
           </button>
         </div>
 
@@ -865,9 +865,9 @@ export const LandingPage: React.FC = () => {
               <div className="mb-3 flex items-center justify-between">
                 <div>
                   <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
-                    {regStep === 'form' && t("Tạo Tài Khoản")}
-                    {regStep === 'otp' && t("Xác Thực Tài Khoản (OTP)")}
-                    {regStep === 'success' && t("Đăng Ký Thành Công!")}
+                    {regStep === 'form' && t("Tạo tài khoản")}
+                    {regStep === 'otp' && t("Xác thực tài khoản (OTP)")}
+                    {regStep === 'success' && t("Đăng ký thành công!")}
                   </h2>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-tight">
                     {regStep === 'form' && t("Nhập thông tin sinh viên để thiết lập tài khoản cá nhân.")}
@@ -902,7 +902,7 @@ export const LandingPage: React.FC = () => {
                   <div className="grid grid-cols-2 gap-3 items-start">
                     <div className="w-full">
                       <label className={labelBaseClass}>
-                        {t("Họ và Tên *")}
+                        {t("Họ và tên *")}
                       </label>
                       <div className="relative">
                         <UserIcon className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -919,7 +919,7 @@ export const LandingPage: React.FC = () => {
 
                     <div className="w-full">
                       <label className={labelBaseClass}>
-                        {t("Mã Sinh Viên (MSSV)")}
+                        {t("Mã sinh viên (MSSV)")}
                       </label>
                       <div className="relative">
                         <GraduationCap className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -938,7 +938,7 @@ export const LandingPage: React.FC = () => {
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className={labelBaseClass}>
-                        {t("Email Sinh Viên *")}
+                        {t("Email sinh viên *")}
                       </label>
                       <span className="text-[10px] text-slate-400 font-medium">
                         {t("K18: @fpt.edu.vn • K19+: @gmail.com")}
@@ -986,7 +986,7 @@ export const LandingPage: React.FC = () => {
                   {/* Row 3: Campus Selection (100% width, h-44px) */}
                   <div>
                     <label className={labelBaseClass}>
-                      {t("Cơ Sở (Campus) *")}
+                      {t("Cơ sở (Campus) *")}
                     </label>
                     <div className="relative">
                       <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -1018,7 +1018,7 @@ export const LandingPage: React.FC = () => {
                   <div className="grid grid-cols-2 gap-3 items-start">
                     <div className="w-full">
                       <label className={labelBaseClass}>
-                        {t("Mật Khẩu *")}
+                        {t("Mật khẩu *")}
                       </label>
                       <div className="relative">
                         <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -1042,7 +1042,7 @@ export const LandingPage: React.FC = () => {
 
                     <div className="w-full">
                       <label className={labelBaseClass}>
-                        {t("Xác Nhận Mật Khẩu *")}
+                        {t("Xác nhận mật khẩu *")}
                       </label>
                       <div className="relative">
                         <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -1075,7 +1075,7 @@ export const LandingPage: React.FC = () => {
                         className="w-3.5 h-3.5 rounded text-[#0076D1] border-slate-300 focus:ring-[#0076D1] mt-0.5"
                       />
                       <span className="text-[10px] text-slate-600 dark:text-slate-400 leading-snug">
-                        {t("Tôi đồng ý với")} <Link to="/settings" className="text-[#0076D1] font-semibold underline">{t("Điều khoản dịch vụ")}</Link> {t("và")} <Link to="/settings" className="text-[#0076D1] font-semibold underline">{t("Quy chế Cộng đồng")}</Link>.
+                        {t("Tôi đồng ý với")} <Link to="/settings" className="text-[#0076D1] font-semibold underline">{t("Điều khoản dịch vụ")}</Link> {t("và")} <Link to="/settings" className="text-[#0076D1] font-semibold underline">{t("Quy chế cộng đồng")}</Link>.
                       </span>
                     </label>
                   </div>
@@ -1260,7 +1260,7 @@ export const LandingPage: React.FC = () => {
                 <div className="relative">
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-white/15 text-white backdrop-blur-sm border border-white/20">
                     <Sparkles className="w-3.5 h-3.5 text-amber-200" />
-                    {t("Cổng Sinh Viên FPT")}
+                    {t("Cổng sinh viên FPT")}
                   </span>
                 </div>
 
@@ -1288,7 +1288,7 @@ export const LandingPage: React.FC = () => {
                 <div className="w-full pt-3 border-t border-white/15 grid grid-cols-2 gap-3 text-left">
                   <div>
                     <span className="block text-xs font-black text-white">{t("Xác thực 100%")}</span>
-                    <span className="text-[10px] text-blue-200">{t("Bảo mật mã OTP Sinh viên")}</span>
+                    <span className="text-[10px] text-blue-200">{t("Bảo mật mã OTP sinh viên")}</span>
                   </div>
                   <div>
                     <span className="block text-xs font-black text-white">{t("K18 & K19+")}</span>

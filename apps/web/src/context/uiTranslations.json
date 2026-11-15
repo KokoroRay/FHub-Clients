@@ -890,7 +890,7 @@
     "ja": "シラバスライブ"
   },
   "MATERIALS": {
-    "vi": "tài liệu",
+    "vi": "Tài liệu",
     "en": "materials",
     "ja": "件の資料"
   },
@@ -2620,7 +2620,7 @@
     "ja": "無効"
   },
   "Tạo Thẻ Ngữ Nghĩa Mới": {
-    "vi": "Tạo Thẻ Ngữ Nghĩa Mới",
+    "vi": "Tạo thẻ ngữ nghĩa mới",
     "en": "Create New Semantic Tag",
     "ja": "新しいセマンティック タグの作成"
   },
@@ -3215,7 +3215,7 @@
     "ja": "幹部職員のリストを管理します: モデレーター (コミュニティモデレーター)、学校代表者 (School Rep)、管理者 (Admin)。"
   },
   "Tạo Cán bộ Mới": {
-    "vi": "Tạo Cán bộ Mới",
+    "vi": "Tạo cán bộ mới",
     "en": "Create New Officer",
     "ja": "新しい役員を作成する"
   },
@@ -3335,7 +3335,7 @@
     "ja": "新しい運用担当者アカウントの付与"
   },
   "Họ và tên *": {
-    "vi": "Họ và Tên *",
+    "vi": "Họ và tên *",
     "en": "Full Name *",
     "ja": "氏名 *"
   },
@@ -4516,8 +4516,8 @@
   },
   "Xác nhận xóa": {
     "vi": "Xác nhận xóa",
-    "en": "Confirm Delete",
-    "ja": "削除の確認"
+    "en": "Confirm Deletion",
+    "ja": "削除を確認"
   },
   "Chia sẻ kinh nghiệm": {
     "vi": "Chia sẻ kinh nghiệm",
@@ -5065,7 +5065,7 @@
     "ja": "100%本物"
   },
   "Bảo mật mã OTP Sinh viên": {
-    "vi": "Bảo mật mã OTP Sinh viên",
+    "vi": "Bảo mật mã OTP sinh viên",
     "en": "Secure Student OTP code",
     "ja": "安全な学生 OTP コード"
   },
@@ -5075,12 +5075,12 @@
     "ja": "アカウントを登録する"
   },
   "Xác Thực Tài Khoản (OTP)": {
-    "vi": "Xác Thực Tài Khoản (OTP)",
+    "vi": "Xác thực tài khoản (OTP)",
     "en": "Account Authentication (OTP)",
     "ja": "アカウント認証（OTP）"
   },
   "Đăng Ký Thành Công!": {
-    "vi": "Đăng Ký Thành Công!",
+    "vi": "Đăng ký thành công!",
     "en": "Registration Successful!",
     "ja": "登録が成功しました!"
   },
@@ -5100,7 +5100,7 @@
     "ja": "アカウントは正常にアクティベートされました。"
   },
   "Họ và Tên *": {
-    "vi": "Họ và Tên *",
+    "vi": "Họ và tên *",
     "en": "Full Name *",
     "ja": "氏名 *"
   },
@@ -5110,7 +5110,7 @@
     "ja": "学籍番号"
   },
   "Email Sinh Viên *": {
-    "vi": "Email Sinh Viên *",
+    "vi": "Email sinh viên *",
     "en": "Student Email *",
     "ja": "学生のメールアドレス *"
   },
@@ -5155,12 +5155,12 @@
     "ja": "QN - クイニョン支店"
   },
   "Mật Khẩu *": {
-    "vi": "Mật Khẩu *",
+    "vi": "Mật khẩu *",
     "en": "Password *",
     "ja": "パスワード *"
   },
   "Xác Nhận Mật Khẩu *": {
-    "vi": "Xác Nhận Mật Khẩu *",
+    "vi": "Xác nhận mật khẩu *",
     "en": "Confirm Password *",
     "ja": "パスワード（確認） *"
   },
@@ -5350,7 +5350,7 @@
     "ja": "学術掲示板を見る"
   },
   "Course Hub": {
-    "vi": "Khoá học",
+    "vi": "Khóa học",
     "en": "Course Hub",
     "ja": "コースハブ"
   },
@@ -5650,7 +5650,7 @@
     "ja": "期末試験 (FE)"
   },
   "Bookmark Course": {
-    "vi": "Đánh dấu khóa học",
+    "vi": "Lưu môn học",
     "en": "Bookmark Course",
     "ja": "しおりコース"
   },
@@ -7225,7 +7225,7 @@
     "ja": "詳細を見る"
   },
   "Đăng Tin Tức Nhà Trường Mới": {
-    "vi": "Đăng Tin Tức Nhà Trường Mới",
+    "vi": "Đăng tin tức nhà trường mới",
     "en": "Post New School News",
     "ja": "新しい学校のニュースを投稿する"
   },
@@ -7790,7 +7790,7 @@
     "ja": "ログイン/登録が完了しました。メールアドレス: {p0}"
   },
   "Chào Mừng Trở Lại": {
-    "vi": "Chào Mừng Trở Lại",
+    "vi": "Chào mừng trở lại",
     "en": "Welcome Back",
     "ja": "おかえりなさい"
   },
@@ -7995,7 +7995,7 @@
     "ja": "コード"
   },
   "common.rating": {
-    "vi": "đánh giá",
+    "vi": "Đánh giá",
     "en": "reviews",
     "ja": "レビュー"
   },
@@ -9875,7 +9875,7 @@
     "ja": "学習資料"
   },
   "nav.sharedWorkflows": {
-    "vi": "Quy trình chia sẻ",
+    "vi": "Quy trình đồ án",
     "en": "Shared Workflows",
     "ja": "共有ワークフロー"
   },
@@ -10025,7 +10025,7 @@
     "ja": "グローバルフィード"
   },
   "nav.courseHub": {
-    "vi": "Khoá học",
+    "vi": "Khóa học",
     "en": "Course Hub",
     "ja": "コースハブ"
   },
@@ -10060,7 +10060,7 @@
     "ja": "メインナビゲーション"
   },
   "nav.communication": {
-    "vi": "LIÊN LẠC",
+    "vi": "KẾT NỐI",
     "en": "COMMUNICATION",
     "ja": "コミュニケーション"
   },
@@ -10530,7 +10530,7 @@
     "ja": "シリーズコレクション"
   },
   "articles.allTagsOrCategories": {
-    "vi": "Tất cả chủ đề / Thẻ tag",
+    "vi": "Tất cả chủ đề & thẻ",
     "en": "All Topics / Tags",
     "ja": "すべてのトピック・タグ"
   },
@@ -12150,7 +12150,7 @@
     "ja": "質問を投稿"
   },
   "discussions.searchPlaceholder": {
-    "vi": "Tìm câu hỏi theo tiêu đề, nội dung, mã môn (SWP391, MKT101, GRA201, LAW101...) hoặc thẻ tag...",
+    "vi": "Tìm câu hỏi theo tiêu đề, nội dung, mã môn (SWP391, MKT101, GRA201, LAW101...) hoặc thẻ...",
     "en": "Search questions by title, content, course code (SWP391, MKT101...), or tags...",
     "ja": "タイトル、本文、科目コード（SWP391、MKT101...）、タグから質問を検索..."
   },
@@ -12170,7 +12170,7 @@
     "ja": "未回答"
   },
   "discussions.allTopics": {
-    "vi": "Tất cả chủ đề / Thẻ tag",
+    "vi": "Tất cả chủ đề & thẻ",
     "en": "All Topics / Tags",
     "ja": "すべてのトピック・タグ"
   },
@@ -12640,7 +12640,7 @@
     "ja": "すべての学習資料を見る"
   },
   "feed.courseHubShortcut": {
-    "vi": "Lối tắt Khoá học",
+    "vi": "Lối tắt khóa học",
     "en": "Course Hub Shortcut",
     "ja": "コースハブ・ショートカット"
   },
@@ -13090,7 +13090,7 @@
     "ja": "資料名、科目コード（SWP391、MKT101...）、講師名またはキーワードで検索..."
   },
   "materials.allTags": {
-    "vi": "Tất cả thẻ tag / Chủ đề",
+    "vi": "Tất cả thẻ & chủ đề",
     "en": "All Tags / Topics",
     "ja": "すべてのトピック・タグ"
   },
@@ -13740,7 +13740,7 @@
     "ja": "解決済みの質問、採用された回答、カルマバッジを公開プロフィールに表示します。"
   },
   "settings.mutedTagsTitle": {
-    "vi": "Thẻ Tag đã ẩn",
+    "vi": "Thẻ đã ẩn",
     "en": "Muted Tags",
     "ja": "ミュートされたタグ"
   },
@@ -13755,7 +13755,7 @@
     "ja": "ミュートされたタグはありません。"
   },
   "settings.addTagPlaceholder": {
-    "vi": "Nhập tên thẻ tag rồi nhấn Thêm (vd: #offtopic, #drama)...",
+    "vi": "Nhập tên thẻ rồi nhấn Thêm (vd: #offtopic, #drama)...",
     "en": "Enter tag name and click Add (e.g. #offtopic, #drama)...",
     "ja": "タグ名を入力して追加をクリック (例: #offtopic)..."
   },
@@ -14015,7 +14015,7 @@
     "ja": "タイトル、説明、科目（SWP、MKT、GRA、ECO、LAW...）、ツール、スキルで検索..."
   },
   "workflows.allTopicsCount": {
-    "vi": "Tất cả chủ đề & Thẻ tag",
+    "vi": "Tất cả chủ đề & thẻ",
     "en": "All Topics & Tags",
     "ja": "すべてのトピック・タグ"
   },
@@ -14065,7 +14065,7 @@
     "ja": "コースレジストリ"
   },
   "nav.semanticTags": {
-    "vi": "Quản lý Thẻ Tag",
+    "vi": "Quản lý thẻ ngữ nghĩa",
     "en": "Semantic Tags",
     "ja": "セマンティックタグ管理"
   },
@@ -14085,7 +14085,7 @@
     "ja": "システムと人事"
   },
   "nav.achievementBadges": {
-    "vi": "Huy hiệu danh hiệu",
+    "vi": "Huy hiệu thành tích",
     "en": "Achievement Badges",
     "ja": "アチーブメントバッジ"
   },
@@ -14100,7 +14100,7 @@
     "ja": "AIモデレーション"
   },
   "nav.moderationDesk": {
-    "vi": "BÀN KIỂM DUYỆT",
+    "vi": "TRUNG TÂM KIỂM DUYỆT",
     "en": "MODERATION DESK",
     "ja": "モデレーションデスク"
   },
@@ -14765,12 +14765,12 @@
     "ja": "認証コードを再送信できませんでした。後でもう一度お試しください。"
   },
   "Mã Sinh Viên (MSSV)": {
-    "vi": "Mã Sinh Viên (MSSV)",
+    "vi": "Mã sinh viên (MSSV)",
     "en": "Student ID (MSSV)",
     "ja": "学生番号 (MSSV)"
   },
   "Cơ Sở (Campus) *": {
-    "vi": "Cơ Sở (Campus) *",
+    "vi": "Cơ sở (Campus) *",
     "en": "Campus *",
     "ja": "キャンパス *"
   },
@@ -14780,7 +14780,7 @@
     "ja": "HN - ホアラック"
   },
   "Quy chế Cộng đồng": {
-    "vi": "Quy chế Cộng đồng",
+    "vi": "Quy chế cộng đồng",
     "en": "Community Guidelines",
     "ja": "コミュニティ規約"
   },
@@ -14820,7 +14820,7 @@
     "ja": "FPT プロジェクトと学習教材"
   },
   "Cổng Sinh Viên FPT": {
-    "vi": "Cổng Sinh Viên FPT",
+    "vi": "Cổng sinh viên FPT",
     "en": "FPT Student Portal",
     "ja": "FPT 学生ポータル"
   },
@@ -14843,5 +14843,105 @@
     "vi": "Bảo mật & Chuẩn mực học thuật",
     "en": "Security & Academic Standards",
     "ja": "セキュリティと学術基準"
+  },
+  "Achievement Badges": {
+    "vi": "Huy hiệu thành tích",
+    "en": "Achievement Badges",
+    "ja": "Achievement Badges"
+  },
+  "Semantic Tags": {
+    "vi": "Quản lý thẻ ngữ nghĩa",
+    "en": "Semantic Tags",
+    "ja": "Semantic Tags"
+  },
+  "Mật khẩu *": {
+    "vi": "Mật khẩu *",
+    "en": "Mật khẩu *",
+    "ja": "Mật khẩu *"
+  },
+  "Xác nhận mật khẩu *": {
+    "vi": "Xác nhận mật khẩu *",
+    "en": "Xác nhận mật khẩu *",
+    "ja": "Xác nhận mật khẩu *"
+  },
+  "Tạo tài khoản": {
+    "vi": "Tạo tài khoản",
+    "en": "Tạo tài khoản",
+    "ja": "Tạo tài khoản"
+  },
+  "Chào mừng trở lại": {
+    "vi": "Chào mừng trở lại",
+    "en": "Chào mừng trở lại",
+    "ja": "Chào mừng trở lại"
+  },
+  "Cơ sở (Campus) *": {
+    "vi": "Cơ sở (Campus) *",
+    "en": "Cơ sở (Campus) *",
+    "ja": "Cơ sở (Campus) *"
+  },
+  "Mã sinh viên (MSSV)": {
+    "vi": "Mã sinh viên (MSSV)",
+    "en": "Mã sinh viên (MSSV)",
+    "ja": "Mã sinh viên (MSSV)"
+  },
+  "Email sinh viên *": {
+    "vi": "Email sinh viên *",
+    "en": "Email sinh viên *",
+    "ja": "Email sinh viên *"
+  },
+  "Xác thực tài khoản (OTP)": {
+    "vi": "Xác thực tài khoản (OTP)",
+    "en": "Xác thực tài khoản (OTP)",
+    "ja": "Xác thực tài khoản (OTP)"
+  },
+  "Đăng ký thành công!": {
+    "vi": "Đăng ký thành công!",
+    "en": "Đăng ký thành công!",
+    "ja": "Đăng ký thành công!"
+  },
+  "Đăng ký": {
+    "vi": "Đăng ký",
+    "en": "Sign Up",
+    "ja": "新規登録"
+  },
+  "Quy chế cộng đồng": {
+    "vi": "Quy chế cộng đồng",
+    "en": "Community Guidelines",
+    "ja": "コミュニティガイドライン"
+  },
+  "Cổng sinh viên FPT": {
+    "vi": "Cổng sinh viên FPT",
+    "en": "FPT Student Portal",
+    "ja": "FPTスチューデントポータル"
+  },
+  "Bảo mật mã OTP sinh viên": {
+    "vi": "Bảo mật mã OTP sinh viên",
+    "en": "Secure Student OTP",
+    "ja": "学生OTP認証セキュリティ"
+  },
+  "Tạo thẻ ngữ nghĩa mới": {
+    "vi": "Tạo thẻ ngữ nghĩa mới",
+    "en": "Create New Semantic Tag",
+    "ja": "新しいセマンティックタグを作成"
+  },
+  "Tạo cán bộ mới": {
+    "vi": "Tạo cán bộ mới",
+    "en": "Create New Staff",
+    "ja": "新しいスタッフを作成"
+  },
+  "Đăng tin tức nhà trường mới": {
+    "vi": "Đăng tin tức nhà trường mới",
+    "en": "Post New School News",
+    "ja": "新しい大学ニュースを投稿"
+  },
+  "nav.materials": {
+    "vi": "Tài liệu",
+    "en": "Materials",
+    "ja": "学習資料"
+  },
+  "nav.ratings": {
+    "vi": "Đánh giá",
+    "en": "Reviews",
+    "ja": "評価"
   }
 }

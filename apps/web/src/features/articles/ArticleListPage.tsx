@@ -412,7 +412,7 @@ export const ArticleListPage: React.FC = () => {
               >
                 {categories.map((c) => (
                   <option key={c} value={c}>
-                    {c === 'ALL' ? t('articles.allTagsOrCategories', 'Tất cả chủ đề / Thẻ tag') : t(c)}
+                    {c === 'ALL' ? t('articles.allTagsOrCategories', 'Tất cả chủ đề & thẻ') : t(c)}
                   </option>
                 ))}
               </select>

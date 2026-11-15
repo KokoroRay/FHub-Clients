@@ -50,7 +50,7 @@ export const RightSidebar: React.FC = () => {
   return (
     <aside className="w-[260px] shrink-0 hidden xl:block sticky top-20 pl-1 space-y-4">
       {/* CARD 1: My Academic Profile */}
-      <div className="bg-white dark:bg-[#272727] rounded-2xl border border-slate-200/90 dark:border-[#272727] hover:dark:border-[#444444] p-4 shadow-2xs space-y-3 transition-colors">
+      <div className="soft-ambient-glow-card bg-white dark:bg-[#272727] rounded-2xl border border-slate-200/90 dark:border-slate-800 p-4 space-y-3">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 rounded-full bg-[#0076D1] text-white flex items-center justify-center font-bold text-sm ring-2 ring-blue-100 dark:ring-blue-900 shrink-0">
             {currentUser?.avatarUrl && !imgError ? (
@@ -97,7 +97,7 @@ export const RightSidebar: React.FC = () => {
       </div>
 
       {/* CARD 2: Recent Community Activity */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/90 dark:border-slate-800 p-4 shadow-2xs space-y-3">
+      <div className="soft-ambient-glow-card bg-white dark:bg-[#272727] rounded-2xl border border-slate-200/90 dark:border-slate-800 p-4 space-y-3">
         <div className="flex items-center gap-2">
           <Sparkles className="w-3.5 h-3.5 text-slate-400" />
           <h4 className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
@@ -128,7 +128,7 @@ export const RightSidebar: React.FC = () => {
       </div>
 
       {/* CARD 3: Personal Shortcuts */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200/90 dark:border-slate-800 p-4 shadow-2xs space-y-2.5">
+      <div className="soft-ambient-glow-card bg-white dark:bg-[#272727] rounded-2xl border border-slate-200/90 dark:border-slate-800 p-4 space-y-2.5">
         <div className="flex items-center gap-2">
           <Tag className="w-3.5 h-3.5 text-slate-400" />
           <h4 className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">

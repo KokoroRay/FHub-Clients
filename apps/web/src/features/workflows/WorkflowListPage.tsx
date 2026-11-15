@@ -325,7 +325,7 @@ export const WorkflowListPage: React.FC = () => {
               onChange={(e) => setSelectedTag(e.target.value)}
               className="w-full appearance-none bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#0076D1] cursor-pointer"
             >
-              <option value="ALL">{t('workflows.allTopicsCount', 'Tất cả chủ đề & Thẻ tag')} ({allTags.length})</option>
+              <option value="ALL">{t('workflows.allTopicsCount', 'Tất cả chủ đề & thẻ')} ({allTags.length})</option>
               {allTags.map((tag) => (
                 <option key={tag.id} value={tag.name}>
                   {t(tag.name)}

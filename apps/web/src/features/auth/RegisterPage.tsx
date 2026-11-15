@@ -387,9 +387,9 @@ export const RegisterPage: React.FC = () => {
                   </span>
                 </div>
                 <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-                  {step === 'form' && t("Đăng Ký Tài Khoản")}
-                  {step === 'otp' && t("Xác Thực Tài Khoản (OTP)")}
-                  {step === 'success' && t("Đăng Ký Thành Công!")}
+                  {step === 'form' && t("Đăng ký tài khoản")}
+                  {step === 'otp' && t("Xác thực tài khoản (OTP)")}
+                  {step === 'success' && t("Đăng ký thành công!")}
                 </h2>
                 <p className="text-xs text-slate-500 mt-0.5">
                   {step === 'form' && t("Nhập thông tin sinh viên để thiết lập tài khoản cá nhân.")}
@@ -425,7 +425,7 @@ export const RegisterPage: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      {t("Họ và Tên *")}</label>
+                      {t("Họ và tên *")}</label>
                     <div className="relative">
                       <UserIcon className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                       <input
@@ -441,7 +441,7 @@ export const RegisterPage: React.FC = () => {
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      {t("Mã Số Sinh Viên (MSSV)")}</label>
+                      {t("Mã số sinh viên (MSSV)")}</label>
                     <input
                       type="text"
                       value={studentId}
@@ -456,7 +456,7 @@ export const RegisterPage: React.FC = () => {
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="block text-xs font-bold text-slate-700">
-                      {t("Email Sinh Viên *")}</label>
+                      {t("Email sinh viên *")}</label>
                     <span className="text-[10px] text-slate-400 font-medium">
                       {t("K18: @fpt.edu.vn • K19+: @gmail.com")}</span>
                   </div>
@@ -502,7 +502,7 @@ export const RegisterPage: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      {t("Cơ Sở Học Tập (Campus) *")}</label>
+                      {t("Cơ sở học tập (Campus) *")}</label>
                     <div className="relative">
                       <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                       <select
@@ -531,7 +531,7 @@ export const RegisterPage: React.FC = () => {
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      {t("Mật Khẩu *")}</label>
+                      {t("Mật khẩu *")}</label>
                     <div className="relative">
                       <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                       <input
@@ -555,7 +555,7 @@ export const RegisterPage: React.FC = () => {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    {t("Xác Nhận Mật Khẩu *")}</label>
+                    {t("Xác nhận mật khẩu *")}</label>
                   <div className="relative">
                     <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input

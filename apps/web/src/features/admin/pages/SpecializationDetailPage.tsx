@@ -369,7 +369,7 @@ export const SpecializationDetailPage: React.FC = () => {
                 className="px-5 py-2 bg-rose-600 text-white rounded-lg text-sm font-semibold hover:bg-rose-700 transition-colors disabled:opacity-50 flex items-center gap-2"
               >
                 {deleteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                {t("Xác Nhận Xóa")}</button>
+                {t("Xác nhận xóa")}</button>
             </div>
           </div>
         </div>

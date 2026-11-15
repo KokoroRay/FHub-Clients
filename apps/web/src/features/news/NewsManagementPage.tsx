@@ -396,7 +396,7 @@ export const NewsManagementPage: React.FC = () => {
         size="lg"
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
-        title={t("Đăng Tin Tức Nhà Trường Mới")}
+        title={t("Đăng tin tức nhà trường mới")}
         footer={
           <>
             <Button variant="outline" onClick={() => setIsCreateOpen(false)}>{t("Hủy")}</Button>

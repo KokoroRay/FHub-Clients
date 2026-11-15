@@ -289,7 +289,7 @@ export const StudyMaterialListPage: React.FC = () => {
             onChange={(e) => setSelectedTag(e.target.value)}
             className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#0076D1] cursor-pointer"
           >
-            <option value="ALL">{t('materials.allTags', 'Tất cả thẻ tag / Chủ đề')}</option>
+            <option value="ALL">{t('materials.allTags', 'Tất cả thẻ & chủ đề')}</option>
             {allTags.map((tItem) => (
               <option key={tItem.id} value={tItem.name}>
                 {t(tItem.name)}

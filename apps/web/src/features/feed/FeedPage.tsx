@@ -466,7 +466,7 @@ export const FeedPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* 3.A Welcome Header (Restored Figma #86:118) */}
-      <div className="bg-white dark:bg-[#272727] rounded-2xl p-6 border border-slate-200/90 dark:border-transparent dark:hover:border-[#444444] shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-colors">
+      <div className="rainbow-glow-card bg-white dark:bg-[#272727] rounded-2xl p-6 border border-slate-200/90 dark:border-transparent shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="space-y-1.5">
           <div
             className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 dark:bg-blue-950/60 text-[#0076D1] dark:text-blue-400 border border-blue-100 dark:border-blue-800 cursor-default"
@@ -547,7 +547,7 @@ export const FeedPage: React.FC = () => {
               <Link
                 key={idx}
                 to={item.path}
-                className="h-[76px] sm:h-[84px] p-2 flex flex-col items-center justify-between bg-white dark:bg-[#272727] rounded-xl sm:rounded-2xl border border-slate-200/90 dark:border-transparent hover:border-blue-400 dark:hover:border-[#444444] dark:hover:bg-[#333333] hover:shadow-xs transition-all text-center group cursor-pointer shadow-2xs"
+                className="rainbow-glow-card h-[76px] sm:h-[84px] p-2 flex flex-col items-center justify-between bg-white dark:bg-[#272727] rounded-xl sm:rounded-2xl border border-slate-200/90 dark:border-transparent text-center group cursor-pointer shadow-2xs"
               >
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform ${item.color}`}>
                   <IconComp className="w-4 h-4" />
@@ -562,7 +562,7 @@ export const FeedPage: React.FC = () => {
       </div>
 
       {/* 3.C Academic Resource Shortcuts (Study Materials & Documents Banner - Restored) */}
-      <div className="bg-gradient-to-r from-blue-500/10 via-indigo-500/5 to-transparent rounded-2xl p-4 sm:p-5 border border-blue-100 dark:border-blue-900/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="rainbow-glow-card bg-gradient-to-r from-blue-500/10 via-indigo-500/5 to-transparent rounded-2xl p-4 sm:p-5 border border-blue-100 dark:border-blue-900/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
           <div className="w-10 h-10 rounded-xl bg-[#0076D1] text-white flex items-center justify-center shrink-0 shadow-xs">
             <BookOpen className="w-5 h-5" />

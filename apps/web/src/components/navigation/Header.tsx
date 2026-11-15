@@ -234,7 +234,7 @@ export const Header: React.FC = () => {
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-white dark:bg-slate-900 border-b border-slate-200/90 dark:border-slate-800 transition-colors shrink-0 shadow-2xs">
+    <header className="fixed top-0 inset-x-0 z-50 w-full h-16 bg-white dark:bg-slate-900 border-b border-slate-200/90 dark:border-slate-800 transition-colors shrink-0 shadow-2xs">
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
         {/* Logo & Branding */}
         <div className="flex items-center gap-4">

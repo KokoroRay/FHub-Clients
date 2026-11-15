@@ -467,7 +467,7 @@ export const QuestionListPage: React.FC = () => {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={t('discussions.searchPlaceholder', 'Tìm câu hỏi theo tiêu đề, nội dung, mã môn (SWP391, MKT101, GRA201, LAW101...) hoặc thẻ tag...')}
+            placeholder={t('discussions.searchPlaceholder', 'Tìm câu hỏi theo tiêu đề, nội dung, mã môn (SWP391, MKT101, GRA201, LAW101...) hoặc thẻ...')}
             className="w-full bg-[#F8F9FF] dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg pl-10 pr-4 py-2.5 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0076D1]/20 focus:border-[#0076D1]"
           />
         </div>
@@ -535,7 +535,7 @@ export const QuestionListPage: React.FC = () => {
                 onChange={(e) => setSelectedTopic(e.target.value)}
                 className="w-full appearance-none bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#0076D1] cursor-pointer"
               >
-                <option value="ALL">{t('discussions.allTopics', 'Tất cả chủ đề / Thẻ tag')}</option>
+                <option value="ALL">{t('discussions.allTopics', 'Tất cả chủ đề & thẻ')}</option>
                 {allTopics.map((tItem) => (
                   <option key={tItem} value={tItem}>
                     #{t(tItem)}

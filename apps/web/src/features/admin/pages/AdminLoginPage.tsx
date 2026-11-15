@@ -227,7 +227,7 @@ export const AdminLoginPage: React.FC = () => {
             <form onSubmit={handleLoginSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  {t("Email Vận hành (Admin / Mod)")}</label>
+                  {t("Email vận hành (Admin / Mod)")}</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
                     <Mail className="w-4 h-4" />
