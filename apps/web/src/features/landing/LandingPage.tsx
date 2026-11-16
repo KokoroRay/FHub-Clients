@@ -544,15 +544,20 @@ export const LandingPage: React.FC = () => {
             overflow: hidden;
             transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
             z-index: 30;
+            background: linear-gradient(145deg, #008BF0 0%, #0076D1 28%, #0060AD 60%, #004686 85%, #00366D 100%);
+            box-shadow: 
+              0 0 36px -2px rgba(0, 30, 75, 0.32),
+              0 0 12px 0 rgba(0, 45, 95, 0.16),
+              inset 0 0 45px rgba(0, 25, 60, 0.22);
           }
 
           .auth-split-wrapper.right-panel-active .split-overlay-container {
             transform: translateX(-100%);
           }
 
-          /* OVERLAY INNER (200% width) */
+          /* OVERLAY INNER (200% width) - Smooth transparent text content slider */
           .split-overlay-inner {
-            background: linear-gradient(135deg, #0076D1 0%, #005DA7 50%, #00427A 100%);
+            background: transparent;
             color: #ffffff;
             position: relative;
             left: -100%;
@@ -1209,31 +1214,41 @@ export const LandingPage: React.FC = () => {
           {/* C. SLIDING SPLIT-SCREEN OVERLAY (Desktop only: hidden md:block)     */}
           {/* =================================================================== */}
           <div className="split-overlay-container hidden md:block">
-            <div className="split-overlay-inner">
+            {/* Unified Ambient Glow & Blur Orbs (Anchored to the blue sliding slab, travelling seamlessly with it) */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+              {/* 1. Top-Right Soft Cyan/Sky Luminous Glow (Cyan #67E8F9) */}
+              <div className="absolute -top-14 -right-14 w-64 h-64 rounded-full bg-cyan-300/25 blur-[55px]" />
+              {/* 2. Center Ambient Blue Radial Light behind Greeting & Button (#60A5FA) */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 rounded-full bg-blue-300/18 blur-[65px]" />
+              {/* 3. Bottom-Left Deep Navy Grounding Shadow */}
+              <div className="absolute -bottom-16 -left-16 w-64 h-64 rounded-full bg-blue-950/45 blur-[50px]" />
+            </div>
+
+            <div className="split-overlay-inner relative z-10">
               
               {/* Overlay Left Panel (Active when in Register mode -> Prompts user to SIGN IN) */}
               <div className="split-overlay-panel split-overlay-left">
                 {/* Top Badge */}
-                <div className="relative">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-white/15 text-white backdrop-blur-sm border border-white/20">
+                <div className="relative z-10">
+                  <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[11px] font-bold bg-white/15 text-white backdrop-blur-md border border-white/25 shadow-xs">
                     <ShieldCheck className="w-3.5 h-3.5 text-blue-200" />
                     {t("FHub Academic Ecosystem")}
                   </span>
                 </div>
 
                 {/* Center Content */}
-                <div className="space-y-3 my-auto py-2">
-                  <h2 className="text-2xl font-black text-white tracking-tight">
+                <div className="space-y-3.5 my-auto py-2 relative z-10">
+                  <h2 className="text-2xl font-black text-white tracking-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)]">
                     {t("Welcome Back!")}
                   </h2>
-                  <p className="text-xs text-blue-100/90 leading-relaxed max-w-xs mx-auto">
+                  <p className="text-xs text-blue-50/95 leading-relaxed max-w-xs mx-auto drop-shadow-xs">
                     {t("Để duy trì kết nối và đồng hành cùng cộng đồng sinh viên FPT, vui lòng đăng nhập bằng tài khoản của bạn.")}
                   </p>
                   <div className="pt-2">
                     <button
                       type="button"
                       onClick={() => toggleMode(false)}
-                      className="h-[44px] inline-flex items-center gap-2 px-7 rounded-xl text-xs font-black text-white border-2 border-white hover:bg-white hover:text-[#0076D1] transition-all shadow-md active:scale-95 cursor-pointer uppercase tracking-wider"
+                      className="h-[44px] inline-flex items-center gap-2 px-7 rounded-xl text-xs font-black text-white bg-white/10 hover:bg-white hover:text-[#0076D1] border-2 border-white/90 backdrop-blur-sm transition-all shadow-[0_4px_16px_rgba(0,0,0,0.18)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.22)] active:scale-95 cursor-pointer uppercase tracking-wider"
                     >
                       <ArrowLeft className="w-4 h-4" />
                       <span>{t("SIGN IN")}</span>
@@ -1242,14 +1257,14 @@ export const LandingPage: React.FC = () => {
                 </div>
 
                 {/* Bottom Highlights */}
-                <div className="w-full pt-3 border-t border-white/15 grid grid-cols-2 gap-3 text-left">
-                  <div>
+                <div className="w-full pt-3.5 border-t border-white/18 grid grid-cols-2 gap-3 text-left relative z-10">
+                  <div className="p-2.5 rounded-xl bg-white/[0.08] backdrop-blur-sm border border-white/15 shadow-xs">
                     <span className="block text-xs font-black text-white">{t("5 Campuses")}</span>
-                    <span className="text-[10px] text-blue-200">{t("HN • HCM • DN • CT • QN")}</span>
+                    <span className="text-[10px] text-blue-100 font-medium">{t("HN • HCM • DN • CT • QN")}</span>
                   </div>
-                  <div>
+                  <div className="p-2.5 rounded-xl bg-white/[0.08] backdrop-blur-sm border border-white/15 shadow-xs">
                     <span className="block text-xs font-black text-white">{t("Academic First")}</span>
-                    <span className="text-[10px] text-blue-200">{t("Đồ án & Học liệu FPT")}</span>
+                    <span className="text-[10px] text-blue-100 font-medium">{t("Đồ án & Học liệu FPT")}</span>
                   </div>
                 </div>
               </div>
@@ -1257,26 +1272,26 @@ export const LandingPage: React.FC = () => {
               {/* Overlay Right Panel (Active when in Login mode -> Prompts user to SIGN UP) */}
               <div className="split-overlay-panel split-overlay-right">
                 {/* Top Badge */}
-                <div className="relative">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-white/15 text-white backdrop-blur-sm border border-white/20">
+                <div className="relative z-10">
+                  <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[11px] font-bold bg-white/15 text-white backdrop-blur-md border border-white/25 shadow-xs">
                     <Sparkles className="w-3.5 h-3.5 text-amber-200" />
                     {t("Cổng sinh viên FPT")}
                   </span>
                 </div>
 
                 {/* Center Content */}
-                <div className="space-y-3 my-auto py-2">
-                  <h2 className="text-2xl font-black text-white tracking-tight">
+                <div className="space-y-3.5 my-auto py-2 relative z-10">
+                  <h2 className="text-2xl font-black text-white tracking-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)]">
                     {t("Hello, Friend!")}
                   </h2>
-                  <p className="text-xs text-blue-100/90 leading-relaxed max-w-xs mx-auto">
+                  <p className="text-xs text-blue-50/95 leading-relaxed max-w-xs mx-auto drop-shadow-xs">
                     {t("Enter your personal details and start your journey with FHub academic network.")}
                   </p>
                   <div className="pt-2">
                     <button
                       type="button"
                       onClick={() => toggleMode(true)}
-                      className="h-[44px] inline-flex items-center gap-2 px-7 rounded-xl text-xs font-black text-white border-2 border-white hover:bg-white hover:text-[#0076D1] transition-all shadow-md active:scale-95 cursor-pointer uppercase tracking-wider"
+                      className="h-[44px] inline-flex items-center gap-2 px-7 rounded-xl text-xs font-black text-white bg-white/10 hover:bg-white hover:text-[#0076D1] border-2 border-white/90 backdrop-blur-sm transition-all shadow-[0_4px_16px_rgba(0,0,0,0.18)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.22)] active:scale-95 cursor-pointer uppercase tracking-wider"
                     >
                       <span>{t("SIGN UP")}</span>
                       <ArrowRight className="w-4 h-4" />
@@ -1285,14 +1300,14 @@ export const LandingPage: React.FC = () => {
                 </div>
 
                 {/* Bottom Highlights */}
-                <div className="w-full pt-3 border-t border-white/15 grid grid-cols-2 gap-3 text-left">
-                  <div>
+                <div className="w-full pt-3.5 border-t border-white/18 grid grid-cols-2 gap-3 text-left relative z-10">
+                  <div className="p-2.5 rounded-xl bg-white/[0.08] backdrop-blur-sm border border-white/15 shadow-xs">
                     <span className="block text-xs font-black text-white">{t("Xác thực 100%")}</span>
-                    <span className="text-[10px] text-blue-200">{t("Bảo mật mã OTP sinh viên")}</span>
+                    <span className="text-[10px] text-blue-100 font-medium">{t("Bảo mật mã OTP sinh viên")}</span>
                   </div>
-                  <div>
+                  <div className="p-2.5 rounded-xl bg-white/[0.08] backdrop-blur-sm border border-white/15 shadow-xs">
                     <span className="block text-xs font-black text-white">{t("K18 & K19+")}</span>
-                    <span className="text-[10px] text-blue-200">{t("Hỗ trợ chuẩn email FPT")}</span>
+                    <span className="text-[10px] text-blue-100 font-medium">{t("Hỗ trợ chuẩn email FPT")}</span>
                   </div>
                 </div>
               </div>

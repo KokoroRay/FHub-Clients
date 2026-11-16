@@ -297,28 +297,32 @@ export const LoginPage: React.FC = () => {
         </div>
 
         {/* Right Column: Overlay (Figma #72:230) (5 cols) */}
-        <div className="hidden md:flex md:col-span-5 bg-gradient-to-br from-[#0076D1] to-[#005DA7] p-8 text-white flex-col justify-between relative overflow-hidden">
-          {/* Subtle background circle decoration */}
-          <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-white/10 blur-2xl pointer-events-none" />
-          <div className="absolute -bottom-12 -left-12 w-48 h-48 rounded-full bg-black/10 blur-2xl pointer-events-none" />
+        <div className="hidden md:flex md:col-span-5 bg-gradient-to-br from-[#008BF0] via-[#0076D1] to-[#003E78] p-8 text-white flex-col justify-between relative overflow-hidden shadow-[-10px_0_32px_-4px_rgba(0,35,80,0.22)]">
+          {/* Ambient Glow & Blur Orbs */}
+          <div className="absolute -top-14 -right-14 w-60 h-60 rounded-full bg-cyan-300/22 blur-[55px] pointer-events-none z-0" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 rounded-full bg-blue-300/15 blur-[65px] pointer-events-none z-0" />
+          <div className="absolute -bottom-16 -left-16 w-64 h-64 rounded-full bg-blue-950/40 blur-[50px] pointer-events-none z-0" />
 
           {/* Top badge */}
-          <div className="relative">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-white/15 text-white backdrop-blur-sm border border-white/20">
+          <div className="relative z-10">
+            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[11px] font-bold bg-white/15 text-white backdrop-blur-md border border-white/25 shadow-xs">
               <ShieldCheck className="w-3.5 h-3.5 text-blue-200" />
-              {t("Academic Portal")}</span>
+              {t("Academic Portal")}
+            </span>
           </div>
 
           {/* Main Greeting Center */}
-          <div className="relative space-y-4 my-auto py-6">
-            <h3 className="text-3xl font-black text-white tracking-tight">
-              {t("Hello, Friend!")}</h3>
-            <p className="text-xs text-blue-100/90 leading-relaxed max-w-xs">
-              {t("Enter your personal details and start your journey with FHub academic network.")}</p>
+          <div className="relative z-10 space-y-4 my-auto py-6">
+            <h3 className="text-3xl font-black text-white tracking-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.15)]">
+              {t("Hello, Friend!")}
+            </h3>
+            <p className="text-xs text-blue-50/95 leading-relaxed max-w-xs drop-shadow-xs">
+              {t("Enter your personal details and start your journey with FHub academic network.")}
+            </p>
             <div className="pt-2">
               <Link
                 to="/register"
-                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold text-white border-2 border-white hover:bg-white hover:text-[#0076D1] transition-all shadow-md"
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-white/10 hover:bg-white hover:text-[#0076D1] border-2 border-white/90 backdrop-blur-sm transition-all shadow-[0_4px_16px_rgba(0,0,0,0.18)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.22)] active:scale-95"
               >
                 <span>{t("SIGN UP")}</span>
                 <ArrowRight className="w-4 h-4" />
@@ -326,15 +330,15 @@ export const LoginPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Subtle mini highlights footer */}
-          <div className="relative pt-6 border-t border-white/15 grid grid-cols-2 gap-3 text-left">
-            <div>
+          {/* Highlights footer */}
+          <div className="relative z-10 pt-6 border-t border-white/18 grid grid-cols-2 gap-3 text-left">
+            <div className="p-2.5 rounded-xl bg-white/[0.08] backdrop-blur-sm border border-white/15 shadow-xs">
               <span className="block text-xs font-extrabold text-white">{t("4+ Campuses")}</span>
-              <span className="text-[10px] text-blue-200">{t("Active FPT Community")}</span>
+              <span className="text-[10px] text-blue-100 font-medium">{t("Active FPT Community")}</span>
             </div>
-            <div>
+            <div className="p-2.5 rounded-xl bg-white/[0.08] backdrop-blur-sm border border-white/15 shadow-xs">
               <span className="block text-xs font-extrabold text-white">{t("10,000+ Students")}</span>
-              <span className="text-[10px] text-blue-200">{t("Collaborating Daily")}</span>
+              <span className="text-[10px] text-blue-100 font-medium">{t("Collaborating Daily")}</span>
             </div>
           </div>
         </div>
