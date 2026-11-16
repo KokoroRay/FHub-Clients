@@ -151,7 +151,7 @@ export const LoginPage: React.FC = () => {
   return (
     <div className="w-full space-y-4">
       {/* Outer Card Shell (Figma #72:159) */}
-      <div className="bg-white rounded-2xl shadow-xl border border-slate-200/80 overflow-hidden grid grid-cols-1 md:grid-cols-12 min-h-[580px]">
+      <div className="bg-white dark:bg-[#1E293B] rounded-2xl shadow-xl dark:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.65)] border border-slate-200/80 dark:border-[#334155] overflow-hidden grid grid-cols-1 md:grid-cols-12 min-h-[580px]">
         {/* Left Column: Form (7 cols) */}
         <div className="p-8 sm:p-10 md:col-span-7 flex flex-col justify-between">
           <div>
@@ -159,14 +159,14 @@ export const LoginPage: React.FC = () => {
             <div className="mb-6">
               <div className="flex items-center gap-2 mb-3">
                 <img src="/fhub-remove-background.png" alt={t("FHub Logo")} className="w-7 h-7 object-contain" />
-                <span className="font-extrabold text-sm tracking-tight text-slate-800">
-                  {t("FHub")} <span className="text-[10px] px-1 py-0.2 bg-blue-50 text-[#0076D1] rounded font-bold border border-blue-100">{t("EDU")}</span>
+                <span className="font-extrabold text-sm tracking-tight text-slate-800 dark:text-[#F8FAFC]">
+                  {t("FHub")} <span className="text-[10px] px-1 py-0.2 bg-blue-50 dark:bg-[#164B7A]/60 text-[#0076D1] dark:text-[#38BDF8] rounded font-bold border border-blue-100 dark:border-[#2563A5]">{t("EDU")}</span>
                 </span>
               </div>
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+              <h2 className="text-2xl font-black text-slate-900 dark:text-[#F8FAFC] tracking-tight">
                 {t('auth.welcomeBack', 'Welcome Back')}
               </h2>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-slate-500 dark:text-[#94A3B8] mt-1">
                 {t('auth.signInSubtitle', 'Enter your university credentials to access your FHub workspace.')}
               </p>
             </div>
@@ -178,7 +178,7 @@ export const LoginPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => navigate('/fpt-sso')}
-                className="flex items-center justify-center gap-2 py-2.5 px-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
+                className="flex items-center justify-center gap-2 py-2.5 px-3 bg-white dark:bg-[#273449] border border-slate-200 dark:border-[#334155] rounded-xl text-xs font-semibold text-slate-700 dark:text-[#F8FAFC] hover:bg-slate-50 dark:hover:bg-[#334155] transition-colors shadow-2xs cursor-pointer"
               >
                 <div className="w-3.5 h-3.5 grid grid-cols-2 gap-0.5">
                   <div className="bg-[#f25022]" />
@@ -193,16 +193,16 @@ export const LoginPage: React.FC = () => {
             {/* Divider */}
             <div className="relative my-4 text-center">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-200" />
+                <div className="w-full border-t border-slate-200 dark:border-[#334155]" />
               </div>
-              <span className="relative px-3 bg-white text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              <span className="relative px-3 bg-white dark:bg-[#1E293B] text-[11px] font-bold text-slate-400 dark:text-[#94A3B8] uppercase tracking-wider">
                 {t('auth.signInTitle', 'OR SIGN IN WITH EMAIL')}
               </span>
             </div>
 
             {/* Error banner */}
             {errorMessage && (
-              <div className="mb-4 p-2.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold">
+              <div className="mb-4 p-2.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 text-rose-700 dark:text-rose-300 rounded-xl text-xs font-semibold">
                 {t(errorMessage)}
               </div>
             )}
@@ -210,17 +210,17 @@ export const LoginPage: React.FC = () => {
             {/* Credentials Form */}
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                <label className="block text-xs font-bold text-slate-700 dark:text-[#F8FAFC] mb-1.5">
                   {t('auth.email', 'University Email / Student ID')}
                 </label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <Mail className="w-4 h-4 text-slate-400 dark:text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder={t("student.name@fpt.edu.vn")}
-                    className="w-full bg-slate-50/60 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0076D1]/20 focus:border-[#0076D1] transition-all"
+                    className="w-full bg-slate-50/60 dark:bg-[#273449] border border-slate-200 dark:border-[#334155] rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-800 dark:text-[#F8FAFC] placeholder-slate-400 dark:placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#0076D1]/20 focus:border-[#0076D1] transition-all"
                     required
                   />
                 </div>
@@ -228,30 +228,30 @@ export const LoginPage: React.FC = () => {
 
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="block text-xs font-bold text-slate-700">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-[#F8FAFC]">
                     {t('auth.password', 'Password')}
                   </label>
                   <Link
                     to="/forgot-password"
-                    className="text-xs font-semibold text-[#0076D1] hover:underline"
+                    className="text-xs font-semibold text-[#0076D1] dark:text-[#38BDF8] hover:underline"
                   >
                     {t('auth.forgotPassword', 'Forgot password?')}
                   </Link>
                 </div>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <Lock className="w-4 h-4 text-slate-400 dark:text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••••••"
-                    className="w-full bg-slate-50/60 border border-slate-200 rounded-xl pl-10 pr-10 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0076D1]/20 focus:border-[#0076D1] transition-all"
+                    className="w-full bg-slate-50/60 dark:bg-[#273449] border border-slate-200 dark:border-[#334155] rounded-xl pl-10 pr-10 py-2.5 text-xs text-slate-800 dark:text-[#F8FAFC] placeholder-slate-400 dark:placeholder-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#0076D1]/20 focus:border-[#0076D1] transition-all"
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-[#94A3B8] hover:text-slate-600 dark:hover:text-[#F8FAFC] cursor-pointer"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -267,10 +267,10 @@ export const LoginPage: React.FC = () => {
                     onChange={(e) => setRememberMe(e.target.checked)}
                     className="w-4 h-4 rounded text-[#0076D1] border-slate-300 focus:ring-[#0076D1]"
                   />
-                  <span className="text-slate-600 font-medium">{t('auth.rememberMe', 'Remember me')}</span>
+                  <span className="text-slate-600 dark:text-[#94A3B8] font-medium">{t('auth.rememberMe', 'Remember me')}</span>
                 </label>
 
-                <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">
+                <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-100 dark:border-emerald-800/60">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                   <span>{t("256-bit TLS")}</span>
                 </div>
@@ -280,7 +280,7 @@ export const LoginPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-bold text-white bg-[#0076D1] hover:bg-[#005DA7] transition-all shadow-md hover:shadow-lg cursor-pointer disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-bold text-white bg-[#0076D1] hover:bg-[#005DA7] transition-all shadow-md hover:shadow-lg dark:shadow-[0_4px_16px_rgba(0,118,209,0.35)] dark:hover:shadow-[0_6px_22px_rgba(0,118,209,0.5)] cursor-pointer disabled:opacity-50"
               >
                 <span>{isLoading ? t('common.loading', 'SIGNING IN...') : t('auth.signInBtn', 'SIGN IN')}</span>
                 <ArrowRight className="w-4 h-4" />
@@ -288,16 +288,16 @@ export const LoginPage: React.FC = () => {
             </form>
           </div>
 
-          <div className="pt-6 text-center text-xs text-slate-500">
+          <div className="pt-6 text-center text-xs text-slate-500 dark:text-[#94A3B8]">
             {t('auth.noAccount', "Don't have an account?")}{' '}
-            <Link to="/register" className="font-bold text-[#0076D1] hover:underline">
+            <Link to="/register" className="font-bold text-[#0076D1] dark:text-[#38BDF8] hover:underline">
               {t('header.signUp', 'Sign Up')}
             </Link>
           </div>
         </div>
 
         {/* Right Column: Overlay (Figma #72:230) (5 cols) */}
-        <div className="hidden md:flex md:col-span-5 bg-gradient-to-br from-[#008BF0] via-[#0076D1] to-[#003E78] p-8 text-white flex-col justify-between relative overflow-hidden shadow-[-10px_0_32px_-4px_rgba(0,35,80,0.22)]">
+        <div className="hidden md:flex md:col-span-5 bg-gradient-to-br from-[#008BF0] via-[#0076D1] to-[#003E78] dark:from-[#0284C7] dark:via-[#0076D1] dark:to-[#0C4A6E] p-8 text-white flex-col justify-between relative overflow-hidden shadow-[-10px_0_32px_-4px_rgba(0,35,80,0.22)]">
           {/* Ambient Glow & Blur Orbs */}
           <div className="absolute -top-14 -right-14 w-60 h-60 rounded-full bg-cyan-300/22 blur-[55px] pointer-events-none z-0" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 rounded-full bg-blue-300/15 blur-[65px] pointer-events-none z-0" />
@@ -332,20 +332,20 @@ export const LoginPage: React.FC = () => {
 
           {/* Highlights footer */}
           <div className="relative z-10 pt-6 border-t border-white/18 grid grid-cols-2 gap-3 text-left">
-            <div className="p-2.5 rounded-xl bg-white/[0.08] backdrop-blur-sm border border-white/15 shadow-xs">
+            <div className="p-2.5 rounded-xl bg-white/[0.08] dark:bg-[#164B7A] backdrop-blur-sm border border-white/15 dark:border-[#2563A5] shadow-xs">
               <span className="block text-xs font-extrabold text-white">{t("4+ Campuses")}</span>
-              <span className="text-[10px] text-blue-100 font-medium">{t("Active FPT Community")}</span>
+              <span className="text-[10px] text-blue-100 dark:text-[#BFDBFE] font-medium">{t("Active FPT Community")}</span>
             </div>
-            <div className="p-2.5 rounded-xl bg-white/[0.08] backdrop-blur-sm border border-white/15 shadow-xs">
+            <div className="p-2.5 rounded-xl bg-white/[0.08] dark:bg-[#164B7A] backdrop-blur-sm border border-white/15 dark:border-[#2563A5] shadow-xs">
               <span className="block text-xs font-extrabold text-white">{t("10,000+ Students")}</span>
-              <span className="text-[10px] text-blue-100 font-medium">{t("Collaborating Daily")}</span>
+              <span className="text-[10px] text-blue-100 dark:text-[#BFDBFE] font-medium">{t("Collaborating Daily")}</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Bottom Brand Footer (Figma #72:259) */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-slate-400 px-2">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-slate-400 dark:text-[#94A3B8] px-2">
         <div className="flex items-center gap-2">
           <span>{t("FPT University")}</span>
           <span>•</span>
@@ -354,9 +354,9 @@ export const LoginPage: React.FC = () => {
           <span>{t("Spring 2025")}</span>
         </div>
         <div className="flex items-center gap-3">
-          <Link to="/tickets" className="hover:text-slate-600 transition-colors">
+          <Link to="/tickets" className="hover:text-slate-600 dark:hover:text-[#F8FAFC] transition-colors">
             {t("Support Desk")}</Link>
-          <Link to="/settings" className="hover:text-slate-600 transition-colors">
+          <Link to="/settings" className="hover:text-slate-600 dark:hover:text-[#F8FAFC] transition-colors">
             {t("Privacy Policy")}</Link>
         </div>
       </div>

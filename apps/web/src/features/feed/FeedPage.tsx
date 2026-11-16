@@ -547,7 +547,7 @@ export const FeedPage: React.FC = () => {
               <Link
                 key={idx}
                 to={item.path}
-                className="rainbow-glow-card h-[76px] sm:h-[84px] p-2 flex flex-col items-center justify-between bg-white dark:bg-[#272727] rounded-xl sm:rounded-2xl border border-slate-200/90 dark:border-transparent text-center group cursor-pointer shadow-2xs"
+                className="quick-access-card rainbow-glow-card h-[76px] sm:h-[84px] p-2 flex flex-col items-center justify-between bg-white dark:bg-[#272727] rounded-xl sm:rounded-2xl border border-[#38BDF8] dark:border-transparent text-center group cursor-pointer shadow-2xs"
               >
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform ${item.color}`}>
                   <IconComp className="w-4 h-4" />

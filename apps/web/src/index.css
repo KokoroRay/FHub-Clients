@@ -437,4 +437,129 @@ html.dark .soft-ambient-glow-card:hover {
     0 16px 32px -6px rgba(167, 139, 250, 0.08);
 }
 
+/* ==========================================================================
+   QUICK ACCESS CARDS (Feed Page Quick Navigation Shortcuts)
+   - Light Mode:
+     + Uniform, crisp fresh sky-blue border (#38BDF8)
+     + Soft subtle sky-blue ambient box shadow
+     + Rainbow pseudo-elements disabled
+     + Preserves border-radius, border thickness, dimensions and 2px hover lift
+   - Dark Mode:
+     + 100% preserves existing Rainbow Gradient Glow effect & display
+   ========================================================================== */
+
+.quick-access-card {
+  position: relative;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.25s ease;
+}
+
+/* Light mode: Uniform sky-blue (#38BDF8) border with soft ambient light */
+html:not(.dark) .quick-access-card {
+  border-color: #38BDF8 !important;
+  box-shadow:
+    0 1px 3px 0 rgba(0, 0, 0, 0.02),
+    0 2px 8px -1px rgba(56, 189, 248, 0.16) !important;
+}
+
+/* Light mode: Disable rainbow pseudo-elements entirely */
+html:not(.dark) .quick-access-card::before,
+html:not(.dark) .quick-access-card::after {
+  display: none !important;
+  opacity: 0 !important;
+}
+
+/* Light mode hover: 2px lift, crisp #38BDF8 border, gentle glow boost, zero rainbow */
+html:not(.dark) .quick-access-card:hover {
+  transform: translateY(-2px);
+  border-color: #38BDF8 !important;
+  box-shadow:
+    0 4px 14px -2px rgba(56, 189, 248, 0.28),
+    0 2px 6px -1px rgba(56, 189, 248, 0.18) !important;
+}
+
+/* Dark mode: Transparent static border, preserves full rainbow gradient glow on hover */
+html.dark .quick-access-card {
+  border-color: transparent !important;
+}
+
+/* ==========================================================================
+   AUTHENTICATION UI (Modern Premium Dark UI)
+   - Form Panel: #1E293B, Soft Shadow
+   - Form Input: #273449, Border: #334155, Focus: #0076D1
+   - Text: Primary #F8FAFC, Secondary #94A3B8
+   - Welcome Panel: Seamless Deep Brand Blue Gradient
+   - Feature Cards: Background #164B7A, Border #2563A5, Title #FFFFFF, Desc #BFDBFE
+   ========================================================================== */
+
+html.dark .auth-split-wrapper {
+  background-color: #1E293B !important;
+  border-color: #334155 !important;
+  box-shadow: 
+    0 25px 60px -15px rgba(0, 0, 0, 0.65),
+    0 0 1px 1px rgba(255, 255, 255, 0.05) !important;
+}
+
+html.dark .split-sign-in-container,
+html.dark .split-sign-up-container {
+  background-color: #1E293B !important;
+}
+
+html.dark .auth-split-wrapper input:not([type="checkbox"]):not([type="radio"]),
+html.dark .auth-split-wrapper select,
+html.dark .auth-split-wrapper textarea {
+  background-color: #273449 !important;
+  border-color: #334155 !important;
+  color: #F8FAFC !important;
+}
+
+html.dark .auth-split-wrapper input:not([type="checkbox"]):not([type="radio"]):hover,
+html.dark .auth-split-wrapper select:hover,
+html.dark .auth-split-wrapper textarea:hover {
+  border-color: #475569 !important;
+}
+
+html.dark .auth-split-wrapper input:not([type="checkbox"]):not([type="radio"]):focus,
+html.dark .auth-split-wrapper select:focus,
+html.dark .auth-split-wrapper textarea:focus {
+  background-color: #273449 !important;
+  border-color: #0076D1 !important;
+  box-shadow: 0 0 0 2px rgba(0, 118, 209, 0.25) !important;
+}
+
+html.dark .auth-split-wrapper input::placeholder,
+html.dark .auth-split-wrapper textarea::placeholder {
+  color: #94A3B8 !important;
+}
+
+html.dark .auth-split-wrapper select option {
+  background-color: #1E293B !important;
+  color: #F8FAFC !important;
+}
+
+html.dark .split-overlay-container {
+  background: linear-gradient(150deg, #0284C7 0%, #0076D1 32%, #0369A1 65%, #075985 85%, #0C4A6E 100%) !important;
+  box-shadow: 
+    0 0 42px -2px rgba(2, 132, 199, 0.3),
+    0 0 16px 0 rgba(0, 25, 60, 0.45),
+    inset 0 0 55px rgba(7, 89, 133, 0.28) !important;
+}
+
+html.dark .auth-feature-card {
+  background-color: #164B7A !important;
+  border-color: #2563A5 !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25) !important;
+}
+
+html.dark .auth-feature-card .auth-feature-title {
+  color: #FFFFFF !important;
+}
+
+html.dark .auth-feature-card .auth-feature-desc {
+  color: #BFDBFE !important;
+}
+
+
+
 
