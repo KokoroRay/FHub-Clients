@@ -19,7 +19,7 @@ import { SeriesModal } from './SeriesModal';
 import { normalizeMediaUrl } from '../../utils/mediaUtils';
 import { Article, Series, TechArticle } from '../../types';
 import { articleApi, seriesApi } from '../../services/api/contentApi';
-import { voteApi, bookmarkApi } from '../../services/api/studentApi';
+import { voteApi, bookmarkApi, profileApi } from '../../services/api/studentApi';
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 import { UserHoverCard } from '../../components/common/UserHoverCard';
 import { SocialShareModal } from '../../components/common/SocialShareModal';
@@ -118,9 +118,13 @@ export const ArticleListPage: React.FC = () => {
               authorStaffId: item.authorStaffId,
               author: {
                 id: String(item.authorUserId || item.authorStaffId || 1),
-                fullName: item.authorStaffId ? 'FPT Faculty Staff' : 'Student Author',
+                fullName: item.authorStaffId
+                  ? 'FPT Faculty Staff'
+                  : (item.authorUserId && currentUser?.id && String(item.authorUserId) === String(currentUser.id)
+                      ? (currentUser.fullName || 'Bạn')
+                      : (item as any).authorDisplayName || (item as any).authorName || `Sinh viên FHub (#${item.authorUserId || ''})`),
                 role: item.authorStaffId ? 'Staff' : 'Student',
-                avatarUrl: '',
+                avatarUrl: (item as any).authorAvatarUrl || '',
               },
               likesCount: 0,
               bookmarksCount: 0,
@@ -130,6 +134,47 @@ export const ArticleListPage: React.FC = () => {
             };
           });
           setApiArticles(mapped);
+
+          // Batch load real author profiles asynchronously
+          const authorIds = Array.from(
+            new Set(
+              res.items
+                .filter((item: any) => item.authorUserId && item.authorUserId !== Number(currentUser?.id))
+                .map((item: any) => Number(item.authorUserId))
+            )
+          );
+          if (authorIds.length > 0) {
+            Promise.allSettled(authorIds.map((id) => profileApi.getProfile(id))).then((results) => {
+              const profileMap: Record<number, { fullName: string; avatarUrl?: string }> = {};
+              results.forEach((r, idx) => {
+                if (r.status === 'fulfilled' && r.value) {
+                  const val = r.value;
+                  profileMap[authorIds[idx]] = {
+                    fullName: val.displayName || val.fullName || `Sinh viên FHub (#${authorIds[idx]})`,
+                    avatarUrl: val.avatarUrl || '',
+                  };
+                }
+              });
+              if (Object.keys(profileMap).length > 0) {
+                setApiArticles((prev) =>
+                  prev.map((art) => {
+                    const aId = Number(art.authorUserId);
+                    if (aId && profileMap[aId]) {
+                      return {
+                        ...art,
+                        author: {
+                          ...art.author,
+                          fullName: profileMap[aId].fullName,
+                          avatarUrl: profileMap[aId].avatarUrl || art.author.avatarUrl,
+                        },
+                      };
+                    }
+                    return art;
+                  })
+                );
+              }
+            }).catch(() => {});
+          }
 
           // Synchronize bookmarks and votes from interaction service
           try {

@@ -29,7 +29,7 @@ import { Button } from '../../components/common/Button';
 import { Textarea } from '../../components/common/Input';
 import { MarkdownPreview } from '../../components/common/MarkdownPreview';
 import { articleApi } from '../../services/api/contentApi';
-import { voteApi, bookmarkApi, notificationApi, profileApi } from '../../services/api/studentApi';
+import { voteApi, bookmarkApi, notificationApi, profileApi, followApi, studentReputationApi } from '../../services/api/studentApi';
 import { normalizeMediaUrl } from '../../utils/mediaUtils';
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 import { SocialShareModal } from '../../components/common/SocialShareModal';
@@ -88,23 +88,65 @@ export const ArticleDetailPage: React.FC = () => {
               campus: (data.authorUserId && currentUser?.id && String(data.authorUserId) === String(currentUser.id) ? resolveUserCampus(currentUser) : resolveUserCampus(data)),
               major: (data.authorUserId && currentUser?.id && String(data.authorUserId) === String(currentUser.id) ? (currentUser.major || '') : ''),
               avatarUrl: '',
+              bio: '',
             },
           });
           setLikesCount(0);
 
-          if (data.authorUserId && (!currentUser?.id || String(data.authorUserId) !== String(currentUser.id))) {
-            profileApi.getProfile(data.authorUserId).then((p: any) => {
+          if (data.authorUserId) {
+            const authorId = Number(data.authorUserId);
+
+            // 1. Fetch real author profile from DB
+            profileApi.getProfile(authorId).then((p: any) => {
               if (!isMounted || !p) return;
+              const realName = p.displayName || p.fullName || (data as any).authorDisplayName || (data as any).authorName;
               setArticle((prev: any) => prev ? {
                 ...prev,
                 author: {
                   ...prev.author,
-                  fullName: prev.author.fullName || p.fullName || p.displayName,
+                  fullName: realName || prev.author.fullName,
                   avatarUrl: p.avatarUrl || prev.author.avatarUrl,
                   campus: resolveUserCampus(p) || prev.author.campus || '',
                   major: p.majorCode || p.major || prev.author.major || '',
+                  bio: p.bio || '',
                 }
               } : prev);
+              setAuthorStats((prev) => ({
+                ...prev,
+                bio: p.bio || '',
+              }));
+            }).catch(() => {});
+
+            // 2. Fetch real follow stats, follow status, karma and articles count
+            Promise.allSettled([
+              followApi.getFollowStats(authorId),
+              followApi.getFollowStatus(authorId),
+              studentReputationApi.getAccount(authorId),
+              articleApi.getArticles({ authorUserId: authorId, pageSize: 1 })
+            ]).then(([statsRes, statusRes, repRes, articlesRes]) => {
+              if (!isMounted) return;
+              if (statsRes.status === 'fulfilled' && statsRes.value) {
+                setAuthorStats((prev) => ({
+                  ...prev,
+                  followersCount: statsRes.value.followers_count ?? 0,
+                }));
+              }
+              if (statusRes.status === 'fulfilled' && statusRes.value) {
+                setIsFollowingAuthor(Boolean(statusRes.value.is_following));
+              }
+              if (repRes.status === 'fulfilled' && repRes.value) {
+                const rep = repRes.value;
+                setAuthorStats((prev) => ({
+                  ...prev,
+                  karma: rep.karma ?? rep.total_points ?? rep.points ?? 0,
+                }));
+              }
+              if (articlesRes.status === 'fulfilled' && articlesRes.value) {
+                setAuthorStats((prev) => ({
+                  ...prev,
+                  articlesCount: articlesRes.value.totalCount ?? 1,
+                }));
+              }
             }).catch(() => {});
           }
 
@@ -143,8 +185,58 @@ export const ArticleDetailPage: React.FC = () => {
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [bookmarkId, setBookmarkId] = useState<number | string | null>(null);
   const [isFollowingAuthor, setIsFollowingAuthor] = useState(false);
+  const [isFollowLoading, setIsFollowLoading] = useState(false);
+  const [coverImageError, setCoverImageError] = useState(false);
+  const [authorStats, setAuthorStats] = useState<{
+    followersCount: number;
+    karma: number;
+    articlesCount: number;
+    bio?: string;
+  }>({
+    followersCount: 0,
+    karma: 0,
+    articlesCount: 1,
+    bio: '',
+  });
   const [isCopiedShare, setIsCopiedShare] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+
+  const handleToggleFollow = async () => {
+    if (!article?.authorUserId || isFollowLoading) return;
+    const authorId = Number(article.authorUserId);
+    setIsFollowLoading(true);
+    try {
+      if (isFollowingAuthor) {
+        await followApi.unfollowUser(authorId);
+        setIsFollowingAuthor(false);
+        setAuthorStats((prev) => ({ ...prev, followersCount: Math.max(0, prev.followersCount - 1) }));
+      } else {
+        await followApi.followUser(authorId);
+        setIsFollowingAuthor(true);
+        setAuthorStats((prev) => ({ ...prev, followersCount: prev.followersCount + 1 }));
+      }
+    } catch (err) {
+      console.warn('Failed to toggle follow author:', err);
+    } finally {
+      setIsFollowLoading(false);
+    }
+  };
+
+  const isOwnArticle = Boolean(
+    currentUser?.id &&
+    article?.authorUserId &&
+    String(currentUser.id).replace(/\D/g, '') === String(article.authorUserId).replace(/\D/g, '')
+  );
+
+  const isArticleOwner = Boolean(
+    currentUser && (
+      (article?.authorUserId && (
+        String(currentUser.id) === String(article.authorUserId) ||
+        String(currentUser.id).replace(/\D/g, '') === String(article.authorUserId).replace(/\D/g, '')
+      )) ||
+      currentUser.role === 'Admin'
+    )
+  );
 
   const handleShareArticle = () => {
     const url = typeof window !== 'undefined' ? window.location.href : '';
@@ -172,17 +264,6 @@ export const ArticleDetailPage: React.FC = () => {
       return next;
     });
   };
-
-  const isArticleOwner = Boolean(
-    currentUser && (
-      (article?.authorUserId && (
-        String(currentUser.id) === String(article.authorUserId) ||
-        String(currentUser.id).replace(/\D/g, '') === String(article.authorUserId).replace(/\D/g, '')
-      )) ||
-      (currentUser.fullName && article?.author?.fullName && currentUser.fullName.trim().toLowerCase() === article.author.fullName.trim().toLowerCase()) ||
-      currentUser.role === 'Admin'
-    )
-  );
 
   const toggleLike = async () => {
     if (!id) return;
@@ -321,12 +402,21 @@ export const ArticleDetailPage: React.FC = () => {
         {/* Main Article Content Column (Figma Frame 7: FHub | Article: Understanding...) */}
         <div className="lg:col-span-2 space-y-6">
           <Card className="overflow-hidden">
-            {article.coverImage && (
-              <div className="h-72 w-full bg-slate-100 overflow-hidden relative">
-                <img src={normalizeMediaUrl(article.coverImage)} alt={article.title} className="w-full h-full object-cover" />
+            {article.coverImage && !coverImageError ? (
+              <div className="h-72 w-full bg-slate-100 dark:bg-slate-800 overflow-hidden relative">
+                <img
+                  src={normalizeMediaUrl(article.coverImage)}
+                  alt={article.title}
+                  className="w-full h-full object-cover"
+                  onError={() => setCoverImageError(true)}
+                />
                 <div className="absolute top-4 left-4 flex gap-2">
                   <Badge variant="purple" size="md">{article.category}</Badge>
                 </div>
+              </div>
+            ) : (
+              <div className="px-6 pt-6 sm:px-8 sm:pt-8 flex gap-2">
+                <Badge variant="purple" size="md">{article.category}</Badge>
               </div>
             )}
 
@@ -377,14 +467,17 @@ export const ArticleDetailPage: React.FC = () => {
                   </UserHoverCard>
 
                   <div className="flex items-center gap-2">
-                    <Button
-                      size="sm"
-                      variant={isFollowingAuthor ? 'secondary' : 'outline'}
-                      onClick={() => setIsFollowingAuthor(!isFollowingAuthor)}
-                      leftIcon={isFollowingAuthor ? <Check className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />}
-                    >
-                      {isFollowingAuthor ? t("Đang theo dõi") : t("Theo dõi")}
-                    </Button>
+                    {!isOwnArticle && (
+                      <Button
+                        size="sm"
+                        variant={isFollowingAuthor ? 'secondary' : 'outline'}
+                        onClick={handleToggleFollow}
+                        disabled={isFollowLoading}
+                        leftIcon={isFollowingAuthor ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Plus className="w-3.5 h-3.5" />}
+                      >
+                        {isFollowingAuthor ? t("Đang theo dõi") : t("Theo dõi")}
+                      </Button>
+                    )}
                     <Button
                       variant={isLiked ? 'primary' : 'outline'}
                       size="sm"
@@ -409,30 +502,34 @@ export const ArticleDetailPage: React.FC = () => {
                     >
                       {t("common.share", "Chia sẻ")}
                     </Button>
-                    <Button
-                      id="btn-edit-article"
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        setEditArticleTitle(article.title);
-                        setEditArticleSummary(article.summary);
-                        setEditArticleContent(article.content);
-                        setShowEditArticleModal(true);
-                      }}
-                      leftIcon={<Edit3 className="w-3.5 h-3.5 text-slate-500" />}
-                    >
-                      {t('Edit')}
-                    </Button>
-                    <Button
-                      id="btn-delete-article"
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setShowDeleteArticleModal(true)}
-                      className="text-red-600 hover:bg-red-50"
-                      leftIcon={<Trash2 className="w-3.5 h-3.5" />}
-                    >
-                      {t('Delete')}
-                    </Button>
+                    {isArticleOwner && (
+                      <>
+                        <Button
+                          id="btn-edit-article"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setEditArticleTitle(article.title);
+                            setEditArticleSummary(article.summary);
+                            setEditArticleContent(article.content);
+                            setShowEditArticleModal(true);
+                          }}
+                          leftIcon={<Edit3 className="w-3.5 h-3.5 text-slate-500" />}
+                        >
+                          {t('Edit')}
+                        </Button>
+                        <Button
+                          id="btn-delete-article"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setShowDeleteArticleModal(true)}
+                          className="text-red-600 hover:bg-red-50"
+                          leftIcon={<Trash2 className="w-3.5 h-3.5" />}
+                        >
+                          {t('Delete')}
+                        </Button>
+                      </>
+                    )}
                     <ContentActionMenu
                       targetType="ARTICLE"
                       targetId={article.id}
@@ -589,18 +686,19 @@ export const ArticleDetailPage: React.FC = () => {
                 <p className="text-xs text-slate-400 font-medium">{t(article.author.role)}{article.author.campus ? ` • ${article.author.campus}` : ""}</p>
               </div>
               <p className="text-xs text-slate-500 leading-relaxed">
-                {t("Đam mê xây dựng hệ thống backend hiệu năng cao và chia sẻ kiến trúc phần mềm cho cộng đồng sinh viên FPT.")}</p>
+                {authorStats.bio || article.author.bio || t("Thành viên đóng góp kiến thức và kinh nghiệm cho cộng đồng sinh viên FHub.")}
+              </p>
               <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-around text-xs">
                 <div>
-                  <div className="font-bold text-slate-900 dark:text-slate-100">8</div>
+                  <div className="font-bold text-slate-900 dark:text-slate-100">{authorStats.articlesCount}</div>
                   <div className="text-[10px] text-slate-400">{t('Articles')}</div>
                 </div>
                 <div>
-                  <div className="font-bold text-blue-600">2,890</div>
+                  <div className="font-bold text-blue-600">{authorStats.karma.toLocaleString()}</div>
                   <div className="text-[10px] text-slate-400">{t("Karma")}</div>
                 </div>
                 <div>
-                  <div className="font-bold text-slate-900 dark:text-slate-100">450</div>
+                  <div className="font-bold text-slate-900 dark:text-slate-100">{authorStats.followersCount.toLocaleString()}</div>
                   <div className="text-[10px] text-slate-400">{t('Followers')}</div>
                 </div>
               </div>

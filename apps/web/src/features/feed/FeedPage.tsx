@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   FileCode,
@@ -7,7 +7,6 @@ import {
   HelpCircle,
   Plus,
   MessageSquare,
-
   Bookmark,
   ChevronUp,
   ChevronDown,
@@ -19,21 +18,24 @@ import {
   Layers,
   LifeBuoy,
   Share2,
+  Heart,
+  Clock,
   Check,
-  Trash2
+  Trash2,
+  Compass,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { apiClient } from '../../services/api/client';
 import { useLanguage } from '../../context/LanguageContext';
 import { useRealtime } from '../../context/RealtimeContext';
-import { questionApi } from '../../services/api/contentApi';
+import { questionApi, articleApi, workflowApi } from '../../services/api/contentApi';
 import { profileApi, voteApi, bookmarkApi, notificationApi } from '../../services/api/studentApi';
 import { AskQuestionModal } from '../discussions/AskQuestionModal';
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 import { SocialShareModal } from '../../components/common/SocialShareModal';
 import { UserHoverCard } from '../../components/common/UserHoverCard';
 import { normalizeMediaUrl } from '../../utils/mediaUtils';
-import { resolveUserMajorName, FPT_CAMPUSES } from '../../utils/taxonomyUtils';
+import { resolveUserMajorName } from '../../utils/taxonomyUtils';
 import { extractStudentIdFromEmail } from '../../utils/fptEmailValidator';
 
 // Helper to extract media and clean text from markdown body
@@ -54,48 +56,59 @@ const parseBodyMedia = (rawBody: string = '') => {
 // Module-level in-memory cache to eliminate duplicate author profile fetches across tab changes
 const globalAuthorProfileCache: Record<number, { fullName: string; avatarUrl?: string }> = {};
 
+export type FeedContentType = 'ALL' | 'QUESTION' | 'ARTICLE' | 'WORKFLOW';
+
+export interface UnifiedFeedItem {
+  type: 'QUESTION' | 'ARTICLE' | 'WORKFLOW';
+  id: string; // e.g. "q-12", "art-34", "wf-56"
+  numericId: number;
+  title: string;
+  summary: string;
+  createdAt: string;
+  authorUserId?: number;
+  authorDisplayName?: string;
+  authorAvatarUrl?: string;
+  isAnonymous?: boolean;
+  courseId?: number;
+  courseCode?: string;
+  status: string;
+  isPinned?: boolean;
+  // Question specifics
+  answerCount?: number;
+  upvoteCount?: number;
+  downvoteCount?: number;
+  mediaUrls?: string[];
+  // Article specifics
+  coverImageUrl?: string;
+  readTimeMinutes?: number;
+  tags?: string[];
+  // Workflow specifics
+  stepCount?: number;
+}
+
 export const FeedPage: React.FC = () => {
   const { currentUser, currentCampus } = useAuth();
   const { t, locale } = useLanguage();
   const { on } = useRealtime();
   const navigate = useNavigate();
 
-  // State
-  const [questions, setQuestions] = useState<any[]>([]);
+  // Feed Filter State
+  const [contentTypeFilter, setContentTypeFilter] = useState<FeedContentType>('ALL');
+  const [feedSort, setFeedSort] = useState<'forYou' | 'newest' | 'votes' | 'unanswered'>('forYou');
+
+  // Items and Pagination State
+  const [feedItems, setFeedItems] = useState<UnifiedFeedItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [isAskModalOpen, setIsAskModalOpen] = useState<boolean>(false);
-  const [questionTab, setQuestionTab] = useState<'interesting' | 'all'>('interesting');
-  const [feedFilter, setFeedFilter] = useState<'newest' | 'votes' | 'unanswered'>('newest');
+  const [loadingMore, setLoadingMore] = useState<boolean>(false);
   const [page, setPage] = useState<number>(1);
   const [hasMore, setHasMore] = useState<boolean>(true);
-  const [copiedShareId, setCopiedShareId] = useState<string | null>(null);
+
+  // Modals & Interactivity
+  const [isAskModalOpen, setIsAskModalOpen] = useState<boolean>(false);
   const [shareModalData, setShareModalData] = useState<{ isOpen: boolean; title: string; url: string; description?: string } | null>(null);
-  const [deletingQuestion, setDeletingQuestion] = useState<{ id: string; title: string } | null>(null);
+  const [deletingItem, setDeletingItem] = useState<{ id: string; numericId: number; title: string; type: 'QUESTION' | 'ARTICLE' | 'WORKFLOW' } | null>(null);
 
-  const handleShare = (qId: string | number, _title?: string) => {
-    const numericId = Number(String(qId).replace(/\D/g, '')) || qId;
-    const url = `${typeof window !== 'undefined' ? window.location.origin : ''}/discussions/${numericId}`;
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(url);
-      setCopiedShareId(String(qId));
-      setTimeout(() => setCopiedShareId(null), 2000);
-    }
-  };
-
-  const handleDeleteQuestion = async (qId: string | number) => {
-    const numericId = Number(String(qId).replace(/\D/g, ''));
-    if (numericId > 0) {
-      try {
-        await questionApi.deleteQuestion(numericId);
-      } catch (err) {
-        console.warn('Failed to delete question:', err);
-      }
-    }
-    setQuestions((prev) => prev.filter((q: any) => String(q.questionId || q.id) !== String(qId) && Number(String(q.questionId || q.id).replace(/\D/g, '')) !== numericId));
-  };
-  const [loadingMore, setLoadingMore] = useState<boolean>(false);
-
-  // Author profiles cache (id -> { fullName, avatarUrl })
+  // Author Profiles Cache (id -> { fullName, avatarUrl })
   const [authorProfiles, setAuthorProfiles] = useState<Record<number, { fullName: string; avatarUrl?: string }>>(() => ({ ...globalAuthorProfileCache }));
 
   // Votes & Bookmarks local state
@@ -103,7 +116,10 @@ export const FeedPage: React.FC = () => {
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
   const [bookmarkMap, setBookmarkMap] = useState<Map<string, number | string>>(new Map());
 
-  // Campus info
+  // Infinite Scroll Sentinel ref
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  // Campus Info
   const campusMap: Record<string, { shortName: string; fullName: string; address?: string }> = {
     ALL: { shortName: 'Global', fullName: 'FPT University - Toàn hệ thống (Global)', address: 'Tất cả các phân hiệu FPT trên toàn quốc' },
     GLOBAL: { shortName: 'Global', fullName: 'FPT University - Toàn hệ thống (Global)', address: 'Tất cả các phân hiệu FPT trên toàn quốc' },
@@ -121,154 +137,179 @@ export const FeedPage: React.FC = () => {
   const currentUserMajor = resolveUserMajorName(currentUser);
   const studentIdDisplay = currentUser?.studentId || extractStudentIdFromEmail(currentUser?.email) || '';
 
-  // Fetch Questions (Valid SortBy: newest, oldest, views, answers)
-  const loadQuestions = async (targetPage: number = 1, append: boolean = false) => {
+  // ─── Fetch 3 Sources Unified Feed ───────────────────────────────────────────
+  const loadFeed = async (targetPage: number = 1, append: boolean = false) => {
     try {
       if (targetPage === 1) setLoading(true);
       else setLoadingMore(true);
 
-      const params: any = {
+      const fetchQuestions = contentTypeFilter === 'ALL' || contentTypeFilter === 'QUESTION';
+      const fetchArticles = contentTypeFilter === 'ALL' || contentTypeFilter === 'ARTICLE';
+      const fetchWorkflows = contentTypeFilter === 'ALL' || contentTypeFilter === 'WORKFLOW';
+
+      const qPageSize = contentTypeFilter === 'QUESTION' ? 12 : 6;
+      const aPageSize = contentTypeFilter === 'ARTICLE' ? 12 : 4;
+      const wPageSize = contentTypeFilter === 'WORKFLOW' ? 12 : 4;
+
+      const qParams: any = {
         pageNumber: targetPage,
-        pageSize: 10,
+        pageSize: qPageSize,
+        sortBy: feedSort === 'votes' ? 'views' : 'newest',
       };
 
-      // Backend validator strictly accepts: newest, oldest, views, answers
-      if (feedFilter === 'votes') {
-        params.sortBy = 'views';
-      } else if (feedFilter === 'unanswered') {
-        params.sortBy = 'newest';
-      } else {
-        params.sortBy = 'newest';
+      const [questionsRes, articlesRes, workflowsRes] = await Promise.allSettled([
+        fetchQuestions ? questionApi.getQuestions(qParams) : Promise.resolve({ items: [] }),
+        fetchArticles ? articleApi.getArticles({ pageNumber: targetPage, pageSize: aPageSize, status: 'PUBLISHED' }) : Promise.resolve({ items: [] }),
+        fetchWorkflows ? workflowApi.getWorkflows({ pageNumber: targetPage, pageSize: wPageSize, status: 'PUBLISHED' }) : Promise.resolve({ items: [] }),
+      ]);
+
+      const newUnifiedItems: UnifiedFeedItem[] = [];
+      let sourceHadMore = false;
+
+      // 1. Process Questions
+      if (questionsRes.status === 'fulfilled' && questionsRes.value?.items) {
+        let qItems = questionsRes.value.items.filter((q: any) =>
+          q.status === 'OPEN' || q.status === 'RESOLVED' || q.status === 'CLOSED'
+        );
+        if (feedSort === 'unanswered') {
+          qItems = qItems.filter((q: any) => (q.answerCount || 0) === 0);
+        }
+        if (questionsRes.value.items.length >= qPageSize) sourceHadMore = true;
+
+        qItems.forEach((q: any) => {
+          const numId = Number(String(q.questionId || q.id).replace(/\D/g, ''));
+          const { cleanText, mediaUrls } = parseBodyMedia(q.body || q.content || '');
+          newUnifiedItems.push({
+            type: 'QUESTION',
+            id: `q-${numId || q.questionId || q.id}`,
+            numericId: numId || q.questionId || q.id,
+            title: q.title,
+            summary: cleanText,
+            createdAt: q.createdAt || new Date().toISOString(),
+            authorUserId: q.authorUserId || q.author?.id,
+            authorDisplayName: q.authorDisplayName || q.author?.fullName || q.author?.name,
+            authorAvatarUrl: q.authorAvatarUrl || q.author?.avatarUrl,
+            isAnonymous: Boolean(q.isAnonymous),
+            courseId: q.courseId,
+            courseCode: q.courseCode,
+            status: q.status,
+            isPinned: Boolean(q.isPinned),
+            answerCount: q.answerCount || 0,
+            upvoteCount: q.upvoteCount || 0,
+            downvoteCount: q.downvoteCount || 0,
+            mediaUrls,
+          });
+        });
       }
 
-      const res = await questionApi.getQuestions(params);
-      let items = res?.items || [];
-      // Defensive filter: only display public posts (OPEN, RESOLVED, CLOSED)
-      items = items.filter((q: any) => q.status === 'OPEN' || q.status === 'RESOLVED' || q.status === 'CLOSED');
+      // 2. Process Articles
+      if (articlesRes.status === 'fulfilled' && articlesRes.value?.items) {
+        const aItems = articlesRes.value.items.filter((a: any) =>
+          !a.status || a.status === 'PUBLISHED'
+        );
+        if (articlesRes.value.items.length >= aPageSize) sourceHadMore = true;
 
-      // Filter for unanswered if requested
-      if (feedFilter === 'unanswered') {
-        items = items.filter((q: any) => (q.answerCount || 0) === 0);
+        aItems.forEach((a: any) => {
+          const numId = Number(String(a.articleId || a.id).replace(/\D/g, ''));
+          newUnifiedItems.push({
+            type: 'ARTICLE',
+            id: `art-${numId || a.articleId || a.id}`,
+            numericId: numId || a.articleId || a.id,
+            title: a.title,
+            summary: a.summary || a.title,
+            createdAt: a.createdAt || a.publishedAt || new Date().toISOString(),
+            authorUserId: a.authorUserId,
+            authorDisplayName: (a as any).authorDisplayName || (a as any).authorName,
+            authorAvatarUrl: (a as any).authorAvatarUrl,
+            coverImageUrl: a.coverImageUrl ? normalizeMediaUrl(a.coverImageUrl) : undefined,
+            status: a.status || 'PUBLISHED',
+            isPinned: false,
+            readTimeMinutes: Math.max(2, Math.ceil((a.summary || a.title || '').length / 120)),
+          });
+        });
       }
 
-      // Handle sorting:
-      if (feedFilter === 'votes') {
-        items.sort((a: any, b: any) => {
-          const scoreA = (a.upvoteCount || 0) - (a.downvoteCount || 0);
-          const scoreB = (b.upvoteCount || 0) - (b.downvoteCount || 0);
+      // 3. Process Workflows
+      if (workflowsRes.status === 'fulfilled' && workflowsRes.value?.items) {
+        const wItems = workflowsRes.value.items.filter((w: any) =>
+          !w.status || w.status === 'PUBLISHED'
+        );
+        if (workflowsRes.value.items.length >= wPageSize) sourceHadMore = true;
+
+        wItems.forEach((w: any) => {
+          const numId = Number(String(w.workflowId || w.id).replace(/\D/g, ''));
+          newUnifiedItems.push({
+            type: 'WORKFLOW',
+            id: `wf-${numId || w.workflowId || w.id}`,
+            numericId: numId || w.workflowId || w.id,
+            title: w.title,
+            summary: w.summary || 'Quy trình học tập và chia sẻ kinh nghiệm thực tế.',
+            createdAt: w.createdAt || new Date().toISOString(),
+            authorUserId: w.authorUserId,
+            courseId: w.courseId,
+            status: w.status || 'PUBLISHED',
+            isPinned: Boolean(w.isPinned),
+            stepCount: w.stepCount || 1,
+          });
+        });
+      }
+
+      // Sort items based on feedSort
+      newUnifiedItems.sort((a, b) => {
+        if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
+        if (feedSort === 'votes') {
+          const scoreA = ((a.upvoteCount || 0) - (a.downvoteCount || 0)) + (a.answerCount || 0);
+          const scoreB = ((b.upvoteCount || 0) - (b.downvoteCount || 0)) + (b.answerCount || 0);
           return scoreB - scoreA;
-        });
-      } else if (questionTab === 'interesting') {
-        // Priority order for "For You" (Dành cho bạn):
-        // Pinned first, then high interaction (answers + views), then newest
-        items.sort((a: any, b: any) => {
-          if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1;
-          const scoreA = (a.answerCount || 0) * 3 + (a.viewCount || 0);
-          const scoreB = (b.answerCount || 0) * 3 + (b.viewCount || 0);
-          if (scoreA !== scoreB) return scoreB - scoreA;
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        });
-      }
+        }
+        if (feedSort === 'forYou') {
+          const scoreA = (a.answerCount || 0) * 3 + new Date(a.createdAt).getTime() / 1e11;
+          const scoreB = (b.answerCount || 0) * 3 + new Date(b.createdAt).getTime() / 1e11;
+          return scoreB - scoreA;
+        }
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
 
       if (append) {
-        setQuestions(prev => [...prev, ...items]);
+        setFeedItems((prev) => {
+          const existingIds = new Set(prev.map((i) => i.id));
+          const filteredNew = newUnifiedItems.filter((i) => !existingIds.has(i.id));
+          return [...prev, ...filteredNew];
+        });
       } else {
-        setQuestions(items);
+        setFeedItems(newUnifiedItems);
       }
 
-      setHasMore(items.length >= 10);
+      setHasMore(sourceHadMore && newUnifiedItems.length > 0);
       setPage(targetPage);
 
-      // Initialize votes state with fallback scores
+      // Initialize votes state
       const newVotes: Record<string, { count: number; userVote: 'UP' | 'DOWN' | null }> = {};
-      items.forEach((q: any) => {
-        const qId = String(q.questionId || q.id);
-        const numId = Number(String(q.questionId || q.id).replace(/\D/g, ''));
-        const fallbackCount = (q.upvoteCount || 0) - (q.downvoteCount || 0);
-        const entry = { count: fallbackCount, userVote: null as 'UP' | 'DOWN' | null };
-        newVotes[qId] = entry;
-        if (!isNaN(numId) && numId > 0) {
-          newVotes[String(numId)] = entry;
-        }
+      newUnifiedItems.forEach((item) => {
+        const fallbackCount = (item.upvoteCount || 0) - (item.downvoteCount || 0);
+        newVotes[item.id] = { count: fallbackCount, userVote: null };
       });
-      setVotes(prev => ({ ...prev, ...newVotes }));
+      setVotes((prev) => ({ ...prev, ...newVotes }));
 
-      // Fetch accurate vote stats for loaded questions
-      Promise.allSettled(
-        items.map(async (q: any) => {
-          const numId = Number(String(q.questionId || q.id).replace(/\D/g, ''));
-          if (numId > 0) {
-            const stats = await voteApi.getStats('QUESTION', numId);
-            return { qId: String(q.questionId || q.id), numId, stats };
-          }
-          return null;
-        })
-      ).then((results: any[]) => {
-        setVotes(prev => {
-          const updated = { ...prev };
-          results.forEach(r => {
-            if (r.status === 'fulfilled' && r.value) {
-              const { qId, numId, stats } = r.value;
-              const prevVote = updated[qId]?.userVote ?? (stats.myVoteValue === 1 ? 'UP' : stats.myVoteValue === -1 ? 'DOWN' : null);
-              const targetQ = items.find((item: any) => String(item.questionId || item.id) === String(qId) || String(item.questionId || item.id).replace(/\D/g, '') === String(numId));
-              const entry = { count: stats.score, userVote: prevVote };
-              updated[qId] = entry;
-              updated[String(numId)] = entry;
-            }
-          });
-          return updated;
-        });
-      }).catch(() => {});
-
-      // Synchronize user votes efficiently using 1 single getMyVotes call (reduces 10 parallel HTTP requests)
-      if (currentUser && items.length > 0) {
-        voteApi.getMyVotes()
-          .then(myVotes => {
-            const myVoteMap: Record<number, number> = {};
-            myVotes.forEach((v: any) => {
-              if (v.targetType === 'QUESTION') {
-                myVoteMap[Number(v.targetId)] = v.voteValue;
-              }
-            });
-            setVotes(prev => {
-              const updated = { ...prev };
-              items.forEach((q: any) => {
-                const qId = String(q.questionId || q.id);
-                const numId = Number(String(q.questionId || q.id).replace(/\D/g, ''));
-                const myVal = myVoteMap[numId];
-                if (myVal !== undefined) {
-                  const currentScore = updated[qId]?.count ?? ((q.upvoteCount || 0) - (q.downvoteCount || 0));
-                  const entry = {
-                    count: currentScore,
-                    userVote: myVal === 1 ? ('UP' as const) : myVal === -1 ? ('DOWN' as const) : null,
-                  };
-                  updated[qId] = entry;
-                  if (!isNaN(numId) && numId > 0) updated[String(numId)] = entry;
-                }
-              });
-              return updated;
-            });
-          })
-          .catch(() => {});
-      }
-
-      // Batch load missing author profiles asynchronously using global cache to prevent redundant requests
-      const missingAuthorIds = Array.from(new Set(
-        items
-          .filter((q: any) => !q.isAnonymous && q.authorUserId && q.authorUserId !== Number(currentUser?.id))
-          .map((q: any) => Number(q.authorUserId))
-      )).filter(id => !globalAuthorProfileCache[id]);
+      // Batch load missing author profiles asynchronously
+      const missingAuthorIds = Array.from(
+        new Set(
+          newUnifiedItems
+            .filter((item) => !item.isAnonymous && item.authorUserId && item.authorUserId !== Number(currentUser?.id))
+            .map((item) => Number(item.authorUserId))
+        )
+      ).filter((id) => !globalAuthorProfileCache[id]);
 
       if (missingAuthorIds.length > 0) {
-        Promise.allSettled(missingAuthorIds.map(id => profileApi.getProfile(id)))
-          .then(results => {
+        Promise.allSettled(missingAuthorIds.map((id) => profileApi.getProfile(id)))
+          .then((results) => {
             const mappedProfiles: Record<number, { fullName: string; avatarUrl?: string }> = {};
             results.forEach((r, idx) => {
               if (r.status === 'fulfilled' && r.value) {
                 const val = r.value;
                 const authorId = missingAuthorIds[idx];
                 const prof = {
-                  fullName: val.fullName || val.displayName || '',
+                  fullName: val.displayName || val.fullName || '',
                   avatarUrl: val.avatarUrl || '',
                 };
                 globalAuthorProfileCache[authorId] = prof;
@@ -276,14 +317,44 @@ export const FeedPage: React.FC = () => {
               }
             });
             if (Object.keys(mappedProfiles).length > 0) {
-              setAuthorProfiles(prev => ({ ...prev, ...mappedProfiles }));
+              setAuthorProfiles((prev) => ({ ...prev, ...mappedProfiles }));
             }
           })
           .catch(() => {});
       }
+
+      // Synchronize current user votes
+      if (currentUser && newUnifiedItems.length > 0) {
+        voteApi.getMyVotes()
+          .then((myVotes) => {
+            const myVoteMap: Record<string, number> = {};
+            myVotes.forEach((v: any) => {
+              if (v.targetType === 'QUESTION') {
+                myVoteMap[`q-${v.targetId}`] = v.voteValue;
+              } else if (v.targetType === 'ARTICLE') {
+                myVoteMap[`art-${v.targetId}`] = v.voteValue;
+              }
+            });
+            setVotes((prev) => {
+              const updated = { ...prev };
+              newUnifiedItems.forEach((item) => {
+                const myVal = myVoteMap[item.id];
+                if (myVal !== undefined) {
+                  const currentScore = updated[item.id]?.count ?? ((item.upvoteCount || 0) - (item.downvoteCount || 0));
+                  updated[item.id] = {
+                    count: currentScore,
+                    userVote: myVal === 1 ? 'UP' : myVal === -1 ? 'DOWN' : null,
+                  };
+                }
+              });
+              return updated;
+            });
+          })
+          .catch(() => {});
+      }
     } catch (err) {
-      console.warn('Could not fetch questions feed:', err);
-      if (!append) setQuestions([]);
+      console.warn('Could not fetch feed items:', err);
+      if (!append) setFeedItems([]);
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -291,12 +362,30 @@ export const FeedPage: React.FC = () => {
   };
 
   useEffect(() => {
-    loadQuestions(1, false);
-  }, [questionTab, feedFilter]);
+    loadFeed(1, false);
+  }, [contentTypeFilter, feedSort]);
 
-  const handleVote = async (questionId: string, direction: 'UP' | 'DOWN') => {
-    const current = votes[questionId] || { count: 0, userVote: null };
-    const numericId = Number(String(questionId).replace(/\D/g, ''));
+  // ─── Facebook-like Infinite Scroll (IntersectionObserver) ──────────────────
+  useEffect(() => {
+    if (!sentinelRef.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0];
+        if (first.isIntersecting && hasMore && !loading && !loadingMore) {
+          loadFeed(page + 1, true);
+        }
+      },
+      { threshold: 0.1, rootMargin: '300px' }
+    );
+
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [hasMore, loading, loadingMore, page, contentTypeFilter, feedSort]);
+
+  // ─── Handlers (Vote, Bookmark, Share, Delete) ──────────────────────────────
+  const handleVote = async (item: UnifiedFeedItem, direction: 'UP' | 'DOWN') => {
+    const current = votes[item.id] || { count: 0, userVote: null };
     const voteValue = direction === 'UP' ? 1 : -1;
 
     let nextVote: 'UP' | 'DOWN' | null = direction;
@@ -312,110 +401,104 @@ export const FeedPage: React.FC = () => {
     }
 
     const optimistic = { count: nextCount, userVote: nextVote };
-    setVotes(prev => ({
-      ...prev,
-      [questionId]: optimistic,
-      ...(numericId > 0 ? { [String(numericId)]: optimistic } : {}),
-    }));
+    setVotes((prev) => ({ ...prev, [item.id]: optimistic }));
 
-    if (!isNaN(numericId) && numericId > 0) {
+    if (item.numericId > 0) {
       try {
+        const targetType = item.type === 'ARTICLE' ? 'ARTICLE' : 'QUESTION';
         if (current.userVote === direction) {
-          await voteApi.removeVote('QUESTION', numericId);
+          await voteApi.removeVote(targetType, item.numericId);
         } else {
           await voteApi.vote({
-            target_type: 'QUESTION',
-            target_id: numericId,
+            target_type: targetType,
+            target_id: item.numericId,
             vote_value: voteValue,
           });
         }
-        const stats = await voteApi.getStats('QUESTION', numericId);
-        const finalEntry = {
-          count: stats.score,
-          userVote: stats.myVoteValue === 1 ? 'UP' as const : stats.myVoteValue === -1 ? 'DOWN' as const : null,
-        };
-        setVotes(prev => ({
+        const stats = await voteApi.getStats(targetType, item.numericId);
+        setVotes((prev) => ({
           ...prev,
-          [questionId]: finalEntry,
-          [String(numericId)]: finalEntry,
+          [item.id]: {
+            count: stats.score,
+            userVote: stats.myVoteValue === 1 ? 'UP' : stats.myVoteValue === -1 ? 'DOWN' : null,
+          },
         }));
 
-        if (direction === 'UP') {
-          const targetQ = questions.find((q: any) => String(q.questionId || q.id) === String(questionId) || String(q.id || '').replace(/\D/g, '') === String(numericId));
-          const authorId = targetQ?.authorUserId || targetQ?.author?.id || targetQ?.author_user_id;
-          if (authorId && String(authorId) !== String(currentUser?.id)) {
-            apiClient.post('/api/reputation/events', {
-              user_id: Number(authorId),
-              rule_code: 'QUESTION_UPVOTED',
-              source_type: 'Question',
-              source_id: numericId,
-            }).catch(() => {});
-            const senderName = currentUser?.fullName || (currentUser as any)?.displayName || t('common.peerStudent', 'Một bạn học');
-            notificationApi.createNotification({
-              recipientUserId: Number(authorId),
-              type: 'UPVOTE',
-              title: `${senderName} đã thích câu hỏi của bạn`,
-              message: targetQ?.title ? `"${targetQ.title.slice(0, 80)}..."` : 'Ai đó đã thích bài viết của bạn',
-              actionUrl: `/questions/${numericId}`,
-              targetType: 'QUESTION',
-              targetId: numericId,
-            });
-          }
+        if (direction === 'UP' && item.authorUserId && String(item.authorUserId) !== String(currentUser?.id)) {
+          const senderName = currentUser?.fullName || (currentUser as any)?.displayName || t('common.peerStudent', 'Một bạn học');
+          notificationApi.createNotification({
+            recipientUserId: Number(item.authorUserId),
+            type: 'UPVOTE',
+            title: `${senderName} đã thích nội dung của bạn`,
+            message: `"${item.title.slice(0, 80)}..."`,
+            actionUrl: item.type === 'ARTICLE' ? `/articles/${item.numericId}` : `/discussions/${item.numericId}`,
+            targetType: item.type,
+            targetId: item.numericId,
+          });
         }
       } catch (err) {
         console.warn('Vote submission error:', err);
-        // Rollback optimistic update on error
-        setVotes(prev => ({
-          ...prev,
-          [questionId]: current,
-          ...(numericId > 0 ? { [String(numericId)]: current } : {}),
-        }));
+        setVotes((prev) => ({ ...prev, [item.id]: current }));
       }
     }
   };
 
-  const toggleBookmark = async (id: string) => {
-    const isBookmarked = bookmarkedIds.has(id);
-    const existingBookmarkId = bookmarkMap.get(id);
-    const numId = Number(id.replace(/\D/g, '')) || Number(id);
+  const toggleBookmark = async (item: UnifiedFeedItem) => {
+    const isBookmarked = bookmarkedIds.has(item.id);
+    const existingBookmarkId = bookmarkMap.get(item.id);
 
     if (isBookmarked && existingBookmarkId) {
       setBookmarkedIds((prev) => {
         const next = new Set(prev);
-        next.delete(id);
+        next.delete(item.id);
         return next;
       });
       try {
         await bookmarkApi.removeBookmark(existingBookmarkId);
         setBookmarkMap((prev) => {
           const next = new Map(prev);
-          next.delete(id);
+          next.delete(item.id);
           return next;
         });
       } catch (err) {
         console.warn('Failed to remove bookmark:', err);
       }
     } else {
-      setBookmarkedIds((prev) => new Set(prev).add(id));
+      setBookmarkedIds((prev) => new Set(prev).add(item.id));
       try {
-        const res = await bookmarkApi.addBookmark('Question', numId);
+        const bookmarkType = item.type === 'ARTICLE' ? 'Article' : item.type === 'WORKFLOW' ? 'Workflow' : 'Question';
+        const res = await bookmarkApi.addBookmark(bookmarkType, item.numericId);
         const bId = res?.bookmark_id ?? res?.data?.bookmark_id ?? res?.id ?? Date.now();
-        setBookmarkMap((prev) => new Map(prev).set(id, bId));
+        setBookmarkMap((prev) => new Map(prev).set(item.id, bId));
       } catch (err) {
         console.warn('Failed to add bookmark:', err);
       }
     }
   };
 
+  const handleDeleteItem = async (item: { id: string; numericId: number; type: 'QUESTION' | 'ARTICLE' | 'WORKFLOW' }) => {
+    try {
+      if (item.type === 'QUESTION') {
+        await questionApi.deleteQuestion(item.numericId);
+      } else if (item.type === 'ARTICLE') {
+        await articleApi.deleteArticle(item.numericId);
+      } else if (item.type === 'WORKFLOW') {
+        await workflowApi.deleteWorkflow(item.numericId);
+      }
+    } catch (err) {
+      console.warn('Failed to delete item:', err);
+    }
+    setFeedItems((prev) => prev.filter((i) => i.id !== item.id));
+  };
+
   // Helper to resolve accurate author name without "Sinh viên [id]"
-  const getAuthorName = (q: any) => {
-    if (q.isAnonymous) return t('common.anonymous', 'Ẩn danh FPTer');
-    const authorId = Number(q.authorUserId || q.author?.id);
+  const getAuthorName = (item: UnifiedFeedItem) => {
+    if (item.isAnonymous) return t('common.anonymous', 'Ẩn danh FPTer');
+    const authorId = Number(item.authorUserId);
     if (authorId && currentUser?.id && String(authorId) === String(currentUser.id)) {
       return currentUser.fullName || (currentUser as any)?.displayName || currentUser.email?.split('@')[0] || t('common.you', 'Bạn');
     }
-    // 1. Check author fields if not a placeholder
-    const rawName = q.authorDisplayName || q.author?.fullName || q.author?.name;
+    const rawName = item.authorDisplayName;
     if (rawName && typeof rawName === 'string' && rawName.trim()) {
       const trimmed = rawName.trim();
       const isPlaceholder =
@@ -426,11 +509,9 @@ export const FeedPage: React.FC = () => {
         trimmed === 'Anonymous Student';
       if (!isPlaceholder) return trimmed;
     }
-    // 2. Check loaded profile from profile-service
     if (authorId && authorProfiles[authorId]?.fullName) {
       return authorProfiles[authorId].fullName;
     }
-    // 3. Check known seed users in FPT system as fallback
     const knownUsers: Record<number, string> = {
       1: 'Nguyễn Văn An',
       2: 'Trần Minh Hoàng',
@@ -442,6 +523,7 @@ export const FeedPage: React.FC = () => {
       8: 'Ngô Quốc Bảo',
       9: 'Lê Thị Thu Thảo',
       10: 'Trần Văn Mạnh',
+      13: 'Tăng Minh Vĩnh Quang',
     };
     if (authorId && knownUsers[authorId]) {
       return knownUsers[authorId];
@@ -449,23 +531,28 @@ export const FeedPage: React.FC = () => {
     return t('common.fhubMember', 'Thành viên FHub');
   };
 
-  const getAuthorAvatar = (q: any) => {
-    if (q.isAnonymous) return '';
-    const authorId = Number(q.authorUserId || q.author?.id);
+  const getAuthorAvatar = (item: UnifiedFeedItem) => {
+    if (item.isAnonymous) return '';
+    const authorId = Number(item.authorUserId);
     if (authorId && currentUser?.id && String(authorId) === String(currentUser.id) && currentUser.avatarUrl) {
       return currentUser.avatarUrl;
     }
     if (authorId && authorProfiles[authorId]?.avatarUrl) {
       return authorProfiles[authorId].avatarUrl;
     }
-    if (q.author?.avatarUrl && q.author.avatarUrl.trim()) return q.author.avatarUrl.trim();
-    if (q.authorAvatarUrl && q.authorAvatarUrl.trim()) return q.authorAvatarUrl.trim();
+    if (item.authorAvatarUrl && item.authorAvatarUrl.trim()) return item.authorAvatarUrl.trim();
     return '';
+  };
+
+  const getItemUrl = (item: UnifiedFeedItem) => {
+    if (item.type === 'ARTICLE') return `/articles/${item.numericId}`;
+    if (item.type === 'WORKFLOW') return `/workflows/${item.numericId}`;
+    return `/discussions/${item.numericId}`;
   };
 
   return (
     <div className="space-y-6">
-      {/* 3.A Welcome Header (Restored Figma #86:118) */}
+      {/* 3.A Welcome Header (Figma #86:118) */}
       <div className="rainbow-glow-card bg-white dark:bg-[#272727] rounded-2xl p-6 border border-slate-200/90 dark:border-transparent shadow-2xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="space-y-1.5">
           <div
@@ -523,7 +610,7 @@ export const FeedPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 3.B Quick Navigation Shortcuts (8 Core Modules from Figma #86:137 - Restored Compact Style) */}
+      {/* 3.B Quick Navigation Shortcuts (8 Core Modules from Figma #86:137) */}
       <div className="space-y-2.5">
         <div className="flex items-center justify-between px-0.5">
           <h2 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
@@ -561,7 +648,7 @@ export const FeedPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 3.C Academic Resource Shortcuts (Study Materials & Documents Banner - Restored) */}
+      {/* 3.C Academic Resource Banner */}
       <div className="rainbow-glow-card bg-gradient-to-r from-blue-500/10 via-indigo-500/5 to-transparent rounded-2xl p-4 sm:p-5 border border-blue-100 dark:border-blue-900/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3.5">
           <div className="w-10 h-10 rounded-xl bg-[#0076D1] text-white flex items-center justify-center shrink-0 shadow-xs">
@@ -586,95 +673,147 @@ export const FeedPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 3.D Questions & Academic Discussions (Main Feed Section) */}
+      {/* 3.D Unified Infinite Feed: Questions, Articles & Workflows (Like Facebook) */}
       <div className="bg-white dark:bg-[#272727] rounded-2xl border border-slate-200/90 dark:border-transparent dark:hover:border-[#444444] shadow-2xs overflow-hidden transition-colors">
-        {/* Section Header: Title, clean Subtitle without unwanted banners, and Ask Button */}
+        {/* Section Header */}
         <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-[#0076D1] dark:text-blue-400 flex items-center justify-center font-bold">
-              <HelpCircle className="w-5 h-5" />
+              <Compass className="w-5 h-5" />
             </div>
             <div>
               <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight">
-                {t('nav.questions', 'Hỏi đáp & Thảo luận')}
+                {t('feed.unifiedFeedTitle', 'Bảng tin hoạt động & Thảo luận cộng đồng')}
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                {t('feed.discussionsSubtitle', 'Trao đổi kiến thức học thuật, đặt câu hỏi và cùng giải đáp thắc mắc.')}
+                {t('feed.unifiedFeedSubtitle', 'Dòng thời gian tích hợp: Hỏi đáp, Bài viết chuyên sâu và Quy trình chia sẻ từ sinh viên FPT.')}
               </p>
             </div>
           </div>
 
           {/* Action: Ask Question Button */}
-          <button
-            onClick={() => setIsAskModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700 transition-all cursor-pointer shadow-xs shrink-0 self-start md:self-auto"
-          >
-            <Plus className="w-4 h-4" />
-            <span>{t('feed.askQuestionNow', 'Đặt câu hỏi ngay')}</span>
-          </button>
+          <div className="flex items-center gap-2 self-start md:self-auto">
+            <button
+              onClick={() => setIsAskModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700 transition-all cursor-pointer shadow-xs shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              <span>{t('feed.askQuestionNow', 'Đặt câu hỏi ngay')}</span>
+            </button>
+          </div>
         </div>
 
-        {/* Optimized Filter Bar: No icons, No scrollbars, Modern pill buttons */}
-        <div className="px-4 py-3 bg-slate-50/60 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          {/* Pill Tabs */}
+        {/* Filter & Sorting Bar */}
+        <div className="px-4 py-3 bg-slate-50/60 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          {/* Content Source Filter Tabs */}
           <div className="flex flex-wrap items-center bg-slate-200/70 dark:bg-slate-800 p-1 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 gap-1">
             <button
-              onClick={() => { setQuestionTab('interesting'); }}
+              onClick={() => setContentTypeFilter('ALL')}
               className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                questionTab === 'interesting'
+                contentTypeFilter === 'ALL'
                   ? 'bg-white dark:bg-slate-700 text-[#0076D1] dark:text-blue-400 shadow-xs font-bold'
                   : 'hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              {t('feed.allSources', 'Tất cả')}
+            </button>
+            <button
+              onClick={() => setContentTypeFilter('QUESTION')}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                contentTypeFilter === 'QUESTION'
+                  ? 'bg-white dark:bg-slate-700 text-[#0076D1] dark:text-blue-400 shadow-xs font-bold'
+                  : 'hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <HelpCircle className="w-3.5 h-3.5 text-blue-500" />
+              <span>{t('nav.questions', 'Hỏi đáp')}</span>
+            </button>
+            <button
+              onClick={() => setContentTypeFilter('ARTICLE')}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                contentTypeFilter === 'ARTICLE'
+                  ? 'bg-white dark:bg-slate-700 text-[#0076D1] dark:text-blue-400 shadow-xs font-bold'
+                  : 'hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <FileCode className="w-3.5 h-3.5 text-pink-500" />
+              <span>{t('nav.articles', 'Bài viết')}</span>
+            </button>
+            <button
+              onClick={() => setContentTypeFilter('WORKFLOW')}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                contentTypeFilter === 'WORKFLOW'
+                  ? 'bg-white dark:bg-slate-700 text-[#0076D1] dark:text-blue-400 shadow-xs font-bold'
+                  : 'hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5 text-indigo-500" />
+              <span>{t('nav.workflows', 'Quy trình')}</span>
+            </button>
+          </div>
+
+          {/* Sort Pills */}
+          <div className="flex flex-wrap items-center gap-1.5 text-xs font-medium text-slate-500 dark:text-slate-400">
+            <span className="text-[11px] text-slate-400 mr-1">{t('common.sort', 'Sắp xếp')}:</span>
+            <button
+              onClick={() => setFeedSort('forYou')}
+              className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                feedSort === 'forYou'
+                  ? 'bg-blue-100/70 text-[#0076D1] dark:bg-blue-950/60 dark:text-blue-400 font-bold'
+                  : 'hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
               {t('feed.forYou', 'Dành cho bạn')}
             </button>
             <button
-              onClick={() => { setQuestionTab('all'); setFeedFilter('newest'); }}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                questionTab === 'all' && feedFilter === 'newest'
-                  ? 'bg-white dark:bg-slate-700 text-[#0076D1] dark:text-blue-400 shadow-xs font-bold'
-                  : 'hover:text-slate-900 dark:hover:text-white'
+              onClick={() => setFeedSort('newest')}
+              className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                feedSort === 'newest'
+                  ? 'bg-blue-100/70 text-[#0076D1] dark:bg-blue-950/60 dark:text-blue-400 font-bold'
+                  : 'hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
               {t('feed.recent', 'Mới nhất')}
             </button>
             <button
-              onClick={() => { setQuestionTab('all'); setFeedFilter('votes'); }}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                questionTab === 'all' && feedFilter === 'votes'
-                  ? 'bg-white dark:bg-slate-700 text-[#0076D1] dark:text-blue-400 shadow-xs font-bold'
-                  : 'hover:text-slate-900 dark:hover:text-white'
+              onClick={() => setFeedSort('votes')}
+              className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                feedSort === 'votes'
+                  ? 'bg-blue-100/70 text-[#0076D1] dark:bg-blue-950/60 dark:text-blue-400 font-bold'
+                  : 'hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
-              {t('feed.topVoted', 'Bình chọn nhiều')}
+              {t('feed.topVoted', 'Tương tác nhiều')}
             </button>
-            <button
-              onClick={() => { setQuestionTab('all'); setFeedFilter('unanswered'); }}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                questionTab === 'all' && feedFilter === 'unanswered'
-                  ? 'bg-white dark:bg-slate-700 text-[#0076D1] dark:text-blue-400 shadow-xs font-bold'
-                  : 'hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              {t('feed.unanswered', 'Chưa trả lời')}
-            </button>
+            {(contentTypeFilter === 'ALL' || contentTypeFilter === 'QUESTION') && (
+              <button
+                onClick={() => setFeedSort('unanswered')}
+                className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                  feedSort === 'unanswered'
+                    ? 'bg-blue-100/70 text-[#0076D1] dark:bg-blue-950/60 dark:text-blue-400 font-bold'
+                    : 'hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                {t('feed.unanswered', 'Chưa trả lời')}
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Questions Feed Content */}
+        {/* Feed Content */}
         {loading ? (
           <div className="p-12 text-center text-slate-400">
             <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-[#0076D1]" />
-            <p className="text-xs">{t('common.loading', 'Đang tải danh sách câu hỏi...')}</p>
+            <p className="text-xs">{t('common.loading', 'Đang tải bảng tin học tập...')}</p>
           </div>
-        ) : questions.length === 0 ? (
+        ) : feedItems.length === 0 ? (
           <div className="p-12 text-center text-slate-400 text-xs">
-            <HelpCircle className="w-8 h-8 mx-auto mb-2 text-slate-300 dark:text-slate-600" />
+            <Compass className="w-8 h-8 mx-auto mb-2 text-slate-300 dark:text-slate-600" />
             <p className="font-semibold text-slate-600 dark:text-slate-300">
-              {t('feed.emptyQuestions', 'Chưa có câu hỏi nào trong danh mục này')}
+              {t('feed.emptyFeed', 'Chưa có nội dung nào trong danh mục này')}
             </p>
             <p className="text-[11px] text-slate-400 mt-1">
-              {t('feed.emptyQuestionsDesc', 'Hãy là người đầu tiên đặt câu hỏi để nhận trợ giúp từ bạn học và giảng viên!')}
+              {t('feed.emptyFeedDesc', 'Hãy là người đầu tiên đặt câu hỏi hoặc chia sẻ bài viết để xây dựng cộng đồng FPT!')}
             </p>
             <button
               onClick={() => setIsAskModalOpen(true)}
@@ -685,55 +824,70 @@ export const FeedPage: React.FC = () => {
           </div>
         ) : (
           <div className="divide-y divide-slate-100 dark:divide-slate-800">
-            {questions.map((q, idx) => {
-              const qId = String(q.questionId || q.id || idx);
-              const numId = Number(String(q.questionId || q.id).replace(/\D/g, ''));
-              const authorName = getAuthorName(q);
-              const authorId = Number(q.authorUserId || q.author?.id);
-              const voteInfo = votes[qId] || (numId > 0 ? votes[String(numId)] : undefined) || {
-                count: (q.upvoteCount || 0) - (q.downvoteCount || 0),
-                userVote: null,
-              };
-
-              // Extract images & clean text snippet
-              const { cleanText, mediaUrls } = parseBodyMedia(q.body || q.content || '');
+            {feedItems.map((item) => {
+              const authorName = getAuthorName(item);
+              const authorId = Number(item.authorUserId);
+              const authorAvatar = getAuthorAvatar(item);
+              const itemUrl = getItemUrl(item);
+              const voteInfo = votes[item.id] || { count: (item.upvoteCount || 0) - (item.downvoteCount || 0), userVote: null };
+              const currentUserId = currentUser?.id || (currentUser as any)?.userId;
+              const isOwner = Boolean(
+                currentUser?.role === 'Admin' ||
+                (authorId && currentUserId && (
+                  String(authorId) === String(currentUserId) ||
+                  String(authorId).replace(/\D/g, '') === String(currentUserId).replace(/\D/g, '')
+                )) ||
+                (item.authorDisplayName && currentUser?.fullName && item.authorDisplayName.trim().toLowerCase() === currentUser.fullName.trim().toLowerCase())
+              );
 
               return (
                 <div
-                  key={qId}
+                  key={item.id}
                   className="p-4 sm:p-5 flex items-start gap-3 sm:gap-4 hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors"
                 >
-                  {/* Left: Compact Vertical Vote Counter */}
-                  <div className="flex flex-col items-center justify-center min-w-[42px] bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl p-1 shrink-0 self-start shadow-2xs">
-                    <button
-                      onClick={() => handleVote(qId, 'UP')}
-                      className={`p-1 rounded hover:bg-slate-200/60 dark:hover:bg-slate-700 cursor-pointer transition-colors ${
-                        voteInfo.userVote === 'UP' ? 'text-[#0076D1] font-bold' : 'text-slate-400'
-                      }`}
-                      title="Bình chọn tích cực (Upvote)"
-                    >
-                      <ChevronUp className="w-4 h-4" />
-                    </button>
-                    <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-200 my-0.5">
-                      {voteInfo.count}
-                    </span>
-                    <button
-                      onClick={() => handleVote(qId, 'DOWN')}
-                      className={`p-1 rounded hover:bg-slate-200/60 dark:hover:bg-slate-700 cursor-pointer transition-colors ${
-                        voteInfo.userVote === 'DOWN' ? 'text-rose-600 font-bold' : 'text-slate-400'
-                      }`}
-                      title="Bình chọn tiêu cực (Downvote)"
-                    >
-                      <ChevronDown className="w-4 h-4" />
-                    </button>
-                  </div>
+                  {/* Left: Vote Counter or Type Badge */}
+                  {item.type === 'QUESTION' ? (
+                    <div className="flex flex-col items-center justify-center min-w-[42px] bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl p-1 shrink-0 self-start shadow-2xs">
+                      <button
+                        onClick={() => handleVote(item, 'UP')}
+                        className={`p-1 rounded hover:bg-slate-200/60 dark:hover:bg-slate-700 cursor-pointer transition-colors ${
+                          voteInfo.userVote === 'UP' ? 'text-[#0076D1] font-bold' : 'text-slate-400'
+                        }`}
+                        title="Bình chọn tích cực (Upvote)"
+                      >
+                        <ChevronUp className="w-4 h-4" />
+                      </button>
+                      <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-200 my-0.5">
+                        {voteInfo.count}
+                      </span>
+                      <button
+                        onClick={() => handleVote(item, 'DOWN')}
+                        className={`p-1 rounded hover:bg-slate-200/60 dark:hover:bg-slate-700 cursor-pointer transition-colors ${
+                          voteInfo.userVote === 'DOWN' ? 'text-rose-600 font-bold' : 'text-slate-400'
+                        }`}
+                        title="Bình chọn tiêu cực (Downvote)"
+                      >
+                        <ChevronDown className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : item.type === 'ARTICLE' ? (
+                    <div className="flex flex-col items-center justify-center min-w-[42px] bg-pink-50 dark:bg-pink-950/40 border border-pink-200/80 dark:border-pink-900/50 rounded-xl p-2 shrink-0 self-start shadow-2xs text-pink-600 dark:text-pink-400">
+                      <FileCode className="w-4 h-4 mb-0.5" />
+                      <span className="text-[10px] font-bold">Bài</span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center min-w-[42px] bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-900/50 rounded-xl p-2 shrink-0 self-start shadow-2xs text-indigo-600 dark:text-indigo-400">
+                      <Layers className="w-4 h-4 mb-0.5" />
+                      <span className="text-[10px] font-bold">Quy</span>
+                    </div>
+                  )}
 
-                  {/* Right: Question Body & Media Preview */}
+                  {/* Right: Content details */}
                   <div className="flex-1 min-w-0 space-y-2">
-                    {/* Header: Author & Course Tag */}
+                    {/* Header: Author & Metadata */}
                     <div className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-2">
-                        {q.isAnonymous ? (
+                        {item.isAnonymous ? (
                           <>
                             <div className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center text-purple-600 dark:text-purple-300 font-bold text-[10px] shrink-0 border border-purple-200 dark:border-purple-800">
                               ?
@@ -750,12 +904,12 @@ export const FeedPage: React.FC = () => {
                             userId={authorId}
                             initialData={{
                               fullName: authorName,
-                              avatarUrl: getAuthorAvatar(q),
+                              avatarUrl: authorAvatar,
                             }}
                           >
                             <div className="flex items-center gap-2 group cursor-pointer">
                               <img
-                                src={normalizeMediaUrl(getAuthorAvatar(q)) || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
+                                src={normalizeMediaUrl(authorAvatar) || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
                                 alt={authorName}
                                 className="w-6 h-6 rounded-full object-cover shrink-0 border border-slate-200 dark:border-slate-700 group-hover:ring-2 group-hover:ring-[#0076D1] transition-all"
                               />
@@ -765,101 +919,93 @@ export const FeedPage: React.FC = () => {
                             </div>
                           </UserHoverCard>
                         )}
+
                         <span className="text-slate-400">
-                          • {q.createdAt ? new Date(q.createdAt).toLocaleDateString(locale) : t('common.recent', 'Mới đây')}
+                          • {item.createdAt ? new Date(item.createdAt).toLocaleDateString(locale) : t('common.recent', 'Mới đây')}
                         </span>
                       </div>
+
+                      {/* Right Tag & Action Menu */}
                       <div className="flex items-center gap-2">
-                        {q.courseId && (
+                        {item.type === 'ARTICLE' && (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-pink-50 text-pink-600 dark:bg-pink-950/60 dark:text-pink-300 border border-pink-200/60 dark:border-pink-800">
+                            Bài viết
+                          </span>
+                        )}
+                        {item.type === 'WORKFLOW' && (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800">
+                            {item.stepCount || 1} bước
+                          </span>
+                        )}
+                        {item.courseId && (
                           <span className="px-2 py-0.5 rounded text-[11px] font-mono font-bold bg-blue-50 text-[#0076D1] dark:bg-blue-950/60 dark:text-blue-300 border border-blue-100 dark:border-blue-800">
-                            #{q.courseCode || `Môn ${q.courseId}`}
+                            #{item.courseCode || `Môn ${item.courseId}`}
                           </span>
                         )}
                         <ContentActionMenu
-                          targetType="QUESTION"
-                          targetId={qId}
-                          targetTitle={q.title}
-                          shareUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/discussions/${qId}`}
-                          isOwner={Boolean(
-                            (q.authorUserId && currentUser?.id && (String(q.authorUserId) === String(currentUser.id) || String(q.authorUserId).replace(/\D/g, '') === String(currentUser.id).replace(/\D/g, ''))) ||
-                            (q.author?.id && currentUser?.id && (String(q.author.id) === String(currentUser.id) || String(q.author.id).replace(/\D/g, '') === String(currentUser.id).replace(/\D/g, ''))) ||
-                            (q.authorDisplayName && currentUser?.fullName && q.authorDisplayName.trim().toLowerCase() === currentUser.fullName.trim().toLowerCase()) ||
-                            currentUser?.role === 'Admin'
-                          )}
-                          onDelete={() => handleDeleteQuestion(qId)}
-                          deleteLabel={t('questions.deleteQuestion', 'Xóa câu hỏi')}
+                          targetType={item.type}
+                          targetId={item.numericId}
+                          targetTitle={item.title}
+                          shareUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}${itemUrl}`}
+                          isOwner={isOwner}
+                          onDelete={() => setDeletingItem({ id: item.id, numericId: item.numericId, title: item.title, type: item.type })}
+                          deleteLabel={t('common.delete', 'Xóa')}
                         />
                       </div>
                     </div>
 
-                    {/* Question Title */}
+                    {/* Title */}
                     <Link
-                      to={`/discussions/${qId}`}
+                      to={itemUrl}
                       className="block text-sm sm:text-base font-bold text-slate-900 dark:text-slate-100 hover:text-[#0076D1] dark:hover:text-blue-400 transition-colors leading-snug"
                     >
-                      {q.title}
+                      {item.title}
                     </Link>
 
-                    {/* Clean Question Text */}
-                    {cleanText && (
+                    {/* Excerpt */}
+                    {item.summary && (
                       <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-3 leading-relaxed">
-                        {cleanText}
+                        {item.summary}
                       </p>
                     )}
 
-                    {/* Facebook-style Attached Media / Image Grid */}
-                    {mediaUrls.length > 0 && (
+                    {/* Article Cover Image Thumbnail (if available) */}
+                    {item.type === 'ARTICLE' && item.coverImageUrl && (
+                      <div className="pt-1 max-w-md">
+                        <div className="relative aspect-video rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800">
+                          <img
+                            src={item.coverImageUrl}
+                            alt={item.title}
+                            className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer"
+                            onClick={() => navigate(itemUrl)}
+                            onError={(e) => { (e.target as any).style.display = 'none'; }}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Question Attached Media Grid (Facebook Style) */}
+                    {item.type === 'QUESTION' && item.mediaUrls && item.mediaUrls.length > 0 && (
                       <div className="pt-1">
-                        {mediaUrls.length === 1 ? (
+                        {item.mediaUrls.length === 1 ? (
                           <div className="relative group max-w-lg rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-900/5">
                             <img
-                              src={normalizeMediaUrl(mediaUrls[0])}
+                              src={normalizeMediaUrl(item.mediaUrls[0])}
                               alt="Đính kèm"
                               className="w-full max-h-80 object-cover rounded-xl hover:scale-[1.01] transition-transform cursor-pointer"
-                              onClick={() => navigate(`/discussions/${qId}`)}
+                              onClick={() => navigate(itemUrl)}
                             />
-                            {mediaUrls[0].toLowerCase().includes('.gif') && (
-                              <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-black/70 text-[10px] font-bold text-white tracking-wider">
-                                GIF
-                              </span>
-                            )}
                           </div>
-                        ) : mediaUrls.length === 2 ? (
+                        ) : (
                           <div className="grid grid-cols-2 gap-1.5 max-w-lg rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
-                            {mediaUrls.slice(0, 2).map((url, imgIdx) => (
+                            {item.mediaUrls.slice(0, 2).map((url, imgIdx) => (
                               <div key={imgIdx} className="relative aspect-video bg-slate-100 dark:bg-slate-800 overflow-hidden">
                                 <img
                                   src={normalizeMediaUrl(url)}
                                   alt="Đính kèm"
                                   className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer"
-                                  onClick={() => navigate(`/discussions/${qId}`)}
+                                  onClick={() => navigate(itemUrl)}
                                 />
-                                {url.toLowerCase().includes('.gif') && (
-                                  <span className="absolute top-1.5 left-1.5 px-1 py-0.2 rounded bg-black/70 text-[9px] font-bold text-white">
-                                    GIF
-                                  </span>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="grid grid-cols-3 gap-1.5 max-w-lg rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
-                            {mediaUrls.slice(0, 3).map((url, imgIdx) => (
-                              <div key={imgIdx} className="relative aspect-square bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                                <img
-                                  src={normalizeMediaUrl(url)}
-                                  alt="Đính kèm"
-                                  className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer"
-                                  onClick={() => navigate(`/discussions/${qId}`)}
-                                />
-                                {imgIdx === 2 && mediaUrls.length > 3 && (
-                                  <div
-                                    className="absolute inset-0 bg-black/60 flex items-center justify-center text-white font-bold text-sm cursor-pointer"
-                                    onClick={() => navigate(`/discussions/${qId}`)}
-                                  >
-                                    +{mediaUrls.length - 2}
-                                  </div>
-                                )}
                               </div>
                             ))}
                           </div>
@@ -870,21 +1016,34 @@ export const FeedPage: React.FC = () => {
                     {/* Bottom Metadata & Action Row */}
                     <div className="pt-2 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
                       <div className="flex items-center gap-4">
-                        <span className="flex items-center gap-1.5 font-medium">
-                          <MessageSquare className="w-3.5 h-3.5 text-slate-400" />
-                          {q.answerCount || 0} {t('common.answersCount', 'câu trả lời')}
-                        </span>
+                        {item.type === 'QUESTION' ? (
+                          <span className="flex items-center gap-1.5 font-medium">
+                            <MessageSquare className="w-3.5 h-3.5 text-slate-400" />
+                            {item.answerCount || 0} {t('common.answersCount', 'câu trả lời')}
+                          </span>
+                        ) : item.type === 'ARTICLE' ? (
+                          <span className="flex items-center gap-1.5 font-medium text-slate-400">
+                            <Clock className="w-3.5 h-3.5" />
+                            {item.readTimeMinutes || 3} {t('common.minutesRead', 'phút đọc')}
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1.5 font-medium text-indigo-500">
+                            <Layers className="w-3.5 h-3.5" />
+                            {item.stepCount || 1} {t('common.steps', 'bước thực hiện')}
+                          </span>
+                        )}
+
                         <button
-                          onClick={() => toggleBookmark(qId)}
+                          onClick={() => toggleBookmark(item)}
                           className={`flex items-center gap-1.5 cursor-pointer transition-colors ${
-                            bookmarkedIds.has(qId)
+                            bookmarkedIds.has(item.id)
                               ? 'text-[#0076D1] dark:text-blue-400 font-bold'
                               : 'text-slate-500 hover:text-[#0076D1] dark:hover:text-blue-400'
                           }`}
-                          title={bookmarkedIds.has(qId) ? t('common.saved', 'Đã lưu') : t('common.bookmark', 'Lưu')}
+                          title={bookmarkedIds.has(item.id) ? t('common.saved', 'Đã lưu') : t('common.bookmark', 'Lưu')}
                         >
-                          <Bookmark className={`w-3.5 h-3.5 ${bookmarkedIds.has(qId) ? 'fill-current' : ''}`} />
-                          <span>{bookmarkedIds.has(qId) ? t('common.saved', 'Đã lưu') : t('common.bookmark', 'Lưu')}</span>
+                          <Bookmark className={`w-3.5 h-3.5 ${bookmarkedIds.has(item.id) ? 'fill-current' : ''}`} />
+                          <span>{bookmarkedIds.has(item.id) ? t('common.saved', 'Đã lưu') : t('common.bookmark', 'Lưu')}</span>
                         </button>
 
                         <button
@@ -892,9 +1051,9 @@ export const FeedPage: React.FC = () => {
                           onClick={() => {
                             setShareModalData({
                               isOpen: true,
-                              title: q.title,
-                              url: `/discussions/${qId}`,
-                              description: q.body,
+                              title: item.title,
+                              url: itemUrl,
+                              description: item.summary,
                             });
                           }}
                           className="flex items-center gap-1.5 cursor-pointer text-slate-500 hover:text-[#0076D1] dark:hover:text-blue-400 transition-colors"
@@ -906,10 +1065,16 @@ export const FeedPage: React.FC = () => {
                       </div>
 
                       <Link
-                        to={`/discussions/${qId}`}
+                        to={itemUrl}
                         className="text-xs font-semibold text-[#0076D1] dark:text-blue-400 hover:underline inline-flex items-center gap-1"
                       >
-                        <span>{t('common.viewQuestion', 'Xem chi tiết')}</span>
+                        <span>
+                          {item.type === 'ARTICLE'
+                            ? t('common.readArticle', 'Đọc bài viết')
+                            : item.type === 'WORKFLOW'
+                            ? t('common.viewWorkflow', 'Xem quy trình')
+                            : t('common.viewQuestion', 'Xem chi tiết')}
+                        </span>
                         <ArrowRight className="w-3 h-3" />
                       </Link>
                     </div>
@@ -920,33 +1085,24 @@ export const FeedPage: React.FC = () => {
           </div>
         )}
 
-        {/* Load More Button for Infinite Feed Exploration */}
-        {hasMore && !loading && questions.length > 0 && (
-          <div className="p-4 text-center border-t border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-800/20">
-            <button
-              onClick={() => loadQuestions(page + 1, true)}
-              disabled={loadingMore}
-              className="px-5 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-[#0076D1] dark:hover:border-blue-400 hover:text-[#0076D1] transition-all cursor-pointer shadow-2xs inline-flex items-center gap-2"
-            >
-              {loadingMore && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-              <span>{loadingMore ? t('common.loading', 'Đang tải thêm...') : t('feed.loadMore', 'Xem thêm câu hỏi...')}</span>
-            </button>
-          </div>
-        )}
-
-        {/* Footer: Clean View All Link */}
-        <div className="p-3.5 bg-slate-50/80 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 text-center">
-          <Link
-            to="/discussions"
-            className="text-xs font-bold text-[#0076D1] dark:text-blue-400 hover:underline inline-flex items-center gap-1.5"
-          >
-            <span>{t('common.viewAllQuestions', 'Xem tất cả thảo luận')}</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
+        {/* Facebook-style Infinite Scroll Sentinel & Loader */}
+        <div ref={sentinelRef} className="py-5 text-center bg-slate-50/40 dark:bg-slate-800/20">
+          {loadingMore && (
+            <div className="flex items-center justify-center gap-2 text-xs text-slate-500">
+              <Loader2 className="w-4 h-4 animate-spin text-[#0076D1]" />
+              <span>{t('common.loadingMore', 'Đang tải thêm nội dung...')}</span>
+            </div>
+          )}
+          {!hasMore && !loading && feedItems.length > 0 && (
+            <span className="text-[11px] text-slate-400 font-medium">
+              {t('feed.allCaughtUp', 'Bạn đã xem hết các bài viết mới nhất trên bảng tin 🎉')}
+            </span>
+          )}
         </div>
       </div>
 
-            {shareModalData && (
+      {/* Share Modal */}
+      {shareModalData && (
         <SocialShareModal
           isOpen={shareModalData.isOpen}
           onClose={() => setShareModalData(null)}
@@ -956,19 +1112,20 @@ export const FeedPage: React.FC = () => {
         />
       )}
 
-      {deletingQuestion && (
+      {/* Confirm Delete Modal */}
+      {deletingItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in">
           <div className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
             <h3 className="font-bold text-base text-slate-900 dark:text-slate-100">
-              {t('questions.confirmDeleteTitle', 'Xác nhận xóa câu hỏi?')}
+              {t('common.confirmDelete', 'Xác nhận xóa nội dung?')}
             </h3>
             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-              {t('questions.confirmDeleteDesc', 'Bạn có chắc chắn muốn xóa câu hỏi "{title}"? Toàn bộ câu trả lời và bình luận sẽ bị xóa vĩnh viễn.', { title: deletingQuestion.title })}
+              {t('common.confirmDeleteDesc', 'Bạn có chắc chắn muốn xóa bài viết "{title}"? Toàn bộ dữ liệu liên quan sẽ bị gỡ bỏ khỏi nền tảng.', { title: deletingItem.title })}
             </p>
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 type="button"
-                onClick={() => setDeletingQuestion(null)}
+                onClick={() => setDeletingItem(null)}
                 className="px-3.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
               >
                 {t('common.cancel', 'Hủy')}
@@ -976,9 +1133,9 @@ export const FeedPage: React.FC = () => {
               <button
                 type="button"
                 onClick={async () => {
-                  const toDel = deletingQuestion;
-                  setDeletingQuestion(null);
-                  if (toDel) await handleDeleteQuestion(toDel.id);
+                  const toDel = deletingItem;
+                  setDeletingItem(null);
+                  if (toDel) await handleDeleteItem(toDel);
                 }}
                 className="px-4 py-1.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-lg transition-colors cursor-pointer shadow-xs"
               >
@@ -995,7 +1152,7 @@ export const FeedPage: React.FC = () => {
         onClose={() => setIsAskModalOpen(false)}
         onCreated={() => {
           setIsAskModalOpen(false);
-          loadQuestions(1, false);
+          loadFeed(1, false);
         }}
       />
     </div>
