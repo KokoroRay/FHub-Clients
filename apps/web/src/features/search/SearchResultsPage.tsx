@@ -24,6 +24,7 @@ import { searchApi, SemanticSearchResultItem, SemanticEntityType } from '../../s
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import { AskQuestionModal } from '../discussions/AskQuestionModal';
+import { formatDisplayDate } from '../../utils/fptEmailValidator';
 
 const ENTITY_TABS: Array<{ key: 'ALL' | SemanticEntityType; label: string; icon: React.FC<{ className?: string }> }> = [
   { key: 'ALL', label: 'Tất cả kết quả', icon: Sparkles },
@@ -124,11 +125,11 @@ export const SearchResultsPage: React.FC = () => {
   };
 
   const getItemLink = (item: SemanticSearchResultItem) => {
-    switch (item.entity_type) {
+    switch (item.entity_type?.toUpperCase()) {
       case 'COURSE':
-        return item.course_code ? `/courses?q=${encodeURIComponent(item.course_code)}` : `/courses`;
+        return item.course_code ? `/courses/${encodeURIComponent(item.course_code)}` : `/courses`;
       case 'QUESTION':
-        return `/questions/${item.entity_id}`;
+        return `/discussions/${item.entity_id}`;
       case 'ARTICLE':
         return `/articles/${item.entity_id}`;
       case 'USER':
@@ -159,42 +160,26 @@ export const SearchResultsPage: React.FC = () => {
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-16">
-      {/* Search Header Banner */}
-      <div className="bg-gradient-to-r from-blue-600 via-[#0076D1] to-sky-600 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
-        <div className="absolute right-0 top-0 translate-x-12 -translate-y-12 w-80 h-80 bg-white/10 rounded-full blur-2xl pointer-events-none" />
-        <div className="relative z-10 max-w-3xl space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-xs font-bold tracking-wide">
-            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-            <span>FHub AI Vector Semantic Search (1024-dim Embeddings)</span>
+      {/* Clean Production Search Bar */}
+      <div className="bg-white dark:bg-[#272727] rounded-2xl p-4 sm:p-5 border border-slate-200/90 dark:border-slate-800 shadow-2xs">
+        <form onSubmit={handleSearchSubmit}>
+          <div className="relative flex items-center bg-slate-50 dark:bg-slate-800 rounded-xl p-1.5 border border-slate-200/80 dark:border-slate-700">
+            <Search className="w-5 h-5 text-slate-400 ml-3 shrink-0" />
+            <input
+              type="text"
+              value={inputQuery}
+              onChange={(e) => setInputQuery(e.target.value)}
+              placeholder={t('search.pagePlaceholder', 'Tìm kiếm câu hỏi, môn học, bài viết, tài liệu...')}
+              className="w-full bg-transparent text-slate-900 dark:text-slate-100 text-sm px-3 py-2 focus:outline-none placeholder-slate-400"
+            />
+            <button
+              type="submit"
+              className="px-5 py-2 rounded-lg bg-[#0076D1] hover:bg-blue-600 text-white font-bold text-xs sm:text-sm transition-all shadow-xs shrink-0 cursor-pointer"
+            >
+              {t('common.search', 'Tìm kiếm')}
+            </button>
           </div>
-
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-            {t('search.title', 'Tìm kiếm ngữ nghĩa thông minh')}
-          </h1>
-          <p className="text-xs sm:text-sm text-blue-100">
-            {t('search.subTitle', 'Tìm kiếm bằng ngôn ngữ tự nhiên: môn học, tài liệu ôn thi, bài giải mẫu và kết nối bạn học trên toàn hệ thống FPT University.')}
-          </p>
-
-          {/* Search Box Input */}
-          <form onSubmit={handleSearchSubmit} className="pt-2">
-            <div className="relative flex items-center bg-white rounded-2xl p-1.5 shadow-lg border border-white/20">
-              <Search className="w-5 h-5 text-slate-400 ml-3 shrink-0" />
-              <input
-                type="text"
-                value={inputQuery}
-                onChange={(e) => setInputQuery(e.target.value)}
-                placeholder={t('search.pagePlaceholder', 'Nhập câu hỏi hoặc kiến thức bạn muốn tìm kiếm...')}
-                className="w-full bg-transparent text-slate-900 text-sm px-3 py-2.5 focus:outline-none placeholder-slate-400"
-              />
-              <button
-                type="submit"
-                className="px-5 py-2.5 rounded-xl bg-[#0076D1] hover:bg-blue-600 text-white font-bold text-xs sm:text-sm transition-all shadow-md shrink-0 cursor-pointer"
-              >
-                {t('common.search', 'Tìm kiếm')}
-              </button>
-            </div>
-          </form>
-        </div>
+        </form>
       </div>
 
       {/* Main Content Layout */}
@@ -283,18 +268,12 @@ export const SearchResultsPage: React.FC = () => {
             <div className="text-xs text-slate-500 dark:text-slate-400">
               {queryParam.trim() ? (
                 <span>
-                  {t('search.foundResults', 'Tìm thấy')} <strong className="text-slate-900 dark:text-slate-100">{results.length}</strong> {t('kết quả ngữ nghĩa cho')} <strong className="text-[#0076D1]">"{queryParam}"</strong>
+                  {t('search.foundResults', 'Tìm thấy')} <strong className="text-slate-900 dark:text-slate-100">{results.length}</strong> {t('kết quả cho')} <strong className="text-[#0076D1]">"{queryParam}"</strong>
                 </span>
               ) : (
                 <span>{t('search.readyPrompt', 'Sẵn sàng tìm kiếm tri thức FHub')}</span>
               )}
             </div>
-
-            {results.length > 0 && (
-              <span className="text-[11px] font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/50 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
-                Vector Match Active
-              </span>
-            )}
           </div>
 
           {/* Result Cards List */}
@@ -386,20 +365,6 @@ export const SearchResultsPage: React.FC = () => {
                           </span>
                         )}
                       </div>
-
-                      {/* AI Similarity score */}
-                      <span
-                        title={`Cosine Similarity Score: ${item.score}`}
-                        className={`text-xs font-mono font-bold px-2.5 py-0.5 rounded-full border ${
-                          scorePercent >= 80
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800'
-                            : scorePercent >= 50
-                            ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800'
-                            : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
-                        }`}
-                      >
-                        {scorePercent}% {t('độ phù hợp')}
-                      </span>
                     </div>
 
                     {/* Title & Link */}
@@ -430,11 +395,7 @@ export const SearchResultsPage: React.FC = () => {
                         )}
                         {item.created_at && (
                           <span>
-                            {new Date(item.created_at).toLocaleDateString(locale, {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric',
-                            })}
+                            {formatDisplayDate(item.created_at)}
                           </span>
                         )}
                       </div>

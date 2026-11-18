@@ -1,5 +1,5 @@
 import React, { lazy, Suspense } from 'react';
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter, Navigate, useParams } from 'react-router-dom';
 import { MainLayout } from '../layouts/MainLayout';
 import { AdminLayout } from '../layouts/AdminLayout';
 import { AdminSubdomainLayout } from '../layouts/AdminSubdomainLayout';
@@ -14,6 +14,11 @@ const lazyNamed = <T extends Record<string, any>, K extends keyof T>(
   factory: () => Promise<T>,
   name: K
 ) => lazy(() => factory().then(m => ({ default: m[name] })));
+
+const QuestionRedirect: React.FC = () => {
+  const { id } = useParams();
+  return <Navigate to={id ? `/discussions/${id}` : '/discussions'} replace />;
+};
 
 // Feed & Academic Pages
 const FeedPage = lazyNamed(() => import('../features/feed/FeedPage'), 'FeedPage');
@@ -190,6 +195,10 @@ const getMainPortalRoutes = () => [
       { path: 'course-ratings', element: <Navigate to="/course-evaluations" replace /> },
       { path: 'tech-blog', element: <Navigate to="/articles" replace /> },
       { path: 'my-appeals', element: <Navigate to="/profile?tab=quarantine" replace /> },
+      { path: 'questions', element: <Navigate to="/discussions" replace /> },
+      { path: 'questions/:id', element: <QuestionRedirect /> },
+      { path: 'support', element: <Navigate to="/tickets" replace /> },
+      { path: 'reputation', element: <Navigate to="/reputation-rules" replace /> },
     ],
   },
 

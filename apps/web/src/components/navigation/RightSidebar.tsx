@@ -1,4 +1,4 @@
-import { extractStudentIdFromEmail } from '../../utils/fptEmailValidator';
+import { extractStudentIdFromEmail, formatDisplayDate } from '../../utils/fptEmailValidator';
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
@@ -7,11 +7,13 @@ import {
   Sparkles,
   ArrowRight,
   Flame,
+  Loader2,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { useCampusDetails } from '../../hooks/useCampusDetails';
 import { normalizeMediaUrl } from '../../utils/mediaUtils';
+import { questionApi, articleApi } from '../../services/api/contentApi';
 
 export const RightSidebar: React.FC = () => {
   const { currentUser, currentCampus } = useAuth();
@@ -29,7 +31,7 @@ export const RightSidebar: React.FC = () => {
   const avatarInitials = studentName.split(' ').filter(Boolean).map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || 'FH';
   const majorDisplay = (currentUser as any)?.majorName || (currentUser as any)?.major || t('taxonomy.defaultMajor', 'Công nghệ thông tin');
 
-  const activities: Array<{
+  const [activities, setActivities] = useState<Array<{
     id: string;
     author: string;
     action: string;
@@ -38,7 +40,75 @@ export const RightSidebar: React.FC = () => {
     dotColor: string;
     time: string;
     link: string;
-  }> = [];
+  }>>([]);
+  const [loadingActivities, setLoadingActivities] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    setLoadingActivities(true);
+    Promise.allSettled([
+      questionApi.getQuestions({ pageSize: 4 }),
+      articleApi.getArticles({ pageSize: 3 }),
+    ]).then(([questionsRes, articlesRes]) => {
+      if (!isMounted) return;
+      const combined: Array<{
+        id: string;
+        author: string;
+        action: string;
+        target: string;
+        targetColor: string;
+        dotColor: string;
+        time: string;
+        link: string;
+        rawDate: number;
+      }> = [];
+
+      if (questionsRes.status === 'fulfilled' && questionsRes.value?.items) {
+        questionsRes.value.items.forEach((q: any) => {
+          const author = q.authorDisplayName || q.author?.fullName || (q.isAnonymous ? t('common.anonymous', 'Ẩn danh FPTer') : 'Sinh viên FHub');
+          const title = q.title || '';
+          const id = q.questionId || q.id;
+          combined.push({
+            id: `q-${id}`,
+            author,
+            action: t('sidebar.askedQuestion', 'đã đặt câu hỏi'),
+            target: title.length > 32 ? `${title.slice(0, 32)}...` : title,
+            targetColor: 'text-blue-600 dark:text-blue-400 font-semibold',
+            dotColor: 'bg-blue-500',
+            time: formatDisplayDate(q.createdAt) || 'Mới đây',
+            link: `/discussions/${id}`,
+            rawDate: new Date(q.createdAt || 0).getTime(),
+          });
+        });
+      }
+
+      if (articlesRes.status === 'fulfilled' && articlesRes.value?.items) {
+        articlesRes.value.items.forEach((a: any) => {
+          const author = a.authorDisplayName || a.authorName || 'Sinh viên FHub';
+          const title = a.title || '';
+          const id = a.articleId || a.id;
+          combined.push({
+            id: `art-${id}`,
+            author,
+            action: t('sidebar.publishedArticle', 'đã viết bài'),
+            target: title.length > 32 ? `${title.slice(0, 32)}...` : title,
+            targetColor: 'text-pink-600 dark:text-pink-400 font-semibold',
+            dotColor: 'bg-pink-500',
+            time: formatDisplayDate(a.createdAt || a.publishedAt) || 'Mới đây',
+            link: `/articles/${id}`,
+            rawDate: new Date(a.createdAt || a.publishedAt || 0).getTime(),
+          });
+        });
+      }
+
+      combined.sort((a, b) => b.rawDate - a.rawDate);
+      setActivities(combined.slice(0, 5));
+    }).finally(() => {
+      if (isMounted) setLoadingActivities(false);
+    });
+
+    return () => { isMounted = false; };
+  }, []);
 
   const shortcuts = [
     { name: t('sidebar.bookmarks', 'Bookmarks List'), path: '/bookmarks', icon: Tag },
@@ -105,7 +175,12 @@ export const RightSidebar: React.FC = () => {
           </h4>
         </div>
 
-        {activities.length === 0 ? (
+        {loadingActivities ? (
+          <div className="py-4 flex items-center justify-center text-xs text-slate-400 gap-1.5">
+            <Loader2 className="w-3.5 h-3.5 animate-spin text-[#0076D1]" />
+            <span>{t('common.loading', 'Đang tải...')}</span>
+          </div>
+        ) : activities.length === 0 ? (
           <p className="text-xs text-slate-400 dark:text-slate-500 py-3 text-center">
             {t('common.noData', 'Chưa có hoạt động gần đây')}
           </p>

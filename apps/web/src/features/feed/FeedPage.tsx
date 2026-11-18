@@ -361,13 +361,18 @@ export const FeedPage: React.FC = () => {
         voteApi.getMyVotes()
           .then((myVotes) => {
             const myVoteMap: Record<string, number> = {};
-            myVotes.forEach((v: any) => {
-              if (v.targetType === 'QUESTION') {
-                myVoteMap[`q-${v.targetId}`] = v.voteValue;
-              } else if (v.targetType === 'ARTICLE') {
-                myVoteMap[`art-${v.targetId}`] = v.voteValue;
-              }
-            });
+            if (Array.isArray(myVotes)) {
+              myVotes.forEach((v: any) => {
+                const t = (v.targetType || v.target_type || '').toUpperCase();
+                const tid = v.targetId || v.target_id || v.id;
+                const val = v.voteValue ?? v.vote_value ?? 1;
+                if (t === 'QUESTION') {
+                  myVoteMap[`q-${tid}`] = val;
+                } else if (t === 'ARTICLE') {
+                  myVoteMap[`art-${tid}`] = val;
+                }
+              });
+            }
             setVotes((prev) => {
               const updated = { ...prev };
               newUnifiedItems.forEach((item) => {
@@ -697,8 +702,8 @@ export const FeedPage: React.FC = () => {
             { label: t('nav.ratings', 'Đánh giá'), path: '/course-ratings', icon: Sparkles, color: 'text-rose-600 bg-rose-50 dark:bg-rose-950/50 dark:text-rose-400' },
             { label: t('nav.courses', 'Môn học'), path: '/courses', icon: GraduationCap, color: 'text-blue-600 bg-blue-50 dark:bg-blue-950/50 dark:text-blue-400' },
             { label: t('nav.discussions', 'Thảo luận'), path: '/discussions', icon: HelpCircle, color: 'text-purple-600 bg-purple-50 dark:bg-purple-950/50 dark:text-purple-400' },
-            { label: t('nav.helpdesk', 'Hỗ trợ'), path: '/support', icon: LifeBuoy, color: 'text-teal-600 bg-teal-50 dark:bg-teal-950/50 dark:text-teal-400' },
-            { label: t('nav.reputation', 'Uy tín'), path: '/reputation', icon: Award, color: 'text-orange-600 bg-orange-50 dark:bg-orange-950/50 dark:text-orange-400' },
+            { label: t('nav.helpdesk', 'Hỗ trợ'), path: '/tickets', icon: LifeBuoy, color: 'text-teal-600 bg-teal-50 dark:bg-teal-950/50 dark:text-teal-400' },
+            { label: t('nav.reputation', 'Uy tín'), path: '/reputation-rules', icon: Award, color: 'text-orange-600 bg-orange-50 dark:bg-orange-950/50 dark:text-orange-400' },
           ].map((item, idx) => {
             const IconComp = item.icon;
             return (

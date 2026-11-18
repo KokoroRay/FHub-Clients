@@ -106,10 +106,10 @@ export const GlobalSearchDropdown: React.FC<GlobalSearchDropdownProps> = ({
     onClose();
     switch (item.entity_type?.toUpperCase()) {
       case 'COURSE':
-        navigate(`/courses/${item.course_code || item.entity_id}`);
+        navigate(item.course_code ? `/courses/${encodeURIComponent(item.course_code)}` : `/courses`);
         break;
       case 'QUESTION':
-        navigate(`/questions/${item.entity_id}`);
+        navigate(`/discussions/${item.entity_id}`);
         break;
       case 'ARTICLE':
         navigate(`/articles/${item.entity_id}`);

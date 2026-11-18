@@ -36,6 +36,8 @@ export const Header: React.FC = () => {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [selectedNotifForDetail, setSelectedNotifForDetail] = useState<NotificationItem | null>(null);
   const [hasUnreadMessages, setHasUnreadMessages] = useState<boolean>(false);
+  const [hasSeenNotifs, setHasSeenNotifs] = useState(false);
+  const [hasSeenMessages, setHasSeenMessages] = useState(false);
   const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState<boolean>(false);
   const searchContainerRef = useRef<HTMLFormElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -63,6 +65,7 @@ export const Header: React.FC = () => {
   // Real-time synchronization for personal notifications
   React.useEffect(() => {
     const unsubNew = on('NOTIFICATION_NEW', () => {
+      setHasSeenNotifs(false);
       fetchNotifications();
     });
     const unsubRead = on('NOTIFICATION_READ', () => {
@@ -78,6 +81,7 @@ export const Header: React.FC = () => {
       const { senderId } = evt.payload || {};
       if (currentUser?.id && String(currentUser.id) !== String(senderId)) {
         setHasUnreadMessages(true);
+        setHasSeenMessages(false);
       }
     });
 
@@ -91,6 +95,14 @@ export const Header: React.FC = () => {
   }, [on]);
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  const handleToggleNotifDrawer = () => {
+    const next = !showNotifDrawer;
+    setShowNotifDrawer(next);
+    if (next) {
+      setHasSeenNotifs(true);
+    }
+  };
 
   const handleMarkAllRead = async () => {
     try {
@@ -110,10 +122,8 @@ export const Header: React.FC = () => {
         console.warn('Failed to mark notification as read:', err);
       }
     }
-    if (notif.actionUrl) {
-      setShowNotifDrawer(false);
-      navigate(notif.actionUrl);
-    }
+    setShowNotifDrawer(false);
+    setSelectedNotifForDetail(notif);
   };
 
   React.useEffect(() => {
@@ -326,26 +336,33 @@ export const Header: React.FC = () => {
               {/* Direct Messages Quick Link (Facebook Messenger style) */}
               <Link
                 to="/messages"
-                onClick={() => setHasUnreadMessages(false)}
+                onClick={() => {
+                  setHasUnreadMessages(false);
+                  setHasSeenMessages(true);
+                }}
                 className="p-2 text-slate-500 dark:text-slate-400 hover:text-[#0076D1] hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors relative cursor-pointer"
                 title={t('nav.messages', 'Tin nhắn')}
               >
                 <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
-                {hasUnreadMessages && (
-                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-[#0076D1] rounded-full ring-2 ring-white dark:ring-slate-900 animate-pulse" />
+                {hasUnreadMessages && !hasSeenMessages && (
+                  <span className="absolute -top-1 -right-1 px-1.5 min-w-[18px] h-[18px] flex items-center justify-center text-[10px] font-bold text-white bg-rose-500 rounded-full ring-2 ring-white dark:ring-slate-900 shadow-xs">
+                    1
+                  </span>
                 )}
               </Link>
 
               {/* Notifications Link & Live Drawer */}
               <div className="relative">
                 <button
-                  onClick={() => setShowNotifDrawer(!showNotifDrawer)}
+                  onClick={handleToggleNotifDrawer}
                   className="p-2 text-slate-500 dark:text-slate-400 hover:text-[#0076D1] hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors relative cursor-pointer"
                   title={t('header.notifications', 'Notifications')}
                 >
                   <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
-                  {unreadCount > 0 && (
-                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white dark:ring-slate-900" />
+                  {unreadCount > 0 && !hasSeenNotifs && (
+                    <span className="absolute -top-1 -right-1 px-1.5 min-w-[18px] h-[18px] flex items-center justify-center text-[10px] font-bold text-white bg-rose-500 rounded-full ring-2 ring-white dark:ring-slate-900 shadow-xs">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
                   )}
                 </button>
 
@@ -402,6 +419,16 @@ export const Header: React.FC = () => {
                           </div>
                         ))
                       )}
+                    </div>
+
+                    <div className="p-2.5 border-t border-slate-100 dark:border-slate-800 text-center bg-slate-50/50 dark:bg-slate-900/50">
+                      <Link
+                        to="/notifications"
+                        onClick={() => setShowNotifDrawer(false)}
+                        className="text-xs font-semibold text-[#0076D1] dark:text-blue-400 hover:underline inline-block py-0.5"
+                      >
+                        {t('notifications.viewAll', 'Xem tất cả thông báo')} →
+                      </Link>
                     </div>
                   </div>
                 )}
