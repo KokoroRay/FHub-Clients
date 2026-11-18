@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   FileText,
-  Heart,
   Bookmark,
   Share2,
   Clock,
@@ -20,6 +19,9 @@ import {
   Edit3,
   Trash2,
   X,
+  ChevronUp,
+  ChevronDown,
+  Award,
 } from 'lucide-react';
 import { Card, CardBody, CardHeader } from '../../components/common/Card';
 import { useAuth } from '../../context/AuthContext';
@@ -31,6 +33,7 @@ import { MarkdownPreview } from '../../components/common/MarkdownPreview';
 import { articleApi } from '../../services/api/contentApi';
 import { voteApi, bookmarkApi, notificationApi, profileApi, followApi, studentReputationApi } from '../../services/api/studentApi';
 import { normalizeMediaUrl } from '../../utils/mediaUtils';
+import { formatDisplayDate, calculateReadingTime, isUserAlumni } from '../../utils/fptEmailValidator';
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 import { SocialShareModal } from '../../components/common/SocialShareModal';
 import { UserHoverCard } from '../../components/common/UserHoverCard';
@@ -74,9 +77,8 @@ export const ArticleDetailPage: React.FC = () => {
             content: data.content || '',
             coverImage: data.coverImageUrl || '',
             createdAt: data.createdAt,
-            readTimeMinutes: 4,
+            readTimeMinutes: calculateReadingTime(data.content, data.summary, data.title),
             viewsCount: 0,
-            likesCount: 0,
             category,
             tags,
             authorUserId: data.authorUserId,
@@ -91,7 +93,8 @@ export const ArticleDetailPage: React.FC = () => {
               bio: '',
             },
           });
-          setLikesCount(0);
+          setVoteScore(0);
+          setUserVote(null);
 
           if (data.authorUserId) {
             const authorId = Number(data.authorUserId);
@@ -155,8 +158,8 @@ export const ArticleDetailPage: React.FC = () => {
             try {
               const stats = await voteApi.getStats('ARTICLE', numId);
               if (isMounted) {
-                setLikesCount(Math.max(0, stats.upvotes ?? stats.score));
-                setIsLiked(stats.myVoteValue === 1);
+                setVoteScore(stats.score);
+                setUserVote(stats.myVoteValue === 1 ? 'UP' : stats.myVoteValue === -1 ? 'DOWN' : null);
               }
             } catch {}
 
@@ -180,8 +183,8 @@ export const ArticleDetailPage: React.FC = () => {
     return () => { isMounted = false; };
   }, [id]);
 
-  const [isLiked, setIsLiked] = useState(false);
-  const [likesCount, setLikesCount] = useState(0);
+  const [userVote, setUserVote] = useState<'UP' | 'DOWN' | null>(null);
+  const [voteScore, setVoteScore] = useState<number>(0);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [bookmarkId, setBookmarkId] = useState<number | string | null>(null);
   const [isFollowingAuthor, setIsFollowingAuthor] = useState(false);
@@ -265,36 +268,50 @@ export const ArticleDetailPage: React.FC = () => {
     });
   };
 
-  const toggleLike = async () => {
+  const handleVote = async (direction: 'UP' | 'DOWN') => {
     if (!id) return;
     const numId = Number(id.replace(/\D/g, ''));
     if (!numId) return;
 
-    const prevLiked = isLiked;
-    const prevCount = likesCount;
-    setIsLiked(!prevLiked);
-    setLikesCount(prevLiked ? prevCount - 1 : prevCount + 1);
+    const voteValue = direction === 'UP' ? 1 : -1;
+    const prevVote = userVote;
+    const prevScore = voteScore;
+
+    let nextVote: 'UP' | 'DOWN' | null = direction;
+    let nextScore = prevScore;
+
+    if (prevVote === direction) {
+      nextVote = null;
+      nextScore -= voteValue;
+    } else if (prevVote) {
+      nextScore += voteValue * 2;
+    } else {
+      nextScore += voteValue;
+    }
+
+    setUserVote(nextVote);
+    setVoteScore(nextScore);
 
     try {
-      if (prevLiked) {
+      if (prevVote === direction) {
         await voteApi.removeVote('ARTICLE', numId);
       } else {
         await voteApi.vote({
           target_type: 'ARTICLE',
           target_id: numId,
-          vote_value: 1,
+          vote_value: voteValue,
         });
       }
       const stats = await voteApi.getStats('ARTICLE', numId);
-      setLikesCount(Math.max(0, stats.upvotes ?? stats.score));
-      setIsLiked(stats.myVoteValue === 1);
+      setVoteScore(stats.score);
+      setUserVote(stats.myVoteValue === 1 ? 'UP' : stats.myVoteValue === -1 ? 'DOWN' : null);
 
-      if (!prevLiked && article?.authorUserId && String(article.authorUserId) !== String(currentUser?.id)) {
+      if (direction === 'UP' && prevVote !== 'UP' && article?.authorUserId && String(article.authorUserId) !== String(currentUser?.id)) {
         const senderName = currentUser?.fullName || (currentUser as any)?.displayName || t('common.peerStudent', 'Một bạn học');
         notificationApi.createNotification({
           recipientUserId: Number(article.authorUserId),
           type: 'UPVOTE',
-          title: `${senderName} đã thích bài viết của bạn`,
+          title: `${senderName} đã bình chọn bài viết của bạn`,
           message: `"${article.title?.slice(0, 80)}..."`,
           actionUrl: `/articles/${id}`,
           targetType: 'ARTICLE',
@@ -302,8 +319,8 @@ export const ArticleDetailPage: React.FC = () => {
         });
       }
     } catch (err) {
-      setIsLiked(prevLiked);
-      setLikesCount(prevCount);
+      setUserVote(prevVote);
+      setVoteScore(prevScore);
     }
   };
 
@@ -431,7 +448,7 @@ export const ArticleDetailPage: React.FC = () => {
                       {t("Series:")} {article.seriesName}
                     </Badge>
                   )}
-                  <span>• {new Date(article.createdAt).toLocaleDateString(locale)}</span>
+                  <span>• {formatDisplayDate(article.createdAt)}</span>
                   <span>• {article.viewsCount}  {t("lượt xem")}</span>
                 </div>
 
@@ -459,6 +476,11 @@ export const ArticleDetailPage: React.FC = () => {
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-sm text-slate-900 dark:text-slate-100 group-hover:text-[#0076D1] dark:group-hover:text-blue-400 group-hover:underline transition-colors">{article.author.fullName}</span>
                           <Badge variant="neutral" size="sm">{t(article.author.role)}</Badge>
+                          {isUserAlumni(article.author) && (
+                            <Badge variant="warning" size="sm" icon={<Award className="w-3 h-3" />}>
+                              Alumni
+                            </Badge>
+                          )}
                         </div>
                         <div className="text-xs text-slate-400">
                           {article.author.campus ? <span>{article.author.campus}</span> : null}{article.author.major ? <span> • {article.author.major}</span> : null}</div>
@@ -478,14 +500,29 @@ export const ArticleDetailPage: React.FC = () => {
                         {isFollowingAuthor ? t("Đang theo dõi") : t("Theo dõi")}
                       </Button>
                     )}
-                    <Button
-                      variant={isLiked ? 'primary' : 'outline'}
-                      size="sm"
-                      onClick={toggleLike}
-                      leftIcon={<Heart className={`w-4 h-4 ${isLiked ? 'fill-white text-white' : 'text-rose-500'}`} />}
-                    >
-                      {likesCount}
-                    </Button>
+                    <div className="inline-flex items-center bg-slate-50 dark:bg-slate-800 rounded-xl p-0.5 border border-slate-200 dark:border-slate-700 shadow-2xs">
+                      <button
+                        onClick={() => handleVote('UP')}
+                        className={`p-1.5 rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors cursor-pointer ${
+                          userVote === 'UP' ? 'text-[#0076D1] font-bold bg-white dark:bg-slate-700 shadow-xs' : 'text-slate-400 hover:text-slate-700'
+                        }`}
+                        title={t('common.upvote', 'Bình chọn tích cực')}
+                      >
+                        <ChevronUp className="w-4 h-4" />
+                      </button>
+                      <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-200 px-2 min-w-[20px] text-center">
+                        {voteScore}
+                      </span>
+                      <button
+                        onClick={() => handleVote('DOWN')}
+                        className={`p-1.5 rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors cursor-pointer ${
+                          userVote === 'DOWN' ? 'text-rose-600 font-bold bg-white dark:bg-slate-700 shadow-xs' : 'text-slate-400 hover:text-slate-700'
+                        }`}
+                        title={t('common.downvote', 'Bình chọn tiêu cực')}
+                      >
+                        <ChevronDown className="w-4 h-4" />
+                      </button>
+                    </div>
                     <Button
                       variant={isBookmarked ? 'secondary' : 'outline'}
                       size="sm"
@@ -683,7 +720,10 @@ export const ArticleDetailPage: React.FC = () => {
               />
               <div>
                 <h4 className="font-extrabold text-sm text-slate-900 dark:text-slate-100">{article.author.fullName}</h4>
-                <p className="text-xs text-slate-400 font-medium">{t(article.author.role)}{article.author.campus ? ` • ${article.author.campus}` : ""}</p>
+                <p className="text-xs text-slate-400 font-medium">
+                  {t(article.author.role)}{article.author.campus ? ` • ${article.author.campus}` : ""}
+                  {isUserAlumni(article.author) ? " • Alumni" : ""}
+                </p>
               </div>
               <p className="text-xs text-slate-500 leading-relaxed">
                 {authorStats.bio || article.author.bio || t("Thành viên đóng góp kiến thức và kinh nghiệm cho cộng đồng sinh viên FHub.")}

@@ -36,7 +36,26 @@ import { SocialShareModal } from '../../components/common/SocialShareModal';
 import { UserHoverCard } from '../../components/common/UserHoverCard';
 import { normalizeMediaUrl } from '../../utils/mediaUtils';
 import { resolveUserMajorName } from '../../utils/taxonomyUtils';
-import { extractStudentIdFromEmail } from '../../utils/fptEmailValidator';
+import { extractStudentIdFromEmail, formatDisplayDate, calculateReadingTime, isUserAlumni } from '../../utils/fptEmailValidator';
+
+// Clean Article Cover Preview component: if loading errors, cleanly renders nothing (no empty gray box)
+const ArticleFeedCover: React.FC<{ url: string; title: string; onClick: () => void }> = ({ url, title, onClick }) => {
+  const [hasError, setHasError] = useState(false);
+  if (hasError || !url) return null;
+  return (
+    <div className="pt-1 max-w-md">
+      <div className="relative aspect-video rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800">
+        <img
+          src={normalizeMediaUrl(url)}
+          alt={title}
+          className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer"
+          onClick={onClick}
+          onError={() => setHasError(true)}
+        />
+      </div>
+    </div>
+  );
+};
 
 // Helper to extract media and clean text from markdown body
 const parseBodyMedia = (rawBody: string = '') => {
@@ -69,6 +88,7 @@ export interface UnifiedFeedItem {
   authorDisplayName?: string;
   authorAvatarUrl?: string;
   isAnonymous?: boolean;
+  isAlumni?: boolean;
   courseId?: number;
   courseCode?: string;
   status: string;
@@ -198,6 +218,11 @@ export const FeedPage: React.FC = () => {
             upvoteCount: q.upvoteCount || 0,
             downvoteCount: q.downvoteCount || 0,
             mediaUrls,
+            isAlumni: Boolean(
+              q.isAlumni ||
+              (q.author && q.author.role === 'Alumni') ||
+              isUserAlumni(q.authorDisplayName || q.author?.fullName || q.author?.studentCode)
+            ),
           });
         });
       }
@@ -224,7 +249,15 @@ export const FeedPage: React.FC = () => {
             coverImageUrl: a.coverImageUrl ? normalizeMediaUrl(a.coverImageUrl) : undefined,
             status: a.status || 'PUBLISHED',
             isPinned: false,
-            readTimeMinutes: Math.max(2, Math.ceil((a.summary || a.title || '').length / 120)),
+            upvoteCount: (a as any).upvoteCount ?? (a as any).likeCount ?? 0,
+            downvoteCount: (a as any).downvoteCount ?? 0,
+            isAlumni: Boolean(
+              a.isAlumni ||
+              (a as any).authorRole === 'Alumni' ||
+              isUserAlumni((a as any).authorDisplayName || (a as any).authorName) ||
+              isUserAlumni({ email: (a as any).authorEmail, studentId: (a as any).authorStudentId })
+            ),
+            readTimeMinutes: calculateReadingTime(a.summary, a.summary, a.title),
           });
         });
       }
@@ -364,6 +397,44 @@ export const FeedPage: React.FC = () => {
   useEffect(() => {
     loadFeed(1, false);
   }, [contentTypeFilter, feedSort]);
+
+  // Synchronize user bookmarks across Question, Article, and Workflow
+  useEffect(() => {
+    if (!currentUser) return;
+    Promise.allSettled([
+      bookmarkApi.getBookmarks('Question'),
+      bookmarkApi.getBookmarks('Article'),
+      bookmarkApi.getBookmarks('Workflow'),
+    ]).then(([qRes, aRes, wRes]) => {
+      const newBookmarkedIds = new Set<string>();
+      const newBookmarkMap = new Map<string, number | string>();
+
+      if (qRes.status === 'fulfilled' && Array.isArray(qRes.value)) {
+        qRes.value.forEach((b: any) => {
+          const idStr = `q-${b.targetId}`;
+          newBookmarkedIds.add(idStr);
+          newBookmarkMap.set(idStr, b.id);
+        });
+      }
+      if (aRes.status === 'fulfilled' && Array.isArray(aRes.value)) {
+        aRes.value.forEach((b: any) => {
+          const idStr = `art-${b.targetId}`;
+          newBookmarkedIds.add(idStr);
+          newBookmarkMap.set(idStr, b.id);
+        });
+      }
+      if (wRes.status === 'fulfilled' && Array.isArray(wRes.value)) {
+        wRes.value.forEach((b: any) => {
+          const idStr = `wf-${b.targetId}`;
+          newBookmarkedIds.add(idStr);
+          newBookmarkMap.set(idStr, b.id);
+        });
+      }
+
+      setBookmarkedIds(newBookmarkedIds);
+      setBookmarkMap(newBookmarkMap);
+    }).catch(() => {});
+  }, [currentUser]);
 
   // ─── Facebook-like Infinite Scroll (IntersectionObserver) ──────────────────
   useEffect(() => {
@@ -846,7 +917,7 @@ export const FeedPage: React.FC = () => {
                   className="p-4 sm:p-5 flex items-start gap-3 sm:gap-4 hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors"
                 >
                   {/* Left: Vote Counter or Type Badge */}
-                  {item.type === 'QUESTION' ? (
+                  {item.type === 'QUESTION' || item.type === 'ARTICLE' ? (
                     <div className="flex flex-col items-center justify-center min-w-[42px] bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl p-1 shrink-0 self-start shadow-2xs">
                       <button
                         onClick={() => handleVote(item, 'UP')}
@@ -869,11 +940,6 @@ export const FeedPage: React.FC = () => {
                       >
                         <ChevronDown className="w-4 h-4" />
                       </button>
-                    </div>
-                  ) : item.type === 'ARTICLE' ? (
-                    <div className="flex flex-col items-center justify-center min-w-[42px] bg-pink-50 dark:bg-pink-950/40 border border-pink-200/80 dark:border-pink-900/50 rounded-xl p-2 shrink-0 self-start shadow-2xs text-pink-600 dark:text-pink-400">
-                      <FileCode className="w-4 h-4 mb-0.5" />
-                      <span className="text-[10px] font-bold">Bài</span>
                     </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center min-w-[42px] bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-900/50 rounded-xl p-2 shrink-0 self-start shadow-2xs text-indigo-600 dark:text-indigo-400">
@@ -916,12 +982,22 @@ export const FeedPage: React.FC = () => {
                               <span className="font-bold text-slate-800 dark:text-slate-200 group-hover:text-[#0076D1] dark:group-hover:text-blue-400 group-hover:underline transition-colors">
                                 {authorName}
                               </span>
+                              {(item.isAlumni || isUserAlumni({
+                                studentId: (authorProfiles[authorId] as any)?.studentId || authorName,
+                                email: (authorProfiles[authorId] as any)?.email,
+                                role: (authorProfiles[authorId] as any)?.role,
+                              })) && (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 shadow-2xs">
+                                  <Award className="w-3 h-3 text-amber-600" />
+                                  Alumni
+                                </span>
+                              )}
                             </div>
                           </UserHoverCard>
                         )}
 
                         <span className="text-slate-400">
-                          • {item.createdAt ? new Date(item.createdAt).toLocaleDateString(locale) : t('common.recent', 'Mới đây')}
+                          • {formatDisplayDate(item.createdAt) || t('common.recent', 'Mới đây')}
                         </span>
                       </div>
 
@@ -971,17 +1047,11 @@ export const FeedPage: React.FC = () => {
 
                     {/* Article Cover Image Thumbnail (if available) */}
                     {item.type === 'ARTICLE' && item.coverImageUrl && (
-                      <div className="pt-1 max-w-md">
-                        <div className="relative aspect-video rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800">
-                          <img
-                            src={item.coverImageUrl}
-                            alt={item.title}
-                            className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer"
-                            onClick={() => navigate(itemUrl)}
-                            onError={(e) => { (e.target as any).style.display = 'none'; }}
-                          />
-                        </div>
-                      </div>
+                      <ArticleFeedCover
+                        url={item.coverImageUrl}
+                        title={item.title}
+                        onClick={() => navigate(itemUrl)}
+                      />
                     )}
 
                     {/* Question Attached Media Grid (Facebook Style) */}

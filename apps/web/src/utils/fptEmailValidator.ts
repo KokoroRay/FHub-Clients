@@ -155,3 +155,66 @@ export function extractStudentIdFromEmail(email: string = ''): string | null {
 
   return null;
 }
+
+/**
+ * Trích xuất số khóa (Cohort) từ MSSV hoặc Email
+ * Ví dụ: CE181522 -> 18, SE170123 -> 17, TanLT.CE190370@gmail.com -> 19
+ */
+export function extractCohortFromStudent(studentIdOrEmail: string = ''): number | null {
+  if (!studentIdOrEmail) return null;
+  const raw = extractStudentIdFromEmail(studentIdOrEmail) || studentIdOrEmail.trim();
+  const match = raw.match(/[A-Za-z]{2}(\d{2})/);
+  if (!match) return null;
+  const cohort = parseInt(match[1], 10);
+  return isNaN(cohort) ? null : cohort;
+}
+
+/**
+ * Tự động xác định người dùng đã tốt nghiệp (Alumni - Cựu sinh viên)
+ * dựa trên Khóa học (Cohort) và Năm hiện tại.
+ * 
+ * Quy tắc:
+ * - Khóa K: Năm nhập học = 2004 + K (Ví dụ: K18 nhập học 2022, K17 nhập học 2021).
+ * - Chương trình học chuẩn FPT: 4 năm (8-9 học kỳ).
+ * - Năm 2026: K18 (2022 + 4 = 2026) đang là sinh viên năm 4, qua năm 2027 mới ra trường.
+ * - K17 trở về trước (K17, K16, K15...): tốt nghiệp năm 2025 trở về trước -> Cựu sinh viên (Alumni).
+ * - Sau 1 năm (từ 2027 trở đi), K18 tự động trở thành Alumni.
+ */
+export function isUserAlumni(user: any): boolean {
+  if (!user) return false;
+  if (user.role === 'Alumni') return true;
+
+  const raw = user.studentId || user.email || (typeof user === 'string' ? user : '');
+  const cohort = extractCohortFromStudent(raw);
+  if (!cohort) return false;
+
+  const currentYear = new Date().getFullYear(); // e.g. 2026
+  const enrollmentYear = 2004 + cohort; // K18 -> 2022, K17 -> 2021
+  const graduationYear = enrollmentYear + 4; // K18 -> 2026, K17 -> 2025
+
+  return currentYear > graduationYear;
+}
+
+/**
+ * Format ngày hiển thị chuẩn dd/MM/yyyy (ví dụ: 18/11/2026, 04/11/2026)
+ */
+export function formatDisplayDate(dateStr?: string | Date | null): string {
+  if (!dateStr) return '';
+  const d = typeof dateStr === 'string' ? new Date(dateStr) : dateStr;
+  if (isNaN(d.getTime())) return '';
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}/${month}/${year}`;
+}
+
+/**
+ * Ước tính thời gian đọc thực tế dựa trên số lượng từ trong nội dung bài viết.
+ * Tốc độ đọc trung bình chuẩn: 200 từ/phút (Vietnamese / English prose).
+ */
+export function calculateReadingTime(content?: string, summary?: string, title?: string): number {
+  const fullText = (content && content.trim().length > 0) ? content : `${title || ''} ${summary || ''}`;
+  const cleanText = fullText.replace(/<[^>]*>?/gm, '').replace(/[#*`_~[\]()]/g, ' ');
+  const words = cleanText.trim().split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.ceil(words / 200));
+}

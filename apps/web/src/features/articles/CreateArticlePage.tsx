@@ -2,42 +2,27 @@ import React, { lazy, Suspense, useState, useEffect, useRef } from 'react';
 
 import { useNavigate, Link } from 'react-router-dom';
 
-import { FileText, ArrowLeft, ImagePlus, AlertCircle, Loader2, X } from 'lucide-react';
-
+import { FileText, ArrowLeft, ImagePlus, AlertCircle, Loader2, X, Award } from 'lucide-react';
 import { Card, CardBody, CardHeader } from '../../components/common/Card';
-
 import { Button } from '../../components/common/Button';
-
 import { Input, Textarea, Select } from '../../components/common/Input';
-
 import { articleApi, alumniApi, contentMediaApi } from '../../services/api/contentApi';
-
 import { apiClient } from '../../services/api/client';
-
 import { IMAGE_ACCEPT, validateImage } from '../../utils/mediaUtils';
-
+import { isUserAlumni } from '../../utils/fptEmailValidator';
 import { useAuth } from '../../context/AuthContext';
-
 import { useLanguage } from '../../context/LanguageContext';
-
 import { loadAllSemanticTags, FALLBACK_ALL_TAGS, SemanticTagItem } from '../../utils/tagUtils';
-
 import { ArticleEditor, finalizeContentImages } from '../../components/common/ArticleEditor';
 
 export const CreateArticlePage: React.FC = () => {
-
   const navigate = useNavigate();
-
   const { currentUser, updateUser } = useAuth();
-
   const { t } = useLanguage();
+  const isAlumni = isUserAlumni(currentUser);
 
   const [title, setTitle] = useState('');
-
   const [category, setCategory] = useState('Học thuật & Trải nghiệm sinh viên');
-
-  const [isAlumniArticle, setIsAlumniArticle] = useState(currentUser?.role === 'Alumni');
-
   const [summary, setSummary] = useState('');
 
   const [content, setContent] = useState('');
@@ -237,9 +222,7 @@ export const CreateArticlePage: React.FC = () => {
       const finalContent = await finalizeContentImages(content.trim(), 'article');
 
       let createdResult: any = null;
-
-      if (isAlumniArticle || currentUser?.role === 'Alumni') {
-
+      if (isAlumni) {
         createdResult = await alumniApi.createCareerArticle({
 
           title: title.trim(),
@@ -384,29 +367,12 @@ export const CreateArticlePage: React.FC = () => {
 
           <form onSubmit={handleSubmit} className="space-y-4">
 
-            <div className="flex items-center gap-2 p-3 bg-slate-50 border border-slate-200/80 rounded-xl">
-
-              <input
-
-                type="checkbox"
-
-                id="alumniCheckbox"
-
-                checked={isAlumniArticle}
-
-                onChange={(e) => setIsAlumniArticle(e.target.checked)}
-
-                className="w-4 h-4 text-[#0076D1] rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
-
-              />
-
-              <label htmlFor="alumniCheckbox" className="text-xs font-semibold text-slate-700 cursor-pointer select-none">
-
-                {t('articleCreate.alumniCheckbox', 'Đăng dưới danh nghĩa Cựu sinh viên (Alumni Industry & Career Guidance)')}
-
-              </label>
-
-            </div>
+            {isAlumni && (
+              <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl text-amber-900 dark:text-amber-200 text-xs">
+                <Award className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>{t('articleCreate.alumniAutoBadge', 'Tài khoản Cựu sinh viên (K17 trở về trước). Bài viết sẽ tự động mang huy hiệu Cựu sinh viên & Hướng nghiệp (Alumni Career).')}</span>
+              </div>
+            )}
 
             <Input
 
