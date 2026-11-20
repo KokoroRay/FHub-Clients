@@ -236,18 +236,22 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
   const isAlumni = currentUser?.role === 'Alumni';
 
   const commNav: NavItemConfig[] = [
-    {
-      name: t('nav.schoolNews', 'School News'),
-      path: '/news',
-      icon: Newspaper,
-      badge: isSchoolRep ? 'Rep' : undefined,
-      color: {
-        bg: 'bg-blue-50',
-        text: 'text-blue-600',
-        darkBg: 'dark:bg-blue-950/40',
-        darkText: 'dark:text-blue-400',
-      },
-    },
+    ...(isSchoolRep
+      ? [
+          {
+            name: t('nav.schoolNews', 'School News'),
+            path: '/news',
+            icon: Newspaper,
+            badge: 'Rep',
+            color: {
+              bg: 'bg-blue-50',
+              text: 'text-blue-600',
+              darkBg: 'dark:bg-blue-950/40',
+              darkText: 'dark:text-blue-400',
+            },
+          },
+        ]
+      : []),
     {
       name: t('nav.officialBroadcasts', 'Official Broadcasts'),
       path: '/broadcasts',

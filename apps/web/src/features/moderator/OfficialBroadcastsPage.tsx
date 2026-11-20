@@ -1,18 +1,22 @@
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 import React, { useState, useEffect } from 'react';
-import { Megaphone, Plus, Send, Edit2, Trash2 } from 'lucide-react';
+import { Megaphone, Plus, Send, Edit2, Trash2, Eye, Newspaper } from 'lucide-react';
 import { Button } from '../../components/common/Button';
 import { Badge } from '../../components/common/Badge';
 import { Card, CardBody } from '../../components/common/Card';
 import { Modal } from '../../components/common/Modal';
 import { Input, Textarea, Select } from '../../components/common/Input';
 import { broadcastApi } from '../../services/api/studentApi';
+import { newsApi } from '../../services/api/contentApi';
 
 interface Broadcast {
   id: string;
+  itemType: 'BROADCAST' | 'NEWS';
   title: string;
   content: string;
+  summary?: string;
+  coverImageUrl?: string;
   senderDept: string;
   targetCampus: string;
   targetMajor: string;
@@ -34,6 +38,8 @@ export const OfficialBroadcastsPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBroadcast, setEditingBroadcast] = useState<Broadcast | null>(null);
   const [deletingBroadcast, setDeletingBroadcast] = useState<Broadcast | null>(null);
+  const [viewingBroadcast, setViewingBroadcast] = useState<Broadcast | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -43,25 +49,43 @@ export const OfficialBroadcastsPage: React.FC = () => {
   const fetchBroadcasts = async () => {
     try {
       setLoading(true);
-      const res = await broadcastApi.getBroadcasts({ page_size: 20 });
-      if (res && res.items && res.items.length > 0) {
-        const mapped: Broadcast[] = res.items.map((b) => ({
-          id: String(b.campaignId),
-          title: b.title,
-          content: b.body,
-          senderDept: 'Đại diện Nhà trường (School Representative)',
-          targetCampus: b.targetCampusId ? `Campus #${b.targetCampusId}` : t('Toàn bộ 5 Campus'),
-          targetMajor: b.targetMajorId
-            ? t('Ngành #{p0}', undefined, { p0: b.targetMajorId })
-            : t('Tất cả chuyên ngành'),
-          targetCampusCode: b.targetCampusId ? String(b.targetCampusId) : 'ALL',
-          targetMajorCode: b.targetMajorId ? String(b.targetMajorId) : 'ALL',
-          createdAt: b.createdAt ? b.createdAt : t('Gần đây'),
-        }));
-        setBroadcasts(mapped);
-      } else {
-        setBroadcasts([]);
-      }
+      const [broadcastRes, newsRes] = await Promise.all([
+        broadcastApi.getBroadcasts({ page_size: 20 }).catch(() => ({ items: [], total_count: 0 })),
+        newsApi.getNews({ status: 'PUBLISHED', pageSize: 20 }).catch(() => ({ items: [] })),
+      ]);
+
+      const mappedBroadcasts: Broadcast[] = (broadcastRes?.items || []).map((b) => ({
+        id: String(b.campaignId),
+        itemType: 'BROADCAST',
+        title: b.title,
+        content: b.body,
+        senderDept: 'Đại diện Nhà trường (School Representative)',
+        targetCampus: b.targetCampusId ? `Campus #${b.targetCampusId}` : t('Toàn bộ 5 Campus'),
+        targetMajor: b.targetMajorId
+          ? t('Ngành #{p0}', undefined, { p0: b.targetMajorId })
+          : t('Tất cả chuyên ngành'),
+        targetCampusCode: b.targetCampusId ? String(b.targetCampusId) : 'ALL',
+        targetMajorCode: b.targetMajorId ? String(b.targetMajorId) : 'ALL',
+        createdAt: b.createdAt || new Date().toISOString(),
+      }));
+
+      const mappedNews: Broadcast[] = (newsRes?.items || []).map((n: any) => ({
+        id: `news-${n.articleId}`,
+        itemType: 'NEWS',
+        title: n.title,
+        summary: n.summary || '',
+        content: n.content || n.summary || '',
+        coverImageUrl: n.coverImageUrl || '',
+        senderDept: 'Tin tức Nhà trường (School News)',
+        targetCampus: t('Toàn bộ 5 Campus'),
+        targetMajor: t('Tất cả chuyên ngành'),
+        createdAt: n.publishedAt || n.createdAt || new Date().toISOString(),
+      }));
+
+      const combined = [...mappedBroadcasts, ...mappedNews].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      setBroadcasts(combined);
     } catch (err) {
       console.warn('Backend broadcasts unavailable:', err);
       setBroadcasts([]);
@@ -73,6 +97,46 @@ export const OfficialBroadcastsPage: React.FC = () => {
   useEffect(() => {
     fetchBroadcasts();
   }, []);
+
+  const openViewDetail = async (bc: Broadcast) => {
+    setViewingBroadcast(bc);
+    if (bc.itemType === 'BROADCAST' && !bc.id.startsWith('b-')) {
+      setDetailLoading(true);
+      try {
+        const detail = await broadcastApi.getBroadcastById(bc.id);
+        if (detail) {
+          setViewingBroadcast({
+            ...bc,
+            title: detail.title || bc.title,
+            content: detail.body || bc.content,
+          });
+        }
+      } catch {
+        // keep card data
+      } finally {
+        setDetailLoading(false);
+      }
+    } else if (bc.itemType === 'NEWS') {
+      const numericId = bc.id.replace('news-', '');
+      setDetailLoading(true);
+      try {
+        const detail = await newsApi.getNewsById(numericId);
+        if (detail) {
+          setViewingBroadcast({
+            ...bc,
+            title: detail.title || bc.title,
+            content: detail.content || detail.summary || bc.content,
+            summary: detail.summary || bc.summary,
+            coverImageUrl: detail.coverImageUrl || bc.coverImageUrl,
+          });
+        }
+      } catch {
+        // keep card data
+      } finally {
+        setDetailLoading(false);
+      }
+    }
+  };
 
   const openCreateModal = () => {
     setEditingBroadcast(null);
@@ -136,6 +200,7 @@ export const OfficialBroadcastsPage: React.FC = () => {
         });
         const newB: Broadcast = {
           id: created?.campaignId ? String(created.campaignId) : `b-${Date.now()}`,
+          itemType: 'BROADCAST',
           title: created?.title || title.trim(),
           content: created?.body || content.trim(),
           senderDept: 'Đại diện Nhà trường (School Representative)',
@@ -172,6 +237,7 @@ export const OfficialBroadcastsPage: React.FC = () => {
       } else {
         const newB: Broadcast = {
           id: `b-${Date.now()}`,
+          itemType: 'BROADCAST',
           title: title.trim(),
           content: content.trim(),
           senderDept: 'Đại diện Nhà trường (School Representative)',
@@ -216,7 +282,7 @@ export const OfficialBroadcastsPage: React.FC = () => {
             <span>{t('Official School Broadcasts & Announcements')}</span>
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-            {t('Kênh phát thông báo chính thức có định hướng đối tượng theo Campus và Ngành học (School Representative).')}
+            {t('Kênh thông báo chính thức và tin tức từ Nhà trường theo Campus và Chuyên ngành.')}
           </p>
         </div>
 
@@ -232,7 +298,7 @@ export const OfficialBroadcastsPage: React.FC = () => {
         )}
       </div>
 
-      {/* Broadcasts List */}
+      {/* Broadcasts & Official Announcements List (UC19.2) */}
       <div className="space-y-4">
         {loading ? (
           <div className="bg-white dark:bg-slate-900 rounded-2xl p-12 text-center text-slate-400 border border-slate-100 dark:border-slate-800 shadow-xs">
@@ -254,8 +320,14 @@ export const OfficialBroadcastsPage: React.FC = () => {
               <CardBody className="p-6 space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <Badge variant="primary" size="md">
-                      {t('OFFICIAL')}
+                    <Badge variant={bc.itemType === 'NEWS' ? 'success' : 'primary'} size="md">
+                      {bc.itemType === 'NEWS' ? (
+                        <span className="inline-flex items-center gap-1">
+                          <Newspaper className="w-3 h-3" /> {t('SCHOOL NEWS')}
+                        </span>
+                      ) : (
+                        t('OFFICIAL')
+                      )}
                     </Badge>
                     <span className="font-bold text-xs text-slate-800 dark:text-slate-200">
                       {bc.senderDept}
@@ -276,35 +348,48 @@ export const OfficialBroadcastsPage: React.FC = () => {
 
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-2 flex-1 min-w-0">
-                    <h2 className="text-base font-extrabold text-slate-900 dark:text-slate-100">
+                    <h2
+                      onClick={() => openViewDetail(bc)}
+                      className="text-base font-extrabold text-slate-900 dark:text-slate-100 hover:text-[#0076D1] cursor-pointer transition-colors"
+                    >
                       {bc.title}
                     </h2>
-                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-line">
-                      {bc.content}
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-3 whitespace-pre-line">
+                      {bc.summary || bc.content}
                     </p>
                   </div>
 
-                  {canManageBroadcasts && (
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openEditModal(bc)}
-                        leftIcon={<Edit2 className="w-3.5 h-3.5" />}
-                      >
-                        {t('Chỉnh sửa')}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setDeletingBroadcast(bc)}
-                        leftIcon={<Trash2 className="w-3.5 h-3.5 text-rose-500" />}
-                        className="text-rose-600 hover:bg-rose-50 border-rose-200"
-                      >
-                        {t('Xóa')}
-                      </Button>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openViewDetail(bc)}
+                      leftIcon={<Eye className="w-3.5 h-3.5" />}
+                    >
+                      {t('Xem chi tiết')}
+                    </Button>
+                    {canManageBroadcasts && bc.itemType === 'BROADCAST' && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openEditModal(bc)}
+                          leftIcon={<Edit2 className="w-3.5 h-3.5" />}
+                        >
+                          {t('Chỉnh sửa')}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setDeletingBroadcast(bc)}
+                          leftIcon={<Trash2 className="w-3.5 h-3.5 text-rose-500" />}
+                          className="text-rose-600 hover:bg-rose-50 border-rose-200"
+                        >
+                          {t('Xóa')}
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </CardBody>
             </Card>
@@ -312,7 +397,52 @@ export const OfficialBroadcastsPage: React.FC = () => {
         )}
       </div>
 
-      {/* Create / Edit Broadcast Modal */}
+      {/* View Detail Modal (UC19.1) */}
+      <Modal
+        isOpen={Boolean(viewingBroadcast)}
+        onClose={() => setViewingBroadcast(null)}
+        title={viewingBroadcast?.title || t('Chi tiết thông báo chính thức')}
+        size="lg"
+        footer={
+          <Button variant="primary" onClick={() => setViewingBroadcast(null)}>
+            {t('Đóng')}
+          </Button>
+        }
+      >
+        {viewingBroadcast && (
+          <div className="space-y-4 text-xs sm:text-sm">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 border-b border-slate-100 dark:border-slate-800 pb-3">
+              <Badge variant={viewingBroadcast.itemType === 'NEWS' ? 'success' : 'primary'} size="sm">
+                {viewingBroadcast.itemType === 'NEWS' ? t('SCHOOL NEWS') : t('OFFICIAL')}
+              </Badge>
+              <span className="font-semibold text-slate-700 dark:text-slate-300">
+                {viewingBroadcast.senderDept}
+              </span>
+              <span>• {viewingBroadcast.targetCampus}</span>
+              <span>• {viewingBroadcast.targetMajor}</span>
+              <span>• {formatDate(viewingBroadcast.createdAt)}</span>
+            </div>
+
+            {viewingBroadcast.coverImageUrl && (
+              <img
+                src={viewingBroadcast.coverImageUrl}
+                alt={viewingBroadcast.title}
+                className="w-full max-h-64 object-cover rounded-xl border border-slate-100 dark:border-slate-800"
+              />
+            )}
+
+            {detailLoading ? (
+              <p className="text-xs text-slate-400 py-4">{t('Đang tải chi tiết...')}</p>
+            ) : (
+              <div className="text-slate-700 dark:text-slate-200 leading-relaxed whitespace-pre-line">
+                {viewingBroadcast.content}
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
+
+      {/* Create / Edit Broadcast Modal (UC23.1 & UC23.2) */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => {
@@ -393,7 +523,7 @@ export const OfficialBroadcastsPage: React.FC = () => {
         </form>
       </Modal>
 
-      {/* Delete Confirmation Modal */}
+      {/* Delete Confirmation Modal (UC23.3) */}
       <Modal
         isOpen={Boolean(deletingBroadcast)}
         onClose={() => setDeletingBroadcast(null)}

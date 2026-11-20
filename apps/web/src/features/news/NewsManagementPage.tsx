@@ -1,5 +1,6 @@
 import { useLanguage } from '../../context/LanguageContext';
 import React, { useState, useEffect } from 'react';
+import { Navigate } from 'react-router-dom';
 import {
   Newspaper,
   Plus,
@@ -186,6 +187,10 @@ export const NewsManagementPage: React.FC = () => {
 
   const publishedCount = newsList.filter((n) => n.status === 'PUBLISHED').length;
   const draftCount = newsList.filter((n) => n.status === 'DRAFT').length;
+
+  if (!canManageNews) {
+    return <Navigate to="/broadcasts" replace />;
+  }
 
   return (
     <div className="space-y-6">
