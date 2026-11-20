@@ -75,12 +75,19 @@ export const SeriesDetailPage: React.FC = () => {
             items: (data.items || []).map((it, idx) => {
               const ctype = (it.contentType as 'ARTICLE' | 'WORKFLOW' | 'QUESTION') || 'ARTICLE';
               const key = `${ctype.toUpperCase()}_${it.contentId}`;
+              const url =
+                ctype === 'WORKFLOW'
+                  ? `/workflows/${it.contentId}`
+                  : ctype === 'QUESTION'
+                  ? `/discussions/${it.contentId}`
+                  : `/articles/${it.contentId}`;
               return {
                 id: String(it.seriesItemId),
+                contentId: it.contentId,
                 type: ctype,
-                title: itemTitles[key] || `Part ${idx + 1}: Software Engineering & Architecture Module (#${it.contentId})`,
+                title: it.title || itemTitles[key] || `Part ${idx + 1}: #${it.contentId}`,
                 orderIndex: it.position || (idx + 1),
-                url: ctype === 'WORKFLOW' ? `/workflows/${it.contentId}` : `/articles/${it.contentId}`,
+                url,
               };
             }),
             createdAt: data.createdAt,

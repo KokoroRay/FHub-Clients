@@ -679,7 +679,7 @@ export interface UpdateSeriesRequest {
 }
 
 export interface AddSeriesItemRequest {
-  contentType: 'ARTICLE' | 'WORKFLOW';
+  contentType: 'ARTICLE' | 'WORKFLOW' | 'QUESTION';
   contentId: number;
 }
 
@@ -690,6 +690,7 @@ export interface SeriesItemDto {
   contentId: number;
   position: number;
   addedAt: string;
+  title?: string;
 }
 
 export interface SeriesDetailDto {

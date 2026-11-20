@@ -330,6 +330,7 @@ export interface Series {
   itemCount: number;
   items: {
     id: string;
+    contentId?: number;
     type: 'ARTICLE' | 'WORKFLOW' | 'QUESTION';
     title: string;
     orderIndex: number;
