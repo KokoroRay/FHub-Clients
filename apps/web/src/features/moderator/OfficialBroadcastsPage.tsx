@@ -1,14 +1,18 @@
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { Megaphone, Plus, Send, Edit2, Trash2, Eye, Newspaper } from 'lucide-react';
 import { Button } from '../../components/common/Button';
 import { Badge } from '../../components/common/Badge';
 import { Card, CardBody } from '../../components/common/Card';
 import { Modal } from '../../components/common/Modal';
-import { Input, Textarea, Select } from '../../components/common/Input';
+import { Input, Select } from '../../components/common/Input';
+import { ArticleEditor, finalizeContentImages } from '../../components/common/ArticleEditor';
+import { MarkdownPreview } from '../../components/common/MarkdownPreview';
 import { broadcastApi } from '../../services/api/studentApi';
 import { newsApi } from '../../services/api/contentApi';
+import { campusesApi, majorsApi, CampusDto, MajorDto } from '../../services/api/adminApi';
+import { normalizeMediaUrl } from '../../utils/mediaUtils';
 
 interface Broadcast {
   id: string;
@@ -20,6 +24,8 @@ interface Broadcast {
   senderDept: string;
   targetCampus: string;
   targetMajor: string;
+  targetCampusId?: number;
+  targetMajorId?: number;
   targetCampusCode?: string;
   targetMajorCode?: string;
   createdAt: string;
@@ -32,6 +38,8 @@ export const OfficialBroadcastsPage: React.FC = () => {
     currentUser?.role === 'School Representative' || currentUser?.role === 'Admin';
 
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
+  const [campuses, setCampuses] = useState<CampusDto[]>([]);
+  const [majors, setMajors] = useState<MajorDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -43,10 +51,46 @@ export const OfficialBroadcastsPage: React.FC = () => {
 
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [editorInitialContent, setEditorInitialContent] = useState('');
+  const [editorKey, setEditorKey] = useState(0);
+  const [isUploadingContent, setIsUploadingContent] = useState(false);
   const [targetCampus, setTargetCampus] = useState('ALL');
   const [targetMajor, setTargetMajor] = useState('ALL');
 
-  const fetchBroadcasts = async () => {
+  const campusMap = useMemo(() => {
+    const map = new Map<string, CampusDto>();
+    for (const c of campuses) {
+      map.set(String(c.campusId), c);
+    }
+    return map;
+  }, [campuses]);
+
+  const majorMap = useMemo(() => {
+    const map = new Map<string, MajorDto>();
+    for (const m of majors) {
+      map.set(String(m.majorId), m);
+    }
+    return map;
+  }, [majors]);
+
+  const getCampusLabel = (campusVal?: string | number | null): string => {
+    if (!campusVal || String(campusVal) === 'ALL') return t('Toàn bộ Campus');
+    const found = campusMap.get(String(campusVal));
+    if (found) return `${found.campusCode} - ${found.campusName}`;
+    return `Campus #${campusVal}`;
+  };
+
+  const getMajorLabel = (majorVal?: string | number | null): string => {
+    if (!majorVal || String(majorVal) === 'ALL') return t('Tất cả chuyên ngành');
+    const found = majorMap.get(String(majorVal));
+    if (found) return `${found.majorName} (${found.majorCode})`;
+    return t('Ngành #{p0}', undefined, { p0: majorVal });
+  };
+
+  const fetchBroadcasts = async (
+    loadedCampuses?: CampusDto[],
+    loadedMajors?: MajorDto[]
+  ) => {
     try {
       setLoading(true);
       const [broadcastRes, newsRes] = await Promise.all([
@@ -54,16 +98,31 @@ export const OfficialBroadcastsPage: React.FC = () => {
         newsApi.getNews({ status: 'PUBLISHED', pageSize: 20 }).catch(() => ({ items: [] })),
       ]);
 
+      const cList = loadedCampuses ?? campuses;
+      const mList = loadedMajors ?? majors;
+
+      const resolveCampus = (id?: number) => {
+        if (!id) return t('Toàn bộ Campus');
+        const found = cList.find((c) => c.campusId === id);
+        return found ? `${found.campusCode} - ${found.campusName}` : `Campus #${id}`;
+      };
+
+      const resolveMajor = (id?: number) => {
+        if (!id) return t('Tất cả chuyên ngành');
+        const found = mList.find((m) => m.majorId === id);
+        return found ? `${found.majorName} (${found.majorCode})` : t('Ngành #{p0}', undefined, { p0: id });
+      };
+
       const mappedBroadcasts: Broadcast[] = (broadcastRes?.items || []).map((b) => ({
         id: String(b.campaignId),
         itemType: 'BROADCAST',
         title: b.title,
         content: b.body,
         senderDept: 'Đại diện Nhà trường (School Representative)',
-        targetCampus: b.targetCampusId ? `Campus #${b.targetCampusId}` : t('Toàn bộ 5 Campus'),
-        targetMajor: b.targetMajorId
-          ? t('Ngành #{p0}', undefined, { p0: b.targetMajorId })
-          : t('Tất cả chuyên ngành'),
+        targetCampus: resolveCampus(b.targetCampusId),
+        targetMajor: resolveMajor(b.targetMajorId),
+        targetCampusId: b.targetCampusId,
+        targetMajorId: b.targetMajorId,
         targetCampusCode: b.targetCampusId ? String(b.targetCampusId) : 'ALL',
         targetMajorCode: b.targetMajorId ? String(b.targetMajorId) : 'ALL',
         createdAt: b.createdAt || new Date().toISOString(),
@@ -77,7 +136,7 @@ export const OfficialBroadcastsPage: React.FC = () => {
         content: n.content || n.summary || '',
         coverImageUrl: n.coverImageUrl || '',
         senderDept: 'Tin tức Nhà trường (School News)',
-        targetCampus: t('Toàn bộ 5 Campus'),
+        targetCampus: t('Toàn bộ Campus'),
         targetMajor: t('Tất cả chuyên ngành'),
         createdAt: n.publishedAt || n.createdAt || new Date().toISOString(),
       }));
@@ -95,8 +154,73 @@ export const OfficialBroadcastsPage: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchBroadcasts();
+    let isMounted = true;
+    const init = async () => {
+      const [campusesRes, majorsRes] = await Promise.allSettled([
+        campusesApi.getCampuses({ pageSize: 100 }),
+        majorsApi.getMajors({ pageSize: 200 }),
+      ]);
+
+      const loadedCampuses: CampusDto[] =
+        campusesRes.status === 'fulfilled'
+          ? Array.isArray(campusesRes.value)
+            ? campusesRes.value
+            : campusesRes.value?.items || []
+          : [];
+
+      const loadedMajors: MajorDto[] =
+        majorsRes.status === 'fulfilled'
+          ? Array.isArray(majorsRes.value)
+            ? majorsRes.value
+            : majorsRes.value?.items || []
+          : [];
+
+      if (isMounted) {
+        setCampuses(loadedCampuses);
+        setMajors(loadedMajors);
+        await fetchBroadcasts(loadedCampuses, loadedMajors);
+      }
+    };
+    void init();
+    return () => {
+      isMounted = false;
+    };
   }, []);
+
+  const campusOptions = useMemo(() => {
+    const base = [{ value: 'ALL', label: t('Toàn bộ Campus') }];
+    if (campuses.length === 0) {
+      return [
+        ...base,
+        { value: '1', label: 'HL - FPTU Hòa Lạc' },
+        { value: '2', label: 'HCM - FPTU TP. Hồ Chí Minh' },
+        { value: '3', label: 'DN - FPTU Đà Nẵng' },
+        { value: '4', label: 'CT - FPTU Cần Thơ' },
+        { value: '5', label: 'QN - FPTU Quy Nhơn' },
+      ];
+    }
+    return [
+      ...base,
+      ...campuses.map((c) => ({
+        value: String(c.campusId),
+        label: `${c.campusCode} - ${c.campusName}`,
+      })),
+    ];
+  }, [campuses, t]);
+
+  const majorOptions = useMemo(() => {
+    const base = [{ value: 'ALL', label: t('Tất cả chuyên ngành') }];
+    if (majors.length === 0) {
+      return base;
+    }
+    return [
+      ...base,
+      ...majors.map((m) => ({
+        value: String(m.majorId),
+        label: m.majorCode ? `${m.majorName} (${m.majorCode})` : m.majorName,
+      })),
+    ];
+  }, [majors, t]);
 
   const openViewDetail = async (bc: Broadcast) => {
     setViewingBroadcast(bc);
@@ -142,6 +266,8 @@ export const OfficialBroadcastsPage: React.FC = () => {
     setEditingBroadcast(null);
     setTitle('');
     setContent('');
+    setEditorInitialContent('');
+    setEditorKey((k) => k + 1);
     setTargetCampus('ALL');
     setTargetMajor('ALL');
     setIsModalOpen(true);
@@ -151,6 +277,8 @@ export const OfficialBroadcastsPage: React.FC = () => {
     setEditingBroadcast(bc);
     setTitle(bc.title);
     setContent(bc.content);
+    setEditorInitialContent(bc.content || '');
+    setEditorKey((k) => k + 1);
     setTargetCampus(bc.targetCampusCode || 'ALL');
     setTargetMajor(bc.targetMajorCode || 'ALL');
     setIsModalOpen(true);
@@ -158,19 +286,30 @@ export const OfficialBroadcastsPage: React.FC = () => {
 
   const handleSaveBroadcast = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !content.trim()) return;
+    if (!title.trim() || !content.trim() || submitting || isUploadingContent) return;
 
     setSubmitting(true);
     const audienceType =
       targetCampus !== 'ALL' ? 'CAMPUS' : targetMajor !== 'ALL' ? 'MAJOR' : 'ALL';
+    const numericCampusId =
+      targetCampus !== 'ALL' && !isNaN(Number(targetCampus)) ? Number(targetCampus) : undefined;
+    const numericMajorId =
+      targetMajor !== 'ALL' && !isNaN(Number(targetMajor)) ? Number(targetMajor) : undefined;
+
+    const resolvedCampusLabel = getCampusLabel(targetCampus);
+    const resolvedMajorLabel = getMajorLabel(targetMajor);
 
     try {
+      const finalContent = await finalizeContentImages(content.trim(), 'article');
+
       if (editingBroadcast) {
         // UC23.2: Update Official Broadcast
         const updated = await broadcastApi.updateBroadcast(editingBroadcast.id, {
           title: title.trim(),
-          body: content.trim(),
+          body: finalContent,
           audienceType,
+          targetCampusId: numericCampusId,
+          targetMajorId: numericMajorId,
           deliveryChannels: 'IN_APP',
           isMandatory: true,
         });
@@ -180,9 +319,11 @@ export const OfficialBroadcastsPage: React.FC = () => {
               ? {
                   ...item,
                   title: updated?.title || title.trim(),
-                  content: updated?.body || content.trim(),
-                  targetCampus: targetCampus === 'ALL' ? t('Toàn bộ 5 Campus') : targetCampus,
-                  targetMajor: targetMajor === 'ALL' ? t('Tất cả chuyên ngành') : targetMajor,
+                  content: updated?.body || finalContent,
+                  targetCampus: resolvedCampusLabel,
+                  targetMajor: resolvedMajorLabel,
+                  targetCampusId: numericCampusId,
+                  targetMajorId: numericMajorId,
                   targetCampusCode: targetCampus,
                   targetMajorCode: targetMajor,
                 }
@@ -193,8 +334,10 @@ export const OfficialBroadcastsPage: React.FC = () => {
         // UC23.1: Create Official Broadcast with Filters
         const created = await broadcastApi.createBroadcast({
           title: title.trim(),
-          body: content.trim(),
+          body: finalContent,
           audienceType,
+          targetCampusId: numericCampusId,
+          targetMajorId: numericMajorId,
           deliveryChannels: 'IN_APP',
           isMandatory: true,
         });
@@ -202,10 +345,12 @@ export const OfficialBroadcastsPage: React.FC = () => {
           id: created?.campaignId ? String(created.campaignId) : `b-${Date.now()}`,
           itemType: 'BROADCAST',
           title: created?.title || title.trim(),
-          content: created?.body || content.trim(),
+          content: created?.body || finalContent,
           senderDept: 'Đại diện Nhà trường (School Representative)',
-          targetCampus: targetCampus === 'ALL' ? t('Toàn bộ 5 Campus') : targetCampus,
-          targetMajor: targetMajor === 'ALL' ? t('Tất cả chuyên ngành') : targetMajor,
+          targetCampus: resolvedCampusLabel,
+          targetMajor: resolvedMajorLabel,
+          targetCampusId: numericCampusId,
+          targetMajorId: numericMajorId,
           targetCampusCode: targetCampus,
           targetMajorCode: targetMajor,
           createdAt: created?.createdAt || new Date().toISOString(),
@@ -226,8 +371,10 @@ export const OfficialBroadcastsPage: React.FC = () => {
                   ...item,
                   title: title.trim(),
                   content: content.trim(),
-                  targetCampus: targetCampus === 'ALL' ? t('Toàn bộ 5 Campus') : targetCampus,
-                  targetMajor: targetMajor === 'ALL' ? t('Tất cả chuyên ngành') : targetMajor,
+                  targetCampus: resolvedCampusLabel,
+                  targetMajor: resolvedMajorLabel,
+                  targetCampusId: numericCampusId,
+                  targetMajorId: numericMajorId,
                   targetCampusCode: targetCampus,
                   targetMajorCode: targetMajor,
                 }
@@ -241,8 +388,10 @@ export const OfficialBroadcastsPage: React.FC = () => {
           title: title.trim(),
           content: content.trim(),
           senderDept: 'Đại diện Nhà trường (School Representative)',
-          targetCampus: targetCampus === 'ALL' ? t('Toàn bộ 5 Campus') : targetCampus,
-          targetMajor: targetMajor === 'ALL' ? t('Tất cả chuyên ngành') : targetMajor,
+          targetCampus: resolvedCampusLabel,
+          targetMajor: resolvedMajorLabel,
+          targetCampusId: numericCampusId,
+          targetMajorId: numericMajorId,
           targetCampusCode: targetCampus,
           targetMajorCode: targetMajor,
           createdAt: new Date().toISOString(),
@@ -340,7 +489,7 @@ export const OfficialBroadcastsPage: React.FC = () => {
                     </span>
                     <span>
                       {t('• Ngành:')}{' '}
-                      <strong className="text-slate-700 dark:text-slate-300">{t(bc.targetMajor)}</strong>
+                      <strong className="text-slate-700 dark:text-slate-300">{bc.targetMajor}</strong>
                     </span>
                     <span>• {formatDate(bc.createdAt)}</span>
                   </div>
@@ -355,7 +504,7 @@ export const OfficialBroadcastsPage: React.FC = () => {
                       {bc.title}
                     </h2>
                     <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed line-clamp-3 whitespace-pre-line">
-                      {bc.summary || bc.content}
+                      {bc.summary || bc.content.replace(/!\[[^\]]*\]\([^)]+\)/g, '[Hình ảnh]')}
                     </p>
                   </div>
 
@@ -425,7 +574,7 @@ export const OfficialBroadcastsPage: React.FC = () => {
 
             {viewingBroadcast.coverImageUrl && (
               <img
-                src={viewingBroadcast.coverImageUrl}
+                src={normalizeMediaUrl(viewingBroadcast.coverImageUrl)}
                 alt={viewingBroadcast.title}
                 className="w-full max-h-64 object-cover rounded-xl border border-slate-100 dark:border-slate-800"
               />
@@ -434,9 +583,7 @@ export const OfficialBroadcastsPage: React.FC = () => {
             {detailLoading ? (
               <p className="text-xs text-slate-400 py-4">{t('Đang tải chi tiết...')}</p>
             ) : (
-              <div className="text-slate-700 dark:text-slate-200 leading-relaxed whitespace-pre-line">
-                {viewingBroadcast.content}
-              </div>
+              <MarkdownPreview content={viewingBroadcast.content || ''} />
             )}
           </div>
         )}
@@ -444,6 +591,7 @@ export const OfficialBroadcastsPage: React.FC = () => {
 
       {/* Create / Edit Broadcast Modal (UC23.1 & UC23.2) */}
       <Modal
+        size="xl"
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);
@@ -462,13 +610,15 @@ export const OfficialBroadcastsPage: React.FC = () => {
                 setIsModalOpen(false);
                 setEditingBroadcast(null);
               }}
+              disabled={submitting}
             >
               {t('Hủy')}
             </Button>
             <Button
               variant="primary"
               onClick={handleSaveBroadcast}
-              disabled={submitting}
+              isLoading={submitting}
+              disabled={submitting || isUploadingContent || !title.trim() || !content.trim()}
               leftIcon={<Send className="w-3.5 h-3.5" />}
             >
               {editingBroadcast ? t('Lưu thay đổi') : t('Phát thông báo')}
@@ -485,41 +635,36 @@ export const OfficialBroadcastsPage: React.FC = () => {
             required
           />
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Select
               label={t('Cơ sở tiếp nhận')}
               value={targetCampus}
               onChange={(e) => setTargetCampus(e.target.value)}
-              options={[
-                { value: 'ALL', label: t('Toàn bộ 5 Campus') },
-                { value: 'HL', label: t('HL - FPTU Hòa Lạc') },
-                { value: 'HCM', label: t('HCM - FPTU TP. Hồ Chí Minh') },
-                { value: 'DN', label: t('DN - FPTU Đà Nẵng') },
-                { value: 'CT', label: t('CT - FPTU Cần Thơ') },
-                { value: 'QN', label: t('QN - FPTU Quy Nhơn') },
-              ]}
+              options={campusOptions}
             />
             <Select
               label={t('Chuyên ngành tiếp nhận')}
               value={targetMajor}
               onChange={(e) => setTargetMajor(e.target.value)}
-              options={[
-                { value: 'ALL', label: t('Tất cả chuyên ngành') },
-                { value: 'SE', label: t('Kỹ thuật phần mềm (SE)') },
-                { value: 'IA', label: t('An toàn thông tin (IA)') },
-                { value: 'AI', label: t('Trí tuệ nhân tạo (AI)') },
-              ]}
+              options={majorOptions}
             />
           </div>
 
-          <Textarea
-            label={t('Nội dung thông báo chi tiết')}
-            placeholder={t('Nhập nội dung đầy đủ...')}
-            rows={5}
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            required
-          />
+          <Suspense
+            fallback={
+              <p role="status" className="py-6 text-center text-xs text-slate-400">
+                {t('Đang tải trình soạn thảo…')}
+              </p>
+            }
+          >
+            <ArticleEditor
+              key={`broadcast-${editingBroadcast?.id || 'create'}-${editorKey}`}
+              initialContent={editorInitialContent}
+              onChange={setContent}
+              onUploadingChange={setIsUploadingContent}
+              disabled={submitting}
+            />
+          </Suspense>
         </form>
       </Modal>
 
