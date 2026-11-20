@@ -28,6 +28,7 @@ import { Button } from '../../components/common/Button';
 import { CourseSelect } from '../../components/common/CourseSelect';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { SeriesSidebarCard } from '../../components/common/SeriesSidebarCard';
 
 interface ParsedStep {
   stepNumber: number;
@@ -486,6 +487,9 @@ export const WorkflowDetailPage: React.FC = () => {
       <Link to="/workflows" className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-blue-600 transition-colors">
         <ArrowLeft className="w-4 h-4" /> {t('Back to Workflows')}
       </Link>
+
+      {/* Series Playlist Navigation (when opened from a Series) */}
+      <SeriesSidebarCard currentType="WORKFLOW" currentId={workflow.id} variant="banner" />
 
       {/* Header Info */}
       <Card>

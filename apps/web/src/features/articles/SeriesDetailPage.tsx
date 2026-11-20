@@ -75,12 +75,13 @@ export const SeriesDetailPage: React.FC = () => {
             items: (data.items || []).map((it, idx) => {
               const ctype = (it.contentType as 'ARTICLE' | 'WORKFLOW' | 'QUESTION') || 'ARTICLE';
               const key = `${ctype.toUpperCase()}_${it.contentId}`;
-              const url =
+              const baseUrl =
                 ctype === 'WORKFLOW'
                   ? `/workflows/${it.contentId}`
                   : ctype === 'QUESTION'
                   ? `/discussions/${it.contentId}`
                   : `/articles/${it.contentId}`;
+              const url = `${baseUrl}?seriesId=${data.seriesId}`;
               return {
                 id: String(it.seriesItemId),
                 contentId: it.contentId,
@@ -246,7 +247,15 @@ export const SeriesDetailPage: React.FC = () => {
         isOpen={isEditModalOpen}
         initialSeries={series}
         onClose={() => setIsEditModalOpen(false)}
-        onSaved={(updated) => setSeries(updated)}
+        onSaved={(updated) =>
+          setSeries({
+            ...updated,
+            items: (updated.items || []).map((it) => ({
+              ...it,
+              url: it.url.includes('seriesId=') ? it.url : `${it.url}?seriesId=${updated.id}`,
+            })),
+          })
+        }
       />
     </div>
   );

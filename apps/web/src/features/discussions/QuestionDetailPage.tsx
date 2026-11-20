@@ -32,6 +32,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { apiClient } from '../../services/api/client';
 import { useLanguage } from '../../context/LanguageContext';
+import { SeriesSidebarCard } from '../../components/common/SeriesSidebarCard';
 import { questionApi, alumniApi } from '../../services/api/contentApi';
 import { voteApi, bookmarkApi, profileApi, notificationApi } from '../../services/api/studentApi';
 import { courseNodesApi, semanticTagsApi } from '../../services/api/adminApi';
@@ -826,6 +827,9 @@ export const QuestionDetailPage: React.FC = () => {
         <span>/</span>
         <span className="text-slate-400 truncate max-w-[200px]">{question.title}</span>
       </div>
+
+      {/* Series Playlist Navigation (when opened from a Series) */}
+      <SeriesSidebarCard currentType="QUESTION" currentId={question.id} variant="banner" />
 
       {/* Main Question Card (Figma Frame 5: Discussions Detail) */}
       <Card>

@@ -37,6 +37,7 @@ import { formatDisplayDate, calculateReadingTime, isUserAlumni } from '../../uti
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 import { SocialShareModal } from '../../components/common/SocialShareModal';
 import { UserHoverCard } from '../../components/common/UserHoverCard';
+import { SeriesSidebarCard } from '../../components/common/SeriesSidebarCard';
 import { resolveUserCampus } from '../../utils/taxonomyUtils';
 import {
   loadAllSemanticTags,
@@ -684,8 +685,11 @@ export const ArticleDetailPage: React.FC = () => {
           </Card>
         </div>
 
-        {/* Right Sidebar Column (TOC & Author Profile, Figma Frame 7) */}
+        {/* Right Sidebar Column (Series, TOC & Author Profile, Figma Frame 7) */}
         <div className="space-y-6 sticky top-20">
+          {/* Series Playlist Navigation (when opened from a Series) */}
+          <SeriesSidebarCard currentType="ARTICLE" currentId={article.id} variant="sidebar" />
+
           {/* Table of Contents */}
           <Card>
             <CardHeader className="p-4 pb-2.5">
