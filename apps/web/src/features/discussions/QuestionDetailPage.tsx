@@ -495,14 +495,17 @@ export const QuestionDetailPage: React.FC = () => {
       setUserVote(stats.myVoteValue === 1 ? 'UP' : stats.myVoteValue === -1 ? 'DOWN' : null);
       setVoteDetails({ upvotes: stats.upvotes, downvotes: stats.downvotes });
 
-      if (type === 'UP' && question?.author?.id && String(question.author.id) !== String(currentUser?.id)) {
+      if (prevVote !== type && question?.author?.id && String(question.author.id) !== String(currentUser?.id)) {
         const senderName = currentUser?.fullName || (currentUser as any)?.displayName || t('common.peerStudent', 'Một bạn học');
+        const isUp = type === 'UP';
         notificationApi.createNotification({
           recipientUserId: Number(question.author.id),
-          type: 'UPVOTE',
-          title: `${senderName} đã thích câu hỏi của bạn`,
+          type: isUp ? 'UPVOTE' : 'DOWNVOTE',
+          title: isUp
+            ? `${senderName} đã upvote câu hỏi của bạn`
+            : `${senderName} đã downvote câu hỏi của bạn`,
           message: `"${question.title?.slice(0, 80)}..."`,
-          actionUrl: `/questions/${id}`,
+          actionUrl: `/discussions/${id}`,
           targetType: 'QUESTION',
           targetId: numId,
         });
@@ -585,16 +588,19 @@ export const QuestionDetailPage: React.FC = () => {
         )
       );
 
-      if (type === 'UP' && currentAns?.author?.id && String(currentAns.author.id) !== String(currentUser?.id)) {
+      if (prevVote !== type && currentAns?.author?.id && String(currentAns.author.id) !== String(currentUser?.id)) {
         const senderName = currentUser?.fullName || (currentUser as any)?.displayName || t('common.peerStudent', 'Một bạn học');
+        const isUp = type === 'UP';
         notificationApi.createNotification({
           recipientUserId: Number(currentAns.author.id),
-          type: 'UPVOTE',
-          title: `${senderName} đã thích câu trả lời của bạn`,
+          type: isUp ? 'UPVOTE' : 'DOWNVOTE',
+          title: isUp
+            ? `${senderName} đã upvote câu trả lời của bạn`
+            : `${senderName} đã downvote câu trả lời của bạn`,
           message: `"${currentAns.content?.slice(0, 80)}..."`,
-          actionUrl: `/questions/${id}#${ansId}`,
-          targetType: 'ANSWER',
-          targetId: numAnsId,
+          actionUrl: `/discussions/${id}#${ansId}`,
+          targetType: 'QUESTION',
+          targetId: Number((id || '').replace(/\D/g, '')) || numAnsId,
         });
       }
     } catch (err) {
@@ -757,7 +763,7 @@ export const QuestionDetailPage: React.FC = () => {
         type: 'ANSWER',
         title: `${senderName} đã trả lời câu hỏi của bạn`,
         message: `"${question.title?.slice(0, 80)}..."`,
-        actionUrl: `/questions/${id}`,
+        actionUrl: `/discussions/${id}`,
         targetType: 'QUESTION',
         targetId: numQId,
       });
@@ -803,9 +809,9 @@ export const QuestionDetailPage: React.FC = () => {
         type: 'COMMENT',
         title: `${senderName} đã bình luận vào câu trả lời của bạn`,
         message: `"${text.slice(0, 80)}..."`,
-        actionUrl: `/questions/${id}#${ansId}`,
-        targetType: 'ANSWER',
-        targetId: numAnsId,
+        actionUrl: `/discussions/${id}#${ansId}`,
+        targetType: 'QUESTION',
+        targetId: Number((id || '').replace(/\D/g, '')) || numAnsId,
       });
     }
   };

@@ -306,12 +306,15 @@ export const ArticleDetailPage: React.FC = () => {
       setVoteScore(stats.score);
       setUserVote(stats.myVoteValue === 1 ? 'UP' : stats.myVoteValue === -1 ? 'DOWN' : null);
 
-      if (direction === 'UP' && prevVote !== 'UP' && article?.authorUserId && String(article.authorUserId) !== String(currentUser?.id)) {
+      if (prevVote !== direction && article?.authorUserId && String(article.authorUserId) !== String(currentUser?.id)) {
         const senderName = currentUser?.fullName || (currentUser as any)?.displayName || t('common.peerStudent', 'Một bạn học');
+        const isUp = direction === 'UP';
         notificationApi.createNotification({
           recipientUserId: Number(article.authorUserId),
-          type: 'UPVOTE',
-          title: `${senderName} đã bình chọn bài viết của bạn`,
+          type: isUp ? 'UPVOTE' : 'DOWNVOTE',
+          title: isUp
+            ? `${senderName} đã upvote bài viết của bạn`
+            : `${senderName} đã downvote bài viết của bạn`,
           message: `"${article.title?.slice(0, 80)}..."`,
           actionUrl: `/articles/${id}`,
           targetType: 'ARTICLE',

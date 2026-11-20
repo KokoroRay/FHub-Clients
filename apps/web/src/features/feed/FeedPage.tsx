@@ -356,37 +356,30 @@ export const FeedPage: React.FC = () => {
           .catch(() => {});
       }
 
-      // Synchronize current user votes
-      if (currentUser && newUnifiedItems.length > 0) {
-        voteApi.getMyVotes()
-          .then((myVotes) => {
-            const myVoteMap: Record<string, number> = {};
-            if (Array.isArray(myVotes)) {
-              myVotes.forEach((v: any) => {
-                const t = (v.targetType || v.target_type || '').toUpperCase();
-                const tid = v.targetId || v.target_id || v.id;
-                const val = v.voteValue ?? v.vote_value ?? 1;
-                if (t === 'QUESTION') {
-                  myVoteMap[`q-${tid}`] = val;
-                } else if (t === 'ARTICLE') {
-                  myVoteMap[`art-${tid}`] = val;
-                }
-              });
-            }
-            setVotes((prev) => {
-              const updated = { ...prev };
-              newUnifiedItems.forEach((item) => {
-                const myVal = myVoteMap[item.id];
-                if (myVal !== undefined) {
-                  const currentScore = updated[item.id]?.count ?? ((item.upvoteCount || 0) - (item.downvoteCount || 0));
-                  updated[item.id] = {
-                    count: currentScore,
-                    userVote: myVal === 1 ? 'UP' : myVal === -1 ? 'DOWN' : null,
-                  };
-                }
-              });
-              return updated;
+      // Synchronize real vote stats (total score + caller vote) for all loaded items
+      if (newUnifiedItems.length > 0) {
+        Promise.allSettled(
+          newUnifiedItems
+            .filter((item) => item.numericId > 0)
+            .map(async (item) => {
+              const stats = await voteApi.getStats(item.type, item.numericId);
+              return { itemId: item.id, stats };
+            })
+        )
+          .then((results) => {
+            const nextVoteMap: Record<string, { count: number; userVote: 'UP' | 'DOWN' | null }> = {};
+            results.forEach((res) => {
+              if (res.status === 'fulfilled' && res.value?.stats) {
+                const { itemId, stats } = res.value;
+                nextVoteMap[itemId] = {
+                  count: stats.score ?? 0,
+                  userVote: stats.myVoteValue === 1 ? 'UP' : stats.myVoteValue === -1 ? 'DOWN' : null,
+                };
+              }
             });
+            if (Object.keys(nextVoteMap).length > 0) {
+              setVotes((prev) => ({ ...prev, ...nextVoteMap }));
+            }
           })
           .catch(() => {});
       }
@@ -481,7 +474,7 @@ export const FeedPage: React.FC = () => {
 
     if (item.numericId > 0) {
       try {
-        const targetType = item.type === 'ARTICLE' ? 'ARTICLE' : 'QUESTION';
+        const targetType = item.type;
         if (current.userVote === direction) {
           await voteApi.removeVote(targetType, item.numericId);
         } else {
@@ -500,14 +493,23 @@ export const FeedPage: React.FC = () => {
           },
         }));
 
-        if (direction === 'UP' && item.authorUserId && String(item.authorUserId) !== String(currentUser?.id)) {
+        if (current.userVote !== direction && item.authorUserId && String(item.authorUserId) !== String(currentUser?.id)) {
           const senderName = currentUser?.fullName || (currentUser as any)?.displayName || t('common.peerStudent', 'Một bạn học');
+          const isUp = direction === 'UP';
+          const actionUrl =
+            item.type === 'ARTICLE'
+              ? `/articles/${item.numericId}`
+              : item.type === 'WORKFLOW'
+              ? `/workflows/${item.numericId}`
+              : `/discussions/${item.numericId}`;
           notificationApi.createNotification({
             recipientUserId: Number(item.authorUserId),
-            type: 'UPVOTE',
-            title: `${senderName} đã thích nội dung của bạn`,
+            type: isUp ? 'UPVOTE' : 'DOWNVOTE',
+            title: isUp
+              ? `${senderName} đã upvote bài viết của bạn`
+              : `${senderName} đã downvote bài viết của bạn`,
             message: `"${item.title.slice(0, 80)}..."`,
-            actionUrl: item.type === 'ARTICLE' ? `/articles/${item.numericId}` : `/discussions/${item.numericId}`,
+            actionUrl,
             targetType: item.type,
             targetId: item.numericId,
           });
@@ -921,37 +923,30 @@ export const FeedPage: React.FC = () => {
                   key={item.id}
                   className="p-4 sm:p-5 flex items-start gap-3 sm:gap-4 hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors"
                 >
-                  {/* Left: Vote Counter or Type Badge */}
-                  {item.type === 'QUESTION' || item.type === 'ARTICLE' ? (
-                    <div className="flex flex-col items-center justify-center min-w-[42px] bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl p-1 shrink-0 self-start shadow-2xs">
-                      <button
-                        onClick={() => handleVote(item, 'UP')}
-                        className={`p-1 rounded hover:bg-slate-200/60 dark:hover:bg-slate-700 cursor-pointer transition-colors ${
-                          voteInfo.userVote === 'UP' ? 'text-[#0076D1] font-bold' : 'text-slate-400'
-                        }`}
-                        title="Bình chọn tích cực (Upvote)"
-                      >
-                        <ChevronUp className="w-4 h-4" />
-                      </button>
-                      <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-200 my-0.5">
-                        {voteInfo.count}
-                      </span>
-                      <button
-                        onClick={() => handleVote(item, 'DOWN')}
-                        className={`p-1 rounded hover:bg-slate-200/60 dark:hover:bg-slate-700 cursor-pointer transition-colors ${
-                          voteInfo.userVote === 'DOWN' ? 'text-rose-600 font-bold' : 'text-slate-400'
-                        }`}
-                        title="Bình chọn tiêu cực (Downvote)"
-                      >
-                        <ChevronDown className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center min-w-[42px] bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-900/50 rounded-xl p-2 shrink-0 self-start shadow-2xs text-indigo-600 dark:text-indigo-400">
-                      <Layers className="w-4 h-4 mb-0.5" />
-                      <span className="text-[10px] font-bold">Quy</span>
-                    </div>
-                  )}
+                  {/* Left: Vote Counter (Questions, Articles & Workflows) */}
+                  <div className="flex flex-col items-center justify-center min-w-[42px] bg-slate-50 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 rounded-xl p-1 shrink-0 self-start shadow-2xs">
+                    <button
+                      onClick={() => handleVote(item, 'UP')}
+                      className={`p-1 rounded hover:bg-slate-200/60 dark:hover:bg-slate-700 cursor-pointer transition-colors ${
+                        voteInfo.userVote === 'UP' ? 'text-[#0076D1] font-bold' : 'text-slate-400'
+                      }`}
+                      title="Bình chọn tích cực (Upvote)"
+                    >
+                      <ChevronUp className="w-4 h-4" />
+                    </button>
+                    <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-200 my-0.5">
+                      {voteInfo.count}
+                    </span>
+                    <button
+                      onClick={() => handleVote(item, 'DOWN')}
+                      className={`p-1 rounded hover:bg-slate-200/60 dark:hover:bg-slate-700 cursor-pointer transition-colors ${
+                        voteInfo.userVote === 'DOWN' ? 'text-rose-600 font-bold' : 'text-slate-400'
+                      }`}
+                      title="Bình chọn tiêu cực (Downvote)"
+                    >
+                      <ChevronDown className="w-4 h-4" />
+                    </button>
+                  </div>
 
                   {/* Right: Content details */}
                   <div className="flex-1 min-w-0 space-y-2">

@@ -9,10 +9,12 @@ import {
   Edit3,
   CheckCircle2,
   Paperclip,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react';
 import { studyMaterialApi } from '../../services/api/contentApi';
 import { courseNodesApi } from '../../services/api/adminApi';
-import { bookmarkApi } from '../../services/api/studentApi';
+import { bookmarkApi, voteApi, notificationApi } from '../../services/api/studentApi';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { UpdateMaterialMetadataModal } from './UpdateMaterialMetadataModal';
@@ -39,6 +41,8 @@ export const StudyMaterialDetailPage: React.FC = () => {
   const [downloadCount, setDownloadCount] = useState(0);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [bookmarkId, setBookmarkId] = useState<number | string | null>(null);
+  const [voteScore, setVoteScore] = useState(0);
+  const [userVote, setUserVote] = useState<'UP' | 'DOWN' | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
@@ -120,6 +124,14 @@ export const StudyMaterialDetailPage: React.FC = () => {
           const numId = Number(id ? id.replace(/\D/g, '') : 0);
           if (numId) {
             try {
+              const stats = await voteApi.getStats('STUDY_MATERIAL', numId);
+              if (isMounted) {
+                setVoteScore(stats.score ?? 0);
+                setUserVote(stats.myVoteValue === 1 ? 'UP' : stats.myVoteValue === -1 ? 'DOWN' : null);
+              }
+            } catch {}
+
+            try {
               const bList = await bookmarkApi.getBookmarks('StudyMaterial');
               const found = bList.find((b: any) => Number(b.targetId || b.externalTargetId) === numId);
               if (found && isMounted) {
@@ -138,6 +150,66 @@ export const StudyMaterialDetailPage: React.FC = () => {
     fetchMaterial();
     return () => { isMounted = false; };
   }, [id]);
+
+  const handleVoteMaterial = async (direction: 'UP' | 'DOWN') => {
+    if (!material) return;
+    const numId = Number(String(material.id).replace(/\D/g, ''));
+    if (!numId) return;
+
+    const voteValue = direction === 'UP' ? 1 : -1;
+    const prevVote = userVote;
+    const prevScore = voteScore;
+
+    let nextVote: 'UP' | 'DOWN' | null = direction;
+    let nextScore = prevScore;
+    if (prevVote === direction) {
+      nextVote = null;
+      nextScore -= voteValue;
+    } else if (prevVote) {
+      nextScore += voteValue * 2;
+    } else {
+      nextScore += voteValue;
+    }
+
+    setUserVote(nextVote);
+    setVoteScore(nextScore);
+
+    try {
+      if (prevVote === direction) {
+        await voteApi.removeVote('STUDY_MATERIAL', numId);
+      } else {
+        await voteApi.vote({
+          target_type: 'STUDY_MATERIAL',
+          target_id: numId,
+          vote_value: voteValue,
+        });
+      }
+      const stats = await voteApi.getStats('STUDY_MATERIAL', numId);
+      setVoteScore(stats.score ?? 0);
+      setUserVote(stats.myVoteValue === 1 ? 'UP' : stats.myVoteValue === -1 ? 'DOWN' : null);
+
+      const authorId = material.author?.id;
+      if (prevVote !== direction && authorId && String(authorId) !== String(currentUser?.id)) {
+        const senderName =
+          currentUser?.fullName || (currentUser as any)?.displayName || t('common.peerStudent', 'Một bạn học');
+        const isUp = direction === 'UP';
+        notificationApi.createNotification({
+          recipientUserId: Number(authorId),
+          type: isUp ? 'UPVOTE' : 'DOWNVOTE',
+          title: isUp
+            ? `${senderName} đã upvote tài liệu học tập của bạn`
+            : `${senderName} đã downvote tài liệu học tập của bạn`,
+          message: `"${(material.title || '').slice(0, 80)}..."`,
+          actionUrl: `/materials/${numId}`,
+          targetType: 'STUDY_MATERIAL',
+          targetId: numId,
+        });
+      }
+    } catch {
+      setUserVote(prevVote);
+      setVoteScore(prevScore);
+    }
+  };
 
   const handleDownloadSpecificFile = async (file: StudyMaterialFile) => {
     if (!material) return;
@@ -264,6 +336,31 @@ export const StudyMaterialDetailPage: React.FC = () => {
 
           {/* Action Buttons */}
           <div className="flex items-center gap-2 shrink-0">
+            <div className="inline-flex items-center bg-slate-50 dark:bg-slate-800 rounded-xl p-0.5 border border-slate-200 dark:border-slate-700 shadow-2xs">
+              <button
+                type="button"
+                onClick={() => handleVoteMaterial('UP')}
+                className={`p-1.5 rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors cursor-pointer ${
+                  userVote === 'UP' ? 'text-[#0076D1] font-bold bg-white dark:bg-slate-700 shadow-xs' : 'text-slate-400 hover:text-slate-700'
+                }`}
+                title={t('common.upvote', 'Bình chọn tích cực')}
+              >
+                <ChevronUp className="w-4 h-4" />
+              </button>
+              <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-200 px-2 min-w-[20px] text-center">
+                {voteScore}
+              </span>
+              <button
+                type="button"
+                onClick={() => handleVoteMaterial('DOWN')}
+                className={`p-1.5 rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors cursor-pointer ${
+                  userVote === 'DOWN' ? 'text-rose-600 font-bold bg-white dark:bg-slate-700 shadow-xs' : 'text-slate-400 hover:text-slate-700'
+                }`}
+                title={t('common.downvote', 'Bình chọn tiêu cực')}
+              >
+                <ChevronDown className="w-4 h-4" />
+              </button>
+            </div>
             <button
               onClick={async () => {
                 const numId = Number(id ? id.replace(/\D/g, '') : 0);

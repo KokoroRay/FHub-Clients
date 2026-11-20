@@ -82,17 +82,28 @@ export const notificationApi = {
     const res = await apiClient.get<any>('/api/communication/notifications', { params });
     const raw = res.data?.items || res.data?.data || res.data || [];
     const list = Array.isArray(raw) ? raw : [];
-    return list.map((item: any) => ({
-      id: item.notification_id ?? item.notificationId ?? item.id,
-      recipientAccountId: item.recipient_account_id ?? item.recipientAccountId,
-      recipientId: item.recipient_account_id ?? item.recipientAccountId ?? item.recipientId,
-      type: item.notification_type ?? item.notificationType ?? item.type,
-      title: item.title,
-      message: item.body ?? item.message,
-      actionUrl: item.action_url ?? item.actionUrl,
-      isRead: item.is_read !== undefined ? item.is_read : (item.isRead || false),
-      createdAt: item.created_at ?? item.createdAt,
-    }));
+    return list.map((item: any) => {
+      const targetType = String(item.target_type ?? item.targetType ?? '').toUpperCase();
+      const targetId = item.target_id ?? item.targetId;
+      let fallbackUrl: string | undefined;
+      if (targetId) {
+        if (targetType === 'ARTICLE') fallbackUrl = `/articles/${targetId}`;
+        else if (targetType === 'QUESTION') fallbackUrl = `/discussions/${targetId}`;
+        else if (targetType === 'WORKFLOW') fallbackUrl = `/workflows/${targetId}`;
+        else if (targetType === 'STUDY_MATERIAL') fallbackUrl = `/materials/${targetId}`;
+      }
+      return {
+        id: item.notification_id ?? item.notificationId ?? item.id,
+        recipientAccountId: item.recipient_account_id ?? item.recipientAccountId,
+        recipientId: item.recipient_account_id ?? item.recipientAccountId ?? item.recipientId,
+        type: item.notification_type ?? item.notificationType ?? item.type,
+        title: item.title,
+        message: item.body ?? item.message,
+        actionUrl: item.action_url ?? item.actionUrl ?? fallbackUrl,
+        isRead: item.is_read !== undefined ? item.is_read : (item.isRead || false),
+        createdAt: item.created_at ?? item.createdAt,
+      };
+    });
   },
 
   markAsRead: async (id: number | string): Promise<void> => {

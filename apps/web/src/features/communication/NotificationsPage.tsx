@@ -125,6 +125,22 @@ export const NotificationsPage: React.FC = () => {
             mappedType = 'message';
             label = t('notifications.typeMessage', 'Tin nhắn mới');
             color = 'bg-sky-50 text-sky-700 border-sky-100';
+          } else if (rawType.includes('upvote') || rawType.includes('downvote')) {
+            mappedType = 'article';
+            label = rawType.includes('downvote')
+              ? t('notifications.typeDownvote', 'Downvote bài viết')
+              : t('notifications.typeUpvote', 'Upvote bài viết');
+            color = rawType.includes('downvote')
+              ? 'bg-rose-50 text-rose-700 border-rose-100'
+              : 'bg-emerald-50 text-emerald-700 border-emerald-100';
+          } else if (rawType.includes('answer')) {
+            mappedType = 'article';
+            label = t('notifications.typeAnswer', 'Câu trả lời mới');
+            color = 'bg-indigo-50 text-indigo-700 border-indigo-100';
+          } else if (rawType.includes('comment')) {
+            mappedType = 'article';
+            label = t('notifications.typeComment', 'Bình luận mới');
+            color = 'bg-blue-50 text-blue-700 border-blue-100';
           } else if (rawType.includes('article')) {
             mappedType = 'article';
             label = t('notifications.typeArticle', 'Tương tác bài viết');

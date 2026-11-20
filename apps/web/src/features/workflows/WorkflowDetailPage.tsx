@@ -16,9 +16,11 @@ import {
   AlertCircle,
   CheckCircle2,
   RotateCcw,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react';
 import { workflowApi } from '../../services/api/contentApi';
-import { bookmarkApi } from '../../services/api/studentApi';
+import { bookmarkApi, voteApi, notificationApi } from '../../services/api/studentApi';
 import { courseNodesApi, CourseNodeListItem } from '../../services/api/adminApi';
 import { loadAllSemanticTags, getSemanticTagMap, resolveTagNames } from '../../utils/tagUtils';
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
@@ -81,6 +83,8 @@ export const WorkflowDetailPage: React.FC = () => {
 
   const [workflow, setWorkflow] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [voteScore, setVoteScore] = useState<number>(0);
+  const [userVote, setUserVote] = useState<'UP' | 'DOWN' | null>(null);
   const [copiedStep, setCopiedStep] = useState<number | null>(null);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [isApplying, setIsApplying] = useState(false);
@@ -207,6 +211,17 @@ export const WorkflowDetailPage: React.FC = () => {
             viewsCount: 1,
             steps: mappedSteps,
           });
+
+          const numId = Number(String(data.workflowId).replace(/\D/g, ''));
+          if (numId > 0) {
+            try {
+              const stats = await voteApi.getStats('WORKFLOW', numId);
+              if (isMounted) {
+                setVoteScore(stats.score ?? 0);
+                setUserVote(stats.myVoteValue === 1 ? 'UP' : stats.myVoteValue === -1 ? 'DOWN' : null);
+              }
+            } catch {}
+          }
         }
       } catch (err) {
         if (isMounted) setWorkflow(null);
@@ -478,6 +493,64 @@ export const WorkflowDetailPage: React.FC = () => {
   const totalSteps = workflow.steps.length;
   const completedCount = completedSteps.filter((n) => workflow.steps.some((s: ParsedStep) => s.stepNumber === n)).length;
   const progressPercent = totalSteps > 0 ? Math.round((completedCount / totalSteps) * 100) : 0;
+  const handleVoteWorkflow = async (direction: 'UP' | 'DOWN') => {
+    if (!workflow) return;
+    const numId = Number(String(workflow.id).replace(/\D/g, ''));
+    if (!numId) return;
+
+    const voteValue = direction === 'UP' ? 1 : -1;
+    const prevVote = userVote;
+    const prevScore = voteScore;
+
+    let nextVote: 'UP' | 'DOWN' | null = direction;
+    let nextScore = prevScore;
+    if (prevVote === direction) {
+      nextVote = null;
+      nextScore -= voteValue;
+    } else if (prevVote) {
+      nextScore += voteValue * 2;
+    } else {
+      nextScore += voteValue;
+    }
+
+    setUserVote(nextVote);
+    setVoteScore(nextScore);
+
+    try {
+      if (prevVote === direction) {
+        await voteApi.removeVote('WORKFLOW', numId);
+      } else {
+        await voteApi.vote({
+          target_type: 'WORKFLOW',
+          target_id: numId,
+          vote_value: voteValue,
+        });
+      }
+      const stats = await voteApi.getStats('WORKFLOW', numId);
+      setVoteScore(stats.score ?? 0);
+      setUserVote(stats.myVoteValue === 1 ? 'UP' : stats.myVoteValue === -1 ? 'DOWN' : null);
+
+      if (prevVote !== direction && workflow.authorUserId && String(workflow.authorUserId) !== String(currentUser?.id)) {
+        const senderName = currentUser?.fullName || (currentUser as any)?.displayName || t('common.peerStudent', 'Một bạn học');
+        const isUp = direction === 'UP';
+        notificationApi.createNotification({
+          recipientUserId: Number(workflow.authorUserId),
+          type: isUp ? 'UPVOTE' : 'DOWNVOTE',
+          title: isUp
+            ? `${senderName} đã upvote quy trình của bạn`
+            : `${senderName} đã downvote quy trình của bạn`,
+          message: `"${(workflow.title || '').slice(0, 80)}..."`,
+          actionUrl: `/workflows/${numId}`,
+          targetType: 'WORKFLOW',
+          targetId: numId,
+        });
+      }
+    } catch {
+      setUserVote(prevVote);
+      setVoteScore(prevScore);
+    }
+  };
+
   const isAllCompleted = totalSteps > 0 && completedCount === totalSteps;
   const nextUncompletedStep = workflow.steps.find((s: ParsedStep) => !completedSteps.includes(s.stepNumber))?.stepNumber;
 
@@ -516,6 +589,31 @@ export const WorkflowDetailPage: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2 shrink-0 flex-wrap">
+              <div className="inline-flex items-center bg-slate-50 dark:bg-slate-800 rounded-xl p-0.5 border border-slate-200 dark:border-slate-700 shadow-2xs">
+                <button
+                  type="button"
+                  onClick={() => handleVoteWorkflow('UP')}
+                  className={`p-1.5 rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors cursor-pointer ${
+                    userVote === 'UP' ? 'text-[#0076D1] font-bold bg-white dark:bg-slate-700 shadow-xs' : 'text-slate-400 hover:text-slate-700'
+                  }`}
+                  title={t('common.upvote', 'Bình chọn tích cực')}
+                >
+                  <ChevronUp className="w-4 h-4" />
+                </button>
+                <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-200 px-2 min-w-[20px] text-center">
+                  {voteScore}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleVoteWorkflow('DOWN')}
+                  className={`p-1.5 rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-700 transition-colors cursor-pointer ${
+                    userVote === 'DOWN' ? 'text-rose-600 font-bold bg-white dark:bg-slate-700 shadow-xs' : 'text-slate-400 hover:text-slate-700'
+                  }`}
+                  title={t('common.downvote', 'Bình chọn tiêu cực')}
+                >
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+              </div>
               <Button
                 id="btn-edit-workflow"
                 variant="outline"

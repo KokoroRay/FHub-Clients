@@ -21,7 +21,7 @@ import {
 import { QuestionPost } from '../../types';
 import { AskQuestionModal } from './AskQuestionModal';
 import { questionApi } from '../../services/api/contentApi';
-import { voteApi, bookmarkApi } from '../../services/api/studentApi';
+import { voteApi, bookmarkApi, notificationApi } from '../../services/api/studentApi';
 import { apiClient } from '../../services/api/client';
 import { courseNodesApi, semanticTagsApi } from '../../services/api/adminApi';
 import { useAuth } from '../../context/AuthContext';
@@ -351,10 +351,10 @@ export const QuestionListPage: React.FC = () => {
         ...(numId > 0 ? { [String(numId)]: finalEntry } : {}),
       }));
 
-      if (dir === 'UP') {
-        const targetQ = questions.find((x) => x.id === id || String(x.id).replace(/\D/g, '') === String(numId));
-        const authorId = targetQ?.author?.id;
-        if (authorId && String(authorId) !== String(currentUser?.id)) {
+      const targetQ = questions.find((x) => x.id === id || String(x.id).replace(/\D/g, '') === String(numId));
+      const authorId = targetQ?.author?.id;
+      if (current.userVote !== dir && authorId && String(authorId) !== String(currentUser?.id)) {
+        if (dir === 'UP') {
           apiClient.post('/api/reputation/events', {
             user_id: Number(authorId),
             rule_code: 'QUESTION_UPVOTED',
@@ -362,6 +362,20 @@ export const QuestionListPage: React.FC = () => {
             source_id: numId,
           }).catch(() => {});
         }
+        const senderName =
+          currentUser?.fullName || (currentUser as any)?.displayName || t('common.peerStudent', 'Một bạn học');
+        const isUp = dir === 'UP';
+        notificationApi.createNotification({
+          recipientUserId: Number(authorId),
+          type: isUp ? 'UPVOTE' : 'DOWNVOTE',
+          title: isUp
+            ? `${senderName} đã upvote câu hỏi của bạn`
+            : `${senderName} đã downvote câu hỏi của bạn`,
+          message: `"${(targetQ?.title || '').slice(0, 80)}..."`,
+          actionUrl: `/discussions/${numId}`,
+          targetType: 'QUESTION',
+          targetId: numId,
+        });
       }
     } catch (err) {
       setVotesState((prev) => ({

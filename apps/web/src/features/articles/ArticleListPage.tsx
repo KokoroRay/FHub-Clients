@@ -19,7 +19,7 @@ import { SeriesModal } from './SeriesModal';
 import { normalizeMediaUrl } from '../../utils/mediaUtils';
 import { Article, Series, TechArticle } from '../../types';
 import { articleApi, seriesApi } from '../../services/api/contentApi';
-import { voteApi, bookmarkApi, profileApi } from '../../services/api/studentApi';
+import { voteApi, bookmarkApi, profileApi, notificationApi } from '../../services/api/studentApi';
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
 import { UserHoverCard } from '../../components/common/UserHoverCard';
 import { SocialShareModal } from '../../components/common/SocialShareModal';
@@ -335,6 +335,24 @@ export const ArticleListPage: React.FC = () => {
         else next.delete(id);
         return next;
       });
+
+      if (!isLiked) {
+        const targetArt = allArticles.find((a) => a.id === id);
+        const authorId = (targetArt as any)?.authorUserId || targetArt?.author?.id;
+        if (authorId && String(authorId) !== String(currentUser?.id)) {
+          const senderName =
+            currentUser?.fullName || (currentUser as any)?.displayName || t('common.peerStudent', 'Một bạn học');
+          notificationApi.createNotification({
+            recipientUserId: Number(authorId),
+            type: 'UPVOTE',
+            title: `${senderName} đã upvote bài viết của bạn`,
+            message: `"${(targetArt?.title || '').slice(0, 80)}..."`,
+            actionUrl: `/articles/${numId}`,
+            targetType: 'ARTICLE',
+            targetId: numId,
+          });
+        }
+      }
     } catch (err) {
       console.warn('Failed to vote article:', err);
     }
