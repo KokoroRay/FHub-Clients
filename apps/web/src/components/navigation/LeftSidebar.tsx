@@ -11,6 +11,9 @@ import {
   Users,
   LifeBuoy,
   Megaphone,
+  Newspaper,
+  Radio,
+  GraduationCap,
   Award,
   Settings2,
   Sparkles,
@@ -228,7 +231,51 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
     },
   ];
 
+  const isSchoolRep =
+    currentUser?.role === 'School Representative' || currentUser?.role === 'Admin';
+  const isAlumni = currentUser?.role === 'Alumni';
+
   const commNav: NavItemConfig[] = [
+    {
+      name: t('nav.schoolNews', 'School News'),
+      path: '/news',
+      icon: Newspaper,
+      badge: isSchoolRep ? 'Rep' : undefined,
+      color: {
+        bg: 'bg-blue-50',
+        text: 'text-blue-600',
+        darkBg: 'dark:bg-blue-950/40',
+        darkText: 'dark:text-blue-400',
+      },
+    },
+    {
+      name: t('nav.officialBroadcasts', 'Official Broadcasts'),
+      path: '/broadcasts',
+      icon: Radio,
+      badge: isSchoolRep ? 'Rep' : undefined,
+      color: {
+        bg: 'bg-cyan-50',
+        text: 'text-cyan-600',
+        darkBg: 'dark:bg-cyan-950/40',
+        darkText: 'dark:text-cyan-400',
+      },
+    },
+    ...(isAlumni
+      ? [
+          {
+            name: t('nav.alumniDesk', 'Alumni Desk'),
+            path: '/alumni',
+            icon: GraduationCap,
+            badge: 'Alumni',
+            color: {
+              bg: 'bg-amber-50',
+              text: 'text-amber-600',
+              darkBg: 'dark:bg-amber-950/40',
+              darkText: 'dark:text-amber-400',
+            },
+          },
+        ]
+      : []),
     {
       name: t('nav.messages', 'Messages'),
       path: '/messages',

@@ -27,6 +27,8 @@ import { useAuth } from '../../context/AuthContext';
 export const NewsManagementPage: React.FC = () => {
   const { locale, t } = useLanguage();
   const { currentUser } = useAuth();
+  const canManageNews =
+    currentUser?.role === 'School Representative' || currentUser?.role === 'Admin';
   const [newsList, setNewsList] = useState<ArticleListItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -210,15 +212,17 @@ export const NewsManagementPage: React.FC = () => {
             leftIcon={<RefreshCw className="w-4 h-4" />}
           >
             {t("Làm mới")}</Button>
-          <Button
-            variant="primary"
-            size="sm"
-            id="btn-create-news"
-            onClick={openCreateModal}
-            className="shrink-0"
-            leftIcon={<Plus className="w-4 h-4" />}
-          >
-            {t("Tạo bản tin mới")}</Button>
+          {canManageNews && (
+            <Button
+              variant="primary"
+              size="sm"
+              id="btn-create-news"
+              onClick={openCreateModal}
+              className="shrink-0"
+              leftIcon={<Plus className="w-4 h-4" />}
+            >
+              {t("Tạo bản tin mới")}</Button>
+          )}
         </div>
       </div>
 
@@ -366,20 +370,24 @@ export const NewsManagementPage: React.FC = () => {
                           >
                             <Eye className="w-4 h-4" />
                           </button>
-                          <button
-                            onClick={() => openEditModal(item)}
-                            className="p-1.5 text-slate-500 hover:text-amber-600 rounded-lg hover:bg-slate-100"
-                            title={t("Chỉnh sửa")}
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => openDeleteModal(item)}
-                            className="p-1.5 text-slate-500 hover:text-rose-600 rounded-lg hover:bg-slate-100"
-                            title={t("Xóa")}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {canManageNews && (
+                            <>
+                              <button
+                                onClick={() => openEditModal(item)}
+                                className="p-1.5 text-slate-500 hover:text-amber-600 rounded-lg hover:bg-slate-100"
+                                title={t("Chỉnh sửa")}
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => openDeleteModal(item)}
+                                className="p-1.5 text-slate-500 hover:text-rose-600 rounded-lg hover:bg-slate-100"
+                                title={t("Xóa")}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>

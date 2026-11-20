@@ -188,6 +188,20 @@ export const broadcastApi = {
     return (res.data as any).data || res.data;
   },
 
+  updateBroadcast: async (id: number | string, payload: Partial<CreateBroadcastRequest>): Promise<BroadcastCampaignDto> => {
+    const res = await apiClient.put(`/api/communication/broadcasts/${id}`, {
+      title: payload.title,
+      body: payload.body,
+      audienceType: payload.audienceType,
+      targetCampusId: payload.targetCampusId,
+      targetMajorId: payload.targetMajorId,
+      targetSpecializationId: payload.targetSpecializationId,
+      deliveryChannels: payload.deliveryChannels || 'IN_APP',
+      isMandatory: payload.isMandatory ?? true,
+    });
+    return (res.data as any).data || res.data;
+  },
+
   deleteBroadcast: async (id: number | string): Promise<void> => {
     await apiClient.delete(`/api/communication/broadcasts/${id}`);
   },

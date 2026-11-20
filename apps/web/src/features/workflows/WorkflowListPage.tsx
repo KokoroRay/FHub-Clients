@@ -127,6 +127,8 @@ export const WorkflowListPage: React.FC = () => {
               category = 'Lập trình & Kỹ thuật phần mềm';
             }
 
+            const stepCount = typeof item.stepCount === 'number' && item.stepCount >= 0 ? item.stepCount : 0;
+
             return {
               id: String(item.workflowId),
               title: item.title,
@@ -134,10 +136,12 @@ export const WorkflowListPage: React.FC = () => {
               courseCode: courseCode.toUpperCase(),
               technology,
               category,
-              steps: [
-                { stepNumber: 1, title: 'Bước 1: Chuẩn bị & Thiết lập', instruction: 'Thực hiện các bước khởi tạo quy trình.', language: 'text' },
-                { stepNumber: 2, title: 'Bước 2: Triển khai theo tiêu chuẩn', instruction: 'Áp dụng các hướng dẫn thực hành.', language: 'text' }
-              ],
+              steps: Array.from({ length: stepCount }, (_, idx) => ({
+                stepNumber: idx + 1,
+                title: `Bước ${idx + 1}`,
+                instruction: '',
+                language: 'text',
+              })),
               author: {
                 id: String(item.authorUserId || 1),
                 fullName: `Sinh viên FPT #${item.authorUserId || 'K18'}`,
@@ -472,7 +476,7 @@ export const WorkflowListPage: React.FC = () => {
                   <div className="flex items-center justify-between text-xs text-slate-500">
                     <div className="flex items-center gap-1.5 font-medium">
                       <Layers className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{wf.steps?.length || 2} {t('workflows.stepsCount', 'bước thực hiện')}</span>
+                      <span>{wf.steps?.length || 0} {t('workflows.stepsCount', 'bước thực hiện')}</span>
                     </div>
 
                     <div className="flex items-center gap-3">

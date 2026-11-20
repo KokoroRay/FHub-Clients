@@ -107,7 +107,8 @@ export interface WorkflowStepItem {
 export interface CreateWorkflowPayload {
   title: string;
   summary?: string;
-  courseId?: number;
+  courseId?: number | null;
+  status?: 'DRAFT' | 'PUBLISHED';
   steps: WorkflowStepItem[];
   semanticTagIds?: number[];
 }
@@ -115,7 +116,7 @@ export interface CreateWorkflowPayload {
 export interface UpdateWorkflowPayload {
   title: string;
   summary?: string;
-  courseId?: number;
+  courseId?: number | null;
   status: string;
   steps: WorkflowStepItem[];
   semanticTagIds?: number[];

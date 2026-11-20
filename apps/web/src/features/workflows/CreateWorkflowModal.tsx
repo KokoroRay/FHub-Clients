@@ -1,20 +1,36 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Code } from 'lucide-react';
+import React, { useState } from 'react';
+import { Plus, Trash2, Award, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
-import { courseNodesApi } from '../../services/api/adminApi';
+import { CourseNodeListItem } from '../../services/api/adminApi';
+import { workflowApi, alumniApi } from '../../services/api/contentApi';
 import { SharedWorkflow } from '../../types';
 import { Modal } from '../../components/common/Modal';
 import { Button } from '../../components/common/Button';
-import { Input, Textarea, Select } from '../../components/common/Input';
+import { Input, Textarea } from '../../components/common/Input';
 import { CourseSelect } from '../../components/common/CourseSelect';
-import { filterCompactCourses } from '../../utils/courseFilter';
 
 export interface CreateWorkflowModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCreated: (wf: SharedWorkflow) => void;
 }
+
+interface StepDraft {
+  stepNumber: number;
+  title: string;
+  instruction: string;
+  codeSnippet: string;
+  language: string;
+}
+
+const createInitialStep = (): StepDraft => ({
+  stepNumber: 1,
+  title: '',
+  instruction: '',
+  codeSnippet: '',
+  language: 'bash',
+});
 
 export const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
   isOpen,
@@ -26,36 +42,12 @@ export const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [courseCode, setCourseCode] = useState('');
+  const [selectedCourse, setSelectedCourse] = useState<CourseNodeListItem | undefined>(undefined);
   const [technology, setTechnology] = useState('');
   const [tags, setTags] = useState('');
-  const [courses, setCourses] = useState<Array<{ code: string; title: string }>>([]);
-
-  useEffect(() => {
-    let isMounted = true;
-    const loadCourses = async () => {
-      try {
-        const res = await courseNodesApi.getCourseNodes({ pageSize: 150 });
-        const items = (res as any)?.items || res || [];
-        if (isMounted && Array.isArray(items) && items.length > 0) {
-          const filtered = filterCompactCourses(items, currentUser);
-          const mapped = filtered.map((c: any) => ({
-            code: c.code || c.courseCode,
-            title: c.name || c.title || c.code,
-          }));
-          setCourses(mapped);
-          if (!courseCode && mapped[0]) setCourseCode(mapped[0].code);
-        }
-      } catch (err) {
-        console.warn('Failed to load courses in workflow modal:', err);
-      }
-    };
-    loadCourses();
-    return () => { isMounted = false; };
-  }, [courseCode]);
-
-  const [steps, setSteps] = useState([
-    { stepNumber: 1, title: '', instruction: '', codeSnippet: '', language: 'bash' },
-  ]);
+  const [steps, setSteps] = useState<StepDraft[]>([createInitialStep()]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const addStep = () => {
     setSteps([
@@ -76,85 +68,181 @@ export const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
     setSteps(newSteps);
   };
 
-  const updateStep = (index: number, field: string, value: string) => {
+  const updateStep = (index: number, field: keyof StepDraft, value: string) => {
     const newSteps = [...steps];
     newSteps[index] = { ...newSteps[index], [field]: value };
     setSteps(newSteps);
   };
 
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (title.trim().length < 8) {
-      setErrorMessage(t('workflowModal.errorTitleMin', 'Tên workflow cần tối thiểu 8 ký tự.'));
-      return;
-    }
-    if (steps.length === 0 || !steps.some((s) => s.title.trim() || s.instruction.trim())) {
-      setErrorMessage(t('workflowModal.errorStepsMin', 'Workflow cần ít nhất 1 bước với tiêu đề hoặc hướng dẫn cụ thể.'));
-      return;
-    }
-
-    setErrorMessage(null);
-    const newWf: SharedWorkflow = {
-      id: `wf-${Date.now()}`,
-      title: title.trim(),
-      description: description.trim(),
-      courseCode,
-      technology,
-      steps,
-      author: {
-        id: currentUser?.id || 'usr-1',
-        fullName: currentUser?.fullName || t("Sinh viên FHub"),
-        avatarUrl: currentUser?.avatarUrl,
-        role: currentUser?.role || 'Student',
-        campus: currentUser?.campus || '',
-      },
-      viewsCount: 1,
-      usageCount: 0,
-      tags: tags.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean),
-      createdAt: new Date().toISOString(),
-    };
-
-    // Asynchronously persist to backend WorkflowsController
-    import('../../services/api/contentApi').then(({ workflowApi }) => {
-      workflowApi.createWorkflow({
-        title: title.trim(),
-        summary: description.trim(),
-        steps: steps.map((s, idx) => ({
-          stepNumber: idx + 1,
-          title: s.title,
-          content: `${s.instruction}\n\`\`\`${s.language || 'bash'}\n${s.codeSnippet || ''}\n\`\`\``,
-        })),
-      }).catch((err) => console.warn('Backend workflow save notice:', err));
-    });
-
-    onCreated(newWf);
+  const resetForm = () => {
+    setTitle('');
+    setDescription('');
+    setCourseCode('');
+    setSelectedCourse(undefined);
+    setTechnology('');
+    setTags('');
+    setSteps([createInitialStep()]);
     setErrorMessage(null);
   };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+
+    const cleanTitle = title.trim();
+    if (cleanTitle.length < 3) {
+      setErrorMessage(t('workflowModal.errorTitleMin', 'Tên workflow cần tối thiểu 3 ký tự.'));
+      return;
+    }
+
+    if (steps.length === 0) {
+      setErrorMessage(t('workflowModal.errorStepsMin', 'Workflow cần ít nhất 1 bước thực hiện.'));
+      return;
+    }
+
+    // Validate each step has title (>=2 chars) and content (>=2 chars) to satisfy backend rules
+    const normalizedSteps = [];
+    for (let i = 0; i < steps.length; i++) {
+      const s = steps[i];
+      const stepTitle = s.title.trim();
+      const instruction = s.instruction.trim();
+      const code = s.codeSnippet.trim();
+      const combinedContent = code
+        ? (instruction ? `${instruction}\n\`\`\`${s.language || 'bash'}\n${code}\n\`\`\`` : `\`\`\`${s.language || 'bash'}\n${code}\n\`\`\``)
+        : instruction;
+
+      if (stepTitle.length < 2) {
+        setErrorMessage(t('workflowModal.errorStepTitleMin', `Bước ${i + 1}: Tiêu đề bước cần tối thiểu 2 ký tự.`));
+        return;
+      }
+      if (combinedContent.length < 2) {
+        setErrorMessage(t('workflowModal.errorStepContentMin', `Bước ${i + 1}: Vui lòng nhập hướng dẫn chi tiết hoặc đoạn mã (tối thiểu 2 ký tự).`));
+        return;
+      }
+
+      normalizedSteps.push({
+        stepNumber: i + 1,
+        title: stepTitle,
+        content: combinedContent,
+      });
+    }
+
+    setErrorMessage(null);
+    setIsSubmitting(true);
+
+    try {
+      const isAlumni = currentUser?.role === 'Alumni';
+      const courseIdNum = Number(selectedCourse?.courseNodeId ?? selectedCourse?.id);
+      const effectiveCourseId = courseCode && courseIdNum && courseIdNum > 0 ? courseIdNum : null;
+
+      const payload = {
+        title: cleanTitle,
+        summary: description.trim() || undefined,
+        courseId: effectiveCourseId,
+        status: 'PUBLISHED' as const,
+        steps: normalizedSteps,
+      };
+
+      const created = isAlumni
+        ? await alumniApi.createIndustryWorkflow(payload)
+        : await workflowApi.createWorkflow(payload);
+
+      const resolvedCourseCode = created?.courseId
+        ? (courseCode || selectedCourse?.courseCode || selectedCourse?.code || `COURSE-${created.courseId}`)
+        : 'GENERAL';
+
+      const newWf: SharedWorkflow = {
+        id: String(created.workflowId),
+        title: created.title || cleanTitle,
+        description: created.summary || description.trim() || cleanTitle,
+        courseCode: resolvedCourseCode.toUpperCase(),
+        technology: technology.trim() || t('Quy trình chuẩn'),
+        steps: steps.map((s, idx) => ({
+          stepNumber: idx + 1,
+          title: s.title.trim(),
+          instruction: s.instruction.trim(),
+          codeSnippet: s.codeSnippet.trim(),
+          language: s.language || 'bash',
+        })),
+        author: {
+          id: currentUser?.id || String(created.authorUserId || '1'),
+          fullName: currentUser?.fullName || t('Sinh viên FHub'),
+          avatarUrl: currentUser?.avatarUrl,
+          role: currentUser?.role || 'Student',
+          campus: currentUser?.campus || '',
+        },
+        viewsCount: 0,
+        usageCount: 0,
+        tags: tags.split(',').map((tag) => tag.trim().toLowerCase()).filter(Boolean),
+        createdAt: created.createdAt || new Date().toISOString(),
+      };
+
+      onCreated(newWf);
+      resetForm();
+      onClose();
+    } catch (err: any) {
+      const backendErrors = err?.response?.data?.errors;
+      const firstValidationMsg =
+        backendErrors && typeof backendErrors === 'object'
+          ? Object.values(backendErrors).flat().join(' ')
+          : null;
+      const msg =
+        firstValidationMsg ||
+        err?.response?.data?.message ||
+        err?.message ||
+        t('Không thể tạo workflow trên hệ thống. Vui lòng kiểm tra lại dữ liệu.');
+      setErrorMessage(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const isAlumni = currentUser?.role === 'Alumni';
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={t('workflowModal.title', 'Chia sẻ Quy trình & Hướng dẫn học tập (Workflow)')}
+      title={
+        isAlumni
+          ? t('workflowModal.alumniTitle', 'Chia sẻ Quy trình Thực tế Ngành (Industry Workflow)')
+          : t('workflowModal.title', 'Chia sẻ Quy trình & Hướng dẫn học tập (Workflow)')
+      }
       size="xl"
       footer={
         <>
-          <Button variant="outline" onClick={onClose}>{t('common.cancel', 'Hủy')}</Button>
-          <Button variant="primary" onClick={handleSubmit}>{t('workflowModal.publish', 'Xuất bản Workflow (+25 Karma)')}</Button>
+          <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
+            {t('common.cancel', 'Hủy')}
+          </Button>
+          <Button variant="primary" onClick={handleSubmit} isLoading={isSubmitting}>
+            {isAlumni
+              ? t('workflowModal.publishAlumni', 'Xuất bản Industry Workflow (Alumni)')
+              : t('workflowModal.publish', 'Xuất bản Workflow (+25 Karma)')}
+          </Button>
         </>
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+        {isAlumni && (
+          <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 rounded-xl text-xs font-semibold flex items-center gap-2">
+            <Award className="w-4 h-4 shrink-0 text-amber-600" />
+            <span>
+              {t(
+                'workflowModal.alumniAutoBadge',
+                'Tài khoản Cựu sinh viên (Alumni). Quy trình này sẽ được gắn huy hiệu Verified Industry Workflow.'
+              )}
+            </span>
+          </div>
+        )}
         {errorMessage && (
-          <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold">
-            {t(errorMessage)}
+          <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+            <span>{t(errorMessage)}</span>
           </div>
         )}
         <Input
-          label={t('workflowModal.nameLabel', 'Tên Workflow')}
-          placeholder={t('workflowModal.namePlaceholder', 'Ví dụ: Quy trình làm bài tập lớn Assignment, Quy trình làm đồ án Capstone, Quy trình thiết kế Figma UI/UX, Quy trình phân tích SPSS...')}
+          label={t('workflowModal.nameLabel', 'Tên Workflow *')}
+          placeholder={t('workflowModal.namePlaceholder', 'Ví dụ: Quy trình làm bài tập lớn Assignment, Quy trình làm đồ án Capstone, Quy trình thiết kế Figma UI/UX...')}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           required
@@ -162,10 +250,15 @@ export const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <CourseSelect
-            label={t('workflowModal.courseLabel', 'Môn học áp dụng *')}
+            label={t('workflowModal.courseLabelOptional', 'Môn học áp dụng (Không bắt buộc)')}
             value={courseCode}
-            onChange={(code) => setCourseCode(code)}
-            required
+            onChange={(code, course) => {
+              setCourseCode(code);
+              setSelectedCourse(course);
+            }}
+            allowEmpty={true}
+            emptyLabel="-- Chung (Không gắn môn) --"
+            required={false}
           />
           <Input
             label={t('workflowModal.techLabel', 'Công cụ / Phần mềm / Công nghệ')}
@@ -185,7 +278,9 @@ export const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
 
         <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-3">
           <div className="flex items-center justify-between">
-            <h4 className="font-bold text-sm text-slate-900 dark:text-slate-100">{t('workflowModal.stepsHeading', 'Các bước thực hiện')}</h4>
+            <h4 className="font-bold text-sm text-slate-900 dark:text-slate-100">
+              {t('workflowModal.stepsHeading', 'Các bước thực hiện')} ({steps.length})
+            </h4>
             <Button variant="secondary" size="sm" type="button" onClick={addStep} leftIcon={<Plus className="w-3.5 h-3.5" />}>
               {t('workflowModal.addStep', 'Thêm bước mới')}
             </Button>
@@ -203,25 +298,44 @@ export const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
               </div>
 
               <Input
-                placeholder={t('workflowModal.stepTitlePlaceholder', 'Tiêu đề bước (Ví dụ: Cấu hình DbContext)')}
+                placeholder={t('workflowModal.stepTitlePlaceholder', 'Tiêu đề bước * (Ví dụ: Cấu hình DbContext)')}
                 value={step.title}
                 onChange={(e) => updateStep(idx, 'title', e.target.value)}
                 required
               />
 
               <Textarea
-                placeholder={t('workflowModal.stepInstructionPlaceholder', 'Hướng dẫn chi tiết bước này...')}
+                placeholder={t('workflowModal.stepInstructionPlaceholder', 'Hướng dẫn chi tiết bước này *...')}
                 rows={2}
                 value={step.instruction}
                 onChange={(e) => updateStep(idx, 'instruction', e.target.value)}
               />
 
-              <Textarea
-                placeholder={t('workflowModal.stepCodePlaceholder', 'Đoạn mã (Code snippet / Terminal command)...')}
-                rows={3}
-                value={step.codeSnippet || ''}
-                onChange={(e) => updateStep(idx, 'codeSnippet', e.target.value)}
-              />
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-slate-500">{t('Đoạn mã / Lệnh (Tùy chọn)')}</span>
+                  <select
+                    value={step.language}
+                    onChange={(e) => updateStep(idx, 'language', e.target.value)}
+                    className="text-[11px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md px-2 py-0.5 text-slate-600 dark:text-slate-300"
+                  >
+                    <option value="bash">bash</option>
+                    <option value="csharp">csharp</option>
+                    <option value="typescript">typescript</option>
+                    <option value="python">python</option>
+                    <option value="sql">sql</option>
+                    <option value="json">json</option>
+                    <option value="yaml">yaml</option>
+                    <option value="text">text</option>
+                  </select>
+                </div>
+                <Textarea
+                  placeholder={t('workflowModal.stepCodePlaceholder', 'Đoạn mã (Code snippet / Terminal command)...')}
+                  rows={3}
+                  value={step.codeSnippet || ''}
+                  onChange={(e) => updateStep(idx, 'codeSnippet', e.target.value)}
+                />
+              </div>
             </div>
           ))}
         </div>
