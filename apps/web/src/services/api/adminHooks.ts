@@ -218,6 +218,17 @@ export const useUpdateTicketStatus = () => {
   });
 };
 
+export const useAssignTicket = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number | string) => supportTicketsApi.assignToMe(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'support-tickets'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'dashboard'] });
+    }
+  });
+};
+
 // ---------------------------------------------------------------------------
 // 4. Campuses Hooks
 // ---------------------------------------------------------------------------

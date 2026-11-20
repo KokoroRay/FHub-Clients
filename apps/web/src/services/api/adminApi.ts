@@ -386,9 +386,12 @@ export const userManagementApi = {
 // ---------------------------------------------------------------------------
 export interface SupportTicketDto {
   supportTicketId: number;
-  ticketCode: string;
+  ticketCode?: string;
+  ticketNumber?: string;
   submitterAccountId: number;
   submitterName?: string;
+  handlerAccountId?: number | null;
+  handlerName?: string | null;
   category: string;
   priority: string;
   status: string;
@@ -423,7 +426,12 @@ export const supportTicketsApi = {
   },
 
   updateStatus: async (id: number | string, status: string) => {
-    const res = await apiClient.patch<ApiResponse<any>>(`/api/support-tickets/${id}/status`, { status });
+    const res = await apiClient.patch<ApiResponse<SupportTicketDto>>(`/api/support-tickets/${id}/status`, { status });
+    return res.data.data;
+  },
+
+  assignToMe: async (id: number | string) => {
+    const res = await apiClient.patch<ApiResponse<SupportTicketDto>>(`/api/support-tickets/${id}/assign`);
     return res.data.data;
   }
 };

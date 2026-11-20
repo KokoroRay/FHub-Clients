@@ -19,13 +19,19 @@ import {
   Download,
 } from 'lucide-react';
 import { SupportTicket } from '../../../types';
-import { useSupportTickets, useAddTicketReply, useUpdateTicketStatus } from '../../../services/api';
+import { useSupportTickets, useAddTicketReply, useUpdateTicketStatus, useAssignTicket } from '../../../services/api';
 import { useLanguage } from '../../../context/LanguageContext';
+import { useAuth } from '../../../context/AuthContext';
+
+type AdminSupportTicket = SupportTicket & {
+  handlerAccountId?: string | null;
+};
 
 export const SupportTicketsAdminPage: React.FC = () => {
   const { t } = useLanguage();
-  const [tickets, setTickets] = useState<SupportTicket[]>([]);
-  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
+  const { currentUser } = useAuth();
+  const [tickets, setTickets] = useState<AdminSupportTicket[]>([]);
+  const [selectedTicket, setSelectedTicket] = useState<AdminSupportTicket | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [priorityFilter, setPriorityFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -33,38 +39,62 @@ export const SupportTicketsAdminPage: React.FC = () => {
   const [isInternalNote, setIsInternalNote] = useState<boolean>(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  const currentStaffId = currentUser?.id ? String(currentUser.id) : null;
+  const currentStaffName =
+    (currentUser as any)?.fullName ||
+    (currentUser as any)?.name ||
+    currentUser?.email ||
+    (currentStaffId ? `Staff #${currentStaffId}` : '');
+
+  const resolveAssignedName = (
+    handlerId?: number | string | null,
+    handlerName?: string | null
+  ): string | undefined => {
+    if (handlerName && handlerName.trim()) return handlerName.trim();
+    if (handlerId == null || handlerId === '') return undefined;
+    const normalizedId = String(handlerId);
+    if (currentStaffId && normalizedId === currentStaffId && currentStaffName) {
+      return currentStaffName;
+    }
+    return `Staff #${normalizedId}`;
+  };
+
   // Real backend query & mutations
-  const { data: ticketsData, isLoading, refetch } = useSupportTickets({
+  const { data: ticketsData } = useSupportTickets({
     status: statusFilter !== 'ALL' ? statusFilter : undefined,
     priority: priorityFilter !== 'ALL' ? priorityFilter : undefined,
   });
   const addReplyMutation = useAddTicketReply();
   const updateStatusMutation = useUpdateTicketStatus();
+  const assignTicketMutation = useAssignTicket();
 
   // Populate from real BE tickets when available
   React.useEffect(() => {
     if (ticketsData?.items) {
-      const apiTickets: SupportTicket[] = ticketsData.items.map((raw) => {
-        const t = raw as any;
+      const apiTickets: AdminSupportTicket[] = ticketsData.items.map((raw) => {
+        const item = raw as any;
+        const handlerId = item.handlerAccountId != null ? String(item.handlerAccountId) : null;
         return {
-          id: String(t.supportTicketId),
-          ticketCode: t.ticketCode || `TKT-2026-00${t.supportTicketId}`,
-          title: t.subject || `Support Ticket #${t.supportTicketId}`,
-          category: (t.category || 'ACADEMIC') as any,
-          priority: (t.priority || 'MEDIUM') as any,
-          status: (t.status || 'OPEN') as any,
-          repliesCount: t.repliesCount ?? (t.replies?.length || 0),
-          createdAt: t.createdAt,
-          updatedAt: t.updatedAt,
+          id: String(item.supportTicketId),
+          ticketCode: item.ticketNumber || item.ticketCode || `TKT-2026-00${item.supportTicketId}`,
+          title: item.subject || `Support Ticket #${item.supportTicketId}`,
+          category: (item.category || 'ACADEMIC') as any,
+          priority: (item.priority || 'MEDIUM') as any,
+          status: (item.status || 'OPEN') as any,
+          handlerAccountId: handlerId,
+          assignedTo: resolveAssignedName(handlerId, item.handlerName),
+          repliesCount: item.repliesCount ?? (item.replies?.length || 0),
+          createdAt: item.createdAt,
+          updatedAt: item.updatedAt,
           author: {
-            id: String(t.submitterAccountId),
-            fullName: t.submitterName || `User #${t.submitterAccountId}`,
-            email: `user.${t.submitterAccountId}@fhub.com.vn`,
+            id: String(item.submitterAccountId),
+            fullName: item.submitterName || `User #${item.submitterAccountId}`,
+            email: `user.${item.submitterAccountId}@fhub.com.vn`,
             role: 'Student',
             campus: 'HL',
-            avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${t.submitterAccountId}`,
+            avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${item.submitterAccountId}`,
           },
-          responses: (t.replies || []).map((r: any, rIdx: number) => ({
+          responses: (item.replies || []).map((r: any, rIdx: number) => ({
             id: String(r.replyId || `rep-${rIdx}`),
             author: {
               id: String(r.responderId || '1'),
@@ -83,7 +113,7 @@ export const SupportTicketsAdminPage: React.FC = () => {
         setSelectedTicket((prev) => prev ? apiTickets.find(x => x.id === prev.id) || apiTickets[0] : apiTickets[0]);
       }
     }
-  }, [ticketsData]);
+  }, [ticketsData, currentStaffId, currentStaffName]);
 
   const filteredTickets = tickets.filter((t) => {
     const q = (searchQuery || '').toLowerCase();
@@ -98,19 +128,103 @@ export const SupportTicketsAdminPage: React.FC = () => {
   });
 
   const handleUpdateStatus = async (ticketId: string, newStatus: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED') => {
+    const currentTicket = tickets.find((item) => item.id === ticketId) || selectedTicket;
+    if (currentTicket && currentTicket.status === newStatus) {
+      return;
+    }
+
     const numericId = ticketId.replace(/\D/g, '') || '1';
+    let updatedHandlerId: string | null | undefined = currentStaffId;
+    let updatedHandlerName: string | undefined = currentStaffName || undefined;
+
     try {
-      await updateStatusMutation.mutateAsync({ id: numericId, status: newStatus });
+      const updated = await updateStatusMutation.mutateAsync({ id: numericId, status: newStatus });
+      if (updated?.handlerAccountId != null) {
+        updatedHandlerId = String(updated.handlerAccountId);
+        updatedHandlerName = resolveAssignedName(updated.handlerAccountId, updated.handlerName);
+      }
     } catch (e) {
       console.warn('API update ticket status error, falling back locally', e);
     }
+
     setTickets((prev) =>
-      prev.map((t) => (t.id === ticketId ? { ...t, status: newStatus } : t))
+      prev.map((item) =>
+        item.id === ticketId
+          ? {
+              ...item,
+              status: newStatus,
+              handlerAccountId: updatedHandlerId ?? item.handlerAccountId,
+              assignedTo: updatedHandlerName || item.assignedTo,
+            }
+          : item
+      )
     );
     if (selectedTicket && selectedTicket.id === ticketId) {
-      setSelectedTicket({ ...selectedTicket, status: newStatus });
+      setSelectedTicket({
+        ...selectedTicket,
+        status: newStatus,
+        handlerAccountId: updatedHandlerId ?? selectedTicket.handlerAccountId,
+        assignedTo: updatedHandlerName || selectedTicket.assignedTo,
+      });
     }
-    setSuccessMessage(t("Ticket status updated to {p0}", undefined, { p0: newStatus }));
+    setSuccessMessage(t("Ticket status updated to {p0}", undefined, { p0: t(newStatus) }));
+    setTimeout(() => setSuccessMessage(null), 3000);
+  };
+
+  const handleAssignToMe = async (ticket: AdminSupportTicket) => {
+    const numericId = ticket.id.replace(/\D/g, '') || '1';
+    let nextStatus: AdminSupportTicket['status'] =
+      ticket.status === 'OPEN' ? 'IN_PROGRESS' : ticket.status;
+    let nextHandlerId: string | null = currentStaffId;
+    let nextAssignedName: string | undefined = currentStaffName || resolveAssignedName(currentStaffId);
+
+    try {
+      const updated = await assignTicketMutation.mutateAsync(numericId);
+      if (updated?.status) {
+        nextStatus = updated.status as AdminSupportTicket['status'];
+      }
+      if (updated?.handlerAccountId != null) {
+        nextHandlerId = String(updated.handlerAccountId);
+        nextAssignedName = resolveAssignedName(updated.handlerAccountId, updated.handlerName);
+      }
+    } catch (assignErr) {
+      if (ticket.status !== 'IN_PROGRESS') {
+        try {
+          const updated = await updateStatusMutation.mutateAsync({ id: numericId, status: 'IN_PROGRESS' });
+          nextStatus = (updated?.status as AdminSupportTicket['status']) || 'IN_PROGRESS';
+          if (updated?.handlerAccountId != null) {
+            nextHandlerId = String(updated.handlerAccountId);
+            nextAssignedName = resolveAssignedName(updated.handlerAccountId, updated.handlerName);
+          }
+        } catch (statusErr) {
+          console.warn('API assign ticket fallback error, updating locally', statusErr);
+        }
+      } else {
+        console.warn('API assign ticket error, updating locally', assignErr);
+      }
+    }
+
+    setTickets((prev) =>
+      prev.map((item) =>
+        item.id === ticket.id
+          ? {
+              ...item,
+              status: nextStatus,
+              handlerAccountId: nextHandlerId ?? item.handlerAccountId,
+              assignedTo: nextAssignedName || item.assignedTo,
+            }
+          : item
+      )
+    );
+    if (selectedTicket && selectedTicket.id === ticket.id) {
+      setSelectedTicket({
+        ...selectedTicket,
+        status: nextStatus,
+        handlerAccountId: nextHandlerId ?? selectedTicket.handlerAccountId,
+        assignedTo: nextAssignedName || selectedTicket.assignedTo,
+      });
+    }
+    setSuccessMessage(t('Ticket assigned to you'));
     setTimeout(() => setSuccessMessage(null), 3000);
   };
 
@@ -166,7 +280,7 @@ export const SupportTicketsAdminPage: React.FC = () => {
       {successMessage && (
         <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center gap-2 animate-fadeIn">
           <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span>{t(successMessage)}</span>
+          <span>{successMessage}</span>
         </div>
       )}
 
@@ -220,6 +334,7 @@ export const SupportTicketsAdminPage: React.FC = () => {
           <option value="OPEN">{t('OPEN')}</option>
           <option value="IN_PROGRESS">{t('IN PROGRESS')}</option>
           <option value="RESOLVED">{t('RESOLVED')}</option>
+          <option value="CLOSED">{t('CLOSED')}</option>
         </select>
 
         <select
@@ -321,11 +436,11 @@ export const SupportTicketsAdminPage: React.FC = () => {
                   </p>
                 </div>
 
-                <div className="w-full sm:w-44 shrink-0">
+                <div className="w-full sm:w-60 shrink-0">
                 <Select
                   id="select-ticket-status-admin" value={selectedTicket.status}
                   onChange={(e) => handleUpdateStatus(selectedTicket.id, e.target.value as any)}
-                  className="min-w-40"
+                  className="w-full min-w-56"
                 >
                   <option value="OPEN">{t("Status: OPEN")}</option>
                   <option value="IN_PROGRESS">{t("Status: IN PROGRESS")}</option>
@@ -335,18 +450,31 @@ export const SupportTicketsAdminPage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="p-3 bg-slate-50 rounded-lg text-xs flex items-center justify-between">
+              <div className="p-3 bg-slate-50 rounded-lg text-xs flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-blue-600" />
+                  <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0" />
                   <span>{t('Assigned Staff:')}</span>
                   <strong className="text-slate-800">{selectedTicket.assignedTo || t('Unassigned')}</strong>
                 </div>
-                <button
-                  onClick={() => handleUpdateStatus(selectedTicket.id, 'IN_PROGRESS')}
-                  className="text-xs font-semibold text-blue-600 hover:underline cursor-pointer"
-                >
-                  {t('Assign to me')}
-                </button>
+                {Boolean(
+                  selectedTicket.handlerAccountId &&
+                  currentStaffId &&
+                  String(selectedTicket.handlerAccountId) === currentStaffId
+                ) ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    {t('Assigned to you')}
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={assignTicketMutation.isPending || updateStatusMutation.isPending}
+                    onClick={() => handleAssignToMe(selectedTicket)}
+                    className="text-xs font-semibold text-blue-600 hover:underline cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                  >
+                    {t('Assign to me')}
+                  </button>
+                )}
               </div>
 
               <form onSubmit={handleSendReply} className="space-y-3">

@@ -3440,9 +3440,9 @@
     "ja": "高"
   },
   "MED": {
-    "vi": "MED",
-    "en": "MED",
-    "ja": "中東"
+    "vi": "Trung bình",
+    "en": "Medium",
+    "ja": "中"
   },
   "LOW": {
     "vi": "Thấp",
@@ -3450,24 +3450,24 @@
     "ja": "低"
   },
   "Status: OPEN": {
-    "vi": "Trạng thái: MỞ",
-    "en": "Status: OPEN",
-    "ja": "ステータス: オープン"
+    "vi": "Trạng thái: Đang mở",
+    "en": "Status: Open",
+    "ja": "ステータス: 受付中"
   },
   "Status: IN PROGRESS": {
-    "vi": "Trạng thái: ĐANG ĐANG ĐANG",
-    "en": "Status: IN PROGRESS",
-    "ja": "ステータス: 進行中"
+    "vi": "Trạng thái: Đang xử lý",
+    "en": "Status: In Progress",
+    "ja": "ステータス: 対応中"
   },
   "Status: RESOLVED": {
-    "vi": "Trạng thái: ĐÃ GIẢI QUYẾT",
-    "en": "Status: RESOLVED",
+    "vi": "Trạng thái: Đã giải quyết",
+    "en": "Status: Resolved",
     "ja": "ステータス: 解決済み"
   },
   "Status: CLOSED": {
-    "vi": "Tình trạng: ĐÓNG CỬA",
-    "en": "Status: CLOSED",
-    "ja": "ステータス: 閉店"
+    "vi": "Trạng thái: Đã đóng",
+    "en": "Status: Closed",
+    "ja": "ステータス: 終了"
   },
   "DEVOPS & TELEMETRY": {
     "vi": "DEVOPS & ĐO LƯỜNG TỪ XA",
@@ -8400,14 +8400,14 @@
     "ja": "無制限"
   },
   "Ticket status updated to {p0}": {
-    "vi": "Trạng thái vé đã cập nhật thành {p0}",
+    "vi": "Trạng thái yêu cầu đã cập nhật thành {p0}",
     "en": "Ticket status updated to {p0}",
     "ja": "チケットのステータスが {p0} に更新されました"
   },
   "Official response sent and ticket status set to IN_PROGRESS": {
-    "vi": "Đã gửi phản hồi chính thức và trạng thái yêu cầu được đặt thành IN_PROGRESS",
-    "en": "Official response sent and ticket status set to IN_PROGRESS",
-    "ja": "公式応答が送信され、チケットのステータスが IN_PROGRESS に設定されました"
+    "vi": "Đã gửi phản hồi chính thức và chuyển trạng thái sang Đang xử lý",
+    "en": "Official response sent and ticket status set to In Progress",
+    "ja": "公式応答が送信され、チケットのステータスが対応中に設定されました"
   },
   "Pinging...": {
     "vi": "Đang ping...",
@@ -10323,6 +10323,16 @@
     "vi": "Nhận xử lý",
     "en": "Assign to me",
     "ja": "自分に割り当てる"
+  },
+  "Assigned to you": {
+    "vi": "Đã nhận xử lý",
+    "en": "Assigned to you",
+    "ja": "あなたが担当中"
+  },
+  "Ticket assigned to you": {
+    "vi": "Đã nhận xử lý yêu cầu hỗ trợ",
+    "en": "Ticket assigned to you",
+    "ja": "チケットを自分に割り当てました"
   },
   "Official Helpdesk Response:": {
     "vi": "Phản hồi chính thức từ Helpdesk:",
