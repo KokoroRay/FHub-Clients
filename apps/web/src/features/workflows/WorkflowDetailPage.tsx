@@ -212,10 +212,10 @@ export const WorkflowDetailPage: React.FC = () => {
             steps: mappedSteps,
           });
 
-          const numId = Number(String(data.workflowId).replace(/\D/g, ''));
-          if (numId > 0) {
+          const voteNumId = Number(String(data.workflowId).replace(/\D/g, ''));
+          if (voteNumId > 0) {
             try {
-              const stats = await voteApi.getStats('WORKFLOW', numId);
+              const stats = await voteApi.getStats('WORKFLOW', voteNumId);
               if (isMounted) {
                 setVoteScore(stats.score ?? 0);
                 setUserVote(stats.myVoteValue === 1 ? 'UP' : stats.myVoteValue === -1 ? 'DOWN' : null);

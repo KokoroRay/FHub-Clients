@@ -11,8 +11,14 @@ import { ArticleEditor, finalizeContentImages } from '../../components/common/Ar
 import { MarkdownPreview } from '../../components/common/MarkdownPreview';
 import { broadcastApi } from '../../services/api/studentApi';
 import { newsApi } from '../../services/api/contentApi';
-import { campusesApi, majorsApi, CampusDto, MajorDto } from '../../services/api/adminApi';
+import { campusesApi, majorsApi, CampusDto } from '../../services/api/adminApi';
 import { normalizeMediaUrl } from '../../utils/mediaUtils';
+
+interface MajorDto {
+  majorId: number;
+  majorCode?: string;
+  majorName: string;
+}
 
 interface Broadcast {
   id: string;
