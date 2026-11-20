@@ -511,15 +511,34 @@ function renderBlock(block: Block, key: number) {
   }
 }
 
+function decodeHtmlEntities(text: string): string {
+  return text
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&');
+}
+
+function unescapeMarkdownText(text: string): string {
+  return decodeHtmlEntities(text.replace(/\\([\\`*_[\]~<>!#+\-.(){}])/g, '$1'));
+}
+
 // Inline formatting: Bold, Italic, Strikethrough, Inline Code, Links, Images
 function renderInline(text: string): React.ReactNode {
   // Regex tokenization for inline formatting
-  // Matches `code`, **bold**, *italic*, ~~strike~~, [text](url), ![alt](url)
-  const pattern = /(!\[[^\]]*\]\([^)]+\)|\[[^\]]+\]\([^)]+\)|`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*|~~[^~]+~~)/g;
+  // Matches escaped punctuation first, then ![alt](url), [text](url), `code`, **bold**, *italic*, ~~strike~~
+  const pattern = /(\\[\\`*_[\]~<>!#+\-.(){}]|!\[[^\]]*\]\([^)]+\)|\[[^\]]+\]\([^)]+\)|`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*|~~[^~]+~~)/g;
   const parts = text.split(pattern);
 
   return parts.map((part, index) => {
     if (!part) return null;
+
+    // Backslash-escaped markdown punctuation (e.g. \\, \_, \*, \[, \], \`)
+    if (part.length === 2 && part[0] === '\\') {
+      return <span key={index}>{part[1]}</span>;
+    }
 
     // Image: ![alt](url)
     if (part.startsWith('![') && part.includes('](')) {
@@ -529,7 +548,7 @@ function renderInline(text: string): React.ReactNode {
           <img
             key={index}
             src={normalizeMediaUrl(match[2])}
-            alt={match[1]}
+            alt={unescapeMarkdownText(match[1])}
             loading="lazy"
             decoding="async"
             className="block h-auto max-w-full max-h-[640px] mx-auto my-6 rounded-xl border border-slate-200 dark:border-slate-700 object-contain"
@@ -550,7 +569,7 @@ function renderInline(text: string): React.ReactNode {
             rel="noopener noreferrer"
             className="text-[#0076D1] underline hover:text-blue-800 dark:hover:text-blue-300 font-semibold"
           >
-            {match[1]}
+            {unescapeMarkdownText(match[1])}
           </a>
         );
       }
@@ -572,7 +591,7 @@ function renderInline(text: string): React.ReactNode {
     if (part.startsWith('**') && part.endsWith('**') && part.length > 3) {
       return (
         <strong key={index} className="font-bold text-slate-900 dark:text-slate-100">
-          {part.slice(2, -2)}
+          {unescapeMarkdownText(part.slice(2, -2))}
         </strong>
       );
     }
@@ -581,7 +600,7 @@ function renderInline(text: string): React.ReactNode {
     if (part.startsWith('*') && part.endsWith('*') && part.length > 2) {
       return (
         <em key={index} className="italic text-slate-800 dark:text-slate-200">
-          {part.slice(1, -1)}
+          {unescapeMarkdownText(part.slice(1, -1))}
         </em>
       );
     }
@@ -590,11 +609,11 @@ function renderInline(text: string): React.ReactNode {
     if (part.startsWith('~~') && part.endsWith('~~') && part.length > 3) {
       return (
         <del key={index} className="line-through text-slate-400">
-          {part.slice(2, -2)}
+          {unescapeMarkdownText(part.slice(2, -2))}
         </del>
       );
     }
 
-    return <span key={index}>{part}</span>;
+    return <span key={index}>{decodeHtmlEntities(part)}</span>;
   });
 }

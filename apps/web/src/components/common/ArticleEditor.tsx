@@ -24,7 +24,7 @@ export function ArticleEditor({ initialContent = '', onChange, onUploadingChange
   const [error, setError] = useState('');
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({ heading: { levels: [2, 3] }, link: { openOnClick: false } }),
+      StarterKit.configure({ heading: { levels: [1, 2, 3, 4] }, link: { openOnClick: false } }),
       Image.configure({ allowBase64: false }),
       Placeholder.configure({ placeholder: t('Bắt đầu viết câu chuyện của bạn… Kéo thả hoặc dán ảnh vào đây.') }),
       Markdown,
