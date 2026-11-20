@@ -388,22 +388,34 @@ export const StudyMaterialDetailPage: React.FC = () => {
               shareUrl={typeof window !== 'undefined' ? window.location.href : ''}
             />
 
-            <button
-              id="btn-edit-material"
-              onClick={() => setIsEditModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
-            >
-              <Edit3 className="w-4 h-4 text-slate-500" />
-              <span>{t('Edit')}</span>
-            </button>
-            <button
-              id="btn-delete-material"
-              onClick={() => setIsDeleteModalOpen(true)}
-              className="p-2.5 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
-              title={t("Xóa tài liệu")}
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+            {Boolean(
+              currentUser && (
+                (material?.author?.id && (
+                  String(currentUser.id) === String(material.author.id) ||
+                  String(currentUser.id).replace(/\D/g, '') === String(material.author.id).replace(/\D/g, '')
+                )) ||
+                currentUser.role === 'Admin'
+              )
+            ) && (
+              <>
+                <button
+                  id="btn-edit-material"
+                  onClick={() => setIsEditModalOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
+                >
+                  <Edit3 className="w-4 h-4 text-slate-500" />
+                  <span>{t('Edit')}</span>
+                </button>
+                <button
+                  id="btn-delete-material"
+                  onClick={() => setIsDeleteModalOpen(true)}
+                  className="p-2.5 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                  title={t("Xóa tài liệu")}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </>
+            )}
 
             <button
               onClick={handleDownload}

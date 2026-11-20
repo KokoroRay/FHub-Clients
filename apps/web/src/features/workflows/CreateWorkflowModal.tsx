@@ -24,6 +24,46 @@ interface StepDraft {
   language: string;
 }
 
+export const WORKFLOW_CODE_LANGUAGES: Array<{ value: string; label: string }> = [
+  { value: 'bash', label: 'Bash / Shell' },
+  { value: 'powershell', label: 'PowerShell' },
+  { value: 'cmd', label: 'CMD / Batch' },
+  { value: 'csharp', label: 'C#' },
+  { value: 'java', label: 'Java' },
+  { value: 'javascript', label: 'JavaScript' },
+  { value: 'typescript', label: 'TypeScript' },
+  { value: 'jsx', label: 'JSX (React)' },
+  { value: 'tsx', label: 'TSX (React)' },
+  { value: 'python', label: 'Python' },
+  { value: 'go', label: 'Go' },
+  { value: 'c', label: 'C' },
+  { value: 'cpp', label: 'C++' },
+  { value: 'rust', label: 'Rust' },
+  { value: 'php', label: 'PHP' },
+  { value: 'ruby', label: 'Ruby' },
+  { value: 'kotlin', label: 'Kotlin' },
+  { value: 'swift', label: 'Swift' },
+  { value: 'dart', label: 'Dart / Flutter' },
+  { value: 'html', label: 'HTML' },
+  { value: 'css', label: 'CSS / SCSS' },
+  { value: 'sql', label: 'SQL' },
+  { value: 'graphql', label: 'GraphQL' },
+  { value: 'json', label: 'JSON' },
+  { value: 'yaml', label: 'YAML' },
+  { value: 'xml', label: 'XML' },
+  { value: 'toml', label: 'TOML' },
+  { value: 'ini', label: 'INI / .env' },
+  { value: 'dockerfile', label: 'Dockerfile' },
+  { value: 'nginx', label: 'Nginx' },
+  { value: 'hcl', label: 'Terraform / HCL' },
+  { value: 'makefile', label: 'Makefile' },
+  { value: 'markdown', label: 'Markdown' },
+  { value: 'r', label: 'R' },
+  { value: 'matlab', label: 'MATLAB' },
+  { value: 'diff', label: 'Diff' },
+  { value: 'text', label: 'Plain Text' },
+];
+
 const createInitialStep = (): StepDraft => ({
   stepNumber: 1,
   title: '',
@@ -319,14 +359,11 @@ export const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
                     onChange={(e) => updateStep(idx, 'language', e.target.value)}
                     className="text-[11px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md px-2 py-0.5 text-slate-600 dark:text-slate-300"
                   >
-                    <option value="bash">bash</option>
-                    <option value="csharp">csharp</option>
-                    <option value="typescript">typescript</option>
-                    <option value="python">python</option>
-                    <option value="sql">sql</option>
-                    <option value="json">json</option>
-                    <option value="yaml">yaml</option>
-                    <option value="text">text</option>
+                    {WORKFLOW_CODE_LANGUAGES.map((lang) => (
+                      <option key={lang.value} value={lang.value}>
+                        {lang.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <Textarea

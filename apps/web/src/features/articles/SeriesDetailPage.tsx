@@ -155,22 +155,32 @@ export const SeriesDetailPage: React.FC = () => {
             </p>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => setIsEditModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-            >
-              <Edit3 className="w-3.5 h-3.5 text-slate-500" />
-              <span>{t('series.editSeries', 'Sửa Series')}</span>
-            </button>
-            <button
-              onClick={handleDeleteSeries}
-              className="p-2 rounded-xl border border-rose-200 text-rose-500 hover:bg-rose-50 transition-colors cursor-pointer"
-              title={t('series.deleteSeries', 'Xóa Series')}
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          </div>
+          {Boolean(
+            currentUser && (
+              (series?.author?.id && (
+                String(currentUser.id) === String(series.author.id) ||
+                String(currentUser.id).replace(/\D/g, '') === String(series.author.id).replace(/\D/g, '')
+              )) ||
+              currentUser.role === 'Admin'
+            )
+          ) && (
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => setIsEditModalOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <Edit3 className="w-3.5 h-3.5 text-slate-500" />
+                <span>{t('series.editSeries', 'Sửa Series')}</span>
+              </button>
+              <button
+                onClick={handleDeleteSeries}
+                className="p-2 rounded-xl border border-rose-200 text-rose-500 hover:bg-rose-50 transition-colors cursor-pointer"
+                title={t('series.deleteSeries', 'Xóa Series')}
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Author info */}

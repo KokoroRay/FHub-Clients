@@ -31,6 +31,7 @@ import { CourseSelect } from '../../components/common/CourseSelect';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { SeriesSidebarCard } from '../../components/common/SeriesSidebarCard';
+import { WORKFLOW_CODE_LANGUAGES } from './CreateWorkflowModal';
 
 interface ParsedStep {
   stepNumber: number;
@@ -551,6 +552,16 @@ export const WorkflowDetailPage: React.FC = () => {
     }
   };
 
+  const isWorkflowOwner = Boolean(
+    currentUser && (
+      (workflow?.authorUserId && (
+        String(currentUser.id) === String(workflow.authorUserId) ||
+        String(currentUser.id).replace(/\D/g, '') === String(workflow.authorUserId).replace(/\D/g, '')
+      )) ||
+      currentUser.role === 'Admin'
+    )
+  );
+
   const isAllCompleted = totalSteps > 0 && completedCount === totalSteps;
   const nextUncompletedStep = workflow.steps.find((s: ParsedStep) => !completedSteps.includes(s.stepNumber))?.stepNumber;
 
@@ -614,28 +625,32 @@ export const WorkflowDetailPage: React.FC = () => {
                   <ChevronDown className="w-4 h-4" />
                 </button>
               </div>
-              <Button
-                id="btn-edit-workflow"
-                variant="outline"
-                size="sm"
-                onClick={openEditModal}
-                leftIcon={<Edit3 className="w-3.5 h-3.5 text-slate-500" />}
-              >
-                {t('Edit')}
-              </Button>
-              <Button
-                id="btn-delete-workflow"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setDeleteError(null);
-                  setShowDeleteWorkflowModal(true);
-                }}
-                className="text-red-600 hover:bg-red-50"
-                leftIcon={<Trash2 className="w-3.5 h-3.5" />}
-              >
-                {t('Delete')}
-              </Button>
+              {isWorkflowOwner && (
+                <>
+                  <Button
+                    id="btn-edit-workflow"
+                    variant="outline"
+                    size="sm"
+                    onClick={openEditModal}
+                    leftIcon={<Edit3 className="w-3.5 h-3.5 text-slate-500" />}
+                  >
+                    {t('Edit')}
+                  </Button>
+                  <Button
+                    id="btn-delete-workflow"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setDeleteError(null);
+                      setShowDeleteWorkflowModal(true);
+                    }}
+                    className="text-red-600 hover:bg-red-50"
+                    leftIcon={<Trash2 className="w-3.5 h-3.5" />}
+                  >
+                    {t('Delete')}
+                  </Button>
+                </>
+              )}
               <Button
                 variant={isBookmarked ? 'secondary' : 'outline'}
                 size="sm"
@@ -993,14 +1008,11 @@ export const WorkflowDetailPage: React.FC = () => {
                           onChange={(e) => updateEditStep(idx, 'language', e.target.value)}
                           className="text-[11px] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md px-2 py-0.5 text-slate-600 dark:text-slate-300"
                         >
-                          <option value="bash">bash</option>
-                          <option value="csharp">csharp</option>
-                          <option value="typescript">typescript</option>
-                          <option value="python">python</option>
-                          <option value="sql">sql</option>
-                          <option value="json">json</option>
-                          <option value="yaml">yaml</option>
-                          <option value="text">text</option>
+                          {WORKFLOW_CODE_LANGUAGES.map((lang) => (
+                            <option key={lang.value} value={lang.value}>
+                              {lang.label}
+                            </option>
+                          ))}
                         </select>
                       </div>
                       <textarea
