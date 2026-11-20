@@ -874,3 +874,46 @@ export const directMessageApi = {
     }
   },
 };
+
+// ─── 10. Manual Role & Student ID Verification API (Governance Service) ───────
+export interface SubmitManualVerificationPayload {
+  verificationType: 'STUDENT_ID' | 'ORGANIZATION' | 'PROFESSIONAL';
+  studentCode?: string;
+  evidenceUrl?: string;
+  requestReason?: string;
+}
+
+export interface ManualVerificationRecord {
+  manualVerificationRequestId: number;
+  requesterUserId: number;
+  verificationType: string;
+  studentCode?: string | null;
+  evidenceUrl?: string | null;
+  requestReason?: string | null;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | string;
+  decisionNote?: string | null;
+  createdAt?: string;
+  processedAt?: string | null;
+}
+
+export const manualVerificationStudentApi = {
+  submitRequest: async (payload: SubmitManualVerificationPayload): Promise<ManualVerificationRecord> => {
+    const res = await apiClient.post<ApiResponse<ManualVerificationRecord>>('/api/manual-verifications', {
+      verificationType: payload.verificationType,
+      studentCode: payload.studentCode?.trim() || undefined,
+      evidenceUrl: payload.evidenceUrl?.trim() || undefined,
+      requestReason: payload.requestReason?.trim() || undefined,
+    });
+    return (res.data as any).data || (res.data as any);
+  },
+
+  getByUserId: async (userId: number | string): Promise<ManualVerificationRecord | null> => {
+    try {
+      const res = await apiClient.get<ApiResponse<ManualVerificationRecord>>(`/api/manual-verifications/user/${userId}`);
+      return (res.data as any).data || null;
+    } catch (err: any) {
+      if (err?.response?.status === 404) return null;
+      return null;
+    }
+  },
+};

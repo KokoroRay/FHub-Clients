@@ -25,6 +25,7 @@ import { useTheme, AppTheme } from '../../context/ThemeContext';
 import { profileApi } from '../../services/api/studentApi';
 import { authApi } from '../../services/api/adminApi';
 import { getHideOutOfMajorCompactSetting, setHideOutOfMajorCompactSetting } from '../../utils/courseFilter';
+import { ManualVerificationCard } from './ManualVerificationCard';
 
 export const ProfileSettingsPage: React.FC = () => {
   const { currentUser } = useAuth();
@@ -798,8 +799,9 @@ export const ProfileSettingsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Right 1 Col: Account Safety Tips */}
+        {/* Right 1 Col: Manual Verification & Account Safety Tips */}
         <div className="space-y-6">
+          <ManualVerificationCard />
           <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-100 dark:border-slate-800 shadow-xs space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
