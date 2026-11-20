@@ -72,6 +72,7 @@ export const ArticleDetailPage: React.FC = () => {
           const category = resolveCategoryFromTags(data.semanticTagIds, tagMap) || (tags.length > 0 ? tags[0] : t("Bài viết học thuật"));
           setArticle({
             id: String(data.articleId),
+            version: data.version,
             title: data.title,
             summary: data.summary || '',
             content: data.content || '',
@@ -251,11 +252,9 @@ export const ArticleDetailPage: React.FC = () => {
   };
   const [copiedCode, setCopiedCode] = useState(false);
   const [commentText, setCommentText] = useState('');
-  const [showEditArticleModal, setShowEditArticleModal] = useState(false);
   const [showDeleteArticleModal, setShowDeleteArticleModal] = useState(false);
-  const [editArticleTitle, setEditArticleTitle] = useState('');
-  const [editArticleSummary, setEditArticleSummary] = useState('');
-  const [editArticleContent, setEditArticleContent] = useState('');
+  const [isDeletingArticle, setIsDeletingArticle] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [comments, setComments] = useState<any[]>([]);
   const [hiddenCommentIds, setHiddenCommentIds] = useState<Set<string>>(new Set());
 
@@ -545,12 +544,7 @@ export const ArticleDetailPage: React.FC = () => {
                           id="btn-edit-article"
                           size="sm"
                           variant="outline"
-                          onClick={() => {
-                            setEditArticleTitle(article.title);
-                            setEditArticleSummary(article.summary);
-                            setEditArticleContent(article.content);
-                            setShowEditArticleModal(true);
-                          }}
+                          onClick={() => navigate(`/articles/${article.id}/edit`)}
                           leftIcon={<Edit3 className="w-3.5 h-3.5 text-slate-500" />}
                         >
                           {t('Edit')}
@@ -559,7 +553,10 @@ export const ArticleDetailPage: React.FC = () => {
                           id="btn-delete-article"
                           size="sm"
                           variant="outline"
-                          onClick={() => setShowDeleteArticleModal(true)}
+                          onClick={() => {
+                            setDeleteError(null);
+                            setShowDeleteArticleModal(true);
+                          }}
                           className="text-red-600 hover:bg-red-50"
                           leftIcon={<Trash2 className="w-3.5 h-3.5" />}
                         >
@@ -747,83 +744,6 @@ export const ArticleDetailPage: React.FC = () => {
         </div>
       </div>
 
-      {/* ─── 3.6.4 Edit Article Modal ────────────────────────────────────────── */}
-      {showEditArticleModal && article && (
-        <div id="modal-edit-article" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 max-w-xl w-full p-6 space-y-4 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                <Edit3 className="w-5 h-5 text-[#0076D1]" />
-                <span>{t("Chỉnh Sửa Bài Viết Kỹ Thuật")}</span>
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowEditArticleModal(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">{t("Tiêu đề bài viết")}</label>
-                <input
-                  type="text"
-                  value={editArticleTitle}
-                  onChange={(e) => setEditArticleTitle(e.target.value)}
-                  className="w-full p-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-medium"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">{t("Tóm tắt ngắn (Summary)")}</label>
-                <textarea
-                  rows={2}
-                  value={editArticleSummary}
-                  onChange={(e) => setEditArticleSummary(e.target.value)}
-                  className="w-full p-2.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl resize-none"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">{t("Nội dung bài viết (Markdown)")}</label>
-                <textarea
-                  rows={6}
-                  value={editArticleContent}
-                  onChange={(e) => setEditArticleContent(e.target.value)}
-                  className="w-full p-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono resize-none"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">
-              <button
-                type="button"
-                onClick={() => setShowEditArticleModal(false)}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
-              >
-                {t("Hủy")}</button>
-              <button
-                id="btn-save-edit-article"
-                type="button"
-                onClick={() => {
-                  setArticle({
-                    ...article,
-                    title: editArticleTitle,
-                    summary: editArticleSummary,
-                    content: editArticleContent,
-                  });
-                  setShowEditArticleModal(false);
-                }}
-                className="px-5 py-2 text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700 rounded-xl transition-colors shadow-xs"
-              >
-                {t("Lưu thay đổi")}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ─── 3.6.5 Delete Article Confirmation Modal ──────────────────────────── */}
       {showDeleteArticleModal && article && (
         <div id="modal-delete-article" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
@@ -841,32 +761,45 @@ export const ArticleDetailPage: React.FC = () => {
             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
               {t("Bạn có chắc chắn muốn xóa bài viết")} <strong>"{article.title}"</strong>{t("? Toàn bộ nội dung, lượt thích và thảo luận sẽ bị xóa vĩnh viễn khỏi nền tảng.")}</p>
 
+            {deleteError && (
+              <div role="alert" className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-xs text-rose-700 dark:text-rose-300 font-medium">
+                {deleteError}
+              </div>
+            )}
+
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
               <button
                 type="button"
+                disabled={isDeletingArticle}
                 onClick={() => setShowDeleteArticleModal(false)}
-                className="px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+                className="px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors disabled:opacity-50"
               >
                 {t("Hủy")}</button>
               <button
                 id="btn-confirm-delete-article"
                 type="button"
+                disabled={isDeletingArticle}
                 onClick={async () => {
+                  if (isDeletingArticle) return;
+                  setIsDeletingArticle(true);
+                  setDeleteError(null);
                   try {
                     const numId = Number((id || '').replace(/\D/g, ''));
                     if (numId) {
-                      await articleApi.deleteArticle(numId);
+                      await articleApi.deleteArticle(numId, article.version);
                     }
                     setShowDeleteArticleModal(false);
                     navigate('/articles');
-                  } catch (err) {
+                  } catch (err: any) {
                     console.error('Failed to delete article:', err);
-                    setShowDeleteArticleModal(false);
+                    setDeleteError(err?.response?.data?.message || err?.message || t('Không thể xóa bài viết. Vui lòng thử lại.'));
+                  } finally {
+                    setIsDeletingArticle(false);
                   }
                 }}
-                className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors shadow-xs"
+                className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors shadow-xs disabled:opacity-50"
               >
-                {t("Xác nhận xóa")}</button>
+                {isDeletingArticle ? t("Đang xóa...") : t("Xác nhận xóa")}</button>
             </div>
           </div>
         </div>

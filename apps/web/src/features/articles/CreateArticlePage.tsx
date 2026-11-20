@@ -1,22 +1,46 @@
-import React, { lazy, Suspense, useState, useEffect, useRef } from 'react';
+import React, { Suspense, useState, useEffect, useRef } from 'react';
 
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useParams } from 'react-router-dom';
 
-import { FileText, ArrowLeft, ImagePlus, AlertCircle, AlertTriangle, Loader2, X, Award } from 'lucide-react';
+import { FileText, ArrowLeft, ImagePlus, AlertTriangle, Loader2, X, Award } from 'lucide-react';
 import { Card, CardBody, CardHeader } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Input, Textarea, Select } from '../../components/common/Input';
 import { articleApi, alumniApi, contentMediaApi } from '../../services/api/contentApi';
 import { apiClient } from '../../services/api/client';
-import { IMAGE_ACCEPT, validateImage } from '../../utils/mediaUtils';
+import { IMAGE_ACCEPT, validateImage, normalizeMediaUrl } from '../../utils/mediaUtils';
 import { isUserAlumni } from '../../utils/fptEmailValidator';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
-import { loadAllSemanticTags, FALLBACK_ALL_TAGS, SemanticTagItem } from '../../utils/tagUtils';
+import {
+  loadAllSemanticTags,
+  FALLBACK_ALL_TAGS,
+  SemanticTagItem,
+  getSemanticTagMap,
+  resolveTagNames,
+  resolveCategoryFromTags,
+} from '../../utils/tagUtils';
 import { ArticleEditor, finalizeContentImages } from '../../components/common/ArticleEditor';
+
+const CATEGORY_VALUES = new Set([
+  'Học thuật & Trải nghiệm sinh viên',
+  'Lập trình & Kỹ thuật phần mềm',
+  'Thiết kế Đồ họa, 3D & UI/UX',
+  'Kinh doanh, Quản trị & Chuỗi cung ứng',
+  'Digital Marketing & Truyền thông',
+  'Tài chính, Kế toán & Fintech',
+  'Du lịch, Khách sạn & Sự kiện',
+  'Pháp luật & Luật kinh tế',
+  'Ngoại ngữ (Anh - Nhật - Hàn - Trung)',
+  'Trí tuệ nhân tạo & Khoa học dữ liệu',
+  'An toàn thông tin & Mạng máy tính',
+  'Khởi nghiệp & Đổi mới sáng tạo',
+]);
 
 export const CreateArticlePage: React.FC = () => {
   const navigate = useNavigate();
+  const { id } = useParams<{ id?: string }>();
+  const isEditMode = Boolean(id);
   const { currentUser, updateUser } = useAuth();
   const { t } = useLanguage();
   const isAlumni = isUserAlumni(currentUser);
@@ -26,10 +50,16 @@ export const CreateArticlePage: React.FC = () => {
   const [summary, setSummary] = useState('');
 
   const [content, setContent] = useState('');
+  const [editorInitialContent, setEditorInitialContent] = useState('');
+  const [editorKey, setEditorKey] = useState(0);
 
-  const [tags, setTags] = useState('kinh-nghiem, hoc-tap, sinh-vien-fpt');
+  const [tags, setTags] = useState(isEditMode ? '' : 'kinh-nghiem, hoc-tap, sinh-vien-fpt');
 
   const [coverUrl, setCoverUrl] = useState('');
+  const originalCoverUrlRef = useRef('');
+  const [articleVersion, setArticleVersion] = useState<number | undefined>(undefined);
+  const [articleStatus, setArticleStatus] = useState<'DRAFT' | 'PUBLISHED' | 'ARCHIVED'>('PUBLISHED');
+  const [isLoadingArticle, setIsLoadingArticle] = useState(isEditMode);
 
   const [isUploadingCover, setIsUploadingCover] = useState(false);
 
@@ -56,14 +86,56 @@ export const CreateArticlePage: React.FC = () => {
   const [allTags, setAllTags] = useState<SemanticTagItem[]>(FALLBACK_ALL_TAGS);
 
   useEffect(() => {
+    let isMounted = true;
+    const init = async () => {
+      const loadedTags = await loadAllSemanticTags();
+      if (isMounted && loadedTags && loadedTags.length > 0) {
+        setAllTags(loadedTags);
+      }
 
-    loadAllSemanticTags().then((loaded) => {
+      if (!isEditMode || !id) {
+        if (isMounted) setIsLoadingArticle(false);
+        return;
+      }
 
-      if (loaded && loaded.length > 0) setAllTags(loaded);
+      try {
+        setIsLoadingArticle(true);
+        const detail = await articleApi.getArticleById(id);
+        if (!isMounted || !detail) return;
 
-    });
+        const tagMap = getSemanticTagMap(loadedTags && loadedTags.length > 0 ? loadedTags : FALLBACK_ALL_TAGS);
+        const resolvedTagNames = resolveTagNames(detail.semanticTagIds, tagMap);
+        const resolvedCat = resolveCategoryFromTags(detail.semanticTagIds, tagMap);
 
-  }, []);
+        setTitle(detail.title || '');
+        setSummary(detail.summary || '');
+        setContent(detail.content || '');
+        setEditorInitialContent(detail.content || '');
+        setEditorKey((prev) => prev + 1);
+        setCoverUrl(detail.coverImageUrl || '');
+        originalCoverUrlRef.current = detail.coverImageUrl || '';
+        setArticleVersion(detail.version);
+        if (detail.status === 'DRAFT' || detail.status === 'ARCHIVED' || detail.status === 'PUBLISHED') {
+          setArticleStatus(detail.status);
+        }
+        if (resolvedCat && CATEGORY_VALUES.has(resolvedCat)) {
+          setCategory(resolvedCat);
+        }
+        setTags(resolvedTagNames.join(', '));
+      } catch (err: any) {
+        if (isMounted) {
+          setErrorMessage(err?.response?.data?.message || err?.message || t('Không tải được thông tin bài viết để chỉnh sửa.'));
+        }
+      } finally {
+        if (isMounted) setIsLoadingArticle(false);
+      }
+    };
+
+    void init();
+    return () => {
+      isMounted = false;
+    };
+  }, [id, isEditMode, t]);
 
   const uploadCover = (file?: File) => {
 
@@ -103,7 +175,7 @@ export const CreateArticlePage: React.FC = () => {
 
         URL.revokeObjectURL(coverUrl);
 
-      } else {
+      } else if (!isEditMode || coverUrl !== originalCoverUrlRef.current) {
 
         contentMediaApi.deleteMedia(coverUrl);
 
@@ -152,6 +224,7 @@ export const CreateArticlePage: React.FC = () => {
     setIsSubmitting(true);
 
     let finalCoverUrl = coverUrl;
+    let uploadedNewCoverUrl = '';
     try {
 
       // Resolve semanticTagIds from selected category and input tags
@@ -187,6 +260,7 @@ export const CreateArticlePage: React.FC = () => {
           const result = await contentMediaApi.uploadMedia(pendingCoverFile.current, 'article');
 
           finalCoverUrl = result.publicUrl;
+          uploadedNewCoverUrl = result.publicUrl;
 
           if (coverUrl.startsWith('blob:')) {
 
@@ -201,7 +275,7 @@ export const CreateArticlePage: React.FC = () => {
             URL.revokeObjectURL(coverUrl);
           }
           pendingCoverFile.current = null;
-          setCoverUrl('');
+          setCoverUrl(isEditMode ? originalCoverUrlRef.current : '');
           const serverCode = err?.response?.data?.code;
           const msg = err?.response?.data?.message || err?.message;
           const isSevere =
@@ -228,6 +302,35 @@ export const CreateArticlePage: React.FC = () => {
       // Finalize all deferred images inside the article content
 
       const finalContent = await finalizeContentImages(content.trim(), 'article');
+
+      if (isEditMode && id) {
+        const numericId = Number(id.replace(/\D/g, '')) || id;
+        const updatedResult = await articleApi.updateArticle(
+          numericId,
+          {
+            title: title.trim(),
+            content: finalContent,
+            summary: summary.trim(),
+            coverImageUrl: finalCoverUrl.trim() || undefined,
+            status: articleStatus,
+            semanticTagIds: matchedTagIds,
+          },
+          articleVersion
+        );
+
+        if (originalCoverUrlRef.current && originalCoverUrlRef.current !== finalCoverUrl) {
+          contentMediaApi.deleteMedia(originalCoverUrlRef.current).catch(() => {});
+        }
+
+        if (updatedResult?.status === 'PENDING_REVIEW') {
+          alert(t("Cập nhật thành công! Bài viết của bạn đang được Ban quản trị duyệt trước khi xuất bản. Bạn có thể theo dõi tại mục Tạm giữ & Kháng cáo trên trang cá nhân."));
+          navigate('/profile?tab=quarantine');
+          return;
+        }
+
+        navigate(`/articles/${numericId}`);
+        return;
+      }
 
       let createdResult: any = null;
       if (isAlumni) {
@@ -309,22 +412,26 @@ export const CreateArticlePage: React.FC = () => {
 
     } catch (err: any) {
 
-      console.warn('Backend article create notice:', err);
+      console.warn('Backend article save notice:', err);
 
-      if (finalCoverUrl && !finalCoverUrl.startsWith('blob:')) {
+      if (uploadedNewCoverUrl) {
 
-        contentMediaApi.deleteMedia(finalCoverUrl).catch(() => {});
+        contentMediaApi.deleteMedia(uploadedNewCoverUrl).catch(() => {});
 
       }
 
       pendingCoverFile.current = null;
 
-      setCoverUrl('');
+      if (!isEditMode) {
+        setCoverUrl('');
+      }
 
       // If backend throws an error or requires specific role, show feedback
 
-      const msg = err.response?.data?.message || err.message || t("Lỗi khi tạo bài viết.");
-
+      let msg = err.response?.data?.message || err.message || t(isEditMode ? "Lỗi khi cập nhật bài viết." : "Lỗi khi tạo bài viết.");
+      if (msg === "An unexpected error occurred.") {
+        msg = t("Đã xảy ra sự cố từ máy chủ. Vui lòng thử lại sau.");
+      }
       setErrorMessage(msg);
 
     } finally {
@@ -335,13 +442,22 @@ export const CreateArticlePage: React.FC = () => {
 
   };
 
+  if (isLoadingArticle) {
+    return (
+      <div className="p-12 text-center text-slate-400 text-xs flex items-center justify-center gap-2">
+        <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+        <span>{t('Loading...')}</span>
+      </div>
+    );
+  }
+
   return (
 
     <div className="space-y-6 w-full">
 
-      <Link to="/articles" className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-blue-600 transition-colors">
+      <Link to={isEditMode && id ? `/articles/${id}` : '/articles'} className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-blue-600 transition-colors">
 
-        <ArrowLeft className="w-4 h-4" /> {t('articleCreate.backToList', 'Quay lại danh sách bài viết')}
+        <ArrowLeft className="w-4 h-4" /> {isEditMode ? t('Quay lại bài viết') : t('articleCreate.backToList', 'Quay lại danh sách bài viết')}
 
       </Link>
 
@@ -353,7 +469,7 @@ export const CreateArticlePage: React.FC = () => {
 
             <FileText className="w-5 h-5 text-[#0076D1]" />
 
-            <span>{t('articleCreate.pageTitle', 'Viết bài viết & Chia sẻ kiến thức')}</span>
+            <span>{isEditMode ? t('Chỉnh Sửa Bài Viết Kỹ Thuật') : t('articleCreate.pageTitle', 'Viết bài viết & Chia sẻ kiến thức')}</span>
 
           </h1>
 
@@ -361,37 +477,59 @@ export const CreateArticlePage: React.FC = () => {
 
         <CardBody className="p-6">
 
-          {errorMessage && (
-            <div
-              ref={errorBannerRef}
-              role="alert"
-              className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-rose-50 via-red-50 to-orange-50 dark:from-rose-950/60 dark:via-red-950/40 dark:to-orange-950/30 border-2 border-rose-400 dark:border-rose-600 text-rose-900 dark:text-rose-200 shadow-lg shadow-rose-500/10 flex items-start justify-between gap-3 transition-all duration-300 ring-4 ring-rose-500/10 animate-[bounce_0.5s_ease-in-out]"
-            >
-              <div className="flex items-start gap-3 flex-1 min-w-0">
-                <div className="p-2 rounded-xl bg-rose-500 text-white shrink-0 shadow-sm animate-pulse">
-                  <AlertTriangle className="w-5 h-5" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-200 text-rose-800 dark:bg-rose-900 dark:text-rose-200">
-                      {t('Cảnh báo vi phạm')}
-                    </span>
-                  </div>
-                  <p className="text-sm font-semibold leading-relaxed text-rose-800 dark:text-rose-200">
-                    {t(errorMessage)}
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setErrorMessage(null)}
-                className="p-1.5 rounded-lg text-rose-400 hover:text-rose-700 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-colors shrink-0"
-                aria-label={t('common.close', 'Đóng')}
+          {errorMessage && (() => {
+            const isViolation = errorMessage && (
+              errorMessage.toLowerCase().includes('vi phạm') ||
+              errorMessage.toLowerCase().includes('18+') ||
+              errorMessage.toLowerCase().includes('nhạy cảm') ||
+              errorMessage.toLowerCase().includes('tiêu chuẩn') ||
+              errorMessage.toLowerCase().includes('tạm giữ') ||
+              errorMessage.toLowerCase().includes('nghi vấn')
+            );
+            return (
+              <div
+                ref={errorBannerRef}
+                role="alert"
+                className={`mb-6 p-4 rounded-2xl border-2 shadow-lg flex items-start justify-between gap-3 transition-all duration-300 ring-4 animate-[bounce_0.5s_ease-in-out] ${
+                  isViolation
+                    ? 'bg-gradient-to-r from-rose-50 via-red-50 to-orange-50 dark:from-rose-950/60 dark:via-red-950/40 dark:to-orange-950/30 border-rose-400 dark:border-rose-600 text-rose-900 dark:text-rose-200 shadow-rose-500/10 ring-rose-500/10'
+                    : 'bg-gradient-to-r from-amber-50 via-orange-50 to-yellow-50 dark:from-amber-950/60 dark:via-orange-950/40 dark:to-yellow-950/30 border-amber-400 dark:border-amber-600 text-amber-900 dark:text-amber-200 shadow-amber-500/10 ring-amber-500/10'
+                }`}
               >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          )}
+                <div className="flex items-start gap-3 flex-1 min-w-0">
+                  <div className={`p-2 rounded-xl text-white shrink-0 shadow-sm animate-pulse ${isViolation ? 'bg-rose-500' : 'bg-amber-500'}`}>
+                    <AlertTriangle className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                        isViolation
+                          ? 'bg-rose-200 text-rose-800 dark:bg-rose-900 dark:text-rose-200'
+                          : 'bg-amber-200 text-amber-800 dark:bg-amber-900 dark:text-amber-200'
+                      }`}>
+                        {isViolation ? t('Cảnh báo vi phạm') : t('Lỗi hệ thống')}
+                      </span>
+                    </div>
+                    <p className={`text-sm font-semibold leading-relaxed ${isViolation ? 'text-rose-800 dark:text-rose-200' : 'text-amber-800 dark:text-amber-200'}`}>
+                      {t(errorMessage)}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setErrorMessage(null)}
+                  className={`p-1.5 rounded-lg transition-colors shrink-0 ${
+                    isViolation
+                      ? 'text-rose-400 hover:text-rose-700 hover:bg-rose-100 dark:hover:bg-rose-900/50'
+                      : 'text-amber-400 hover:text-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/50'
+                  }`}
+                  aria-label={t('common.close', 'Đóng')}
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            );
+          })()}
 
           <form onSubmit={handleSubmit} className="space-y-4">
 
@@ -484,7 +622,7 @@ export const CreateArticlePage: React.FC = () => {
 
                   <>
 
-                    <img src={coverUrl} alt={t('Ảnh bìa bài viết')} className="max-h-72 w-full object-cover" />
+                    <img src={coverUrl.startsWith('blob:') ? coverUrl : normalizeMediaUrl(coverUrl)} alt={t('Ảnh bìa bài viết')} className="max-h-72 w-full object-cover" />
 
                     <div className="absolute right-3 top-3 flex gap-2">
 
@@ -536,17 +674,23 @@ export const CreateArticlePage: React.FC = () => {
 
             <Suspense fallback={<p role="status" className="py-8 text-center text-sm text-slate-400">{t('Đang tải trình soạn thảo…')}</p>}>
 
-              <ArticleEditor onChange={setContent} onUploadingChange={setIsUploadingContent} disabled={isSubmitting} />
+              <ArticleEditor
+                key={isEditMode ? `edit-${id}-${editorKey}` : 'create'}
+                initialContent={editorInitialContent}
+                onChange={setContent}
+                onUploadingChange={setIsUploadingContent}
+                disabled={isSubmitting}
+              />
 
             </Suspense>
 
             <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-end gap-3">
 
-              <Button variant="outline" type="button" onClick={() => navigate('/articles')}>{t('common.cancel', 'Hủy')}</Button>
+              <Button variant="outline" type="button" onClick={() => navigate(isEditMode && id ? `/articles/${id}` : '/articles')}>{t('common.cancel', 'Hủy')}</Button>
 
               <Button variant="primary" type="submit" isLoading={isSubmitting} disabled={isUploadingCover || isUploadingContent}>
 
-                {t('articleCreate.publish', 'Đăng bài viết (+30 Karma)')}
+                {isEditMode ? t('Lưu thay đổi') : t('articleCreate.publish', 'Đăng bài viết (+30 Karma)')}
 
               </Button>
 

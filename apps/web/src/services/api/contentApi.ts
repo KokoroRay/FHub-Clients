@@ -79,18 +79,28 @@ export const articleApi = {
   },
 
   updateArticle: async (id: number | string, payload: ArticleRequest, version?: number): Promise<ArticleDetailDto> => {
+    let resolvedVersion = version;
+    if (resolvedVersion === undefined) {
+      const current = await articleApi.getArticleById(id);
+      resolvedVersion = current?.version;
+    }
     const headers: Record<string, string> = {};
-    if (version !== undefined) {
-      headers['If-Match'] = `"${version}"`;
+    if (resolvedVersion !== undefined) {
+      headers['If-Match'] = `"${resolvedVersion}"`;
     }
     const res = await apiClient.put<ApiResponse<ArticleDetailDto>>(`/api/content/articles/${id}`, payload, { headers });
     return res.data.data;
   },
 
   deleteArticle: async (id: number | string, version?: number): Promise<void> => {
+    let resolvedVersion = version;
+    if (resolvedVersion === undefined) {
+      const current = await articleApi.getArticleById(id);
+      resolvedVersion = current?.version;
+    }
     const headers: Record<string, string> = {};
-    if (version !== undefined) {
-      headers['If-Match'] = `"${version}"`;
+    if (resolvedVersion !== undefined) {
+      headers['If-Match'] = `"${resolvedVersion}"`;
     }
     await apiClient.delete(`/api/content/articles/${id}`, { headers });
   },

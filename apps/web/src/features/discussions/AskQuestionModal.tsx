@@ -1173,7 +1173,11 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
 
       console.warn('Failed to create question via API:', err);
 
-      setErrorMessage(serverMessage || t('askModal.errorCreate', 'Không thể đăng câu hỏi. Vui lòng kiểm tra lại nội dung.'));
+      let fallbackMsg = serverMessage || t('askModal.errorCreate', 'Không thể đăng câu hỏi. Vui lòng kiểm tra lại nội dung.');
+      if (fallbackMsg === 'An unexpected error occurred.') {
+        fallbackMsg = t('Đã xảy ra sự cố từ máy chủ. Vui lòng thử lại sau.');
+      }
+      setErrorMessage(fallbackMsg);
 
       setIsSubmitting(false);
 
@@ -1351,37 +1355,59 @@ export const AskQuestionModal: React.FC<AskQuestionModalProps> = ({
 
         </div>
 
-        {errorMessage && (
-          <div
-            ref={errorBannerRef}
-            role="alert"
-            className="p-4 rounded-2xl bg-gradient-to-r from-rose-50 via-red-50 to-orange-50 dark:from-rose-950/60 dark:via-red-950/40 dark:to-orange-950/30 border-2 border-rose-400 dark:border-rose-600 text-rose-900 dark:text-rose-200 shadow-lg shadow-rose-500/10 flex items-start justify-between gap-3 transition-all duration-300 ring-4 ring-rose-500/10 animate-[bounce_0.5s_ease-in-out]"
-          >
-            <div className="flex items-start gap-3 flex-1 min-w-0">
-              <div className="p-2 rounded-xl bg-rose-500 text-white shrink-0 shadow-sm animate-pulse">
-                <AlertTriangle className="w-5 h-5" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-200 text-rose-800 dark:bg-rose-900 dark:text-rose-200">
-                    {t('Cảnh báo vi phạm')}
-                  </span>
-                </div>
-                <p className="text-sm font-semibold leading-relaxed text-rose-800 dark:text-rose-200">
-                  {t(errorMessage)}
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setErrorMessage(null)}
-              className="p-1.5 rounded-lg text-rose-400 hover:text-rose-700 hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-colors shrink-0"
-              aria-label={t('common.close', 'Đóng')}
+        {errorMessage && (() => {
+          const isViolation = errorMessage && (
+            errorMessage.toLowerCase().includes('vi phạm') ||
+            errorMessage.toLowerCase().includes('18+') ||
+            errorMessage.toLowerCase().includes('nhạy cảm') ||
+            errorMessage.toLowerCase().includes('tiêu chuẩn') ||
+            errorMessage.toLowerCase().includes('tạm giữ') ||
+            errorMessage.toLowerCase().includes('nghi vấn')
+          );
+          return (
+            <div
+              ref={errorBannerRef}
+              role="alert"
+              className={`p-4 rounded-2xl border-2 shadow-lg flex items-start justify-between gap-3 transition-all duration-300 ring-4 animate-[bounce_0.5s_ease-in-out] ${
+                isViolation
+                  ? 'bg-gradient-to-r from-rose-50 via-red-50 to-orange-50 dark:from-rose-950/60 dark:via-red-950/40 dark:to-orange-950/30 border-rose-400 dark:border-rose-600 text-rose-900 dark:text-rose-200 shadow-rose-500/10 ring-rose-500/10'
+                  : 'bg-gradient-to-r from-amber-50 via-orange-50 to-yellow-50 dark:from-amber-950/60 dark:via-orange-950/40 dark:to-yellow-950/30 border-amber-400 dark:border-amber-600 text-amber-900 dark:text-amber-200 shadow-amber-500/10 ring-amber-500/10'
+              }`}
             >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        )}
+              <div className="flex items-start gap-3 flex-1 min-w-0">
+                <div className={`p-2 rounded-xl text-white shrink-0 shadow-sm animate-pulse ${isViolation ? 'bg-rose-500' : 'bg-amber-500'}`}>
+                  <AlertTriangle className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                      isViolation
+                        ? 'bg-rose-200 text-rose-800 dark:bg-rose-900 dark:text-rose-200'
+                        : 'bg-amber-200 text-amber-800 dark:bg-amber-900 dark:text-amber-200'
+                    }`}>
+                      {isViolation ? t('Cảnh báo vi phạm') : t('Lỗi hệ thống')}
+                    </span>
+                  </div>
+                  <p className={`text-sm font-semibold leading-relaxed ${isViolation ? 'text-rose-800 dark:text-rose-200' : 'text-amber-800 dark:text-amber-200'}`}>
+                    {t(errorMessage)}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setErrorMessage(null)}
+                className={`p-1.5 rounded-lg transition-colors shrink-0 ${
+                  isViolation
+                    ? 'text-rose-400 hover:text-rose-700 hover:bg-rose-100 dark:hover:bg-rose-900/50'
+                    : 'text-amber-400 hover:text-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/50'
+                }`}
+                aria-label={t('common.close', 'Đóng')}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          );
+        })()}
 
         {/* 1. Title */}
 

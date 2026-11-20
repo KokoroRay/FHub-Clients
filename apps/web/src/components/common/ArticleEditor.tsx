@@ -10,7 +10,8 @@ import { IMAGE_ACCEPT, validateImage } from '../../utils/mediaUtils';
 import { useLanguage } from '../../context/LanguageContext';
 import './ArticleEditor.css';
 
-export function ArticleEditor({ onChange, onUploadingChange, disabled = false }: {
+export function ArticleEditor({ initialContent = '', onChange, onUploadingChange, disabled = false }: {
+  initialContent?: string;
   onChange: (markdown: string) => void;
   onUploadingChange: (uploading: boolean) => void;
   disabled?: boolean;
@@ -28,7 +29,7 @@ export function ArticleEditor({ onChange, onUploadingChange, disabled = false }:
       Placeholder.configure({ placeholder: t('Bắt đầu viết câu chuyện của bạn… Kéo thả hoặc dán ảnh vào đây.') }),
       Markdown,
     ],
-    content: '',
+    content: initialContent,
     contentType: 'markdown',
     shouldRerenderOnTransaction: true,
     onUpdate: ({ editor: current }) => onChange(current.getMarkdown()),
