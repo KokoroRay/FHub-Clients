@@ -101,7 +101,10 @@ function extractErrorMessage(error: AxiosError<{ message?: string; detail?: stri
     message = error.message;
   }
   console.warn(`[API Client Error] ${error.config?.method?.toUpperCase()} ${error.config?.url}:`, message);
-  return new Error(message);
+  const enriched = new Error(message) as Error & { status?: number; response?: AxiosError['response'] };
+  enriched.status = error.response?.status;
+  enriched.response = error.response;
+  return enriched;
 }
 
 // Response interceptor with silent token refresh

@@ -343,7 +343,9 @@ export const CreateArticlePage: React.FC = () => {
             status: 'PUBLISHED',
           });
         } catch (alumniErr: any) {
-          if (alumniErr?.response?.status !== 403) {
+          const status = alumniErr?.status ?? alumniErr?.response?.status;
+          const msg = String(alumniErr?.message || '');
+          if (status !== 403 && status !== 401 && !/access denied|forbidden/i.test(msg)) {
             throw alumniErr;
           }
           createdResult = await articleApi.createArticle({

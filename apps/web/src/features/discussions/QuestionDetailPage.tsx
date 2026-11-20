@@ -677,7 +677,21 @@ export const QuestionDetailPage: React.FC = () => {
     if (numQId) {
       try {
         let answerCreatedViaAlumni = false;
-        if (currentUser?.role === 'Alumni') {
+        const activeToken = localStorage.getItem('fhub_token') || sessionStorage.getItem('fhub_token') || '';
+        const tokenPayload = (() => {
+          try {
+            const part = activeToken.split('.')[1];
+            return part ? JSON.parse(atob(part.replace(/-/g, '+').replace(/_/g, '/'))) : null;
+          } catch {
+            return null;
+          }
+        })();
+        const rawRoles = tokenPayload?.role;
+        const jwtHasAlumniRole = Array.isArray(rawRoles)
+          ? rawRoles.includes('Alumni')
+          : rawRoles === 'Alumni';
+
+        if (currentUser?.role === 'Alumni' && jwtHasAlumniRole) {
           try {
             const res = await alumniApi.createExpertAnswer(numQId, { body: newAnswerContent.trim(), industryContext: 'Alumni Insight' });
             if (res && (res.answerId || res.data?.answerId)) {
@@ -685,11 +699,12 @@ export const QuestionDetailPage: React.FC = () => {
               answerCreatedViaAlumni = true;
             }
           } catch (alumniErr: any) {
-            const status = alumniErr?.response?.status;
-            if (status !== 403 && status !== 401) {
+            const status = alumniErr?.status ?? alumniErr?.response?.status;
+            const msg = String(alumniErr?.message || '');
+            if (status !== 403 && status !== 401 && !/access denied|forbidden/i.test(msg)) {
               throw alumniErr;
             }
-            console.warn('Alumni expert answer endpoint returned 403, falling back to standard question answer endpoint');
+            console.warn('Alumni expert answer endpoint denied, falling back to standard question answer endpoint');
           }
         }
 
