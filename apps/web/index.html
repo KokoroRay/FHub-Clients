@@ -11,6 +11,33 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FHub</title>
+    <script>
+      (function () {
+        var key = 'fhub_boot_reload_ts';
+        function recoverStaleChunk() {
+          try {
+            var last = Number(sessionStorage.getItem(key) || 0);
+            var now = Date.now();
+            if (now - last > 15000) {
+              sessionStorage.setItem(key, String(now));
+              var url = new URL(window.location.href);
+              url.searchParams.set('_v', String(now));
+              window.location.replace(url.toString());
+            }
+          } catch (e) {}
+        }
+        window.addEventListener(
+          'error',
+          function (event) {
+            var target = event && event.target;
+            if (target && target.tagName === 'SCRIPT' && target.src && target.src.indexOf('/assets/') !== -1) {
+              recoverStaleChunk();
+            }
+          },
+          true
+        );
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
