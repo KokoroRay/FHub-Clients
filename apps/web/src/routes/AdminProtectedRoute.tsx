@@ -16,13 +16,14 @@ export const AdminProtectedRoute: React.FC<AdminProtectedRouteProps> = ({ childr
   const isOperationalRole =
     currentUser?.role === 'Admin' ||
     currentUser?.role === 'Community Moderator' ||
+    currentUser?.role === 'School Representative' ||
     currentUser?.role === 'Staff';
 
   if (!hasValidAuth || !isOperationalRole) {
     const redirectUrl = location.pathname !== '/login' ? `${location.pathname}${location.search}` : '/';
     const loginTarget = isAdminSubdomain()
       ? `/login?redirect=${encodeURIComponent(redirectUrl)}`
-      : `/admin/login?redirect=${encodeURIComponent(redirectUrl)}`;
+      : `/landing?redirect=${encodeURIComponent(redirectUrl)}`;
 
     return <Navigate to={loginTarget} replace />;
   }

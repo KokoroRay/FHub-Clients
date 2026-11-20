@@ -212,14 +212,9 @@ export function triggerAutoLogout(reason: LogoutReason = 'TOKEN_EXPIRED'): void 
       const redirectParam = encodeURIComponent(currentPath + window.location.search);
       window.location.href = `/login?reason=${reasonParam}&redirect=${redirectParam}`;
     }
-  } else if (wasOperator || currentPath.startsWith('/admin') || currentPath.startsWith('/ops')) {
-    if (!currentPath.includes('/login') && !currentPath.includes('/admin-login')) {
-      const redirectParam = encodeURIComponent(currentPath + window.location.search);
-      window.location.href = `/admin/login?reason=${reasonParam}&redirect=${redirectParam}`;
-    }
   } else {
-    // Regular student user: if on a protected route, navigate to landing with reason
-    if (currentPath !== '/' && currentPath !== '/landing' && !currentPath.includes('/login')) {
+    // Main community portal: always redirect to /landing (never /admin/login)
+    if (currentPath !== '/landing' && !currentPath.includes('/login')) {
       window.location.href = `/landing?reason=${reasonParam}`;
     }
   }

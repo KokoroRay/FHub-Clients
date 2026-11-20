@@ -103,8 +103,28 @@ export const AdminSubdomainLayout: React.FC = () => {
     : [];
 
   const isMod = currentUser?.role === 'Community Moderator';
+  const isSchoolRep = currentUser?.role === 'School Representative';
 
-  const navGroups = isMod
+  const navGroups = isSchoolRep
+    ? [
+        {
+          title: t('nav.schoolRepPortal', 'SCHOOL REPRESENTATIVE'),
+          items: [
+            { name: t('nav.schoolNews', 'School News'), path: '/news', icon: Newspaper, badge: 'School Rep', badgeColor: 'bg-blue-100 text-blue-700' },
+            { name: t('nav.supportTickets', 'Support Tickets'), path: '/tickets', icon: LifeBuoy, badge: ticketsCount, badgeColor: 'bg-amber-100 text-amber-700' },
+          ],
+        },
+        {
+          title: t('nav.academicTaxonomy', 'ACADEMIC REPOSITORY (READ ONLY)'),
+          items: [
+            { name: t('nav.campuses', 'Campuses'), path: '/campuses', icon: Building2, badge: campusesCount, badgeColor: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300' },
+            { name: t('nav.majors', 'Majors'), path: '/majors', icon: GraduationCap, badge: majorsCount, badgeColor: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300' },
+            { name: t('nav.specializations', 'Specializations'), path: '/specializations', icon: Network, badge: specializationsCount, badgeColor: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300' },
+            { name: t('nav.courses', 'Courses'), path: '/courses', icon: BookOpen, badge: coursesCount, badgeColor: 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300' },
+          ],
+        },
+      ]
+    : isMod
     ? [
         {
           title: t('nav.moderationDesk', 'MODERATION DESK'),

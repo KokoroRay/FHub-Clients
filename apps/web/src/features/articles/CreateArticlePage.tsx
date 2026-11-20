@@ -334,38 +334,36 @@ export const CreateArticlePage: React.FC = () => {
 
       let createdResult: any = null;
       if (isAlumni) {
-        createdResult = await alumniApi.createCareerArticle({
-
-          title: title.trim(),
-
-          content: finalContent,
-
-          summary: summary.trim(),
-
-          coverImageUrl: finalCoverUrl.trim() || undefined,
-
-          status: 'PUBLISHED',
-
-        });
-
+        try {
+          createdResult = await alumniApi.createCareerArticle({
+            title: title.trim(),
+            content: finalContent,
+            summary: summary.trim(),
+            coverImageUrl: finalCoverUrl.trim() || undefined,
+            status: 'PUBLISHED',
+          });
+        } catch (alumniErr: any) {
+          if (alumniErr?.response?.status !== 403) {
+            throw alumniErr;
+          }
+          createdResult = await articleApi.createArticle({
+            title: title.trim(),
+            content: finalContent,
+            summary: summary.trim(),
+            coverImageUrl: finalCoverUrl.trim() || undefined,
+            status: 'PUBLISHED',
+            semanticTagIds: matchedTagIds,
+          });
+        }
       } else {
-
         createdResult = await articleApi.createArticle({
-
           title: title.trim(),
-
           content: finalContent,
-
           summary: summary.trim(),
-
           coverImageUrl: finalCoverUrl.trim() || undefined,
-
           status: 'PUBLISHED',
-
           semanticTagIds: matchedTagIds,
-
         });
-
       }
 
       if (createdResult?.status === 'PENDING_REVIEW') {

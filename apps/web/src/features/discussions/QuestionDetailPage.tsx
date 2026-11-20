@@ -676,12 +676,24 @@ export const QuestionDetailPage: React.FC = () => {
     let createdAnsId = `ans-${Date.now()}`;
     if (numQId) {
       try {
+        let answerCreatedViaAlumni = false;
         if (currentUser?.role === 'Alumni') {
-          const res = await alumniApi.createExpertAnswer(numQId, { body: newAnswerContent.trim(), industryContext: 'Alumni Insight' });
-          if (res && (res.answerId || res.data?.answerId)) {
-            createdAnsId = String(res.answerId || res.data?.answerId);
+          try {
+            const res = await alumniApi.createExpertAnswer(numQId, { body: newAnswerContent.trim(), industryContext: 'Alumni Insight' });
+            if (res && (res.answerId || res.data?.answerId)) {
+              createdAnsId = String(res.answerId || res.data?.answerId);
+              answerCreatedViaAlumni = true;
+            }
+          } catch (alumniErr: any) {
+            const status = alumniErr?.response?.status;
+            if (status !== 403 && status !== 401) {
+              throw alumniErr;
+            }
+            console.warn('Alumni expert answer endpoint returned 403, falling back to standard question answer endpoint');
           }
-        } else {
+        }
+
+        if (!answerCreatedViaAlumni) {
           const res = await questionApi.createAnswer(numQId, { body: newAnswerContent.trim() });
           try {
             await apiClient.post('/api/reputation/events', {

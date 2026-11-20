@@ -99,12 +99,12 @@ export const AdminLoginPage: React.FC = () => {
   const completeAdminLogin = (result: any) => {
     const roles: string[] = result.user?.roles || [];
     const isOps = roles.some((r) =>
-      ['Admin', 'CommunityModerator', 'Moderator', 'Staff'].includes(r)
+      ['Admin', 'CommunityModerator', 'Moderator', 'SchoolRepresentative', 'School Representative', 'Staff'].includes(r)
     );
 
     if (!isOps) {
       setErrorMessage(
-        t("Tài khoản không thuộc ban vận hành hệ thống (Admin / Community Moderator / Staff). Vui lòng đăng nhập tại Cổng Sinh Viên.")
+        t("Tài khoản không thuộc ban vận hành hệ thống (Admin / Community Moderator / School Representative / Staff). Vui lòng đăng nhập tại Cổng Sinh Viên.")
       );
       return;
     }
@@ -119,15 +119,18 @@ export const AdminLoginPage: React.FC = () => {
     let mappedRole: User['role'] = 'Admin';
     let defaultTitle = 'System Administrator';
 
-    if (roles.includes('CommunityModerator') || roles.includes('Moderator')) {
+    if (roles.includes('Admin')) {
+      mappedRole = 'Admin';
+      defaultTitle = 'System Administrator';
+    } else if (roles.includes('CommunityModerator') || roles.includes('Moderator')) {
       mappedRole = 'Community Moderator';
       defaultTitle = 'Community Moderator';
+    } else if (roles.includes('SchoolRepresentative') || roles.includes('School Representative')) {
+      mappedRole = 'School Representative';
+      defaultTitle = 'School Representative';
     } else if (roles.includes('Staff')) {
       mappedRole = 'Staff';
       defaultTitle = 'Staff Member';
-    } else if (roles.includes('SchoolRepresentative')) {
-      mappedRole = 'School Representative';
-      defaultTitle = 'School Representative';
     }
 
     const userObj: User = {
@@ -147,6 +150,9 @@ export const AdminLoginPage: React.FC = () => {
     const redirectPath = searchParams.get('redirect');
     if (mappedRole === 'Community Moderator') {
       const target = redirectPath && redirectPath !== '/' ? redirectPath : '/moderation';
+      navigate(target, { replace: true });
+    } else if (mappedRole === 'School Representative') {
+      const target = redirectPath && redirectPath !== '/' ? redirectPath : '/news';
       navigate(target, { replace: true });
     } else {
       const target = redirectPath || '/';

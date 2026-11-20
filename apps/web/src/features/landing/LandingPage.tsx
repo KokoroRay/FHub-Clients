@@ -189,7 +189,7 @@ export const LandingPage: React.FC = () => {
       return;
     }
 
-    if (loginEmail.trim().includes('@')) {
+    if (loginEmail.trim().includes('@') && !loginEmail.trim().toLowerCase().endsWith('@fhub.com.vn')) {
       const emailCheck = validateFptEmail(loginEmail.trim());
       if (!emailCheck.isValid) {
         setLoginErrorMessage(emailCheck.error || t("Email không đúng định dạng quy định của Trường Đại học FPT."));
