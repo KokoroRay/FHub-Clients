@@ -685,11 +685,8 @@ export const ArticleDetailPage: React.FC = () => {
           </Card>
         </div>
 
-        {/* Right Sidebar Column (Series, TOC & Author Profile, Figma Frame 7) */}
+        {/* Right Sidebar Column (TOC, Author Profile & Series, Figma Frame 7) */}
         <div className="space-y-6 sticky top-20">
-          {/* Series Playlist Navigation (when opened from a Series) */}
-          <SeriesSidebarCard currentType="ARTICLE" currentId={article.id} variant="sidebar" />
-
           {/* Table of Contents */}
           <Card>
             <CardHeader className="p-4 pb-2.5">
@@ -745,6 +742,9 @@ export const ArticleDetailPage: React.FC = () => {
               </div>
             </CardBody>
           </Card>
+
+          {/* Series Playlist Navigation (when opened from a Series) */}
+          <SeriesSidebarCard currentType="ARTICLE" currentId={article.id} variant="sidebar" />
         </div>
       </div>
 
