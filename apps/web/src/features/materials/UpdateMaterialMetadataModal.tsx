@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { AlertCircle } from 'lucide-react';
 import { Modal } from '../../components/common/Modal';
 import { Button } from '../../components/common/Button';
 import { Input, Textarea, Select } from '../../components/common/Input';
 import { CourseSelect } from '../../components/common/CourseSelect';
-import { courseNodesApi } from '../../services/api/adminApi';
+import { CourseNodeListItem } from '../../services/api/adminApi';
+import { studyMaterialApi } from '../../services/api/contentApi';
 import { StudyMaterial } from '../../types';
-import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
-import { filterCompactCourses } from '../../utils/courseFilter';
 
 export interface UpdateMaterialMetadataModalProps {
   isOpen: boolean;
@@ -22,33 +22,62 @@ export const UpdateMaterialMetadataModal: React.FC<UpdateMaterialMetadataModalPr
   onClose,
   onUpdated,
 }) => {
-  const { currentUser } = useAuth();
   const { t } = useLanguage();
   const [title, setTitle] = useState(material.title);
   const [description, setDescription] = useState(material.description);
-  const [courseCode, setCourseCode] = useState(material.courseCode);
-  
+  const [courseCode, setCourseCode] = useState(material.courseCode === 'Other' ? '' : material.courseCode);
+  const [selectedCourse, setSelectedCourse] = useState<CourseNodeListItem | undefined>(undefined);
   const [fileType, setFileType] = useState(material.fileType);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  
+  useEffect(() => {
+    setTitle(material.title);
+    setDescription(material.description);
+    setCourseCode(material.courseCode === 'Other' ? '' : material.courseCode);
+    setSelectedCourse(undefined);
+    setFileType(material.fileType);
+    setErrorMessage(null);
+  }, [material, isOpen]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) return;
+    if (!title.trim()) {
+      setErrorMessage(t('Vui lòng nhập tiêu đề tài liệu.'));
+      return;
+    }
 
+    setErrorMessage(null);
     setIsSubmitting(true);
-    setTimeout(() => {
+
+    try {
+      const courseIdNum = Number(selectedCourse?.courseNodeId ?? selectedCourse?.id);
+      const effectiveCourseId = !courseCode
+        ? null
+        : (courseIdNum && courseIdNum > 0 ? courseIdNum : (material.courseId ?? null));
+
+      await studyMaterialApi.updateMetadata(material.id, {
+        title: title.trim(),
+        description: description.trim() || undefined,
+        courseId: effectiveCourseId,
+        updateCourseId: true,
+      });
+
       onUpdated({
         ...material,
         title: title.trim(),
         description: description.trim(),
-        courseCode,
+        courseId: effectiveCourseId,
+        courseCode: courseCode || 'Other',
         fileType,
       });
-      setIsSubmitting(false);
       onClose();
-    }, 300);
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || t('Có lỗi xảy ra khi cập nhật tài liệu.');
+      setErrorMessage(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -65,6 +94,13 @@ export const UpdateMaterialMetadataModal: React.FC<UpdateMaterialMetadataModalPr
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4">
+        {errorMessage && (
+          <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+            <span>{t(errorMessage)}</span>
+          </div>
+        )}
+
         <Input
           label={t('materialUpdateModal.titleLabel', 'Tiêu đề tài liệu *')}
           value={title}
@@ -74,10 +110,15 @@ export const UpdateMaterialMetadataModal: React.FC<UpdateMaterialMetadataModalPr
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <CourseSelect
-            label={t('materialUpdateModal.courseLabel', 'Môn học liên quan *')}
+            label={t('materialUpdateModal.courseLabelOptional', 'Môn học liên quan (Không bắt buộc)')}
             value={courseCode}
-            onChange={(code) => setCourseCode(code)}
-            required
+            onChange={(code, course) => {
+              setCourseCode(code);
+              setSelectedCourse(course);
+            }}
+            allowEmpty={true}
+            emptyLabel="-- Khác (Other) --"
+            required={false}
           />
           <Select
             label={t('materialUpdateModal.formatLabel', 'Loại file')}

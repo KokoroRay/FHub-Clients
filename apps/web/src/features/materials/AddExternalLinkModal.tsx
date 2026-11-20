@@ -52,7 +52,7 @@ export const AddExternalLinkModal: React.FC<AddExternalLinkModalProps> = ({
 
     try {
       const courseIdNum = Number(selectedCourse?.courseNodeId ?? selectedCourse?.id);
-      const effectiveCourseId = (courseIdNum && courseIdNum > 0) ? courseIdNum : 1;
+      const effectiveCourseId = courseCode && courseIdNum && courseIdNum > 0 ? courseIdNum : null;
 
       const created = await studyMaterialApi.addExternalLink({
         courseId: effectiveCourseId,
@@ -61,11 +61,16 @@ export const AddExternalLinkModal: React.FC<AddExternalLinkModalProps> = ({
         description: description.trim() || undefined,
       });
 
+      const resolvedCourseCode = created.courseId
+        ? (courseCode || selectedCourse?.courseCode || selectedCourse?.code || `COURSE-${created.courseId}`)
+        : 'Other';
+
       const newMat: StudyMaterial = {
         id: String(created.studyMaterialId),
         title: created.title,
         description: created.description || cleanUrl,
-        courseCode: courseCode || selectedCourse?.courseCode || selectedCourse?.code || `COURSE-${created.courseId}`,
+        courseId: created.courseId ?? null,
+        courseCode: resolvedCourseCode,
         fileType: 'CODE',
         fileSizeMb: 0,
         downloadUrl: cleanUrl,
@@ -82,6 +87,8 @@ export const AddExternalLinkModal: React.FC<AddExternalLinkModalProps> = ({
       onAdded(newMat);
       setTitle('');
       setLinkUrl('');
+      setCourseCode('');
+      setSelectedCourse(undefined);
       setDescription('');
       setErrorMessage(null);
       onClose();
@@ -131,13 +138,16 @@ export const AddExternalLinkModal: React.FC<AddExternalLinkModalProps> = ({
         />
 
         <CourseSelect
-          label={t('materialExternalModal.courseLabel', 'Môn học liên quan *')}
+          label={t('materialExternalModal.courseLabelOptional', 'Môn học liên quan (Không bắt buộc)')}
           value={courseCode}
           onChange={(code, course) => {
             setCourseCode(code);
             setSelectedCourse(course);
           }}
-          required
+          allowEmpty={true}
+          emptyLabel="-- Khác (Other) --"
+          required={false}
+          helperText={t('materialUploadModal.courseOptionalHint', 'Để trống nếu tài liệu không thuộc môn học cụ thể (sẽ hiển thị dạng Other).')}
         />
 
         <Textarea

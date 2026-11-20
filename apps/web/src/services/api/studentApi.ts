@@ -835,14 +835,19 @@ export const directMessageApi = {
     }
   },
 
-  blockUser: async (targetUserId: string | number, reason?: string): Promise<void> => {
+  blockUser: async (targetUserId: string | number, reason?: string): Promise<any> => {
     try {
-      await apiClient.post('/api/communication/blocks', {
+      const res = await apiClient.post('/api/communication/blocks', {
         target_user_id: Number(targetUserId),
         reason: reason || 'Blocked by user',
       });
-    } catch (err) {
+      return res.data?.block || res.data?.data || res.data;
+    } catch (err: any) {
+      if (err?.response?.status === 409) {
+        return { alreadyBlocked: true };
+      }
       console.warn('Failed to block user:', err);
+      throw err;
     }
   },
 
@@ -851,6 +856,7 @@ export const directMessageApi = {
       await apiClient.delete(`/api/communication/blocks/${blockId}`);
     } catch (err) {
       console.warn('Failed to unblock user:', err);
+      throw err;
     }
   },
 };

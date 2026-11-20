@@ -100,7 +100,7 @@ export const StudyMaterialListPage: React.FC = () => {
             if (id && code) courseMap.set(id, code);
           });
           const mapped: StudyMaterial[] = res.items.map((item) => {
-            const resolvedCode = item.courseId ? (courseMap.get(Number(item.courseId)) || `COURSE-${item.courseId}`) : 'GEN';
+            const resolvedCode = item.courseId ? (courseMap.get(Number(item.courseId)) || `COURSE-${item.courseId}`) : 'Other';
             const name = item.fileName || item.title || '';
             const ext = name.split('.').pop()?.toLowerCase();
             let resolvedFileType: 'PDF' | 'DOCX' | 'ZIP' | 'PPTX' | 'CODE' = 'PDF';
@@ -112,14 +112,23 @@ export const StudyMaterialListPage: React.FC = () => {
             else if (['cs', 'java', 'py', 'sql', 'cpp', 'c', 'json', 'md', 'txt'].includes(ext || '')) resolvedFileType = 'CODE';
 
             const tags = resolveTagNames(item.semanticTagIds, tagMap);
+            const mappedFiles = (item.files || []).map((f) => ({
+              id: String(f.studyMaterialFileId),
+              fileName: f.fileName,
+              fileSizeBytes: f.fileSizeBytes,
+              fileSizeMb: Number((f.fileSizeBytes / (1024 * 1024)).toFixed(2)),
+              mimeType: f.mimeType,
+              displayOrder: f.displayOrder,
+            }));
 
             return {
               id: String(item.studyMaterialId),
               title: item.title,
               description: item.description || t("Tài liệu học tập FHub"),
+              courseId: item.courseId ?? null,
               courseCode: resolvedCode,
               fileType: resolvedFileType,
-              fileSizeMb: item.fileSizeBytes ? Number((item.fileSizeBytes / (1024 * 1024)).toFixed(1)) : 0,
+              fileSizeMb: item.fileSizeBytes ? Number((item.fileSizeBytes / (1024 * 1024)).toFixed(2)) : 0,
               downloadUrl: item.externalUrl || `/api/content/study-materials/${item.studyMaterialId}/download`,
               downloadsCount: item.downloadCount || 0,
               author: {
@@ -129,6 +138,7 @@ export const StudyMaterialListPage: React.FC = () => {
               semesterUploaded: 'N/A',
               createdAt: item.createdAt || new Date().toISOString(),
               tags,
+              files: mappedFiles,
             };
           });
           setMaterials(mapped);
@@ -270,6 +280,7 @@ export const StudyMaterialListPage: React.FC = () => {
             className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-200 focus:outline-none focus:border-[#0076D1] cursor-pointer"
           >
             <option value="ALL">{t('common.allCourses', 'Tất cả môn học')}</option>
+            <option value="Other">{t('common.otherCourse', 'Khác (Other)')}</option>
             {availableCourses.map((c) => {
               const code = c.courseCode || c.code || '';
               const id = c.courseNodeId ?? c.id ?? code;
@@ -341,7 +352,7 @@ export const StudyMaterialListPage: React.FC = () => {
             <div className="space-y-3">
               {/* Card Header */}
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span
                     className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${getFileBadgeColor(
                       mat.fileType
@@ -349,9 +360,20 @@ export const StudyMaterialListPage: React.FC = () => {
                   >
                     {mat.fileType}
                   </span>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-50 text-[#0076D1] border border-blue-100">
+                  <span
+                    className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${
+                      mat.courseCode === 'Other'
+                        ? 'bg-slate-100 text-slate-600 border-slate-200'
+                        : 'bg-blue-50 text-[#0076D1] border-blue-100'
+                    }`}
+                  >
                     [{mat.courseCode}]
                   </span>
+                  {mat.files && mat.files.length > 1 && (
+                    <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      {mat.files.length} files
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-1">

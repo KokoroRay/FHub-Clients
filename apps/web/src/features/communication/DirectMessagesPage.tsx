@@ -167,6 +167,37 @@ export const DirectMessagesPage: React.FC = () => {
   const [confirmBlockConv, setConfirmBlockConv] = useState<ConversationItem | null>(null);
   const [confirmUnblockItem, setConfirmUnblockItem] = useState<BlockedItem | null>(null);
   const [blockedList, setBlockedList] = useState<BlockedItem[]>([]);
+  const [isBlockActionLoading, setIsBlockActionLoading] = useState(false);
+
+  const isParticipantBlocked = useCallback(
+    (participantId?: string | number) => {
+      if (participantId === undefined || participantId === null || participantId === '') return false;
+      return blockedList.some(b => String(b.userId) === String(participantId));
+    },
+    [blockedList]
+  );
+
+  const getBlockedItemForConv = useCallback(
+    (conv: ConversationItem): BlockedItem => {
+      const existing = blockedList.find(b => String(b.userId) === String(conv.participantId));
+      if (existing) {
+        return {
+          ...existing,
+          name: existing.name && !existing.name.startsWith('Người dùng #') ? existing.name : conv.name,
+          studentCode: existing.studentCode || conv.studentId,
+        };
+      }
+      return {
+        blockId: conv.participantId,
+        userId: conv.participantId,
+        name: conv.name,
+        studentCode: conv.studentId,
+        reason: t('Chặn tin nhắn trực tiếp'),
+        blockedAt: '',
+      };
+    },
+    [blockedList, t]
+  );
 
   const loadConversations = async () => {
     try {
@@ -268,15 +299,55 @@ export const DirectMessagesPage: React.FC = () => {
     try {
       const data = await directMessageApi.getBlockedUsers();
       if (data && data.length > 0) {
-        const mapped: BlockedItem[] = data.map((b: any) => ({
-          blockId: b.user_block_id || b.userBlockId || b.id || 1,
-          userId: b.blocked_user_id || b.blocked_account_id || 0,
-          name: b.name || t("Người dùng #{p0}", undefined, { p0: b.blocked_user_id || b.id || '' }),
-          studentCode: b.student_code || b.studentCode || '',
-          reason: b.reason || t('Chặn tin nhắn trực tiếp'),
-          blockedAt: b.created_at ? b.created_at : '',
-        }));
+        const seenUserIds = new Set<string>();
+        const mapped: BlockedItem[] = [];
+        for (const b of data) {
+          const resolvedUserId = b.blocked_user_id || b.blockedUserId || b.blocked_account_id || b.blockedAccountId || 0;
+          const userKey = String(resolvedUserId);
+          if (userKey && userKey !== '0' && seenUserIds.has(userKey)) {
+            continue;
+          }
+          if (userKey && userKey !== '0') {
+            seenUserIds.add(userKey);
+          }
+          mapped.push({
+            blockId: b.user_block_id || b.userBlockId || b.id || resolvedUserId,
+            userId: resolvedUserId,
+            name: b.name || t("Người dùng #{p0}", undefined, { p0: resolvedUserId || b.id || '' }),
+            studentCode: b.student_code || b.studentCode || '',
+            reason: b.reason || t('Chặn tin nhắn trực tiếp'),
+            blockedAt: b.created_at ? b.created_at : '',
+          });
+        }
         setBlockedList(mapped);
+
+        // Enrich blocked users with real profile name & student code
+        mapped.forEach(async (item) => {
+          if (!item.userId || (!item.name.startsWith('Người dùng #') && item.studentCode)) return;
+          try {
+            let fullName = '';
+            let studentCode = item.studentCode;
+            try {
+              const prof: any = await profileApi.getProfile(item.userId);
+              fullName = prof?.fullName || prof?.name || '';
+              studentCode = studentCode || prof?.studentCode || prof?.mssv || '';
+            } catch {}
+            if (!fullName || !studentCode) {
+              try {
+                const u: any = await userManagementApi.getAccountById(item.userId);
+                fullName = fullName || u?.fullName || '';
+                studentCode = studentCode || u?.studentCode || extractStudentIdFromEmail(u?.email || '') || '';
+              } catch {}
+            }
+            if (fullName || studentCode) {
+              setBlockedList(prev => prev.map(b =>
+                String(b.userId) === String(item.userId)
+                  ? { ...b, name: fullName || b.name, studentCode: studentCode || b.studentCode }
+                  : b
+              ));
+            }
+          } catch {}
+        });
       } else {
         setBlockedList([]);
       }
@@ -350,6 +421,9 @@ export const DirectMessagesPage: React.FC = () => {
   }, [activeConvId, currentUser]);
 
   const activeConv = conversations.find(c => c.id === activeConvId);
+  const isActiveConvBlocked = Boolean(
+    activeConv && (activeConv.isBlocked || isParticipantBlocked(activeConv.participantId))
+  );
   const rawActiveMessages = messages[activeConvId] || [];
   // Ensure strict deduplication by ID and matching optimistic content
   const activeMessages = rawActiveMessages.filter((msg, idx, arr) => {
@@ -579,7 +653,7 @@ export const DirectMessagesPage: React.FC = () => {
   // Send text message
   const handleSendMessage = async (customText?: string) => {
     const textToSend = customText ?? inputText;
-    if (!textToSend.trim() || !activeConv || activeConv.isBlocked) return;
+    if (!textToSend.trim() || !activeConv || isActiveConvBlocked) return;
 
     const trimmed = textToSend.trim();
     if (!customText) setInputText('');
@@ -650,7 +724,7 @@ export const DirectMessagesPage: React.FC = () => {
   // Upload and send image to Cloudflare R2
   const handleImageFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !activeConv || activeConv.isBlocked) return;
+    if (!file || !activeConv || isActiveConvBlocked) return;
 
     try {
       validateImage(file, 10);
@@ -743,7 +817,7 @@ export const DirectMessagesPage: React.FC = () => {
 
   // Send GIF
   const handleSelectGif = async (gifUrl: string) => {
-    if (!activeConv || activeConv.isBlocked) return;
+    if (!activeConv || isActiveConvBlocked) return;
     setShowGifPicker(false);
 
     const optimisticId = `m-gif-${Date.now()}`;
@@ -869,43 +943,94 @@ export const DirectMessagesPage: React.FC = () => {
 
 
   const executeBlockUser = async () => {
-    if (!confirmBlockConv) return;
+    if (!confirmBlockConv || isBlockActionLoading) return;
     const target = confirmBlockConv;
+
+    // Prevent blocking the same user multiple times
+    if (isParticipantBlocked(target.participantId)) {
+      setConversations(prev => prev.map(c =>
+        String(c.participantId) === String(target.participantId) ? { ...c, isBlocked: true } : c
+      ));
+      setConfirmBlockConv(null);
+      setIsOptionsOpen(false);
+      setShowMediaPanel(false);
+      return;
+    }
+
+    setIsBlockActionLoading(true);
+    const tempBlockId = `temp-${target.participantId}`;
     setConversations(prev => prev.map(c =>
-      c.id === target.id ? { ...c, isBlocked: true } : c
+      String(c.participantId) === String(target.participantId) ? { ...c, isBlocked: true } : c
     ));
-    setBlockedList(prev => [
-      ...prev,
-      {
-        blockId: Date.now(),
-        userId: target.participantId,
-        name: target.name,
-        studentCode: target.studentId,
-        reason: 'Chặn tin nhắn trực tiếp',
-        blockedAt: 'Hôm nay',
-      }
-    ]);
+    setBlockedList(prev => {
+      const withoutDup = prev.filter(b => String(b.userId) !== String(target.participantId));
+      return [
+        {
+          blockId: tempBlockId,
+          userId: target.participantId,
+          name: target.name,
+          studentCode: target.studentId,
+          reason: t('Chặn tin nhắn trực tiếp'),
+          blockedAt: new Date().toISOString(),
+        },
+        ...withoutDup,
+      ];
+    });
     setConfirmBlockConv(null);
     setIsOptionsOpen(false);
+    setShowMediaPanel(false);
+    setShowGifPicker(false);
+
     try {
-      await directMessageApi.blockUser(target.participantId, t("Chặn tin nhắn trực tiếp"));
+      const res = await directMessageApi.blockUser(target.participantId, t("Chặn tin nhắn trực tiếp"));
+      const realBlockId = res?.user_block_id || res?.userBlockId || res?.id;
+      if (realBlockId) {
+        setBlockedList(prev => prev.map(b =>
+          b.blockId === tempBlockId ? { ...b, blockId: realBlockId } : b
+        ));
+      } else {
+        await loadBlockedUsers();
+      }
     } catch (err) {
       console.warn('Backend block user notice:', err);
+      await loadBlockedUsers();
+    } finally {
+      setIsBlockActionLoading(false);
     }
   };
 
   const executeUnblockUser = async () => {
-    if (!confirmUnblockItem) return;
+    if (!confirmUnblockItem || isBlockActionLoading) return;
     const item = confirmUnblockItem;
-    setBlockedList(prev => prev.filter(b => b.blockId !== item.blockId));
+    setIsBlockActionLoading(true);
+
+    setBlockedList(prev => prev.filter(b =>
+      String(b.userId) !== String(item.userId) && String(b.blockId) !== String(item.blockId)
+    ));
     setConversations(prev => prev.map(c =>
       String(c.participantId) === String(item.userId) ? { ...c, isBlocked: false } : c
     ));
     setConfirmUnblockItem(null);
+    setIsOptionsOpen(false);
+
     try {
-      await directMessageApi.unblockUser(item.blockId);
+      if (item.blockId && !String(item.blockId).startsWith('temp-')) {
+        await directMessageApi.unblockUser(item.blockId);
+      } else {
+        // Reload to find real blockId if temporary
+        const latest = await directMessageApi.getBlockedUsers();
+        const found = latest.find((b: any) =>
+          String(b.blocked_user_id || b.blockedUserId || b.blocked_account_id) === String(item.userId)
+        );
+        if (found) {
+          const realId = found.user_block_id || found.userBlockId || found.id;
+          if (realId) await directMessageApi.unblockUser(realId);
+        }
+      }
     } catch (err) {
       console.warn('Backend unblock user notice:', err);
+    } finally {
+      setIsBlockActionLoading(false);
     }
   };
 
@@ -1035,6 +1160,7 @@ export const DirectMessagesPage: React.FC = () => {
             ) : (
               filteredConversations.map((conv) => {
                 const isSelected = conv.id === activeConvId;
+                const isConvBlocked = Boolean(conv.isBlocked || isParticipantBlocked(conv.participantId));
                 return (
                   <div
                     key={conv.id}
@@ -1069,13 +1195,19 @@ export const DirectMessagesPage: React.FC = () => {
 
                     {/* Metadata & Preview */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-0.5">
+                      <div className="flex items-center justify-between mb-0.5 gap-1">
                         <span className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
                           {conv.name}
                         </span>
-                        <span className="text-[10px] text-slate-400 font-mono">
-                          {formatTime(conv.lastTime)}
-                        </span>
+                        {isConvBlocked ? (
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 shrink-0">
+                            {t('Đã chặn')}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-slate-400 font-mono shrink-0">
+                            {formatTime(conv.lastTime)}
+                          </span>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-1.5 mb-1">
@@ -1088,8 +1220,10 @@ export const DirectMessagesPage: React.FC = () => {
                         </span>
                       </div>
 
-                      <p className={`text-xs truncate ${conv.unreadCount > 0 ? 'font-bold text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'}`}>
-                        {conv.lastMessage || (conv.lastTime ? '[Ảnh GIF / Tệp]' : t("Chưa có tin nhắn"))}
+                      <p className={`text-xs truncate ${isConvBlocked ? 'italic text-slate-400 dark:text-slate-500' : (conv.unreadCount > 0 ? 'font-bold text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400')}`}>
+                        {isConvBlocked
+                          ? t('Đã chặn người dùng này')
+                          : (conv.lastMessage || (conv.lastTime ? '[Ảnh GIF / Tệp]' : t("Chưa có tin nhắn")))}
                       </p>
                     </div>
 
@@ -1249,23 +1383,65 @@ export const DirectMessagesPage: React.FC = () => {
                         <span>{t('Xóa cuộc trò chuyện này')}</span>
                       </button>
 
-                      {/* Block User */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setConfirmBlockConv(activeConv);
-                          setIsOptionsOpen(false);
-                        }}
-                        className="w-full text-left px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2 cursor-pointer"
-                      >
-                        <Ban className="w-4 h-4 text-slate-500" />
-                        <span>{t('messages.blockUser', 'Chặn người dùng này')}</span>
-                      </button>
+                      {/* Block / Unblock User */}
+                      {isActiveConvBlocked ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setConfirmUnblockItem(getBlockedItemForConv(activeConv));
+                            setIsOptionsOpen(false);
+                          }}
+                          className="w-full text-left px-3.5 py-2 text-xs font-semibold text-[#0076D1] dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 flex items-center gap-2 cursor-pointer"
+                        >
+                          <Unlock className="w-4 h-4 text-[#0076D1] dark:text-blue-400" />
+                          <span>{t('messages.unblockUser', 'Bỏ chặn người dùng này')}</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setConfirmBlockConv(activeConv);
+                            setIsOptionsOpen(false);
+                          }}
+                          className="w-full text-left px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2 cursor-pointer"
+                        >
+                          <Ban className="w-4 h-4 text-slate-500" />
+                          <span>{t('messages.blockUser', 'Chặn người dùng này')}</span>
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
               </div>
 
+              {/* Chat Body & Composer: Hidden when user is blocked */}
+              {isActiveConvBlocked ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-slate-50/40 dark:bg-slate-900/40 space-y-4">
+                  <div className="w-14 h-14 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 flex items-center justify-center text-rose-500">
+                    <Ban className="w-7 h-7" />
+                  </div>
+                  <div className="space-y-1.5 max-w-sm">
+                    <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                      {t('messages.blockedBannerTitle', 'Bạn đã chặn')} {activeConv.name}
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                      {t(
+                        'messages.blockedBannerDesc',
+                        'Cuộc trò chuyện với người dùng này đã được ẩn. Bạn và người dùng này không thể gửi hoặc nhận tin nhắn trực tiếp cho đến khi bỏ chặn.'
+                      )}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmUnblockItem(getBlockedItemForConv(activeConv))}
+                    className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700 rounded-xl transition-colors shadow-xs cursor-pointer"
+                  >
+                    <Unlock className="w-4 h-4" />
+                    <span>{t('messages.unblockUser', 'Bỏ chặn người dùng này')}</span>
+                  </button>
+                </div>
+              ) : (
+              <>
               {/* Messages Scroll Area */}
               <div
                 ref={messagesContainerRef}
@@ -1627,6 +1803,8 @@ export const DirectMessagesPage: React.FC = () => {
                   </button>
                 </div>
               </div>
+              </>
+              )}
             </>
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-center text-slate-400 p-8 space-y-3">
@@ -1642,7 +1820,7 @@ export const DirectMessagesPage: React.FC = () => {
         </div>
 
         {/* Right Column: Shared Media & Documents Drawer */}
-        {showMediaPanel && activeConv && (
+        {showMediaPanel && activeConv && !isActiveConvBlocked && (
           <div className="w-80 border-l border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col h-full shrink-0 z-20 animate-in slide-in-from-right duration-200">
             <div className="p-3.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2 font-bold text-xs text-slate-800 dark:text-slate-100">
@@ -1950,7 +2128,8 @@ export const DirectMessagesPage: React.FC = () => {
               <button
                 type="button"
                 onClick={executeBlockUser}
-                className="px-3.5 py-1.5 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors shadow-2xs cursor-pointer"
+                disabled={isBlockActionLoading}
+                className="px-3.5 py-1.5 text-xs font-bold text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 rounded-xl transition-colors shadow-2xs cursor-pointer"
               >
                 {t("Chặn")}
               </button>
@@ -1983,7 +2162,8 @@ export const DirectMessagesPage: React.FC = () => {
               <button
                 type="button"
                 onClick={executeUnblockUser}
-                className="px-3.5 py-1.5 text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700 rounded-xl transition-colors shadow-2xs cursor-pointer"
+                disabled={isBlockActionLoading}
+                className="px-3.5 py-1.5 text-xs font-bold text-white bg-[#0076D1] hover:bg-blue-700 disabled:opacity-50 rounded-xl transition-colors shadow-2xs cursor-pointer"
               >
                 {t("Xác nhận bỏ chặn")}
               </button>

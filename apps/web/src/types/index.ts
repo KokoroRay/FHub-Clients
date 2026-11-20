@@ -196,10 +196,20 @@ export interface SharedWorkflow {
   createdAt: string;
 }
 
+export interface StudyMaterialFile {
+  id: string;
+  fileName: string;
+  fileSizeBytes: number;
+  fileSizeMb: number;
+  mimeType?: string;
+  displayOrder: number;
+}
+
 export interface StudyMaterial {
   id: string;
   title: string;
   description: string;
+  courseId?: number | null;
   courseCode: string;
   fileType: 'PDF' | 'DOCX' | 'ZIP' | 'PPTX' | 'CODE';
   fileSizeMb: number;
@@ -212,6 +222,7 @@ export interface StudyMaterial {
   };
   semesterUploaded: string;
   tags?: string[];
+  files?: StudyMaterialFile[];
   createdAt: string;
 }
 

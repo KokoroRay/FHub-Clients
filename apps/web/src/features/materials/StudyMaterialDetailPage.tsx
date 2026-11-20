@@ -5,20 +5,27 @@ import {
   Download,
   Bookmark,
   ArrowLeft,
-  Calendar,
-  User,
   Trash2,
   Edit3,
-  ExternalLink,
   CheckCircle2,
+  Paperclip,
 } from 'lucide-react';
 import { studyMaterialApi } from '../../services/api/contentApi';
+import { courseNodesApi } from '../../services/api/adminApi';
 import { bookmarkApi } from '../../services/api/studentApi';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { UpdateMaterialMetadataModal } from './UpdateMaterialMetadataModal';
-import { StudyMaterial } from '../../types';
+import { StudyMaterial, StudyMaterialFile } from '../../types';
 import { ContentActionMenu } from '../../components/common/ContentActionMenu';
+
+const formatFileSize = (bytes: number): string => {
+  if (!bytes || bytes <= 0) return '0 KB';
+  if (bytes < 1024 * 1024) {
+    return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  }
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+};
 
 export const StudyMaterialDetailPage: React.FC = () => {
   const { currentUser } = useAuth();
@@ -35,6 +42,7 @@ export const StudyMaterialDetailPage: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
+  const [downloadingFileId, setDownloadingFileId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) {
@@ -45,8 +53,23 @@ export const StudyMaterialDetailPage: React.FC = () => {
     const fetchMaterial = async () => {
       try {
         setIsLoading(true);
-        const data = await studyMaterialApi.getMaterialById(id);
+        const [data, coursesRes] = await Promise.all([
+          studyMaterialApi.getMaterialById(id),
+          courseNodesApi.getCourseNodes({ pageSize: 2000 }).catch(() => ({ items: [] })),
+        ]);
+
         if (isMounted && data) {
+          const courseMap = new Map<number, string>();
+          ((coursesRes as any)?.items || []).forEach((c: any) => {
+            const cId = Number(c.courseNodeId ?? c.id);
+            const code = c.courseCode || c.code || '';
+            if (cId && code) courseMap.set(cId, code);
+          });
+
+          const resolvedCourseCode = data.courseId
+            ? (courseMap.get(Number(data.courseId)) || `COURSE-${data.courseId}`)
+            : 'Other';
+
           const name = data.fileName || data.title || '';
           setRawFileName(data.fileName || '');
           const ext = name.split('.').pop()?.toLowerCase();
@@ -58,20 +81,37 @@ export const StudyMaterialDetailPage: React.FC = () => {
           else if (['zip', 'rar', '7z'].includes(ext || '')) resolvedFileType = 'ZIP';
           else if (['cs', 'java', 'py', 'sql', 'cpp', 'c', 'json', 'md', 'txt'].includes(ext || '')) resolvedFileType = 'CODE';
 
+          const mappedFiles: StudyMaterialFile[] = (data.files || []).map((f) => ({
+            id: String(f.studyMaterialFileId),
+            fileName: f.fileName,
+            fileSizeBytes: f.fileSizeBytes,
+            fileSizeMb: Number((f.fileSizeBytes / (1024 * 1024)).toFixed(2)),
+            mimeType: f.mimeType,
+            displayOrder: f.displayOrder,
+          }));
+
           const mapped: StudyMaterial = {
             id: String(data.studyMaterialId),
             title: data.title,
             description: data.description || 'Comprehensive study material and practical exam reference guide.',
-            courseCode: data.courseId === 1 ? 'PRF192' : data.courseId === 2 ? 'PRO192' : 'PRN231',
+            courseId: data.courseId ?? null,
+            courseCode: resolvedCourseCode,
             fileType: resolvedFileType,
-            fileSizeMb: data.fileSizeBytes ? Number((data.fileSizeBytes / (1024 * 1024)).toFixed(1)) : 2.4,
+            fileSizeMb: data.fileSizeBytes ? Number((data.fileSizeBytes / (1024 * 1024)).toFixed(2)) : 0,
             downloadUrl: data.externalUrl || `/api/content/study-materials/${data.studyMaterialId}/download`,
-            downloadsCount: data.downloadCount || 48,
+            downloadsCount: data.downloadCount || 0,
             author: {
               id: String(data.uploaderUserId || currentUser?.id || 4),
-              fullName: (data.uploaderUserId && currentUser?.id && String(data.uploaderUserId) === String(currentUser.id) ? (currentUser.fullName || null) : null) || (data as any).uploaderDisplayName || (data as any).uploaderName || (data.uploaderUserId ? `Sinh viên FPT (#${data.uploaderUserId})` : 'Thành viên FHub'),
+              fullName:
+                (data.uploaderUserId && currentUser?.id && String(data.uploaderUserId) === String(currentUser.id)
+                  ? (currentUser.fullName || null)
+                  : null) ||
+                (data as any).uploaderDisplayName ||
+                (data as any).uploaderName ||
+                (data.uploaderUserId ? `Sinh viên FPT (#${data.uploaderUserId})` : 'Thành viên FHub'),
             },
             semesterUploaded: 'Fall 2026',
+            files: mappedFiles,
             createdAt: data.createdAt,
           };
           setMaterial(mapped);
@@ -99,6 +139,21 @@ export const StudyMaterialDetailPage: React.FC = () => {
     return () => { isMounted = false; };
   }, [id]);
 
+  const handleDownloadSpecificFile = async (file: StudyMaterialFile) => {
+    if (!material) return;
+    try {
+      setDownloadingFileId(file.id);
+      await studyMaterialApi.downloadSpecificFile(material.id, file.id, file.fileName);
+      setDownloadCount((prev) => prev + 1);
+      setDownloadSuccess(true);
+      setTimeout(() => setDownloadSuccess(false), 3000);
+    } catch (err) {
+      alert(t("Không thể tải xuống tài liệu. Vui lòng thử lại hoặc kiểm tra trạng thái đăng nhập."));
+    } finally {
+      setDownloadingFileId(null);
+    }
+  };
+
   const handleDownload = async () => {
     if (!material) return;
 
@@ -113,6 +168,20 @@ export const StudyMaterialDetailPage: React.FC = () => {
       return;
     }
 
+    if (material.files && material.files.length > 1) {
+      try {
+        for (const file of material.files) {
+          await studyMaterialApi.downloadSpecificFile(material.id, file.id, file.fileName);
+        }
+        setDownloadCount((prev) => prev + material.files!.length);
+        setDownloadSuccess(true);
+        setTimeout(() => setDownloadSuccess(false), 3000);
+      } catch (err) {
+        alert(t("Không thể tải xuống tài liệu. Vui lòng thử lại hoặc kiểm tra trạng thái đăng nhập."));
+      }
+      return;
+    }
+
     try {
       await studyMaterialApi.downloadFile(material.id, rawFileName || material.title);
       setDownloadCount((prev) => prev + 1);
@@ -120,16 +189,6 @@ export const StudyMaterialDetailPage: React.FC = () => {
       setTimeout(() => setDownloadSuccess(false), 3000);
     } catch (err) {
       alert(t("Không thể tải xuống tài liệu. Vui lòng thử lại hoặc kiểm tra trạng thái đăng nhập."));
-    }
-  };
-
-  const handleDelete = () => {
-    if (window.confirm(t("Bạn có chắc chắn muốn xóa tài liệu này không?"))) {
-      if (id) {
-        studyMaterialApi.deleteMaterial(id)
-          .then(() => navigate('/materials'))
-          .catch(() => navigate('/materials'));
-      }
     }
   };
 
@@ -153,6 +212,8 @@ export const StudyMaterialDetailPage: React.FC = () => {
     );
   }
 
+  const fileCount = material.files?.length || 0;
+
   return (
     <div className="space-y-6">
       {/* Top Breadcrumb */}
@@ -173,19 +234,30 @@ export const StudyMaterialDetailPage: React.FC = () => {
               <FileText className="w-7 h-7" />
             </div>
             <div className="space-y-1.5">
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded text-xs font-mono font-bold bg-blue-50 text-[#0076D1] border border-blue-100">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span
+                  className={`px-2.5 py-0.5 rounded text-xs font-mono font-bold border ${
+                    material.courseCode === 'Other'
+                      ? 'bg-slate-100 text-slate-600 border-slate-200'
+                      : 'bg-blue-50 text-[#0076D1] border-blue-100'
+                  }`}
+                >
                   [{material.courseCode}]
                 </span>
                 <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700">
                   {material.fileType}
                 </span>
+                {fileCount > 1 && (
+                  <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    {fileCount} files
+                  </span>
+                )}
               </div>
               <h1 className="text-xl font-bold text-slate-900 leading-tight">
                 {material.title}
               </h1>
               <p className="text-xs text-slate-500">
-                {t("Đăng bởi")} <strong className="text-slate-700">{material.author.fullName}</strong>  {t("• Kỳ học:")} {material.semesterUploaded}
+                {t("Đăng bởi")} <strong className="text-slate-700">{material.author.fullName}</strong> {t("• Kỳ học:")} {material.semesterUploaded}
               </p>
             </div>
           </div>
@@ -219,7 +291,6 @@ export const StudyMaterialDetailPage: React.FC = () => {
               shareUrl={typeof window !== 'undefined' ? window.location.href : ''}
             />
 
-            {/* Always visible for edit and delete demonstration (3.8.5 & 3.8.6) */}
             <button
               id="btn-edit-material"
               onClick={() => setIsEditModalOpen(true)}
@@ -242,7 +313,11 @@ export const StudyMaterialDetailPage: React.FC = () => {
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs bg-[#0076D1] hover:bg-[#005DA7] text-white shadow-md transition-all cursor-pointer"
             >
               <Download className="w-4 h-4" />
-              <span>{t('Download Material')}</span>
+              <span>
+                {fileCount > 1
+                  ? `${t('Download All', 'Tải tất cả')} (${fileCount})`
+                  : t('Download Material')}
+              </span>
             </button>
           </div>
         </div>
@@ -261,6 +336,49 @@ export const StudyMaterialDetailPage: React.FC = () => {
             {material.description}
           </p>
 
+          {/* Attached Files List */}
+          {material.files && material.files.length > 0 && (
+            <div className="space-y-2.5 pt-4 border-t border-slate-100">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                  <Paperclip className="w-4 h-4 text-[#0076D1]" />
+                  <span>{t('Attached Files', 'Tệp đính kèm')} ({material.files.length})</span>
+                </h3>
+              </div>
+              <div className="rounded-xl border border-slate-200 divide-y divide-slate-100 overflow-hidden">
+                {material.files.map((file, index) => (
+                  <div
+                    key={`${file.id}-${index}`}
+                    className="px-4 py-3 flex items-center justify-between gap-3 bg-slate-50/50 hover:bg-slate-50 transition-colors"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-blue-50 text-[#0076D1] flex items-center justify-center shrink-0 border border-blue-100">
+                        <FileText className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-slate-800 truncate" title={file.fileName}>
+                          {file.fileName}
+                        </p>
+                        <p className="text-[11px] text-slate-400">
+                          {formatFileSize(file.fileSizeBytes)}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={downloadingFileId === file.id}
+                      onClick={() => handleDownloadSpecificFile(file)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-[#0076D1] bg-blue-50 hover:bg-blue-100 border border-blue-200/70 transition-colors cursor-pointer shrink-0 disabled:opacity-50"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>{t('Download', 'Tải xuống')}</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-slate-100 text-xs">
             <div className="space-y-1">
               <span className="text-slate-400 block text-[11px]">{t('File Format')}</span>
@@ -268,11 +386,11 @@ export const StudyMaterialDetailPage: React.FC = () => {
             </div>
             <div className="space-y-1">
               <span className="text-slate-400 block text-[11px]">{t('File Size')}</span>
-              <strong className="text-slate-800">{material.fileSizeMb || 0}  {t("MB")}</strong>
+              <strong className="text-slate-800">{material.fileSizeMb || 0} {t("MB")}</strong>
             </div>
             <div className="space-y-1">
               <span className="text-slate-400 block text-[11px]">{t('Downloads')}</span>
-              <strong className="text-[#0076D1]">{downloadCount}  {t("lượt")}</strong>
+              <strong className="text-[#0076D1]">{downloadCount} {t("lượt")}</strong>
             </div>
             <div className="space-y-1">
               <span className="text-slate-400 block text-[11px]">{t('Upload Date')}</span>
@@ -310,7 +428,8 @@ export const StudyMaterialDetailPage: React.FC = () => {
             </div>
 
             <p className="text-xs text-slate-600 leading-relaxed">
-              {t("Bạn có chắc chắn muốn xóa tài liệu")} <strong>{material.title}</strong>{t("? File tài liệu đính kèm và lịch sử tải xuống sẽ bị xóa hoàn toàn khỏi thư viện.")}</p>
+              {t("Bạn có chắc chắn muốn xóa tài liệu")} <strong>{material.title}</strong>{t("? File tài liệu đính kèm và lịch sử tải xuống sẽ bị xóa hoàn toàn khỏi thư viện.")}
+            </p>
 
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
               <button
@@ -318,17 +437,25 @@ export const StudyMaterialDetailPage: React.FC = () => {
                 onClick={() => setIsDeleteModalOpen(false)}
                 className="px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
               >
-                {t("Hủy")}</button>
+                {t("Hủy")}
+              </button>
               <button
                 id="btn-confirm-delete-material"
                 type="button"
                 onClick={() => {
                   setIsDeleteModalOpen(false);
-                  navigate('/materials');
+                  if (id) {
+                    studyMaterialApi.deleteMaterial(id)
+                      .then(() => navigate('/materials'))
+                      .catch(() => navigate('/materials'));
+                  } else {
+                    navigate('/materials');
+                  }
                 }}
                 className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors shadow-xs"
               >
-                {t("Xác nhận xóa")}</button>
+                {t("Xác nhận xóa")}
+              </button>
             </div>
           </div>
         </div>

@@ -195,10 +195,18 @@ export const workflowApi = {
 };
 
 // ─── 3. Study Materials API ───────────────────────────────────────────────────
+export interface StudyMaterialFileItem {
+  studyMaterialFileId: number;
+  fileName: string;
+  fileSizeBytes: number;
+  mimeType?: string;
+  displayOrder: number;
+}
+
 export interface StudyMaterialItem {
   studyMaterialId: number;
   uploaderUserId: number;
-  courseId: number;
+  courseId?: number | null;
   title: string;
   description?: string;
   materialType: 'FILE' | 'LINK';
@@ -212,6 +220,7 @@ export interface StudyMaterialItem {
   createdAt: string;
   updatedAt: string;
   semanticTagIds: number[];
+  files?: StudyMaterialFileItem[];
 }
 
 export type StudyMaterialListItem = StudyMaterialItem;
@@ -235,6 +244,7 @@ export const studyMaterialApi = {
 
   uploadFile: async (formData: FormData): Promise<StudyMaterialItem> => {
     const res = await apiClient.post<ApiResponse<StudyMaterialItem>>('/api/content/study-materials/upload', formData, {
+      timeout: 120000,
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -243,7 +253,7 @@ export const studyMaterialApi = {
   },
 
   addExternalLink: async (payload: {
-    courseId: number;
+    courseId?: number | null;
     title: string;
     externalUrl: string;
     description?: string;
@@ -258,6 +268,8 @@ export const studyMaterialApi = {
     description?: string;
     externalUrl?: string;
     semanticTagIds?: number[];
+    courseId?: number | null;
+    updateCourseId?: boolean;
   }): Promise<StudyMaterialItem> => {
     const res = await apiClient.put<ApiResponse<StudyMaterialItem>>(`/api/content/study-materials/${id}`, payload);
     return res.data.data;
@@ -277,6 +289,42 @@ export const studyMaterialApi = {
     });
 
     let resolvedName = fallbackFileName || `material-${id}`;
+    const disposition = res.headers['content-disposition'];
+    if (typeof disposition === 'string') {
+      const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+      const plainMatch = disposition.match(/filename="?([^";]+)"?/i);
+      if (utf8Match && utf8Match[1]) {
+        resolvedName = decodeURIComponent(utf8Match[1].trim());
+      } else if (plainMatch && plainMatch[1]) {
+        resolvedName = plainMatch[1].trim();
+      }
+    }
+
+    const rawContentType = res.headers['content-type'];
+    const mimeType = typeof rawContentType === 'string' ? rawContentType : 'application/octet-stream';
+    const blob = new Blob([res.data], { type: mimeType });
+    const blobUrl = window.URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.setAttribute('download', resolvedName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 5000);
+  },
+
+  downloadSpecificFile: async (id: number | string, fileId: number | string, fallbackFileName?: string): Promise<void> => {
+    const endpoint = Number(fileId) > 0
+      ? `/api/content/study-materials/${id}/files/${fileId}/download`
+      : `/api/content/study-materials/${id}/download`;
+
+    const res = await apiClient.get<Blob>(endpoint, {
+      responseType: 'blob',
+    });
+
+    let resolvedName = fallbackFileName || `material-${id}-${fileId}`;
     const disposition = res.headers['content-disposition'];
     if (typeof disposition === 'string') {
       const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i);
